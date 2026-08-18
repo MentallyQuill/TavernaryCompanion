@@ -2,14 +2,19 @@ import type { KitQuery } from "../../catalog/catalog-core";
 
 export function KitFilterPanel({
   query,
+  open = false,
   onChange,
 }: {
   query: KitQuery;
+  open?: boolean;
   onChange(query: KitQuery): void;
 }): preact.JSX.Element {
   const update = (change: Partial<KitQuery>) => onChange({ ...query, ...change });
   return (
-    <fieldset class="tavernary-companion-kit-filters">
+    <fieldset
+      id="tavernary-companion-kit-filters"
+      class={`tavernary-companion-kit-filters${open ? " is-open" : ""}`}
+    >
       <legend>Published Kit filters</legend>
       <label>
         Frontend{" "}

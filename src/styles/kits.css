@@ -52,6 +52,9 @@
 .tavernary-companion-kit-search input {
   min-block-size: 2.4rem;
 }
+.tavernary-companion-kit-filter-trigger {
+  display: none;
+}
 .tavernary-companion-kit-filters {
   display: grid;
   grid-template-columns: repeat(4, minmax(8rem, 1fr));
@@ -174,6 +177,14 @@
   }
   .tavernary-companion-kits-route > header {
     align-items: flex-start;
+  }
+  .tavernary-companion-kit-filter-trigger {
+    display: inline-flex;
+    inline-size: max-content;
+    margin-block: 0.7rem;
+  }
+  .tavernary-companion-kit-filters:not(.is-open) {
+    display: none;
   }
 }
 

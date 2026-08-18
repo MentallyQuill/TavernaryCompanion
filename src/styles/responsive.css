@@ -164,8 +164,10 @@
   .tavernary-companion-shell__tabs button {
     min-inline-size: 0;
     padding-inline: 0.35rem;
-    overflow-wrap: anywhere;
-    font-size: 0.82rem;
+    overflow-wrap: normal;
+    white-space: nowrap;
+    font-size: 0.76rem;
+    letter-spacing: 0.025em;
   }
 
   .tavernary-companion-catalog-state > header {
