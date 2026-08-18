@@ -7,6 +7,7 @@ import { ActiveFilterChips } from "./active-filter-chips";
 import { FilterPanel, type ProjectFacets } from "./filter-panel";
 import { ProjectGrid } from "./project-grid";
 import { SearchToolbar } from "./search-toolbar";
+import { KitSelectionDock } from "../kits/kit-selection-dock";
 
 interface ProjectsRouteProps {
   state: DiscoveryState;
@@ -16,6 +17,12 @@ interface ProjectsRouteProps {
   onProjectAction?(id: string, action: ProjectPrimaryAction): void;
   onManageInSillyTavern?(): void;
   lifecycleDisabled?: boolean;
+  kitSelectionActive?: boolean;
+  selectedKitProjectIds?: readonly string[];
+  onBeginKitSelection?(): void;
+  onToggleKitSelection?(projectId: string): void;
+  onReviewKitSelection?(): void;
+  onCancelKitSelection?(): void;
 }
 
 const defaultFacets: ProjectFacets = {
@@ -31,6 +38,12 @@ export function ProjectsRoute({
   onProjectAction = () => undefined,
   onManageInSillyTavern,
   lifecycleDisabled,
+  kitSelectionActive = false,
+  selectedKitProjectIds = [],
+  onBeginKitSelection,
+  onToggleKitSelection,
+  onReviewKitSelection,
+  onCancelKitSelection,
 }: ProjectsRouteProps): preact.JSX.Element {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filterTrigger = useRef<HTMLButtonElement>(null);
@@ -74,7 +87,12 @@ export function ProjectsRoute({
   return (
     <section class="tavernary-companion-projects-route" aria-labelledby="projects-heading">
       <header>
-        <h2 id="projects-heading">Projects</h2>
+        <div>
+          <h2 id="projects-heading">Projects</h2>
+          <button type="button" disabled={kitSelectionActive} onClick={onBeginKitSelection}>
+            Select for Kit
+          </button>
+        </div>
         {isDefaultScope ? (
           <p>
             Showing SillyTavern extensions and presets. Clear filters to explore all Tavernary
@@ -117,8 +135,18 @@ export function ProjectsRoute({
           onProjectAction={onProjectAction}
           onManageInSillyTavern={onManageInSillyTavern}
           lifecycleDisabled={lifecycleDisabled}
+          kitSelectionActive={kitSelectionActive}
+          selectedKitProjectIds={selectedKitProjectIds}
+          onToggleKitSelection={onToggleKitSelection}
         />
       </div>
+      {kitSelectionActive ? (
+        <KitSelectionDock
+          count={selectedKitProjectIds.length}
+          onReview={() => onReviewKitSelection?.()}
+          onCancel={() => onCancelKitSelection?.()}
+        />
+      ) : null}
     </section>
   );
 }

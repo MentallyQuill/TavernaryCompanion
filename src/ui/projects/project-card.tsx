@@ -10,7 +10,8 @@ interface ProjectCardProps {
   onManageInSillyTavern?(): void;
   lifecycleDisabled?: boolean;
   kitSelectionActive?: boolean;
-  onAddToKit?(projectId: string): void;
+  selectedForKit?: boolean;
+  onToggleKitSelection?(projectId: string): void;
 }
 
 export function ProjectCard({
@@ -20,7 +21,8 @@ export function ProjectCard({
   onManageInSillyTavern,
   lifecycleDisabled = false,
   kitSelectionActive = false,
-  onAddToKit,
+  selectedForKit = false,
+  onToggleKitSelection,
 }: ProjectCardProps): preact.JSX.Element {
   const selfProtected =
     project.id === COMPANION_PROJECT_ID || project.action.kind === "current-extension";
@@ -42,9 +44,9 @@ export function ProjectCard({
         <p class="tavernary-companion-project-card__reason">{project.action.reason}</p>
       ) : null}
       <footer>
-        {kitSelectionActive && !selfProtected && project.kind === "extension" ? (
-          <button type="button" onClick={() => onAddToKit?.(project.id)}>
-            Add to Kit
+        {kitSelectionActive && !selfProtected && project.kitSelectable ? (
+          <button type="button" onClick={() => onToggleKitSelection?.(project.id)}>
+            {selectedForKit ? "Remove from Kit" : "Add to Kit"}
           </button>
         ) : null}
         <button

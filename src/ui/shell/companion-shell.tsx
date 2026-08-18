@@ -41,6 +41,10 @@ interface CompanionShellProps {
   onCopyKit?(id: string): void;
   onExportKit?(id: string): void;
   onUninstallKit?(id: string): void;
+  onDuplicateKit?(id: string): void;
+  onRemoveKit?(id: string): void;
+  onCreateKitFromSelection?(projectIds: readonly string[]): void;
+  activeKitId?: string | null;
   catalogSnapshot?: CatalogSnapshot;
   catalogRefreshing?: boolean;
   onRefreshCatalog?(): void | Promise<void>;
@@ -72,6 +76,10 @@ export function CompanionShell({
   onCopyKit,
   onExportKit,
   onUninstallKit,
+  onDuplicateKit,
+  onRemoveKit,
+  onCreateKitFromSelection,
+  activeKitId = null,
   catalogSnapshot,
   catalogRefreshing = false,
   onRefreshCatalog = noRefresh,
@@ -82,6 +90,7 @@ export function CompanionShell({
 }: CompanionShellProps): preact.JSX.Element {
   const [state, setState] = useState(controller.read());
   const [discoveryState, setDiscoveryState] = useState(discovery?.read() ?? null);
+  const [kitSelection, setKitSelection] = useState<string[] | null>(null);
 
   useEffect(() => controller.subscribe(setState), [controller]);
   useEffect(() => {
@@ -138,6 +147,23 @@ export function CompanionShell({
                 }}
                 onManageInSillyTavern={onOpenExtensionManager}
                 lifecycleDisabled={lifecycleDisabled}
+                kitSelectionActive={kitSelection !== null}
+                selectedKitProjectIds={kitSelection ?? []}
+                onBeginKitSelection={() => setKitSelection([])}
+                onToggleKitSelection={(projectId) =>
+                  setKitSelection((current) => {
+                    if (!current) return [projectId];
+                    return current.includes(projectId)
+                      ? current.filter((id) => id !== projectId)
+                      : [...current, projectId];
+                  })
+                }
+                onReviewKitSelection={() => {
+                  if (!kitSelection?.length) return;
+                  onCreateKitFromSelection?.(kitSelection);
+                  setKitSelection(null);
+                }}
+                onCancelKitSelection={() => setKitSelection(null)}
               />
             ) : (
               <>
@@ -174,6 +200,9 @@ export function CompanionShell({
                 onAction={(id, action) => onKitAction?.(id, action)}
                 onNewKit={onNewKit}
                 onImport={onImportKit}
+                switcherKits={Object.values(kitInspectors)}
+                activeKitId={activeKitId}
+                onActivate={(id) => onKitAction?.(id, { kind: "activate", label: "Activate" })}
               />
             ) : (
               <h2 id="tavernary-companion-kits-heading">Kits</h2>
@@ -220,6 +249,11 @@ export function CompanionShell({
                   onCopy={() => onCopyKit?.(detail.id)}
                   onExport={() => onExportKit?.(detail.id)}
                   onUninstall={() => onUninstallKit?.(detail.id)}
+                  onDuplicate={() => onDuplicateKit?.(detail.id)}
+                  onRemove={() => {
+                    onRemoveKit?.(detail.id);
+                    restoreAfterBack(controller);
+                  }}
                 />
               ) : (
                 <h2>{projectName(projects, discoveryState, detail.id)}</h2>

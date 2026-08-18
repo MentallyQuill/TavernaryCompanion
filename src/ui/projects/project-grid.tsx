@@ -7,6 +7,9 @@ interface ProjectGridProps {
   onProjectAction(id: string, action: ProjectPrimaryAction): void;
   onManageInSillyTavern?(): void;
   lifecycleDisabled?: boolean;
+  kitSelectionActive?: boolean;
+  selectedKitProjectIds?: readonly string[];
+  onToggleKitSelection?(projectId: string): void;
 }
 
 export function ProjectGrid({
@@ -15,6 +18,9 @@ export function ProjectGrid({
   onProjectAction,
   onManageInSillyTavern,
   lifecycleDisabled,
+  kitSelectionActive = false,
+  selectedKitProjectIds = [],
+  onToggleKitSelection,
 }: ProjectGridProps): preact.JSX.Element {
   if (projects.length === 0) {
     return <p>No projects match the current filters.</p>;
@@ -29,6 +35,9 @@ export function ProjectGrid({
           onAction={(action) => onProjectAction(project.id, action)}
           onManageInSillyTavern={onManageInSillyTavern}
           lifecycleDisabled={lifecycleDisabled}
+          kitSelectionActive={kitSelectionActive}
+          selectedForKit={selectedKitProjectIds.includes(project.id)}
+          onToggleKitSelection={onToggleKitSelection}
         />
       ))}
     </div>

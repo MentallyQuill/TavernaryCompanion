@@ -33,6 +33,8 @@ import {
   type KitPrimaryAction,
 } from "../kits/kit-view-model";
 import type { ReconciledKitStatus } from "../kits/kit-reconciler";
+import { reconcileKitStatus } from "../kits/kit-reconciler";
+import { fingerprintKitTopology } from "../kits/kit-validation";
 import { UNSANDBOXED_CODE_DISCLOSURE } from "../trust/trust-copy";
 import { exportKitFile } from "./kits/kit-export-action";
 import { KitEditor } from "./kits/kit-editor";
@@ -110,15 +112,16 @@ export function CompanionPopupHost({
   const [pendingKitPlan, setPendingKitPlan] = useState<Readonly<KitPlan> | null>(null);
   const [kitDisclosurePlan, setKitDisclosurePlan] = useState<Readonly<KitPlan> | null>(null);
   const [kitEditorSource, setKitEditorSource] = useState<PersonalKitV1 | "new" | null>(null);
+  const [kitEditorSeed, setKitEditorSeed] = useState<string[]>([]);
   const [importingKit, setImportingKit] = useState(false);
   const [kitInspectors, setKitInspectors] = useState<Record<string, KitInspectorViewModel>>({});
   const [operationError, setOperationError] = useState<string | null>(null);
 
-  const syncKits = useCallback(() => {
+  const syncKits = useCallback(async () => {
     if (!runtime || !store) return;
     const snapshot = runtime.catalog.read();
     if (!("catalog" in snapshot)) return;
-    const presentation = buildKitPresentation(
+    const presentation = await buildKitPresentation(
       snapshot.catalog,
       runtime.kits,
       runtime.kitContext.inventory,
@@ -133,6 +136,7 @@ export function CompanionPopupHost({
 
   const refreshInventory = useCallback(async () => {
     if (!runtime || !host || !store) return;
+    setOperationError(null);
     setInventoryRefreshing(true);
     try {
       const extensions = await host.discover();
@@ -144,7 +148,9 @@ export function CompanionPopupHost({
       });
       runtime.kitContext.inventory = inventory;
       runtime.discovery.setInventory(inventory);
-      syncKits();
+      await syncKits();
+    } catch {
+      setOperationError("Could not refresh installed extensions. Try again.");
     } finally {
       setInventoryRefreshing(false);
     }
@@ -172,7 +178,7 @@ export function CompanionPopupHost({
     const unsubscribeStore = store?.subscribe((state) => {
       setReceipt(parseReceipt(state.operationReceipt));
       setKitReceipt(parseKitReceipt(state.operationReceipt));
-      syncKits();
+      void syncKits();
     });
     const onFocus = () => void runtime.catalog.onFocus();
     window.addEventListener("focus", onFocus);
@@ -182,7 +188,7 @@ export function CompanionPopupHost({
       if (runtime.kitExecutor.journal.read() && runtime.lifecycle.lock.read() === null) {
         await refreshInventory();
         setKitReceipt(await runtime.kitExecutor.recoverInterrupted());
-        syncKits();
+        await syncKits();
       }
     });
     return () => {
@@ -213,21 +219,12 @@ export function CompanionPopupHost({
     }
   };
 
-  const requestKitAction = (kitId: string, action: KitPrimaryAction | "uninstall") => {
+  const requestKitOperation = (kitId: string, operation: KitOperation) => {
     if (!runtime || !store) return;
-    if (action !== "uninstall" && action.kind === "review") return;
     const snapshot = runtime.catalog.read();
     if (!("catalog" in snapshot)) return;
     const kit = resolveKit(runtime, snapshot.catalog, kitId);
     if (!kit) return;
-    const operation: KitOperation =
-      action === "uninstall"
-        ? "uninstall"
-        : action.kind === "activate"
-          ? "activate"
-          : action.kind === "deactivate"
-            ? "deactivate"
-            : "install";
     const plan = planKitOperation({
       operation,
       kit,
@@ -242,6 +239,20 @@ export function CompanionPopupHost({
     else setPendingKitPlan(plan);
   };
 
+  const requestKitAction = (kitId: string, action: KitPrimaryAction | "uninstall") => {
+    if (action !== "uninstall" && (action.kind === "review" || action.kind === "view")) return;
+    requestKitOperation(
+      kitId,
+      action === "uninstall"
+        ? "uninstall"
+        : action.kind === "activate"
+          ? "activate"
+          : action.kind === "deactivate"
+            ? "deactivate"
+            : "install",
+    );
+  };
+
   const executeKitPlan = async (
     plan: Readonly<KitPlan>,
     approval: Parameters<KitExecutor["execute"]>[1],
@@ -253,7 +264,7 @@ export function CompanionPopupHost({
       const result = await runtime.kitExecutor.execute(plan, approval);
       setKitReceipt(result);
       await refreshInventory();
-      syncKits();
+      await syncKits();
     } catch (error) {
       setOperationError(
         error instanceof Error ? error.message : "The Kit operation could not finish.",
@@ -277,7 +288,8 @@ export function CompanionPopupHost({
       });
     }
     setKitEditorSource(null);
-    syncKits();
+    setKitEditorSeed([]);
+    await syncKits();
   };
   const runtimeCatalog = runtime?.catalog.read();
   const kitEditorProjects =
@@ -301,11 +313,21 @@ export function CompanionPopupHost({
         kitDiscovery={runtime?.kitDiscovery}
         kitInspectors={kitInspectors}
         onKitAction={requestKitAction}
-        onNewKit={() => setKitEditorSource("new")}
+        onNewKit={() => {
+          setKitEditorSeed([]);
+          setKitEditorSource("new");
+        }}
+        onCreateKitFromSelection={(projectIds) => {
+          setKitEditorSeed([...projectIds]);
+          setKitEditorSource("new");
+        }}
         onImportKit={() => setImportingKit(true)}
         onEditKit={(id) => {
           const kit = runtime?.kits.readDefinition(id);
-          if (kit) setKitEditorSource(kit);
+          if (kit) {
+            setKitEditorSeed([]);
+            setKitEditorSource(kit);
+          }
         }}
         onCopyKit={(id) => {
           const snapshot = runtime?.catalog.read();
@@ -313,24 +335,42 @@ export function CompanionPopupHost({
             snapshot && "catalog" in snapshot
               ? snapshot.catalog.kits.find((item) => item.id === id)
               : null;
-          if (kit) void runtime?.kits.copyPublished(kit).then(syncKits);
+          if (kit) void runtime?.kits.copyPublished(kit).then(() => syncKits());
         }}
         onExportKit={(id) => {
           const kit = runtime?.kits.readDefinition(id);
           if (kit) exportKitFile(kit);
         }}
         onUninstallKit={(id) => requestKitAction(id, "uninstall")}
+        onDuplicateKit={(id) =>
+          void runtime?.kits
+            .duplicate(id)
+            .then(() => syncKits())
+            .catch(() => setOperationError("The personal Kit could not be duplicated."))
+        }
+        onRemoveKit={(id) =>
+          void runtime?.kits
+            .removeDefinition(id)
+            .then(() => syncKits())
+            .catch(() => setOperationError("Uninstall the Kit before removing it."))
+        }
+        activeKitId={runtime?.kits.readActiveId() ?? null}
       />
       {kitEditorSource && kitEditorProjects ? (
         <KitEditor
           source={kitEditorSource === "new" ? undefined : kitEditorSource}
+          initialProjectIds={kitEditorSource === "new" ? kitEditorSeed : []}
           projects={kitEditorProjects}
-          onCancel={() => setKitEditorSource(null)}
+          onCancel={() => {
+            setKitEditorSource(null);
+            setKitEditorSeed([]);
+          }}
           onSave={(draft) => void saveKitDraft(draft)}
         />
       ) : null}
       {importingKit && runtime ? (
         <KitImportDialog
+          projects={kitEditorProjects ?? []}
           onCancel={() => setImportingKit(false)}
           onImport={(kit) => {
             const prepared = prepareImportedKit(
@@ -339,7 +379,7 @@ export function CompanionPopupHost({
             );
             void runtime.kits.importDefinition(prepared).then(() => {
               setImportingKit(false);
-              syncKits();
+              void syncKits();
             });
           }}
         />
@@ -400,20 +440,23 @@ export function CompanionPopupHost({
         active={activeOperation?.operationId.startsWith("kit:") ? null : activeOperation}
         receipt={receipt}
         error={operationError}
-        onDismissReceipt={() => setReceipt(null)}
+        onDismissReceipt={() => {
+          if (receipt) void clearStoredReceipt(store, receipt.id);
+          setReceipt(null);
+        }}
         onDismissError={() => setOperationError(null)}
+        onRetryError={() => void refreshInventory()}
       />
       <KitOperationTray
         active={activeOperation}
         receipt={kitReceipt}
-        onDismiss={() => setKitReceipt(null)}
+        onDismiss={() => {
+          if (kitReceipt) void clearStoredReceipt(store, kitReceipt.id);
+          setKitReceipt(null);
+        }}
         onRetry={() => {
           if (!kitReceipt) return;
-          const action =
-            kitReceipt.operation === "activate"
-              ? ({ kind: "activate", label: "Activate" } as const)
-              : ({ kind: "retry", label: "Retry" } as const);
-          requestKitAction(kitReceipt.kitId, action);
+          requestKitOperation(kitReceipt.kitId, retryKitOperation(kitReceipt));
         }}
       />
     </>
@@ -518,32 +561,43 @@ function resolveKit(
     : null;
 }
 
-function buildKitPresentation(
+export async function buildKitPresentation(
   catalog: Extract<CatalogSnapshot, { catalog: unknown }>["catalog"],
   kits: KitStore,
   inventory: InventorySnapshot,
-): {
+): Promise<{
   statuses: Map<string, ReconciledKitStatus>;
   inspectors: Record<string, KitInspectorViewModel>;
-} {
+}> {
   const statuses = new Map<string, ReconciledKitStatus>();
   const activeId = kits.readActiveId();
-  for (const state of kits.readInstalledStates()) {
-    statuses.set(
-      state.kitId,
-      activeId === state.kitId ? (state.status === "drifted" ? "drifted" : "active") : state.status,
-    );
-  }
   const inspectors: Record<string, KitInspectorViewModel> = {};
   for (const kit of kits.readDefinitions()) {
-    const status = statuses.get(kit.id) ?? "saved";
+    const status = reconcileKitStatus({
+      kitId: kit.id,
+      definitionFingerprint: await fingerprintKitTopology(kit.projectIds),
+      published: false,
+      installed: kits.readInstalled(kit.id),
+      inventory,
+      activeKitId: activeId,
+    });
+    statuses.set(kit.id, status);
     inspectors[kit.id] = toPersonalKitInspector(kit, catalog.projects, status);
   }
   for (const kit of catalog.kits) {
-    const status = statuses.get(kit.id) ?? "saved";
+    const status = reconcileKitStatus({
+      kitId: kit.id,
+      definitionFingerprint: await fingerprintKitTopology(
+        kit.components.map(({ projectId }) => projectId),
+      ),
+      published: true,
+      installed: kits.readInstalled(kit.id),
+      inventory,
+      activeKitId: activeId,
+    });
+    statuses.set(kit.id, status);
     inspectors[kit.id] = toPublishedKitInspector(kit, status);
   }
-  void inventory;
   return { statuses, inspectors };
 }
 
@@ -553,4 +607,18 @@ export function renderCompanionPopup(
 ): () => void {
   render(<CompanionPopupHost {...options} />, container);
   return () => render(null, container);
+}
+
+export async function clearStoredReceipt(
+  store: ProfileStore | undefined,
+  receiptId: string,
+): Promise<void> {
+  if (!store || store.read().operationReceipt?.id !== receiptId) return;
+  await store.update((draft) => {
+    if (draft.operationReceipt?.id === receiptId) draft.operationReceipt = null;
+  });
+}
+
+export function retryKitOperation(receipt: KitReceipt): KitOperation {
+  return receipt.operation;
 }

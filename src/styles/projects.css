@@ -11,6 +11,35 @@
   padding-block: 0.25rem 0.6rem;
 }
 
+.tavernary-companion-projects-route > header > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tavernary-companion-space-2);
+}
+
+.tavernary-companion-kit-selection-dock {
+  position: sticky;
+  z-index: 6;
+  inset-block-end: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--tavernary-companion-space-2);
+  margin-block-start: var(--tavernary-companion-space-3);
+  padding: var(--tavernary-companion-space-2);
+  border: 1px solid var(--tavernary-companion-accent);
+  background: var(--tavernary-companion-raised);
+  box-shadow: 0 -0.5rem 1.5rem rgb(0 0 0 / 35%);
+}
+
+.tavernary-companion-kit-selection-dock span {
+  margin-inline-end: auto;
+  font-weight: 700;
+}
+
 .tavernary-companion-projects-route h2,
 .tavernary-companion-installed-route h2,
 .tavernary-companion-project-detail h2 {

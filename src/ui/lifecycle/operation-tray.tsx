@@ -8,6 +8,7 @@ interface OperationTrayProps {
   error?: string | null;
   onDismissReceipt?(): void;
   onDismissError?(): void;
+  onRetryError?(): void;
 }
 
 export function OperationTray({
@@ -16,6 +17,7 @@ export function OperationTray({
   error,
   onDismissReceipt,
   onDismissError,
+  onRetryError,
 }: OperationTrayProps): preact.JSX.Element | null {
   if (error) {
     return (
@@ -24,6 +26,11 @@ export function OperationTray({
         role="alert"
       >
         <p>{error}</p>
+        {onRetryError ? (
+          <button type="button" onClick={onRetryError}>
+            Retry
+          </button>
+        ) : null}
         <button type="button" onClick={onDismissError}>
           Dismiss
         </button>

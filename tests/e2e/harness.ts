@@ -4,7 +4,12 @@ import type { Page } from "@playwright/test";
 
 export async function openHarness(page: Page): Promise<void> {
   const root = resolve(import.meta.dirname, "../..");
-  await page.route("http://companion.test/**", async (route) => {
+  const startupErrors: string[] = [];
+  page.on("pageerror", (error) => startupErrors.push(error.message));
+  page.on("console", (message) => {
+    if (message.type() === "error") startupErrors.push(message.text());
+  });
+  await page.route("http://localhost/**", async (route) => {
     const pathname = decodeURIComponent(new URL(route.request().url()).pathname);
     const target = resolve(root, `.${pathname}`);
     if (target !== root && !target.startsWith(`${root}${sep}`)) {
@@ -13,6 +18,13 @@ export async function openHarness(page: Page): Promise<void> {
     }
     await route.fulfill({ path: target });
   });
-  await page.goto("http://companion.test/tests/fixtures/ui-harness.html");
-  await page.getByTestId("companion-shell").waitFor();
+  await page.goto("http://localhost/tests/fixtures/ui-harness.html");
+  try {
+    await page.getByTestId("companion-shell").waitFor({ timeout: 10_000 });
+  } catch (error) {
+    throw new Error(
+      `Companion harness did not render${startupErrors.length ? `: ${startupErrors.join(" | ")}` : "."}`,
+      { cause: error },
+    );
+  }
 }

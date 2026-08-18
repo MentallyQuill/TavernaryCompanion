@@ -16,6 +16,8 @@ export function KitInspector({
   onCopy,
   onExport,
   onUninstall,
+  onDuplicate,
+  onRemove,
 }: {
   kit: KitInspectorViewModel;
   disabled?: boolean;
@@ -24,6 +26,8 @@ export function KitInspector({
   onCopy?(): void;
   onExport?(): void;
   onUninstall?(): void;
+  onDuplicate?(): void;
+  onRemove?(): void;
 }): preact.JSX.Element {
   return (
     <article class="tavernary-companion-kit-inspector">
@@ -50,6 +54,25 @@ export function KitInspector({
         {kit.editable ? (
           <button type="button" onClick={onExport}>
             Export
+          </button>
+        ) : null}
+        {kit.editable ? (
+          <button type="button" onClick={onDuplicate}>
+            Duplicate
+          </button>
+        ) : null}
+        {kit.editable ? (
+          <button
+            type="button"
+            disabled={disabled || kit.operationalStatus !== "Saved"}
+            title={
+              kit.operationalStatus === "Saved"
+                ? undefined
+                : "Uninstall this Kit before removing its saved definition."
+            }
+            onClick={onRemove}
+          >
+            Remove saved Kit
           </button>
         ) : null}
         {kit.operationalStatus !== "Saved" ? (

@@ -10,7 +10,7 @@ export function KitSelectionDock({
   return (
     <aside class="tavernary-companion-kit-selection-dock" role="status">
       <span>{count} selected</span>
-      <button type="button" onClick={onReview}>
+      <button type="button" disabled={count === 0} onClick={onReview}>
         Review Kit
       </button>
       <button type="button" onClick={onCancel}>

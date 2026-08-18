@@ -1,8 +1,10 @@
 import { useEffect, useState } from "preact/hooks";
 import type { KitDiscoveryController } from "../../kits/kit-discovery-controller";
 import type { KitPrimaryAction } from "../../kits/kit-view-model";
+import type { KitCardViewModel } from "../../kits/kit-view-model";
 import { KitCard } from "./kit-card";
 import { KitFilterPanel } from "./kit-filter-panel";
+import { KitSwitcher } from "./kit-switcher";
 
 export function KitsRoute({
   controller,
@@ -11,6 +13,9 @@ export function KitsRoute({
   onAction,
   onNewKit,
   onImport,
+  switcherKits = [],
+  activeKitId = null,
+  onActivate,
 }: {
   controller: KitDiscoveryController;
   lifecycleDisabled?: boolean;
@@ -18,6 +23,9 @@ export function KitsRoute({
   onAction(id: string, action: KitPrimaryAction): void;
   onNewKit?(): void;
   onImport?(): void;
+  switcherKits?: readonly KitCardViewModel[];
+  activeKitId?: string | null;
+  onActivate?(id: string): void;
 }): preact.JSX.Element {
   const [state, setState] = useState(controller.read());
   useEffect(() => controller.subscribe(setState), [controller]);
@@ -37,6 +45,17 @@ export function KitsRoute({
           </button>
         </div>
       </header>
+      {switcherKits.some(
+        ({ operationalStatus }) =>
+          operationalStatus === "Installed" || operationalStatus === "Active",
+      ) ? (
+        <KitSwitcher
+          kits={switcherKits}
+          activeKitId={activeKitId}
+          disabled={lifecycleDisabled}
+          onActivate={(id) => onActivate?.(id)}
+        />
+      ) : null}
       <div class="tavernary-companion-kit-segments" role="tablist" aria-label="Kit sources">
         <button
           type="button"

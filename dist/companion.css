@@ -183,6 +183,32 @@
 .tavernary-companion-projects-route > header {
   padding-block: 0.25rem 0.6rem;
 }
+.tavernary-companion-projects-route > header > div {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--tavernary-companion-space-2);
+}
+.tavernary-companion-kit-selection-dock {
+  position: sticky;
+  z-index: 6;
+  inset-block-end: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--tavernary-companion-space-2);
+  margin-block-start: var(--tavernary-companion-space-3);
+  padding: var(--tavernary-companion-space-2);
+  border: 1px solid var(--tavernary-companion-accent);
+  background: var(--tavernary-companion-raised);
+  box-shadow: 0 -0.5rem 1.5rem rgb(0 0 0 / 35%);
+}
+.tavernary-companion-kit-selection-dock span {
+  margin-inline-end: auto;
+  font-weight: 700;
+}
 .tavernary-companion-projects-route h2,
 .tavernary-companion-installed-route h2,
 .tavernary-companion-project-detail h2 {
@@ -570,6 +596,19 @@
   margin: 0;
   color: var(--tavernary-companion-muted);
 }
+.tavernary-companion-kit-switcher {
+  display: grid;
+  gap: 0.25rem;
+  max-inline-size: 34rem;
+  margin-block: 0.8rem;
+  padding: 0.65rem;
+  border: 1px solid var(--tavernary-companion-border);
+  background: var(--tavernary-companion-inset);
+}
+.tavernary-companion-kit-switcher select {
+  min-block-size: 2.4rem;
+  inline-size: 100%;
+}
 .tavernary-companion-kit-segments {
   display: flex;
   gap: 0.35rem;
@@ -655,6 +694,18 @@
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
+}
+.tavernary-companion-dialog [role=alertdialog] {
+  display: grid;
+  gap: 0.5rem;
+  margin-block-start: 0.8rem;
+  padding: 0.75rem;
+  border: 1px solid var(--tavernary-companion-material);
+  background: var(--tavernary-companion-inset);
+}
+.tavernary-companion-dialog [role=alertdialog] h3,
+.tavernary-companion-dialog [role=alertdialog] p {
+  margin: 0;
 }
 .tavernary-companion-kit-components ul {
   list-style: none;

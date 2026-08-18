@@ -17,16 +17,28 @@ export function KitEditor({
   projects,
   onSave,
   onCancel,
+  initialProjectIds = [],
 }: {
   source?: PersonalKitV1;
   projects: readonly CatalogProject[];
   onSave(draft: KitDraftState): void;
   onCancel(): void;
+  initialProjectIds?: readonly string[];
 }): preact.JSX.Element {
-  const [draft, setDraft] = useState(() => createKitDraft(source));
+  const [draft, setDraft] = useState(() => {
+    const created = createKitDraft(source);
+    return source || initialProjectIds.length === 0
+      ? created
+      : updateKitDraft(created, { projectIds: [...initialProjectIds] });
+  });
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const requestCancel = () => {
+    if (draft.dirty) setConfirmDiscard(true);
+    else onCancel();
+  };
   const byId = useMemo(() => new Map(projects.map((project) => [project.id, project])), [projects]);
   return (
-    <DialogFrame label={source ? "Edit personal Kit" : "New personal Kit"} onCancel={onCancel}>
+    <DialogFrame label={source ? "Edit personal Kit" : "New personal Kit"} onCancel={requestCancel}>
       <form
         onSubmit={(event) => {
           event.preventDefault();
@@ -93,7 +105,7 @@ export function KitEditor({
           </ul>
         ) : null}
         <footer>
-          <button type="button" onClick={onCancel}>
+          <button type="button" onClick={requestCancel}>
             Cancel
           </button>
           <button type="submit" disabled={draft.issues.length > 0}>
@@ -101,6 +113,18 @@ export function KitEditor({
           </button>
         </footer>
       </form>
+      {confirmDiscard ? (
+        <section role="alertdialog" aria-label="Discard Kit changes?">
+          <h3>Discard Kit changes?</h3>
+          <p>Your unsaved changes will be lost.</p>
+          <button type="button" onClick={() => setConfirmDiscard(false)}>
+            Keep editing
+          </button>
+          <button type="button" onClick={onCancel}>
+            Discard changes
+          </button>
+        </section>
+      ) : null}
     </DialogFrame>
   );
 }

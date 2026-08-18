@@ -23,6 +23,7 @@ function project(overrides: Partial<ProjectCardViewModel> = {}): ProjectCardView
     tavernKeeper: null,
     installed: false,
     ownership: "absent",
+    kitSelectable: true,
     action: { kind: "install", label: "Install", reason: null },
     ...overrides,
   };
@@ -77,5 +78,33 @@ describe("ProjectCard", () => {
     );
     expect(screen.queryByRole("button", { name: /Install Alpha/ })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Manage in SillyTavern" })).toBeVisible();
+  });
+
+  it("toggles eligible projects while Kit selection is active", () => {
+    const toggle = vi.fn();
+    const { rerender } = render(
+      <ProjectCard
+        project={project()}
+        onOpen={vi.fn()}
+        onAction={vi.fn()}
+        kitSelectionActive
+        selectedForKit={false}
+        onToggleKitSelection={toggle}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Add to Kit" }));
+    expect(toggle).toHaveBeenCalledWith("alpha");
+
+    rerender(
+      <ProjectCard
+        project={project()}
+        onOpen={vi.fn()}
+        onAction={vi.fn()}
+        kitSelectionActive
+        selectedForKit
+        onToggleKitSelection={toggle}
+      />,
+    );
+    expect(screen.getByRole("button", { name: "Remove from Kit" })).toBeVisible();
   });
 });

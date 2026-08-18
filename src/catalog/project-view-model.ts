@@ -45,6 +45,7 @@ export interface ProjectCardViewModel {
   tavernKeeper: CatalogProject["tavernKeeper"];
   installed: boolean;
   ownership: "managed" | "external" | "absent";
+  kitSelectable: boolean;
   action: ProjectPrimaryAction;
 }
 
@@ -155,6 +156,11 @@ export function toProjectCardViewModel(
     tavernKeeper: project.tavernKeeper,
     installed: ownership !== "absent",
     ownership,
+    kitSelectable:
+      project.id !== COMPANION_PROJECT_ID &&
+      project.kind === "extension" &&
+      project.frontends.some(({ id }) => id === "sillytavern") &&
+      Boolean(project.install),
     action: actionFor(project, context, ownership),
   };
 }

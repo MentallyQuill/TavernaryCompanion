@@ -103,4 +103,18 @@ describe("lifecycle UI", () => {
     expect(screen.getByText("Alpha installed and verified")).toBeVisible();
     expect(screen.getByText("Reload required")).toBeVisible();
   });
+
+  it("offers retry when installed-extension discovery fails", () => {
+    const retry = vi.fn();
+    render(
+      <OperationTray
+        active={null}
+        receipt={null}
+        error="Could not refresh installed extensions."
+        onRetryError={retry}
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Retry" }));
+    expect(retry).toHaveBeenCalledOnce();
+  });
 });

@@ -255,9 +255,7 @@ export class KitExecutor {
         "disable",
         mutationFailure || verificationFailure ? "failed" : "verified",
         mutationFailure?.error ??
-          (discoveryError
-            ? `Disabled state could not be verified: ${discoveryError}`
-            : null) ??
+          (discoveryError ? `Disabled state could not be verified: ${discoveryError}` : null) ??
           (verificationFailure
             ? "Extension remained enabled after the disable request."
             : "Disabled and verified."),
