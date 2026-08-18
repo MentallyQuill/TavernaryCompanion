@@ -11439,10 +11439,14 @@ function toProjectCardViewModel(project2, context) {
     summary: project2.summary,
     kind: project2.kind,
     frontends: project2.frontends.map(({ label: label2 }) => label2),
+    tags: project2.tags.map(({ label: label2 }) => label2),
+    licenseLabel: project2.license.label,
+    attributionLabel: project2.attribution ? `By ${project2.attribution.owner.login}` : null,
     primaryFunction: primaryFunctionLabel(project2.primaryFunction),
     activity: {
       latestSourceActivityAt: project2.activity.latestSourceActivityAt,
       activeWeeks12: project2.activity.activeWeeks12,
+      weeklyActivity: project2.activity.weeklyActivity,
       dormant: project2.activity.dormant
     },
     tavernKeeper: project2.tavernKeeper,
@@ -14443,12 +14447,13 @@ function InstalledRoute({
   h2(() => {
     void onRefresh();
   }, [onRefresh]);
+  const populatedSections = sections.filter((section) => section.rows.length > 0);
   return /* @__PURE__ */ u3("section", { class: "tavernary-companion-installed-route", "aria-labelledby": "installed-heading", children: [
     /* @__PURE__ */ u3("header", { children: [
       /* @__PURE__ */ u3("h2", { id: "installed-heading", children: "Installed extensions" }),
       refreshing ? /* @__PURE__ */ u3("p", { role: "status", children: "Updating installed extensions\u2026" }) : null
     ] }),
-    sections.map((section) => /* @__PURE__ */ u3(
+    populatedSections.length ? populatedSections.map((section) => /* @__PURE__ */ u3(
       InstalledSection,
       {
         section,
@@ -14458,7 +14463,7 @@ function InstalledRoute({
         lifecycleDisabled
       },
       section.id
-    ))
+    )) : /* @__PURE__ */ u3("p", { children: "No installed extensions were found in this profile." })
   ] });
 }
 
@@ -14591,12 +14596,21 @@ function KitCard({
       ] }) : null
     ] }),
     /* @__PURE__ */ u3("footer", { children: [
-      /* @__PURE__ */ u3("button", { type: "button", "data-focus-key": `kit-${kit2.id}`, onClick: onOpen, children: "Details" }),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          class: "tavernary-companion-button tavernary-companion-button--secondary",
+          type: "button",
+          "data-focus-key": `kit-${kit2.id}`,
+          onClick: onOpen,
+          children: "Details"
+        }
+      ),
       /* @__PURE__ */ u3(
         "button",
         {
           type: "button",
-          class: "tavernary-companion-kit-card__primary",
+          class: "tavernary-companion-kit-card__primary tavernary-companion-button tavernary-companion-button--primary",
           disabled,
           onClick: () => onAction(kit2.primaryAction),
           children: kit2.primaryAction.label
@@ -14917,10 +14931,10 @@ function CatalogStatePanel({
       "data-testid": "catalog-state-panel",
       "data-lifecycle-disabled": String(!snapshot.canMutate),
       children: [
-        /* @__PURE__ */ u3("header", { children: [
+        emptyError ? /* @__PURE__ */ u3("header", { children: [
           /* @__PURE__ */ u3(CatalogFreshness, { snapshot, refreshing }),
-          !incompatible ? /* @__PURE__ */ u3("button", { type: "button", onClick: () => void refresh(), disabled: refreshing, children: emptyError ? "Try again" : "Refresh catalog" }) : null
-        ] }),
+          /* @__PURE__ */ u3("button", { type: "button", onClick: () => void refresh(), disabled: refreshing, children: "Try again" })
+        ] }) : null,
         /* @__PURE__ */ u3("span", { class: "tavernary-companion-sr-only", role: "status", "aria-live": "polite", children: announcement }),
         incompatible && !usingCache ? /* @__PURE__ */ u3("section", { "aria-labelledby": "catalog-update-heading", children: [
           /* @__PURE__ */ u3("h2", { id: "catalog-update-heading", children: "Companion update required" }),
@@ -14962,15 +14976,33 @@ function CatalogStatePanel({
   );
 }
 
+// src/ui/shared/activity-strip.tsx
+function ActivityStrip({ weeks }) {
+  const values = weeks?.slice(-12) ?? Array.from({ length: 12 }, () => false);
+  const padded = [
+    ...Array.from({ length: Math.max(0, 12 - values.length) }, () => false),
+    ...values
+  ];
+  return /* @__PURE__ */ u3("span", { class: "tavernary-companion-activity-strip", "aria-hidden": "true", children: padded.map((value, index) => /* @__PURE__ */ u3("i", { class: value ? "is-active" : "" }, index)) });
+}
+
 // src/ui/shared/activity-summary.tsx
 function ActivitySummary({ activity }) {
   if (activity.activeWeeks12 === null) {
     return /* @__PURE__ */ u3("span", { children: "Activity unavailable" });
   }
-  return /* @__PURE__ */ u3("span", { children: [
-    activity.activeWeeks12,
-    " of 12 active weeks",
-    activity.dormant ? " \xB7 Dormant" : ""
+  return /* @__PURE__ */ u3("span", { class: "tavernary-companion-activity-summary", children: [
+    /* @__PURE__ */ u3("span", { children: [
+      /* @__PURE__ */ u3("b", { children: "Activity" }),
+      " \xB7",
+      " ",
+      /* @__PURE__ */ u3("span", { children: [
+        activity.activeWeeks12,
+        " of 12 active weeks",
+        activity.dormant ? " \xB7 Dormant" : ""
+      ] })
+    ] }),
+    /* @__PURE__ */ u3(ActivityStrip, { weeks: activity.weeklyActivity })
   ] });
 }
 
@@ -15333,6 +15365,23 @@ function toggle(values, id) {
   return values.includes(id) ? values.filter((value) => value !== id) : [...values, id];
 }
 
+// src/ui/shared/category-icon.tsx
+function CategoryIcon({ kind }) {
+  if (kind === "frontend") {
+    return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", children: [
+      /* @__PURE__ */ u3("rect", { x: "3", y: "4", width: "18", height: "16", rx: "2" }),
+      /* @__PURE__ */ u3("path", { d: "M3 8h18M8 8v12M11 12h6M11 16h4" })
+    ] });
+  }
+  if (kind === "preset") {
+    return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", children: [
+      /* @__PURE__ */ u3("circle", { cx: "12", cy: "12", r: "3" }),
+      /* @__PURE__ */ u3("path", { d: "M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" })
+    ] });
+  }
+  return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", children: /* @__PURE__ */ u3("path", { d: "M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z" }) });
+}
+
 // src/ui/projects/project-card.tsx
 function ProjectCard({
   project: project2,
@@ -15346,26 +15395,43 @@ function ProjectCard({
 }) {
   const selfProtected = project2.id === COMPANION_PROJECT_ID || project2.action.kind === "current-extension";
   return /* @__PURE__ */ u3("article", { class: "tavernary-companion-project-card", "data-project-id": project2.id, children: [
-    /* @__PURE__ */ u3("header", { children: [
+    /* @__PURE__ */ u3("header", { class: "tavernary-companion-project-card__top", children: [
+      /* @__PURE__ */ u3("span", { class: `tavernary-companion-project-card__kind kind-${project2.kind}`, children: [
+        /* @__PURE__ */ u3(CategoryIcon, { kind: project2.kind }),
+        kindLabel(project2.kind)
+      ] }),
+      /* @__PURE__ */ u3(ActivitySummary, { activity: project2.activity })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__title", children: [
       /* @__PURE__ */ u3("h3", { children: project2.name }),
-      /* @__PURE__ */ u3("span", { children: project2.frontends.join(", ") || "Frontend-neutral" })
-    ] }),
-    /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__context", children: [
-      kindLabel(project2.kind),
-      " \xB7 ",
-      project2.primaryFunction
-    ] }),
-    /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__summary", children: project2.summary }),
-    /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__evidence", children: [
-      /* @__PURE__ */ u3(ActivitySummary, { activity: project2.activity }),
       /* @__PURE__ */ u3(AssessmentBadge, { status: project2.tavernKeeper })
+    ] }),
+    project2.attributionLabel ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__attribution", children: project2.attributionLabel }) : null,
+    /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__summary", children: project2.summary }),
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__chips", children: [
+      (project2.frontends.length ? project2.frontends : ["Frontend-neutral"]).map((frontend) => /* @__PURE__ */ u3("span", { class: "tavernary-companion-chip tavernary-companion-chip--frontend", children: frontend })),
+      /* @__PURE__ */ u3("span", { class: "tavernary-companion-chip tavernary-companion-chip--function", children: project2.primaryFunction }),
+      project2.tags.slice(0, 3).map((tag2) => /* @__PURE__ */ u3("span", { class: "tavernary-companion-chip", children: tag2 }))
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__meta", children: [
+      /* @__PURE__ */ u3("span", { children: project2.licenseLabel }),
+      project2.installed ? /* @__PURE__ */ u3("span", { children: "Installed" }) : null
     ] }),
     project2.action.reason ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__reason", children: project2.action.reason }) : null,
     /* @__PURE__ */ u3("footer", { children: [
-      kitSelectionActive && !selfProtected && project2.kitSelectable ? /* @__PURE__ */ u3("button", { type: "button", onClick: () => onToggleKitSelection?.(project2.id), children: selectedForKit ? "Remove from Kit" : "Add to Kit" }) : null,
+      kitSelectionActive && !selfProtected && project2.kitSelectable ? /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          class: "tavernary-companion-button tavernary-companion-button--primary",
+          onClick: () => onToggleKitSelection?.(project2.id),
+          children: selectedForKit ? "Remove from Kit" : "Add to Kit"
+        }
+      ) : null,
       /* @__PURE__ */ u3(
         "button",
         {
+          class: "tavernary-companion-button tavernary-companion-button--secondary",
           type: "button",
           "data-focus-key": `project-${project2.id}`,
           onClick: onOpen,
@@ -15377,7 +15443,7 @@ function ProjectCard({
         "button",
         {
           type: "button",
-          class: "tavernary-companion-project-card__primary",
+          class: `tavernary-companion-project-card__primary tavernary-companion-button ${project2.action.kind === "view-project" ? "tavernary-companion-button--secondary" : "tavernary-companion-button--primary"}`,
           "data-testid": "project-primary-action",
           "aria-label": `${project2.action.label} ${project2.name}`,
           onClick: () => onAction(project2.action),
@@ -15393,6 +15459,7 @@ function kindLabel(kind) {
 }
 
 // src/ui/projects/project-grid.tsx
+var PROJECT_BATCH_SIZE = 30;
 function ProjectGrid({
   projects,
   onOpenProject,
@@ -15401,25 +15468,49 @@ function ProjectGrid({
   lifecycleDisabled,
   kitSelectionActive = false,
   selectedKitProjectIds = [],
-  onToggleKitSelection
+  onToggleKitSelection,
+  visibleCount: controlledVisibleCount,
+  onVisibleCountChange
 }) {
+  const [internalVisibleCount, setInternalVisibleCount] = d2(PROJECT_BATCH_SIZE);
+  const visibleCount = controlledVisibleCount ?? internalVisibleCount;
+  h2(() => {
+    if (controlledVisibleCount === void 0) setInternalVisibleCount(PROJECT_BATCH_SIZE);
+  }, [projects, controlledVisibleCount]);
+  const showMore = () => {
+    const next = visibleCount + PROJECT_BATCH_SIZE;
+    if (onVisibleCountChange) onVisibleCountChange(next);
+    else setInternalVisibleCount(next);
+  };
   if (projects.length === 0) {
     return /* @__PURE__ */ u3("p", { children: "No projects match the current filters." });
   }
-  return /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-grid", "aria-label": "Project results", children: projects.map((project2) => /* @__PURE__ */ u3(
-    ProjectCard,
-    {
-      project: project2,
-      onOpen: () => onOpenProject(project2.id),
-      onAction: (action) => onProjectAction(project2.id, action),
-      onManageInSillyTavern,
-      lifecycleDisabled,
-      kitSelectionActive,
-      selectedForKit: selectedKitProjectIds.includes(project2.id),
-      onToggleKitSelection
-    },
-    project2.id
-  )) });
+  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-project-results", "aria-label": "Project results", children: [
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-grid", children: projects.slice(0, visibleCount).map((project2) => /* @__PURE__ */ u3(
+      ProjectCard,
+      {
+        project: project2,
+        onOpen: () => onOpenProject(project2.id),
+        onAction: (action) => onProjectAction(project2.id, action),
+        onManageInSillyTavern,
+        lifecycleDisabled,
+        kitSelectionActive,
+        selectedForKit: selectedKitProjectIds.includes(project2.id),
+        onToggleKitSelection
+      },
+      project2.id
+    )) }),
+    visibleCount < projects.length ? /* @__PURE__ */ u3(
+      "button",
+      {
+        type: "button",
+        class: "tavernary-companion-project-results__more tavernary-companion-button tavernary-companion-button--secondary",
+        "aria-label": "Show more projects",
+        onClick: showMore,
+        children: "Show more"
+      }
+    ) : null
+  ] });
 }
 
 // src/ui/projects/search-toolbar.tsx
@@ -15502,7 +15593,9 @@ function ProjectsRoute({
   onBeginKitSelection,
   onToggleKitSelection,
   onReviewKitSelection,
-  onCancelKitSelection
+  onCancelKitSelection,
+  visibleProjectCount,
+  onVisibleProjectCountChange
 }) {
   const [filtersOpen, setFiltersOpen] = d2(false);
   const filterTrigger = A2(null);
@@ -15592,7 +15685,9 @@ function ProjectsRoute({
           lifecycleDisabled,
           kitSelectionActive,
           selectedKitProjectIds,
-          onToggleKitSelection
+          onToggleKitSelection,
+          visibleCount: visibleProjectCount,
+          onVisibleCountChange: onVisibleProjectCountChange
         }
       )
     ] }),
@@ -15615,16 +15710,40 @@ function ShellHeader({
   onRefreshCatalog
 }) {
   return /* @__PURE__ */ u3("header", { class: "tavernary-companion-shell__header", children: [
-    /* @__PURE__ */ u3("div", { children: [
-      /* @__PURE__ */ u3("span", { class: "tavernary-companion-shell__eyebrow", children: "Tavernary" }),
-      /* @__PURE__ */ u3("h1", { id: "tavernary-companion-heading", children: "Tavernary Companion" })
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-brand", children: [
+      /* @__PURE__ */ u3("span", { class: "tavernary-companion-brand__mark", role: "img", "aria-label": "Tavernary" }),
+      /* @__PURE__ */ u3("div", { class: "tavernary-companion-brand__copy", children: [
+        /* @__PURE__ */ u3("h1", { id: "tavernary-companion-heading", children: [
+          "Tavernary ",
+          /* @__PURE__ */ u3("span", { class: "tavernary-companion-brand__qualifier", children: "Companion" })
+        ] }),
+        /* @__PURE__ */ u3("p", { children: "Where AI roleplay tools gather" })
+      ] })
     ] }),
     /* @__PURE__ */ u3("div", { class: "tavernary-companion-shell__utilities", children: [
       catalogSnapshot ? /* @__PURE__ */ u3(S, { children: [
         /* @__PURE__ */ u3(CatalogFreshness, { snapshot: catalogSnapshot, refreshing: catalogRefreshing }),
-        onRefreshCatalog ? /* @__PURE__ */ u3("button", { type: "button", onClick: onRefreshCatalog, "aria-label": "Refresh catalog", children: "Refresh" }) : null
+        onRefreshCatalog ? /* @__PURE__ */ u3(
+          "button",
+          {
+            class: "tavernary-companion-button tavernary-companion-button--primary",
+            type: "button",
+            onClick: onRefreshCatalog,
+            "aria-label": "Refresh catalog",
+            children: "Refresh"
+          }
+        ) : null
       ] }) : null,
-      onRequestClose ? /* @__PURE__ */ u3("button", { type: "button", onClick: onRequestClose, "aria-label": "Close Tavernary Companion", children: "Close" }) : null
+      onRequestClose ? /* @__PURE__ */ u3(
+        "button",
+        {
+          class: "tavernary-companion-button tavernary-companion-button--secondary",
+          type: "button",
+          onClick: onRequestClose,
+          "aria-label": "Close Tavernary Companion",
+          children: "Close"
+        }
+      ) : null
     ] })
   ] });
 }
@@ -15652,6 +15771,7 @@ function RouteTabs({ route, onNavigate }) {
 // src/ui/shell/companion-shell.tsx
 var noRefresh = () => void 0;
 var noAction = () => void 0;
+var INITIAL_PROJECT_COUNT = 30;
 function CompanionShell({
   controller,
   projects = [],
@@ -15686,6 +15806,7 @@ function CompanionShell({
   const [state, setState] = d2(controller.read());
   const [discoveryState, setDiscoveryState] = d2(discovery?.read() ?? null);
   const [kitSelection, setKitSelection] = d2(null);
+  const [visibleProjectCount, setVisibleProjectCount] = d2(INITIAL_PROJECT_COUNT);
   h2(() => controller.subscribe(setState), [controller]);
   h2(() => {
     if (!discovery) return;
@@ -15698,6 +15819,7 @@ function CompanionShell({
     return () => window.removeEventListener("popstate", onPopState);
   }, [controller]);
   const detail = state.detailStack.at(-1);
+  const headerCatalogSnapshot = catalogSnapshot?.state.startsWith("ready-") ? catalogSnapshot : void 0;
   return /* @__PURE__ */ u3(
     "section",
     {
@@ -15709,9 +15831,9 @@ function CompanionShell({
           ShellHeader,
           {
             onRequestClose,
-            catalogSnapshot,
+            catalogSnapshot: headerCatalogSnapshot,
             catalogRefreshing,
-            onRefreshCatalog: catalogSnapshot ? () => void onRefreshCatalog() : void 0
+            onRefreshCatalog: headerCatalogSnapshot ? () => void onRefreshCatalog() : void 0
           }
         ),
         /* @__PURE__ */ u3(RouteTabs, { route: state.route, onNavigate: (route) => controller.navigate(route) }),
@@ -15724,109 +15846,93 @@ function CompanionShell({
             onUseCached: onUseCachedCatalog,
             onOpenTavernary,
             children: [
-              /* @__PURE__ */ u3(
-                "section",
+              !detail && state.route === "projects" ? /* @__PURE__ */ u3("section", { "aria-labelledby": "tavernary-companion-projects-heading", children: discovery && discoveryState ? /* @__PURE__ */ u3(
+                ProjectsRoute,
                 {
-                  "aria-labelledby": "tavernary-companion-projects-heading",
-                  hidden: state.route !== "projects" || Boolean(detail),
-                  children: discovery && discoveryState ? /* @__PURE__ */ u3(
-                    ProjectsRoute,
-                    {
-                      state: discoveryState,
-                      facets: facets ?? discoveryState.facets,
-                      onQueryChange: (query) => discovery.setQuery(query),
-                      onOpenProject: (id) => controller.openDetail({ kind: "project", id, focusKey: `project-${id}` }),
-                      onProjectAction: (id, action) => {
-                        if (action.kind === "view-project") {
-                          controller.openDetail({ kind: "project", id, focusKey: `project-${id}` });
-                        } else {
-                          onProjectAction?.(id, action);
-                        }
-                      },
-                      onManageInSillyTavern: onOpenExtensionManager,
-                      lifecycleDisabled,
-                      kitSelectionActive: kitSelection !== null,
-                      selectedKitProjectIds: kitSelection ?? [],
-                      onBeginKitSelection: () => setKitSelection([]),
-                      onToggleKitSelection: (projectId) => setKitSelection((current) => {
-                        if (!current) return [projectId];
-                        return current.includes(projectId) ? current.filter((id) => id !== projectId) : [...current, projectId];
-                      }),
-                      onReviewKitSelection: () => {
-                        if (!kitSelection?.length) return;
-                        onCreateKitFromSelection?.(kitSelection);
-                        setKitSelection(null);
-                      },
-                      onCancelKitSelection: () => setKitSelection(null)
+                  state: discoveryState,
+                  facets: facets ?? discoveryState.facets,
+                  onQueryChange: (query) => {
+                    setVisibleProjectCount(INITIAL_PROJECT_COUNT);
+                    discovery.setQuery(query);
+                  },
+                  onOpenProject: (id) => controller.openDetail({ kind: "project", id, focusKey: `project-${id}` }),
+                  onProjectAction: (id, action) => {
+                    if (action.kind === "view-project") {
+                      controller.openDetail({ kind: "project", id, focusKey: `project-${id}` });
+                    } else {
+                      onProjectAction?.(id, action);
                     }
-                  ) : /* @__PURE__ */ u3(S, { children: [
-                    /* @__PURE__ */ u3("h2", { id: "tavernary-companion-projects-heading", children: "Projects" }),
-                    projects.map((project2) => {
-                      const focusKey = `project-${project2.id}`;
-                      return /* @__PURE__ */ u3(
-                        "button",
-                        {
-                          type: "button",
-                          "data-focus-key": focusKey,
-                          "aria-label": `View ${project2.name}`,
-                          onClick: () => controller.openDetail({ kind: "project", id: project2.id, focusKey }),
-                          children: project2.name
-                        }
-                      );
-                    })
-                  ] })
+                  },
+                  onManageInSillyTavern: onOpenExtensionManager,
+                  lifecycleDisabled,
+                  kitSelectionActive: kitSelection !== null,
+                  selectedKitProjectIds: kitSelection ?? [],
+                  onBeginKitSelection: () => setKitSelection([]),
+                  onToggleKitSelection: (projectId) => setKitSelection((current) => {
+                    if (!current) return [projectId];
+                    return current.includes(projectId) ? current.filter((id) => id !== projectId) : [...current, projectId];
+                  }),
+                  onReviewKitSelection: () => {
+                    if (!kitSelection?.length) return;
+                    onCreateKitFromSelection?.(kitSelection);
+                    setKitSelection(null);
+                  },
+                  onCancelKitSelection: () => setKitSelection(null),
+                  visibleProjectCount,
+                  onVisibleProjectCountChange: setVisibleProjectCount
                 }
-              ),
-              /* @__PURE__ */ u3(
-                "section",
+              ) : /* @__PURE__ */ u3(S, { children: [
+                /* @__PURE__ */ u3("h2", { id: "tavernary-companion-projects-heading", children: "Projects" }),
+                projects.map((project2) => {
+                  const focusKey = `project-${project2.id}`;
+                  return /* @__PURE__ */ u3(
+                    "button",
+                    {
+                      type: "button",
+                      "data-focus-key": focusKey,
+                      "aria-label": `View ${project2.name}`,
+                      onClick: () => controller.openDetail({ kind: "project", id: project2.id, focusKey }),
+                      children: project2.name
+                    }
+                  );
+                })
+              ] }) }) : null,
+              !detail && state.route === "kits" ? /* @__PURE__ */ u3("section", { "aria-labelledby": "tavernary-companion-kits-heading", children: kitDiscovery ? /* @__PURE__ */ u3(
+                KitsRoute,
                 {
-                  "aria-labelledby": "tavernary-companion-kits-heading",
-                  hidden: state.route !== "kits" || Boolean(detail),
-                  children: kitDiscovery ? /* @__PURE__ */ u3(
-                    KitsRoute,
-                    {
-                      controller: kitDiscovery,
-                      lifecycleDisabled,
-                      onOpenKit: (id) => controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` }),
-                      onAction: (id, action) => {
-                        if (action.kind === "review" || action.kind === "view") {
-                          controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` });
-                        } else {
-                          onKitAction?.(id, action);
-                        }
-                      },
-                      onNewKit,
-                      onImport: onImportKit,
-                      switcherKits: Object.values(kitInspectors),
-                      activeKitId,
-                      onActivate: (id) => onKitAction?.(id, { kind: "activate", label: "Activate" }),
-                      onDeactivate: () => {
-                        if (activeKitId)
-                          onKitAction?.(activeKitId, { kind: "deactivate", label: "Deactivate" });
-                      }
+                  controller: kitDiscovery,
+                  lifecycleDisabled,
+                  onOpenKit: (id) => controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` }),
+                  onAction: (id, action) => {
+                    if (action.kind === "review" || action.kind === "view") {
+                      controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` });
+                    } else {
+                      onKitAction?.(id, action);
                     }
-                  ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-kits-heading", children: "Kits" })
+                  },
+                  onNewKit,
+                  onImport: onImportKit,
+                  switcherKits: Object.values(kitInspectors),
+                  activeKitId,
+                  onActivate: (id) => onKitAction?.(id, { kind: "activate", label: "Activate" }),
+                  onDeactivate: () => {
+                    if (activeKitId)
+                      onKitAction?.(activeKitId, { kind: "deactivate", label: "Deactivate" });
+                  }
                 }
-              ),
-              /* @__PURE__ */ u3(
-                "section",
+              ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-kits-heading", children: "Kits" }) }) : null,
+              !detail && state.route === "installed" ? /* @__PURE__ */ u3("section", { "aria-labelledby": "tavernary-companion-installed-heading", children: discoveryState ? /* @__PURE__ */ u3(
+                InstalledRoute,
                 {
-                  "aria-labelledby": "tavernary-companion-installed-heading",
-                  hidden: state.route !== "installed" || Boolean(detail),
-                  children: discoveryState ? /* @__PURE__ */ u3(
-                    InstalledRoute,
-                    {
-                      sections: discoveryState.installedSections,
-                      refreshing: inventoryRefreshing,
-                      onRefresh: onRefreshInventory,
-                      onOpenProject: (id) => controller.openDetail({ kind: "project", id, focusKey: `installed-${id}` }),
-                      onAction: (id, action) => onProjectAction?.(id, action),
-                      onManage: onOpenExtensionManager,
-                      lifecycleDisabled
-                    }
-                  ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-installed-heading", children: "Installed extensions" })
+                  sections: discoveryState.installedSections,
+                  refreshing: inventoryRefreshing,
+                  onRefresh: onRefreshInventory,
+                  onOpenProject: (id) => controller.openDetail({ kind: "project", id, focusKey: `installed-${id}` }),
+                  onAction: (id, action) => onProjectAction?.(id, action),
+                  onManage: onOpenExtensionManager,
+                  lifecycleDisabled
                 }
-              ),
+              ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-installed-heading", children: "Installed extensions" }) }) : null,
               detail ? /* @__PURE__ */ u3("section", { "aria-label": `${detail.kind} detail`, children: [
                 /* @__PURE__ */ u3("button", { type: "button", onClick: () => restoreAfterBack(controller), children: "Back" }),
                 detail.kind === "project" && discoveryState?.projectDetails[detail.id] ? /* @__PURE__ */ u3(

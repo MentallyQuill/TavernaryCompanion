@@ -43,14 +43,14 @@ export function CatalogStatePanel({
       data-testid="catalog-state-panel"
       data-lifecycle-disabled={String(!snapshot.canMutate)}
     >
-      <header>
-        <CatalogFreshness snapshot={snapshot} refreshing={refreshing} />
-        {!incompatible ? (
+      {emptyError ? (
+        <header>
+          <CatalogFreshness snapshot={snapshot} refreshing={refreshing} />
           <button type="button" onClick={() => void refresh()} disabled={refreshing}>
-            {emptyError ? "Try again" : "Refresh catalog"}
+            Try again
           </button>
-        ) : null}
-      </header>
+        </header>
+      ) : null}
       <span class="tavernary-companion-sr-only" role="status" aria-live="polite">
         {announcement}
       </span>

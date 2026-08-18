@@ -27,6 +27,40 @@ function readySnapshot(canMutate = true): CatalogSnapshot {
 }
 
 describe("project view models", () => {
+  it("projects Tavernary card evidence and metadata", () => {
+    const project = catalogProjectFixture();
+    project.tags = [{ id: "memory", label: "Memory", description: "Memory tools", facet: "goal" }];
+    project.activity.weeklyActivity = [
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+      false,
+      true,
+    ];
+    project.attribution = {
+      owner: { provider: "github", login: "tavernary-author" },
+      contributors: [],
+      humanContributorCount: 1,
+      status: "current",
+    };
+    const view = toProjectCardViewModel(project, {
+      snapshot: readySnapshot(),
+      inventory: emptyInventory,
+    });
+
+    expect(view.tags).toEqual(["Memory"]);
+    expect(view.licenseLabel).toBe("MIT");
+    expect(view.attributionLabel).toBe("By tavernary-author");
+    expect(view.activity.weeklyActivity).toEqual(project.activity.weeklyActivity);
+  });
+
   it.each([
     ["preset", "Preset installation is not available in V1"],
     ["frontend", "Browse-only in Companion"],

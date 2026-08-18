@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/preact";
+import { render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { CatalogSnapshot } from "../../src/catalog/catalog-client";
@@ -74,12 +74,11 @@ describe("catalog status UI", () => {
     );
   });
 
-  it("preserves results during refresh and announces a current catalog", async () => {
-    const refresh = vi.fn().mockResolvedValue(undefined);
+  it("renders current results without duplicating the shell freshness controls", async () => {
     render(
       <CatalogStatePanel
         snapshot={cases[0][0]}
-        onRefresh={refresh}
+        onRefresh={vi.fn()}
         onUpdateCompanion={vi.fn()}
         onUseCached={vi.fn()}
         onOpenTavernary={vi.fn()}
@@ -88,9 +87,9 @@ describe("catalog status UI", () => {
       </CatalogStatePanel>,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Refresh catalog" }));
     expect(screen.getByText("Existing results")).toBeVisible();
-    await waitFor(() => expect(screen.getByText("Catalog is current")).toBeVisible());
+    expect(screen.queryByText("Updated 2 hours ago")).not.toBeInTheDocument();
+    expect(screen.queryByRole("button", { name: "Refresh catalog" })).not.toBeInTheDocument();
   });
 
   it("shows a retryable no-cache error without leaking detailed payloads", () => {

@@ -36,10 +36,14 @@ export interface ProjectCardViewModel {
   summary: string;
   kind: CatalogProject["kind"];
   frontends: string[];
+  tags: string[];
+  licenseLabel: string;
+  attributionLabel: string | null;
   primaryFunction: string;
   activity: {
     latestSourceActivityAt: string | null;
     activeWeeks12: number | null;
+    weeklyActivity: boolean[] | null;
     dormant: boolean;
   };
   tavernKeeper: CatalogProject["tavernKeeper"];
@@ -147,10 +151,14 @@ export function toProjectCardViewModel(
     summary: project.summary,
     kind: project.kind,
     frontends: project.frontends.map(({ label }) => label),
+    tags: project.tags.map(({ label }) => label),
+    licenseLabel: project.license.label,
+    attributionLabel: project.attribution ? `By ${project.attribution.owner.login}` : null,
     primaryFunction: primaryFunctionLabel(project.primaryFunction),
     activity: {
       latestSourceActivityAt: project.activity.latestSourceActivityAt,
       activeWeeks12: project.activity.activeWeeks12,
+      weeklyActivity: project.activity.weeklyActivity,
       dormant: project.activity.dormant,
     },
     tavernKeeper: project.tavernKeeper,

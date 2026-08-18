@@ -5,6 +5,7 @@ import { CompanionShell } from "../../src/ui/shell/companion-shell";
 import { createShellController } from "../../src/ui/shell/shell-controller";
 import { createKitDiscoveryController } from "../../src/kits/kit-discovery-controller";
 import { catalogFixture, catalogProjectFixture } from "../helpers/catalog-fixtures";
+import type { CatalogSnapshot } from "../../src/catalog/catalog-client";
 
 afterEach(() => {
   document.body.replaceChildren();
@@ -19,7 +20,7 @@ describe("CompanionShell", () => {
     fireEvent.click(card);
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
 
-    await waitFor(() => expect(card).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("button", { name: "View Alpha" })).toHaveFocus());
   });
 
   it("renders semantic routes and restores the active route from state", () => {
@@ -27,6 +28,9 @@ describe("CompanionShell", () => {
     render(<CompanionShell controller={controller} />);
 
     expect(screen.getByRole("heading", { name: "Tavernary Companion" })).toBeVisible();
+    expect(screen.getByRole("img", { name: "Tavernary" })).toBeVisible();
+    expect(screen.getByText("Where AI roleplay tools gather")).toBeVisible();
+    expect(screen.getByText("Companion", { selector: "span" })).toBeVisible();
     expect(screen.getByRole("navigation", { name: "Companion sections" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "Installed" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("main")).toHaveTextContent("Installed extensions");
@@ -52,6 +56,33 @@ describe("CompanionShell", () => {
 
     expect(onRequestClose).toHaveBeenCalledOnce();
   });
+
+  it.each([
+    [{ state: "error-empty", canMutate: false, checkedAt: null, error: "offline" }, "Try again"],
+    [
+      {
+        state: "incompatible-empty",
+        canMutate: false,
+        checkedAt: null,
+        remoteSchemaVersion: 8,
+      },
+      "Update Companion",
+    ],
+  ] as Array<[CatalogSnapshot, string]>)(
+    "keeps header refresh out of the %s catalog boundary",
+    (catalogSnapshot, boundaryAction) => {
+      render(
+        <CompanionShell
+          controller={createShellController({ initialRoute: "projects" })}
+          catalogSnapshot={catalogSnapshot}
+          onRefreshCatalog={vi.fn()}
+        />,
+      );
+
+      expect(screen.getAllByRole("button", { name: boundaryAction })).toHaveLength(1);
+      expect(screen.queryByRole("button", { name: "Refresh catalog" })).not.toBeInTheDocument();
+    },
+  );
 
   it("opens the Kit inspector for Review and View Kit card actions", () => {
     const controller = createShellController({ initialRoute: "kits" });

@@ -16,23 +16,38 @@ export function ShellHeader({
 }: ShellHeaderProps): preact.JSX.Element {
   return (
     <header class="tavernary-companion-shell__header">
-      <div>
-        <span class="tavernary-companion-shell__eyebrow">Tavernary</span>
-        <h1 id="tavernary-companion-heading">Tavernary Companion</h1>
+      <div class="tavernary-companion-brand">
+        <span class="tavernary-companion-brand__mark" role="img" aria-label="Tavernary" />
+        <div class="tavernary-companion-brand__copy">
+          <h1 id="tavernary-companion-heading">
+            Tavernary <span class="tavernary-companion-brand__qualifier">Companion</span>
+          </h1>
+          <p>Where AI roleplay tools gather</p>
+        </div>
       </div>
       <div class="tavernary-companion-shell__utilities">
         {catalogSnapshot ? (
           <>
             <CatalogFreshness snapshot={catalogSnapshot} refreshing={catalogRefreshing} />
             {onRefreshCatalog ? (
-              <button type="button" onClick={onRefreshCatalog} aria-label="Refresh catalog">
+              <button
+                class="tavernary-companion-button tavernary-companion-button--primary"
+                type="button"
+                onClick={onRefreshCatalog}
+                aria-label="Refresh catalog"
+              >
                 Refresh
               </button>
             ) : null}
           </>
         ) : null}
         {onRequestClose ? (
-          <button type="button" onClick={onRequestClose} aria-label="Close Tavernary Companion">
+          <button
+            class="tavernary-companion-button tavernary-companion-button--secondary"
+            type="button"
+            onClick={onRequestClose}
+            aria-label="Close Tavernary Companion"
+          >
             Close
           </button>
         ) : null}

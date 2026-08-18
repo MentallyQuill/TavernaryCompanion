@@ -26,22 +26,27 @@ export function InstalledRoute({
   useEffect(() => {
     void onRefresh();
   }, [onRefresh]);
+  const populatedSections = sections.filter((section) => section.rows.length > 0);
   return (
     <section class="tavernary-companion-installed-route" aria-labelledby="installed-heading">
       <header>
         <h2 id="installed-heading">Installed extensions</h2>
         {refreshing ? <p role="status">Updating installed extensions…</p> : null}
       </header>
-      {sections.map((section) => (
-        <InstalledSection
-          key={section.id}
-          section={section}
-          onOpenProject={onOpenProject}
-          onAction={onAction}
-          onManage={onManage}
-          lifecycleDisabled={lifecycleDisabled}
-        />
-      ))}
+      {populatedSections.length ? (
+        populatedSections.map((section) => (
+          <InstalledSection
+            key={section.id}
+            section={section}
+            onOpenProject={onOpenProject}
+            onAction={onAction}
+            onManage={onManage}
+            lifecycleDisabled={lifecycleDisabled}
+          />
+        ))
+      ) : (
+        <p>No installed extensions were found in this profile.</p>
+      )}
     </section>
   );
 }

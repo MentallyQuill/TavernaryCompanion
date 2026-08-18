@@ -31,6 +31,7 @@ This roadmap coordinates Tavernary's catalog foundation with Tavernary Companion
 | 6 | [Kit domain and operations](06-kit-domain-and-operations.md) | Phase 5 lifecycle services | Stored Kits, planning, staged activation, reference-safe removal | Verified |
 | 7 | [Kit experience and portability](07-kit-experience-and-portability.md) | Phase 6 | Kit browsing/editor, import/export, published-copy workflow | Verified |
 | 8 | [Integration, release, and live proof](08-integration-release-and-live-proof.md) | Phases 1–7 | Full gates, installed artifact, responsive acceptance, Pages proof | In progress |
+| 9 | [Tavernary brand alignment](../superpowers/plans/2026-08-18-tavernary-brand-alignment.md) | Phase 8 rendered review | Exact Tavernary brand system, native-popup containment, bounded rendering, installed visual proof | In progress |
 
 ## Recorded execution evidence
 

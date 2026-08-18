@@ -35,12 +35,17 @@ export function KitCard({
         ) : null}
       </dl>
       <footer>
-        <button type="button" data-focus-key={`kit-${kit.id}`} onClick={onOpen}>
+        <button
+          class="tavernary-companion-button tavernary-companion-button--secondary"
+          type="button"
+          data-focus-key={`kit-${kit.id}`}
+          onClick={onOpen}
+        >
           Details
         </button>
         <button
           type="button"
-          class="tavernary-companion-kit-card__primary"
+          class="tavernary-companion-kit-card__primary tavernary-companion-button tavernary-companion-button--primary"
           disabled={disabled}
           onClick={() => onAction(kit.primaryAction)}
         >

@@ -2,6 +2,7 @@ import type { ProjectCardViewModel, ProjectPrimaryAction } from "../../catalog/p
 import { COMPANION_PROJECT_ID } from "../../lifecycle/self-protection";
 import { ActivitySummary } from "../shared/activity-summary";
 import { AssessmentBadge } from "../shared/assessment-badge";
+import { CategoryIcon } from "../shared/category-icon";
 
 interface ProjectCardProps {
   project: ProjectCardViewModel;
@@ -28,28 +29,53 @@ export function ProjectCard({
     project.id === COMPANION_PROJECT_ID || project.action.kind === "current-extension";
   return (
     <article class="tavernary-companion-project-card" data-project-id={project.id}>
-      <header>
-        <h3>{project.name}</h3>
-        <span>{project.frontends.join(", ") || "Frontend-neutral"}</span>
-      </header>
-      <p class="tavernary-companion-project-card__context">
-        {kindLabel(project.kind)} · {project.primaryFunction}
-      </p>
-      <p class="tavernary-companion-project-card__summary">{project.summary}</p>
-      <div class="tavernary-companion-project-card__evidence">
+      <header class="tavernary-companion-project-card__top">
+        <span class={`tavernary-companion-project-card__kind kind-${project.kind}`}>
+          <CategoryIcon kind={project.kind} />
+          {kindLabel(project.kind)}
+        </span>
         <ActivitySummary activity={project.activity} />
+      </header>
+      <div class="tavernary-companion-project-card__title">
+        <h3>{project.name}</h3>
         <AssessmentBadge status={project.tavernKeeper} />
+      </div>
+      {project.attributionLabel ? (
+        <p class="tavernary-companion-project-card__attribution">{project.attributionLabel}</p>
+      ) : null}
+      <p class="tavernary-companion-project-card__summary">{project.summary}</p>
+      <div class="tavernary-companion-project-card__chips">
+        {(project.frontends.length ? project.frontends : ["Frontend-neutral"]).map((frontend) => (
+          <span class="tavernary-companion-chip tavernary-companion-chip--frontend">
+            {frontend}
+          </span>
+        ))}
+        <span class="tavernary-companion-chip tavernary-companion-chip--function">
+          {project.primaryFunction}
+        </span>
+        {project.tags.slice(0, 3).map((tag) => (
+          <span class="tavernary-companion-chip">{tag}</span>
+        ))}
+      </div>
+      <div class="tavernary-companion-project-card__meta">
+        <span>{project.licenseLabel}</span>
+        {project.installed ? <span>Installed</span> : null}
       </div>
       {project.action.reason ? (
         <p class="tavernary-companion-project-card__reason">{project.action.reason}</p>
       ) : null}
       <footer>
         {kitSelectionActive && !selfProtected && project.kitSelectable ? (
-          <button type="button" onClick={() => onToggleKitSelection?.(project.id)}>
+          <button
+            type="button"
+            class="tavernary-companion-button tavernary-companion-button--primary"
+            onClick={() => onToggleKitSelection?.(project.id)}
+          >
             {selectedForKit ? "Remove from Kit" : "Add to Kit"}
           </button>
         ) : null}
         <button
+          class="tavernary-companion-button tavernary-companion-button--secondary"
           type="button"
           data-focus-key={`project-${project.id}`}
           onClick={onOpen}
@@ -64,7 +90,11 @@ export function ProjectCard({
         ) : (
           <button
             type="button"
-            class="tavernary-companion-project-card__primary"
+            class={`tavernary-companion-project-card__primary tavernary-companion-button ${
+              project.action.kind === "view-project"
+                ? "tavernary-companion-button--secondary"
+                : "tavernary-companion-button--primary"
+            }`}
             data-testid="project-primary-action"
             aria-label={`${project.action.label} ${project.name}`}
             onClick={() => onAction(project.action)}

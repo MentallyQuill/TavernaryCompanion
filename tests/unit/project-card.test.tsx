@@ -15,9 +15,26 @@ function project(overrides: Partial<ProjectCardViewModel> = {}): ProjectCardView
     kind: "extension",
     frontends: ["SillyTavern"],
     primaryFunction: "Interface & Workflow",
+    tags: ["Workflow", "Utility"],
+    licenseLabel: "MIT",
+    attributionLabel: null,
     activity: {
       latestSourceActivityAt: "2026-08-17T00:00:00.000Z",
       activeWeeks12: 5,
+      weeklyActivity: [
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+      ],
       dormant: false,
     },
     tavernKeeper: null,
@@ -36,9 +53,14 @@ describe("ProjectCard", () => {
     render(<ProjectCard project={project()} onOpen={onOpen} onAction={onAction} />);
 
     expect(screen.getByRole("heading", { name: "Alpha" })).toBeVisible();
-    expect(screen.getByText("Extension · Interface & Workflow")).toBeVisible();
+    expect(screen.getByText("Extension")).toBeVisible();
+    expect(screen.getByText("Interface & Workflow")).toBeVisible();
     expect(screen.getByText("5 of 12 active weeks")).toBeVisible();
     expect(screen.getByText("Not assessed")).toBeVisible();
+    expect(screen.getByText("SillyTavern")).toBeVisible();
+    expect(screen.getByText("Workflow")).toBeVisible();
+    expect(screen.getByText("MIT")).toBeVisible();
+    expect(document.querySelectorAll(".tavernary-companion-activity-strip i")).toHaveLength(12);
     expect(screen.getAllByTestId("project-primary-action")).toHaveLength(1);
 
     fireEvent.click(screen.getByRole("button", { name: "Install Alpha" }));
@@ -65,6 +87,26 @@ describe("ProjectCard", () => {
 
     expect(screen.getByText("Preset installation is not available in V1")).toBeVisible();
     expect(screen.queryByRole("button", { name: /Install Alpha/ })).not.toBeInTheDocument();
+    expect(screen.getByTestId("project-primary-action")).toHaveClass(
+      "tavernary-companion-button--secondary",
+    );
+    expect(screen.getByTestId("project-primary-action")).not.toHaveClass(
+      "tavernary-companion-button--primary",
+    );
+  });
+
+  it("renders compact attribution only when Tavernary provides it", () => {
+    const view = render(
+      <ProjectCard
+        project={project({ attributionLabel: "By tavernary-author" })}
+        onOpen={vi.fn()}
+        onAction={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("By tavernary-author")).toBeVisible();
+
+    view.rerender(<ProjectCard project={project()} onOpen={vi.fn()} onAction={vi.fn()} />);
+    expect(screen.queryByText("By tavernary-author")).not.toBeInTheDocument();
   });
 
   it("never renders a lifecycle action for Companion even with a malformed model", () => {
@@ -94,6 +136,9 @@ describe("ProjectCard", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Add to Kit" }));
     expect(toggle).toHaveBeenCalledWith("alpha");
+    expect(screen.getByRole("button", { name: "Add to Kit" })).toHaveClass(
+      "tavernary-companion-button--primary",
+    );
 
     rerender(
       <ProjectCard
