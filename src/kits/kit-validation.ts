@@ -65,19 +65,28 @@ export function parseInstalledKitState(value: unknown): InstalledKitStateV1 {
   const kitId = text(input.kitId, "kitId");
   const definitionFingerprint = text(input.definitionFingerprint, "fingerprint");
   if (!SHA256.test(definitionFingerprint)) throw new Error("Invalid Kit fingerprint.");
-  const installedProjectIds = uniqueStrings(input.installedProjectIds, "installedProjectIds");
+  let installedProjectIds = uniqueStrings(input.installedProjectIds, "installedProjectIds");
   const missingProjectIds = uniqueStrings(input.missingProjectIds, "missingProjectIds");
   const definitionProjectIds = hasDefinitionProjectIds
-    ? uniqueStrings(input.definitionProjectIds, "definitionProjectIds")
-    : [...new Set([...installedProjectIds, ...missingProjectIds])];
-  if (installedProjectIds.some((projectId) => missingProjectIds.includes(projectId))) {
+    ? input.definitionProjectIds === null
+      ? null
+      : uniqueStrings(input.definitionProjectIds, "definitionProjectIds")
+    : null;
+  const overlap = installedProjectIds.filter((projectId) => missingProjectIds.includes(projectId));
+  if (hasDefinitionProjectIds && overlap.length) {
     throw new Error("A Kit project cannot be both installed and missing.");
   }
-  const definition = new Set(definitionProjectIds);
-  if (
-    [...installedProjectIds, ...missingProjectIds].some((projectId) => !definition.has(projectId))
-  ) {
-    throw new Error("Installed Kit presence must belong to its definition topology.");
+  if (!hasDefinitionProjectIds && overlap.length) {
+    const missing = new Set(missingProjectIds);
+    installedProjectIds = installedProjectIds.filter((projectId) => !missing.has(projectId));
+  }
+  if (definitionProjectIds) {
+    const definition = new Set(definitionProjectIds);
+    if (
+      [...installedProjectIds, ...missingProjectIds].some((projectId) => !definition.has(projectId))
+    ) {
+      throw new Error("Installed Kit presence must belong to its definition topology.");
+    }
   }
   if (input.status !== "installed" && input.status !== "incomplete" && input.status !== "drifted") {
     throw new Error("Invalid installed Kit status.");

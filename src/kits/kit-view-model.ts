@@ -38,12 +38,15 @@ export interface KitInspectorViewModel extends KitCardViewModel {
   topologyChange?: KitTopologyChange;
 }
 
-export interface KitTopologyChange {
-  previousProjectIds: string[];
-  currentProjectIds: string[];
-  addedProjectIds: string[];
-  removedProjectIds: string[];
-}
+export type KitTopologyChange =
+  | {
+      kind: "exact";
+      previousProjectIds: string[];
+      currentProjectIds: string[];
+      addedProjectIds: string[];
+      removedProjectIds: string[];
+    }
+  | { kind: "unknown"; currentProjectIds: string[] };
 
 export function toPersonalKitCardViewModel(
   kit: PersonalKitV1,
@@ -158,10 +161,14 @@ function topologyChange(
   currentProjectIds: readonly string[],
 ): KitTopologyChange | undefined {
   if (status !== "changedOnTavernary" || !installed) return undefined;
+  if (installed.definitionProjectIds === null) {
+    return { kind: "unknown", currentProjectIds: [...currentProjectIds] };
+  }
   const previousProjectIds = [...installed.definitionProjectIds];
   const previous = new Set(previousProjectIds);
   const current = new Set(currentProjectIds);
   return {
+    kind: "exact",
     previousProjectIds,
     currentProjectIds: [...currentProjectIds],
     addedProjectIds: currentProjectIds.filter((projectId) => !previous.has(projectId)),

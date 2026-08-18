@@ -38,6 +38,24 @@ export class KitStore {
   readActiveId(): string | null {
     return this.#profile.read().activeKitId;
   }
+  async hydrateDefinitionTopology(
+    id: string,
+    definitionProjectIds: readonly string[],
+    definitionFingerprint: string,
+  ): Promise<InstalledKitStateV1 | null> {
+    const installed = this.readInstalled(id);
+    if (
+      !installed ||
+      installed.definitionProjectIds !== null ||
+      installed.definitionFingerprint !== definitionFingerprint
+    ) {
+      return installed;
+    }
+    return this.recordInstalledState({
+      ...installed,
+      definitionProjectIds: [...definitionProjectIds],
+    });
+  }
   async create(input: CreatePersonalKitInput): Promise<PersonalKitV1> {
     const now = this.#now();
     const kit = parsePersonalKit({

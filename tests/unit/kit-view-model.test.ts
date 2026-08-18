@@ -104,11 +104,61 @@ it("uses the stored full definition topology for published Kit membership change
   expect(
     toPublishedKitInspector(published, "changedOnTavernary", installed).topologyChange,
   ).toEqual({
+    kind: "exact",
     previousProjectIds: ["frontend", "alpha"],
     currentProjectIds: ["alpha", "beta"],
     addedProjectIds: ["beta"],
     removedProjectIds: ["frontend"],
   });
+});
+
+it("does not invent an exact membership diff for unknown legacy topology", () => {
+  const published = {
+    id: "changed",
+    title: "Changed",
+    description: "Changed membership",
+    author: { githubUserId: 1, login: "author" },
+    sourceIssueNumber: 1,
+    sourceIssueUrl: "https://example.com/issues/1",
+    publishedAt: "2026-08-18T00:00:00.000Z",
+    updatedAt: "2026-08-18T00:00:00.000Z",
+    frontends: [],
+    purposes: [],
+    modelFamilies: [],
+    components: [],
+    supporterCount: null,
+    trendingScore: null,
+    supportRefreshedAt: null,
+    supportStale: false,
+    flaggedProjectCount: 0,
+    search: {
+      title: ["changed"],
+      aliases: [],
+      source: [],
+      summary: [],
+      kind: [],
+      primaryFunction: [],
+      tags: [],
+      frontends: [],
+      compatibility: [],
+      maintainers: [],
+      relationships: [],
+    },
+  } satisfies CatalogKit;
+  const installed = {
+    kitId: "changed",
+    definitionFingerprint: "a".repeat(64),
+    definitionProjectIds: null,
+    installedProjectIds: ["alpha"],
+    missingProjectIds: [],
+    status: "installed" as const,
+    installedAt: "2026-08-18T00:00:00.000Z",
+    lastVerifiedAt: "2026-08-18T00:00:00.000Z",
+  };
+
+  expect(
+    toPublishedKitInspector(published, "changedOnTavernary", installed).topologyChange,
+  ).toEqual({ kind: "unknown", currentProjectIds: [] });
 });
 
 it("keeps an unavailable-only published Kit browse-only", () => {

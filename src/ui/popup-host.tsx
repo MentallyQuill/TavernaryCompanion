@@ -630,35 +630,41 @@ export async function buildKitPresentation(
   const activeId = kits.readActiveId();
   const inspectors: Record<string, KitInspectorViewModel> = {};
   for (const kit of kits.readDefinitions()) {
+    const definitionFingerprint = await fingerprintKitTopology(kit.projectIds);
+    const installed = await kits.hydrateDefinitionTopology(
+      kit.id,
+      kit.projectIds,
+      definitionFingerprint,
+    );
     const status = reconcileKitStatus({
       kitId: kit.id,
-      definitionFingerprint: await fingerprintKitTopology(kit.projectIds),
+      definitionFingerprint,
       published: false,
-      installed: kits.readInstalled(kit.id),
+      installed,
       inventory,
       activeKitId: activeId,
     });
     statuses.set(kit.id, status);
-    inspectors[kit.id] = toPersonalKitInspector(
-      kit,
-      catalog.projects,
-      status,
-      kits.readInstalled(kit.id),
-    );
+    inspectors[kit.id] = toPersonalKitInspector(kit, catalog.projects, status, installed);
   }
   for (const kit of catalog.kits) {
+    const projectIds = kit.components.map(({ projectId }) => projectId);
+    const definitionFingerprint = await fingerprintKitTopology(projectIds);
+    const installed = await kits.hydrateDefinitionTopology(
+      kit.id,
+      projectIds,
+      definitionFingerprint,
+    );
     const status = reconcileKitStatus({
       kitId: kit.id,
-      definitionFingerprint: await fingerprintKitTopology(
-        kit.components.map(({ projectId }) => projectId),
-      ),
+      definitionFingerprint,
       published: true,
-      installed: kits.readInstalled(kit.id),
+      installed,
       inventory,
       activeKitId: activeId,
     });
     statuses.set(kit.id, status);
-    inspectors[kit.id] = toPublishedKitInspector(kit, status, kits.readInstalled(kit.id));
+    inspectors[kit.id] = toPublishedKitInspector(kit, status, installed);
   }
   return { statuses, inspectors };
 }

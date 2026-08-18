@@ -41,10 +41,16 @@ export function KitInspector({
       {kit.topologyChange ? (
         <section class="tavernary-companion-kit-inspector__topology">
           <h3>Membership changes</h3>
-          <p>Previously installed: {list(kit.topologyChange.previousProjectIds)}</p>
+          {kit.topologyChange.kind === "exact" ? (
+            <>
+              <p>Previously installed: {list(kit.topologyChange.previousProjectIds)}</p>
+              <p>Added: {list(kit.topologyChange.addedProjectIds)}</p>
+              <p>Removed: {list(kit.topologyChange.removedProjectIds)}</p>
+            </>
+          ) : (
+            <p>Previous membership is unavailable for this legacy install.</p>
+          )}
           <p>Current Tavernary Kit: {list(kit.topologyChange.currentProjectIds)}</p>
-          <p>Added: {list(kit.topologyChange.addedProjectIds)}</p>
-          <p>Removed: {list(kit.topologyChange.removedProjectIds)}</p>
         </section>
       ) : null}
       <div class="tavernary-companion-kit-inspector__actions">

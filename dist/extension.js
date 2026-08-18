@@ -12511,10 +12511,14 @@ function actionFor2(status) {
 }
 function topologyChange(status, installed, currentProjectIds) {
   if (status !== "changedOnTavernary" || !installed) return void 0;
+  if (installed.definitionProjectIds === null) {
+    return { kind: "unknown", currentProjectIds: [...currentProjectIds] };
+  }
   const previousProjectIds = [...installed.definitionProjectIds];
   const previous = new Set(previousProjectIds);
   const current = new Set(currentProjectIds);
   return {
+    kind: "exact",
     previousProjectIds,
     currentProjectIds: [...currentProjectIds],
     addedProjectIds: currentProjectIds.filter((projectId) => !previous.has(projectId)),
@@ -12913,15 +12917,22 @@ function parseInstalledKitState(value) {
   const kitId = text(input.kitId, "kitId");
   const definitionFingerprint = text(input.definitionFingerprint, "fingerprint");
   if (!SHA256.test(definitionFingerprint)) throw new Error("Invalid Kit fingerprint.");
-  const installedProjectIds = uniqueStrings(input.installedProjectIds, "installedProjectIds");
+  let installedProjectIds = uniqueStrings(input.installedProjectIds, "installedProjectIds");
   const missingProjectIds = uniqueStrings(input.missingProjectIds, "missingProjectIds");
-  const definitionProjectIds = hasDefinitionProjectIds ? uniqueStrings(input.definitionProjectIds, "definitionProjectIds") : [.../* @__PURE__ */ new Set([...installedProjectIds, ...missingProjectIds])];
-  if (installedProjectIds.some((projectId) => missingProjectIds.includes(projectId))) {
+  const definitionProjectIds = hasDefinitionProjectIds ? input.definitionProjectIds === null ? null : uniqueStrings(input.definitionProjectIds, "definitionProjectIds") : null;
+  const overlap = installedProjectIds.filter((projectId) => missingProjectIds.includes(projectId));
+  if (hasDefinitionProjectIds && overlap.length) {
     throw new Error("A Kit project cannot be both installed and missing.");
   }
-  const definition = new Set(definitionProjectIds);
-  if ([...installedProjectIds, ...missingProjectIds].some((projectId) => !definition.has(projectId))) {
-    throw new Error("Installed Kit presence must belong to its definition topology.");
+  if (!hasDefinitionProjectIds && overlap.length) {
+    const missing = new Set(missingProjectIds);
+    installedProjectIds = installedProjectIds.filter((projectId) => !missing.has(projectId));
+  }
+  if (definitionProjectIds) {
+    const definition = new Set(definitionProjectIds);
+    if ([...installedProjectIds, ...missingProjectIds].some((projectId) => !definition.has(projectId))) {
+      throw new Error("Installed Kit presence must belong to its definition topology.");
+    }
   }
   if (input.status !== "installed" && input.status !== "incomplete" && input.status !== "drifted") {
     throw new Error("Invalid installed Kit status.");
@@ -13541,6 +13552,16 @@ var KitStore = class {
   }
   readActiveId() {
     return this.#profile.read().activeKitId;
+  }
+  async hydrateDefinitionTopology(id, definitionProjectIds, definitionFingerprint) {
+    const installed = this.readInstalled(id);
+    if (!installed || installed.definitionProjectIds !== null || installed.definitionFingerprint !== definitionFingerprint) {
+      return installed;
+    }
+    return this.recordInstalledState({
+      ...installed,
+      definitionProjectIds: [...definitionProjectIds]
+    });
   }
   async create(input) {
     const now = this.#now();
@@ -14485,21 +14506,23 @@ function KitInspector({
     ] }),
     kit2.topologyChange ? /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-inspector__topology", children: [
       /* @__PURE__ */ u3("h3", { children: "Membership changes" }),
-      /* @__PURE__ */ u3("p", { children: [
-        "Previously installed: ",
-        list(kit2.topologyChange.previousProjectIds)
-      ] }),
+      kit2.topologyChange.kind === "exact" ? /* @__PURE__ */ u3(S, { children: [
+        /* @__PURE__ */ u3("p", { children: [
+          "Previously installed: ",
+          list(kit2.topologyChange.previousProjectIds)
+        ] }),
+        /* @__PURE__ */ u3("p", { children: [
+          "Added: ",
+          list(kit2.topologyChange.addedProjectIds)
+        ] }),
+        /* @__PURE__ */ u3("p", { children: [
+          "Removed: ",
+          list(kit2.topologyChange.removedProjectIds)
+        ] })
+      ] }) : /* @__PURE__ */ u3("p", { children: "Previous membership is unavailable for this legacy install." }),
       /* @__PURE__ */ u3("p", { children: [
         "Current Tavernary Kit: ",
         list(kit2.topologyChange.currentProjectIds)
-      ] }),
-      /* @__PURE__ */ u3("p", { children: [
-        "Added: ",
-        list(kit2.topologyChange.addedProjectIds)
-      ] }),
-      /* @__PURE__ */ u3("p", { children: [
-        "Removed: ",
-        list(kit2.topologyChange.removedProjectIds)
       ] })
     ] }) : null,
     /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-inspector__actions", children: [
@@ -16430,35 +16453,41 @@ async function buildKitPresentation(catalog, kits, inventory) {
   const activeId = kits.readActiveId();
   const inspectors = {};
   for (const kit2 of kits.readDefinitions()) {
+    const definitionFingerprint = await fingerprintKitTopology(kit2.projectIds);
+    const installed = await kits.hydrateDefinitionTopology(
+      kit2.id,
+      kit2.projectIds,
+      definitionFingerprint
+    );
     const status = reconcileKitStatus({
       kitId: kit2.id,
-      definitionFingerprint: await fingerprintKitTopology(kit2.projectIds),
+      definitionFingerprint,
       published: false,
-      installed: kits.readInstalled(kit2.id),
+      installed,
       inventory,
       activeKitId: activeId
     });
     statuses.set(kit2.id, status);
-    inspectors[kit2.id] = toPersonalKitInspector(
-      kit2,
-      catalog.projects,
-      status,
-      kits.readInstalled(kit2.id)
-    );
+    inspectors[kit2.id] = toPersonalKitInspector(kit2, catalog.projects, status, installed);
   }
   for (const kit2 of catalog.kits) {
+    const projectIds = kit2.components.map(({ projectId }) => projectId);
+    const definitionFingerprint = await fingerprintKitTopology(projectIds);
+    const installed = await kits.hydrateDefinitionTopology(
+      kit2.id,
+      projectIds,
+      definitionFingerprint
+    );
     const status = reconcileKitStatus({
       kitId: kit2.id,
-      definitionFingerprint: await fingerprintKitTopology(
-        kit2.components.map(({ projectId }) => projectId)
-      ),
+      definitionFingerprint,
       published: true,
-      installed: kits.readInstalled(kit2.id),
+      installed,
       inventory,
       activeKitId: activeId
     });
     statuses.set(kit2.id, status);
-    inspectors[kit2.id] = toPublishedKitInspector(kit2, status, kits.readInstalled(kit2.id));
+    inspectors[kit2.id] = toPublishedKitInspector(kit2, status, installed);
   }
   return { statuses, inspectors };
 }

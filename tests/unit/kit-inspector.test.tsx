@@ -91,6 +91,7 @@ it("shows old and current membership while reviewing a published topology change
         editable: false,
         components: [],
         topologyChange: {
+          kind: "exact",
           previousProjectIds: ["alpha", "removed"],
           currentProjectIds: ["alpha", "added"],
           addedProjectIds: ["added"],
@@ -105,4 +106,33 @@ it("shows old and current membership while reviewing a published topology change
   expect(screen.getByText("Previously installed: alpha, removed")).toBeVisible();
   expect(screen.getByText("Current Tavernary Kit: alpha, added")).toBeVisible();
   expect(screen.queryByRole("button", { name: "Review" })).not.toBeInTheDocument();
+});
+
+it("labels unknown legacy membership without inventing additions or removals", () => {
+  render(
+    <KitInspector
+      kit={{
+        id: "kit",
+        title: "Writer",
+        description: "Tools",
+        origin: "published",
+        originLabel: "Published Kit",
+        componentCount: 1,
+        flaggedCount: 0,
+        operationalStatus: "Changed on Tavernary",
+        primaryAction: { kind: "review", label: "Review" },
+        editable: false,
+        components: [],
+        topologyChange: { kind: "unknown", currentProjectIds: ["alpha"] },
+      }}
+      onAction={() => undefined}
+    />,
+  );
+
+  expect(
+    screen.getByText("Previous membership is unavailable for this legacy install."),
+  ).toBeVisible();
+  expect(screen.getByText("Current Tavernary Kit: alpha")).toBeVisible();
+  expect(screen.queryByText(/^Added:/u)).not.toBeInTheDocument();
+  expect(screen.queryByText(/^Removed:/u)).not.toBeInTheDocument();
 });

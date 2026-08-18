@@ -60,8 +60,23 @@ describe("installed Kit state validation", () => {
     lastVerifiedAt: "2026-08-18T00:00:00.000Z",
   };
 
-  it("migrates legacy state to an explicit definition topology", () => {
-    expect(parseInstalledKitState(legacy).definitionProjectIds).toEqual(["alpha", "beta"]);
+  it("keeps legacy topology unknown when context members and order were never stored", () => {
+    expect(parseInstalledKitState(legacy).definitionProjectIds).toBeNull();
+  });
+
+  it("normalizes the prior direct-removal overlap with missing state taking precedence", () => {
+    expect(
+      parseInstalledKitState({
+        ...legacy,
+        installedProjectIds: ["alpha"],
+        missingProjectIds: ["alpha"],
+      }),
+    ).toMatchObject({
+      definitionProjectIds: null,
+      installedProjectIds: [],
+      missingProjectIds: ["alpha"],
+      status: "incomplete",
+    });
   });
 
   it("rejects a project recorded as both installed and missing", () => {

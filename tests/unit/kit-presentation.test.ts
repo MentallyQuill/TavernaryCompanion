@@ -56,3 +56,35 @@ it("derives personal Kit status from current inventory instead of stored labels"
   expect(presentation.statuses.get(kit.id)).toBe("drifted");
   expect(presentation.inspectors[kit.id]?.operationalStatus).toBe("Drifted");
 });
+
+it("hydrates unknown legacy topology only when its fingerprint matches the current definition", async () => {
+  const extensionSettings: Record<string, unknown> = {};
+  const profile = new ProfileStore({ extensionSettings, saveSettingsDebounced: () => undefined });
+  const kits = new KitStore(profile, {
+    uuid: () => "018f6f42-7142-7a1f-9b52-9d3a7d548120",
+    now: () => "2026-08-18T00:00:00.000Z",
+  });
+  const kit = await kits.create({ title: "Writer", projectIds: ["context", "alpha"] });
+  const definitionFingerprint = await fingerprintKitTopology(kit.projectIds);
+  await profile.update((draft) => {
+    draft.installedKits[kit.id] = {
+      kitId: kit.id,
+      definitionFingerprint,
+      installedProjectIds: ["alpha"],
+      missingProjectIds: [],
+      status: "installed",
+      installedAt: "2026-08-18T00:00:00.000Z",
+      lastVerifiedAt: "2026-08-18T00:00:00.000Z",
+    };
+  });
+  const alpha = catalogProjectFixture({ id: "alpha", folderName: "Alpha" });
+
+  await buildKitPresentation({ ...catalogFixture(), projects: [alpha] }, kits, {
+    managed: [],
+    external: [],
+    unknown: [],
+    missingManaged: [],
+  });
+
+  expect(kits.readInstalled(kit.id)?.definitionProjectIds).toEqual(["context", "alpha"]);
+});
