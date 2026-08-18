@@ -34,7 +34,7 @@ export function mountCompanionLauncher(input: {
     content.dataset.tavernaryCompanionPopup = "";
     content.tabIndex = -1;
     popupContent = content;
-    unmountPopup = renderCompanionPopup(content, { store: input.store });
+    unmountPopup = renderCompanionPopup(content, { store: input.store, host: input.host });
 
     void input.host
       .showPopup(content, {

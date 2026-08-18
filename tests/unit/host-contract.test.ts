@@ -92,6 +92,7 @@ it("models install, remove, and explicit reload in call order", async () => {
     { operation: "install", repositoryUrl, branch: null },
     { operation: "remove", internalName: "third-party/Beta", type: "local" },
     { operation: "reload" },
+    { operation: "discover" },
   ]);
   expect(host.reloadCount).toBe(1);
 });

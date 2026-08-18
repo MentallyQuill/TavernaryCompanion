@@ -27,6 +27,7 @@ interface CompanionShellProps {
   onRefreshInventory?(): void | Promise<void>;
   inventoryRefreshing?: boolean;
   onOpenExtensionManager?(): void;
+  lifecycleDisabled?: boolean;
   catalogSnapshot?: CatalogSnapshot;
   catalogRefreshing?: boolean;
   onRefreshCatalog?(): void | Promise<void>;
@@ -48,6 +49,7 @@ export function CompanionShell({
   onRefreshInventory = noRefresh,
   inventoryRefreshing = false,
   onOpenExtensionManager,
+  lifecycleDisabled = false,
   catalogSnapshot,
   catalogRefreshing = false,
   onRefreshCatalog = noRefresh,
@@ -105,7 +107,15 @@ export function CompanionShell({
                 onOpenProject={(id) =>
                   controller.openDetail({ kind: "project", id, focusKey: `project-${id}` })
                 }
-                onProjectAction={(id, action) => onProjectAction?.(id, action)}
+                onProjectAction={(id, action) => {
+                  if (action.kind === "view-project") {
+                    controller.openDetail({ kind: "project", id, focusKey: `project-${id}` });
+                  } else {
+                    onProjectAction?.(id, action);
+                  }
+                }}
+                onManageInSillyTavern={onOpenExtensionManager}
+                lifecycleDisabled={lifecycleDisabled}
               />
             ) : (
               <>
@@ -148,6 +158,7 @@ export function CompanionShell({
                 }
                 onAction={(id, action) => onProjectAction?.(id, action)}
                 onManage={onOpenExtensionManager}
+                lifecycleDisabled={lifecycleDisabled}
               />
             ) : (
               <h2 id="tavernary-companion-installed-heading">Installed extensions</h2>
@@ -162,6 +173,8 @@ export function CompanionShell({
                 <ProjectDetail
                   project={discoveryState.projectDetails[detail.id]}
                   onAction={(action) => onProjectAction?.(detail.id, action)}
+                  onManageInSillyTavern={onOpenExtensionManager}
+                  lifecycleDisabled={lifecycleDisabled}
                 />
               ) : (
                 <h2>{projectName(projects, discoveryState, detail.id)}</h2>

@@ -5,12 +5,16 @@ interface ProjectGridProps {
   projects: ProjectCardViewModel[];
   onOpenProject(id: string): void;
   onProjectAction(id: string, action: ProjectPrimaryAction): void;
+  onManageInSillyTavern?(): void;
+  lifecycleDisabled?: boolean;
 }
 
 export function ProjectGrid({
   projects,
   onOpenProject,
   onProjectAction,
+  onManageInSillyTavern,
+  lifecycleDisabled,
 }: ProjectGridProps): preact.JSX.Element {
   if (projects.length === 0) {
     return <p>No projects match the current filters.</p>;
@@ -23,6 +27,8 @@ export function ProjectGrid({
           project={project}
           onOpen={() => onOpenProject(project.id)}
           onAction={(action) => onProjectAction(project.id, action)}
+          onManageInSillyTavern={onManageInSillyTavern}
+          lifecycleDisabled={lifecycleDisabled}
         />
       ))}
     </div>

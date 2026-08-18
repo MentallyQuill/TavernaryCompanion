@@ -257,9 +257,20 @@ var ProfileStore = class {
       const draft = structuredClone(this.#state);
       const result = await mutator(draft);
       const next = migrateProfileState(result ?? draft);
-      this.#state = structuredClone(next);
+      const hadPrevious = Object.hasOwn(this.#dependencies.extensionSettings, PROFILE_NAMESPACE);
+      const previous = this.#dependencies.extensionSettings[PROFILE_NAMESPACE];
       this.#dependencies.extensionSettings[PROFILE_NAMESPACE] = structuredClone(next);
-      await this.#dependencies.saveSettingsDebounced();
+      try {
+        await this.#dependencies.saveSettingsDebounced();
+      } catch (error) {
+        if (hadPrevious) {
+          this.#dependencies.extensionSettings[PROFILE_NAMESPACE] = previous;
+        } else {
+          delete this.#dependencies.extensionSettings[PROFILE_NAMESPACE];
+        }
+        throw error;
+      }
+      this.#state = structuredClone(next);
       for (const subscriber of this.#subscribers) {
         subscriber(structuredClone(next));
       }
@@ -603,6 +614,11 @@ function T2(n2, r3) {
   var u4 = s2(t2++, 7);
   return C2(u4.__H, r3) && (u4.__ = n2(), u4.__H = r3, u4.__h = n2), u4.__;
 }
+function q2(n2, t3) {
+  return o2 = 8, T2(function() {
+    return n2;
+  }, t3);
+}
 function j2() {
   for (var n2; n2 = f2.shift(); ) {
     var t3 = n2.__H;
@@ -676,427 +692,15 @@ function D2(n2, t3) {
   return "function" == typeof t3 ? t3(n2) : t3;
 }
 
-// node_modules/preact/jsx-runtime/dist/jsxRuntime.module.js
-var f3 = 0;
-function u3(e3, t3, n2, o3, i3, u4) {
-  t3 || (t3 = {});
-  var a3, c3, p3 = t3;
-  if ("ref" in p3) for (c3 in p3 = {}, t3) "ref" == c3 ? a3 = t3[c3] : p3[c3] = t3[c3];
-  var l3 = { type: e3, props: p3, key: n2, ref: a3, __k: null, __: null, __b: 0, __e: null, __c: null, constructor: void 0, __v: --f3, __i: -1, __u: 0, __source: i3, __self: u4 };
-  if ("function" == typeof e3 && (a3 = e3.defaultProps)) for (c3 in a3) void 0 === p3[c3] && (p3[c3] = a3[c3]);
-  return l.vnode && l.vnode(l3), l3;
-}
-
-// src/ui/installed/installed-section.tsx
-function InstalledSection({
-  section,
-  onOpenProject,
-  onAction,
-  onManage
-}) {
-  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-installed-section", children: [
-    /* @__PURE__ */ u3("header", { children: [
-      /* @__PURE__ */ u3("h3", { children: section.title }),
-      /* @__PURE__ */ u3("span", { children: section.rows.length })
-    ] }),
-    section.rows.length === 0 ? /* @__PURE__ */ u3("p", { children: emptyExplanation(section.id) }) : /* @__PURE__ */ u3("ul", { children: section.rows.map((row) => /* @__PURE__ */ u3(
-      InstalledRow,
-      {
-        row,
-        sectionId: section.id,
-        onOpenProject,
-        onAction,
-        onManage
-      }
-    )) })
-  ] });
-}
-function InstalledRow({
-  row,
-  sectionId,
-  onOpenProject,
-  onAction,
-  onManage
-}) {
-  const unknown = sectionId === "unknown" || row.action.kind === "manage-in-sillytavern";
-  return /* @__PURE__ */ u3("li", { children: [
-    /* @__PURE__ */ u3("div", { children: [
-      /* @__PURE__ */ u3("strong", { children: row.name }),
-      /* @__PURE__ */ u3("span", { children: row.detail }),
-      row.enabled !== null ? /* @__PURE__ */ u3("span", { children: row.enabled ? "Enabled" : "Disabled" }) : null
-    ] }),
-    !unknown ? /* @__PURE__ */ u3(
-      "button",
-      {
-        type: "button",
-        "data-focus-key": `installed-${row.id}`,
-        onClick: () => onOpenProject?.(row.id),
-        "aria-label": `View ${row.name}`,
-        children: "Details"
-      }
-    ) : null,
-    /* @__PURE__ */ u3(
-      "button",
-      {
-        type: "button",
-        "aria-label": unknown ? `Manage ${row.name} in SillyTavern` : `${row.action.label} ${row.name}`,
-        onClick: () => unknown ? onManage?.() : onAction?.(row.id, row.action),
-        children: row.action.label
-      }
-    )
-  ] });
-}
-function emptyExplanation(id) {
-  return {
-    managed: "No installed extensions are currently managed by Companion.",
-    external: "No catalog extensions were found outside Companion management.",
-    unknown: "Every discovered extension matched the current catalog.",
-    attention: "No managed records need attention."
-  }[id];
-}
-
-// src/ui/installed/installed-route.tsx
-function InstalledRoute({
-  sections,
-  refreshing = false,
-  onRefresh,
-  onOpenProject,
-  onAction,
-  onManage
-}) {
-  h2(() => {
-    void onRefresh();
-  }, [onRefresh]);
-  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-installed-route", "aria-labelledby": "installed-heading", children: [
-    /* @__PURE__ */ u3("header", { children: [
-      /* @__PURE__ */ u3("h2", { id: "installed-heading", children: "Installed extensions" }),
-      refreshing ? /* @__PURE__ */ u3("p", { role: "status", children: "Updating installed extensions\u2026" }) : null
-    ] }),
-    sections.map((section) => /* @__PURE__ */ u3(
-      InstalledSection,
-      {
-        section,
-        onOpenProject,
-        onAction,
-        onManage
-      },
-      section.id
-    ))
-  ] });
-}
-
-// src/ui/catalog/catalog-freshness.tsx
-function CatalogFreshness({
-  snapshot,
-  now = (/* @__PURE__ */ new Date()).toISOString(),
-  refreshing = false
-}) {
-  const label = refreshing ? "Checking for updates" : freshnessLabel(snapshot, now);
-  return /* @__PURE__ */ u3("span", { class: "tavernary-companion-catalog-freshness", "data-state": snapshot.state, children: label });
-}
-function freshnessLabel(snapshot, now) {
-  switch (snapshot.state) {
-    case "empty-loading":
-      return "Checking for updates";
-    case "ready-current":
-      return `Updated ${relativeAge(snapshot.catalog.generatedAt, now)}`;
-    case "ready-stale":
-      return "Saved catalog may be outdated";
-    case "ready-offline":
-      return "Using saved catalog \u2014 offline";
-    case "incompatible-with-cache":
-    case "incompatible-empty":
-      return "Companion update required";
-    case "error-empty":
-      return "Catalog unavailable";
+// src/catalog/catalog-errors.ts
+var CatalogClientError = class extends Error {
+  code;
+  constructor(code, message, options) {
+    super(message, options);
+    this.name = "CatalogClientError";
+    this.code = code;
   }
-}
-function relativeAge(value, now) {
-  const elapsed = Math.max(0, Date.parse(now) - Date.parse(value));
-  const minutes = Math.floor(elapsed / 6e4);
-  if (minutes < 1) return "just now";
-  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
-  const hours = Math.floor(minutes / 60);
-  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
-  const days = Math.floor(hours / 24);
-  return `${days} day${days === 1 ? "" : "s"} ago`;
-}
-
-// src/ui/catalog/catalog-state-panel.tsx
-function CatalogStatePanel({
-  snapshot,
-  onRefresh,
-  onUpdateCompanion,
-  onUseCached,
-  onOpenTavernary,
-  children
-}) {
-  const [refreshing, setRefreshing] = d2(false);
-  const [announcement, setAnnouncement] = d2("");
-  const [usingCache, setUsingCache] = d2(false);
-  const refresh = async () => {
-    if (refreshing) return;
-    setRefreshing(true);
-    setAnnouncement("");
-    try {
-      await onRefresh();
-      setAnnouncement("Catalog is current");
-    } finally {
-      setRefreshing(false);
-    }
-  };
-  const incompatible = snapshot.state.startsWith("incompatible");
-  const emptyError = snapshot.state === "error-empty";
-  return /* @__PURE__ */ u3(
-    "section",
-    {
-      class: "tavernary-companion-catalog-state",
-      "data-testid": "catalog-state-panel",
-      "data-lifecycle-disabled": String(!snapshot.canMutate),
-      children: [
-        /* @__PURE__ */ u3("header", { children: [
-          /* @__PURE__ */ u3(CatalogFreshness, { snapshot, refreshing }),
-          !incompatible ? /* @__PURE__ */ u3("button", { type: "button", onClick: () => void refresh(), disabled: refreshing, children: emptyError ? "Try again" : "Refresh catalog" }) : null
-        ] }),
-        /* @__PURE__ */ u3("span", { class: "tavernary-companion-sr-only", role: "status", "aria-live": "polite", children: announcement }),
-        incompatible && !usingCache ? /* @__PURE__ */ u3("section", { "aria-labelledby": "catalog-update-heading", children: [
-          /* @__PURE__ */ u3("h2", { id: "catalog-update-heading", children: "Companion update required" }),
-          /* @__PURE__ */ u3("p", { children: [
-            "Tavernary now publishes catalog schema",
-            " ",
-            "remoteSchemaVersion" in snapshot ? snapshot.remoteSchemaVersion : "a newer version",
-            ". Update Companion before refreshing or changing installed extensions."
-          ] }),
-          /* @__PURE__ */ u3("div", { children: [
-            /* @__PURE__ */ u3("button", { type: "button", onClick: onUpdateCompanion, children: "Update Companion" }),
-            snapshot.state === "incompatible-with-cache" ? /* @__PURE__ */ u3(
-              "button",
-              {
-                type: "button",
-                onClick: () => {
-                  setUsingCache(true);
-                  onUseCached();
-                },
-                children: "Use cached catalog"
-              }
-            ) : null,
-            /* @__PURE__ */ u3("button", { type: "button", onClick: onOpenTavernary, children: "Open Tavernary" })
-          ] })
-        ] }) : emptyError ? /* @__PURE__ */ u3("section", { "aria-labelledby": "catalog-error-heading", children: [
-          /* @__PURE__ */ u3("h2", { id: "catalog-error-heading", children: "Catalog unavailable" }),
-          /* @__PURE__ */ u3("p", { children: "No saved catalog is available. Check the connection and try again." }),
-          /* @__PURE__ */ u3("details", { children: [
-            /* @__PURE__ */ u3("summary", { children: "Error details" }),
-            /* @__PURE__ */ u3("p", { children: "Unable to reach or validate the Tavernary catalog." })
-          ] })
-        ] }) : snapshot.state === "empty-loading" ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-catalog-skeleton", "aria-label": "Loading catalog", children: [
-          /* @__PURE__ */ u3("span", {}),
-          /* @__PURE__ */ u3("span", {}),
-          /* @__PURE__ */ u3("span", {})
-        ] }) : children
-      ]
-    }
-  );
-}
-
-// src/ui/shared/activity-summary.tsx
-function ActivitySummary({ activity }) {
-  if (activity.activeWeeks12 === null) {
-    return /* @__PURE__ */ u3("span", { children: "Activity unavailable" });
-  }
-  return /* @__PURE__ */ u3("span", { children: [
-    activity.activeWeeks12,
-    " of 12 active weeks",
-    activity.dormant ? " \xB7 Dormant" : ""
-  ] });
-}
-
-// src/ui/shared/assessment-badge.tsx
-function AssessmentBadge({ status }) {
-  if (!status || status.freshness === "unassessed") {
-    return /* @__PURE__ */ u3("span", { class: "tavernary-companion-assessment is-neutral", children: "Not assessed" });
-  }
-  if (status.freshness === "unsupported") {
-    return /* @__PURE__ */ u3("span", { class: "tavernary-companion-assessment is-neutral", children: "Scan unsupported" });
-  }
-  if (!status.riskLevel) {
-    return /* @__PURE__ */ u3("span", { class: "tavernary-companion-assessment is-neutral", children: "Scan unavailable" });
-  }
-  const concern = {
-    low: "Low concern",
-    material: "Potential concerns",
-    high: "High concern"
-  }[status.riskLevel];
-  const freshness = status.freshness === "current" ? "current scan" : "scan not current";
-  return /* @__PURE__ */ u3("span", { class: `tavernary-companion-assessment is-${status.state}`, children: [
-    concern,
-    " \xB7 ",
-    freshness
-  ] });
-}
-
-// src/ui/projects/project-evidence.tsx
-function ProjectEvidence({ project }) {
-  const report = project.tavernKeeper?.report;
-  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-project-evidence", "aria-labelledby": "project-assessment", children: [
-    /* @__PURE__ */ u3("h3", { id: "project-assessment", children: "TavernKeeper assessment" }),
-    /* @__PURE__ */ u3(AssessmentBadge, { status: project.tavernKeeper }),
-    report ? /* @__PURE__ */ u3(S, { children: [
-      /* @__PURE__ */ u3("h4", { children: report.headline }),
-      /* @__PURE__ */ u3("p", { children: report.summary }),
-      /* @__PURE__ */ u3("dl", { children: [
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Minor cautions" }),
-          /* @__PURE__ */ u3("dd", { children: report.minorCautions })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Material concerns" }),
-          /* @__PURE__ */ u3("dd", { children: report.materialConcerns })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "High danger findings" }),
-          /* @__PURE__ */ u3("dd", { children: report.highDanger })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Scanned commit" }),
-          /* @__PURE__ */ u3("dd", { children: report.scannedSha.slice(0, 12) })
-        ] })
-      ] }),
-      /* @__PURE__ */ u3("a", { href: report.reportUrl, target: "_blank", rel: "noreferrer noopener", children: "Open Scan Review (new tab)" })
-    ] }) : /* @__PURE__ */ u3("p", { children: "No current TavernKeeper assessment is available." }),
-    /* @__PURE__ */ u3("h3", { children: "Activity evidence" }),
-    /* @__PURE__ */ u3(ActivitySummary, { activity: project.activity }),
-    project.activity.latestSourceActivityAt ? /* @__PURE__ */ u3("p", { children: [
-      "Latest source activity: ",
-      formatDate(project.activity.latestSourceActivityAt)
-    ] }) : null
-  ] });
-}
-function formatDate(value) {
-  return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
-}
-
-// src/ui/projects/project-detail.tsx
-function ProjectDetail({ project, onAction }) {
-  return /* @__PURE__ */ u3("article", { class: "tavernary-companion-project-detail", children: [
-    /* @__PURE__ */ u3("header", { children: [
-      /* @__PURE__ */ u3("p", { children: project.kind }),
-      /* @__PURE__ */ u3("h2", { children: project.name }),
-      /* @__PURE__ */ u3("p", { children: project.summary }),
-      /* @__PURE__ */ u3(
-        "button",
-        {
-          type: "button",
-          "aria-label": `${project.action.label} ${project.name}`,
-          onClick: () => onAction(project.action),
-          disabled: project.action.kind === "current-extension",
-          children: project.action.label
-        }
-      ),
-      project.action.reason ? /* @__PURE__ */ u3("p", { children: project.action.reason }) : null
-    ] }),
-    /* @__PURE__ */ u3("section", { "aria-labelledby": "project-details-heading", children: [
-      /* @__PURE__ */ u3("h3", { id: "project-details-heading", children: "Project details" }),
-      /* @__PURE__ */ u3("dl", { children: [
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Frontends" }),
-          /* @__PURE__ */ u3("dd", { children: project.frontends.join(", ") || "Not specified" })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Category" }),
-          /* @__PURE__ */ u3("dd", { children: project.primaryFunction })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "License" }),
-          /* @__PURE__ */ u3("dd", { title: project.license.tooltip, children: project.license.label })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Catalog metadata" }),
-          /* @__PURE__ */ u3("dd", { children: project.metadataStatus })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Source status" }),
-          /* @__PURE__ */ u3("dd", { children: project.sourceStatus })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Installed ownership" }),
-          /* @__PURE__ */ u3("dd", { children: project.ownership })
-        ] })
-      ] }),
-      project.tags.length > 0 ? /* @__PURE__ */ u3("ul", { "aria-label": "Project tags", children: project.tags.map((tag) => /* @__PURE__ */ u3("li", { children: tag })) }) : null
-    ] }),
-    /* @__PURE__ */ u3(ProjectEvidence, { project }),
-    project.attribution ? /* @__PURE__ */ u3("p", { children: [
-      "Catalog attribution: ",
-      project.attribution.owner.login
-    ] }) : /* @__PURE__ */ u3("p", { children: "Catalog attribution is pending." }),
-    project.fork ? /* @__PURE__ */ u3("p", { children: [
-      "Fork of",
-      " ",
-      project.fork.parentUrl ? /* @__PURE__ */ u3("a", { href: project.fork.parentUrl, target: "_blank", rel: "noreferrer noopener", children: [
-        project.fork.parentName,
-        " (new tab)"
-      ] }) : project.fork.parentName
-    ] }) : null,
-    project.kitReferences.length > 0 ? /* @__PURE__ */ u3("section", { "aria-labelledby": "project-kits-heading", children: [
-      /* @__PURE__ */ u3("h3", { id: "project-kits-heading", children: "Included in Kits" }),
-      /* @__PURE__ */ u3("ul", { children: project.kitReferences.map((kit) => /* @__PURE__ */ u3("li", { children: kit.title })) })
-    ] }) : null,
-    /* @__PURE__ */ u3("a", { href: project.canonicalUrl, target: "_blank", rel: "noreferrer noopener", children: "Open project source (new tab)" })
-  ] });
-}
-
-// src/ui/projects/active-filter-chips.tsx
-function ActiveFilterChips({
-  query,
-  facets,
-  onQueryChange
-}) {
-  const frontendLabels = new Map(facets.frontends.map(({ id, label }) => [id, label]));
-  const kindLabels = /* @__PURE__ */ new Map([
-    ["frontend", "Frontend"],
-    ["extension", "Extension"],
-    ["preset", "Preset"]
-  ]);
-  return /* @__PURE__ */ u3("div", { class: "tavernary-companion-filter-chips", "aria-label": "Active filters", children: [
-    query.frontends.map((id) => {
-      const label = frontendLabels.get(id) ?? id;
-      return /* @__PURE__ */ u3(
-        "button",
-        {
-          type: "button",
-          "aria-label": `Remove ${label} filter`,
-          onClick: () => onQueryChange({
-            ...query,
-            frontends: query.frontends.filter((value) => value !== id)
-          }),
-          children: [
-            label,
-            " \xD7"
-          ]
-        }
-      );
-    }),
-    query.kinds.map((id) => {
-      const label = kindLabels.get(id) ?? id;
-      return /* @__PURE__ */ u3(
-        "button",
-        {
-          type: "button",
-          "aria-label": `Remove ${label} filter`,
-          onClick: () => onQueryChange({
-            ...query,
-            kinds: query.kinds.filter((value) => value !== id)
-          }),
-          children: [
-            label,
-            " \xD7"
-          ]
-        }
-      );
-    })
-  ] });
-}
+};
 
 // vendor/tavernary-core/src/install-contract.ts
 var contractKeys = [
@@ -1106,6 +710,143 @@ var contractKeys = [
   "manifestPath",
   "repositoryUrl"
 ].sort();
+var safeFolderName = /^[A-Za-z0-9._-]+$/u;
+var InstallContractValidationError = class extends Error {
+  field;
+  constructor(field, message) {
+    super(message);
+    this.name = "InstallContractValidationError";
+    this.field = field;
+  }
+};
+function parseInstallContract(value) {
+  if (!isRecord2(value)) {
+    throw new InstallContractValidationError(
+      "contract",
+      "Install contract must be an object."
+    );
+  }
+  const keys = Object.keys(value).sort();
+  if (keys.length !== contractKeys.length || keys.some((key, index) => key !== contractKeys[index])) {
+    throw new InstallContractValidationError(
+      "contract",
+      "Install contract keys do not match schema 7."
+    );
+  }
+  if (value.kind !== "sillytavern-extension-git") {
+    throw new InstallContractValidationError(
+      "kind",
+      "Install kind is unsupported."
+    );
+  }
+  if (value.manifestPath !== "manifest.json") {
+    throw new InstallContractValidationError(
+      "manifestPath",
+      "SillyTavern manifests must be at the repository root."
+    );
+  }
+  const repositoryUrl = parseRepositoryUrl2(value.repositoryUrl);
+  const branch = parseBranch(value.branch);
+  const folderName = parseFolderName(value.folderName);
+  return {
+    kind: "sillytavern-extension-git",
+    repositoryUrl,
+    branch,
+    manifestPath: "manifest.json",
+    folderName
+  };
+}
+function parseRepositoryUrl2(value) {
+  if (typeof value !== "string" || containsControl(value)) {
+    throw new InstallContractValidationError(
+      "repositoryUrl",
+      "Repository URL is invalid."
+    );
+  }
+  if (/%(?:2f|5c)/iu.test(value)) {
+    throw new InstallContractValidationError(
+      "repositoryUrl",
+      "Repository URL cannot contain encoded separators."
+    );
+  }
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    throw new InstallContractValidationError(
+      "repositoryUrl",
+      "Repository URL is invalid."
+    );
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") {
+    throw new InstallContractValidationError(
+      "repositoryUrl",
+      "Repository URL must use HTTP or HTTPS."
+    );
+  }
+  if (url.username || url.password) {
+    throw new InstallContractValidationError(
+      "repositoryUrl",
+      "Repository URL cannot contain credentials."
+    );
+  }
+  if (url.search || url.hash) {
+    throw new InstallContractValidationError(
+      "repositoryUrl",
+      "Repository URL cannot contain a query or fragment."
+    );
+  }
+  const rawPath = rawUrlPath(value);
+  let decodedPath;
+  try {
+    decodedPath = decodeURIComponent(rawPath);
+  } catch {
+    throw new InstallContractValidationError(
+      "repositoryUrl",
+      "Repository URL path encoding is invalid."
+    );
+  }
+  const segments = decodedPath.split("/").filter(Boolean);
+  if (!url.hostname || decodedPath.includes("\\") || decodedPath.includes("//") || segments.length < 2 || segments.some((segment) => segment === "." || segment === "..") || !segments.at(-1)?.endsWith(".git")) {
+    throw new InstallContractValidationError(
+      "repositoryUrl",
+      "Repository URL must identify a .git repository."
+    );
+  }
+  return url.href;
+}
+function parseBranch(value) {
+  if (value === null) return null;
+  if (typeof value !== "string" || value.length === 0 || value.length > 255 || containsControl(value) || /[ ~^:?*\[\\]/u.test(value) || value.includes("..") || value.includes("@{") || value.includes("//") || value.startsWith("-") || value.startsWith("/") || value.endsWith("/") || value.endsWith(".")) {
+    throw new InstallContractValidationError(
+      "branch",
+      "Branch name is invalid."
+    );
+  }
+  return value;
+}
+function parseFolderName(value) {
+  if (typeof value !== "string" || !safeFolderName.test(value) || value === "." || value === "..") {
+    throw new InstallContractValidationError(
+      "folderName",
+      "Install folder name is unsafe."
+    );
+  }
+  return value;
+}
+function rawUrlPath(value) {
+  const match = /^[a-z]+:\/\/[^/]*(\/[^?#]*)/iu.exec(value);
+  return match?.[1] ?? "";
+}
+function containsControl(value) {
+  return Array.from(value).some((character) => {
+    const codePoint = character.codePointAt(0) ?? 0;
+    return codePoint < 32 || codePoint >= 127 && codePoint <= 159;
+  });
+}
+function isRecord2(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 // vendor/tavernary-core/src/catalog-schema.ts
 var catalogKeys = [
@@ -1115,6 +856,99 @@ var catalogKeys = [
   "schemaVersion",
   "tagVocabulary"
 ].sort();
+var CatalogValidationError = class extends Error {
+  issues;
+  constructor(issues) {
+    super(`Catalog schema 7 validation failed with ${issues.length} issue(s).`);
+    this.name = "CatalogValidationError";
+    this.issues = structuredClone(issues);
+  }
+};
+function parseCatalogV7(value) {
+  const issues = [];
+  if (!isRecord3(value)) {
+    throw new CatalogValidationError([
+      { path: "catalog", message: "Catalog must be an object." }
+    ]);
+  }
+  const keys = Object.keys(value).sort();
+  if (keys.length !== catalogKeys.length || keys.some((key, index) => key !== catalogKeys[index])) {
+    issues.push({
+      path: "catalog",
+      message: "Catalog top-level keys do not match schema 7."
+    });
+  }
+  if (value.schemaVersion !== 7) {
+    issues.push({
+      path: "schemaVersion",
+      message: "Expected schema version 7."
+    });
+  }
+  if (typeof value.generatedAt !== "string" || !isIsoDate(value.generatedAt)) {
+    issues.push({ path: "generatedAt", message: "Expected an ISO date-time." });
+  }
+  if (!Array.isArray(value.tagVocabulary)) {
+    issues.push({ path: "tagVocabulary", message: "Expected an array." });
+  }
+  if (!Array.isArray(value.kits)) {
+    issues.push({ path: "kits", message: "Expected an array." });
+  }
+  const projects = [];
+  const projectIds = /* @__PURE__ */ new Set();
+  if (!Array.isArray(value.projects)) {
+    issues.push({ path: "projects", message: "Expected an array." });
+  } else {
+    value.projects.forEach((project, index) => {
+      const path = `projects[${index}]`;
+      if (!isRecord3(project)) {
+        issues.push({ path, message: "Project must be an object." });
+        return;
+      }
+      if (typeof project.id !== "string" || project.id.length === 0) {
+        issues.push({ path: `${path}.id`, message: "Project ID is required." });
+      } else if (projectIds.has(project.id)) {
+        issues.push({
+          path: `${path}.id`,
+          message: "Project ID must be unique."
+        });
+      } else {
+        projectIds.add(project.id);
+      }
+      if (!("install" in project)) {
+        issues.push({
+          path: `${path}.install`,
+          message: "Install eligibility is required."
+        });
+      } else if (project.install !== null) {
+        try {
+          parseInstallContract(project.install);
+        } catch (cause) {
+          const field = cause instanceof InstallContractValidationError && cause.field !== "contract" ? `.${cause.field}` : "";
+          issues.push({
+            path: `${path}.install${field}`,
+            message: cause instanceof Error ? cause.message : "Install contract is invalid."
+          });
+        }
+      }
+      projects.push(project);
+    });
+  }
+  if (issues.length > 0) throw new CatalogValidationError(issues);
+  return structuredClone({
+    schemaVersion: 7,
+    generatedAt: value.generatedAt,
+    tagVocabulary: value.tagVocabulary,
+    projects,
+    kits: value.kits
+  });
+}
+function isIsoDate(value) {
+  const timestamp = new Date(value);
+  return Number.isFinite(timestamp.getTime()) && timestamp.toISOString() === value;
+}
+function isRecord3(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 // vendor/tavernary-core/src/kit-query.ts
 var DEFAULT_KIT_BROWSE_SORT = "trending";
@@ -1135,6 +969,2200 @@ var KIT_BROWSE_SORTS = /* @__PURE__ */ new Set([
   "alphabetical"
 ]);
 var KIT_SORTS = /* @__PURE__ */ new Set([...KIT_BROWSE_SORTS, "relevance"]);
+
+// vendor/tavernary-core/src/preset-compatibility.ts
+function matchesModelFamilies(selected, available) {
+  return selected.length === 0 || selected.some((family) => available.includes(family));
+}
+function matchesCompletionFormats(selected, available) {
+  return selected.length === 0 || selected.some((format) => available.includes(format));
+}
+
+// node_modules/minisearch/dist/es/index.js
+var ENTRIES = "ENTRIES";
+var KEYS = "KEYS";
+var VALUES = "VALUES";
+var LEAF = "";
+var TreeIterator = class {
+  constructor(set, type) {
+    const node = set._tree;
+    const keys = Array.from(node.keys());
+    this.set = set;
+    this._type = type;
+    this._path = keys.length > 0 ? [{ node, keys }] : [];
+  }
+  next() {
+    const value = this.dive();
+    this.backtrack();
+    return value;
+  }
+  dive() {
+    if (this._path.length === 0) {
+      return { done: true, value: void 0 };
+    }
+    const { node, keys } = last$1(this._path);
+    if (last$1(keys) === LEAF) {
+      return { done: false, value: this.result() };
+    }
+    const child = node.get(last$1(keys));
+    this._path.push({ node: child, keys: Array.from(child.keys()) });
+    return this.dive();
+  }
+  backtrack() {
+    if (this._path.length === 0) {
+      return;
+    }
+    const keys = last$1(this._path).keys;
+    keys.pop();
+    if (keys.length > 0) {
+      return;
+    }
+    this._path.pop();
+    this.backtrack();
+  }
+  key() {
+    return this.set._prefix + this._path.map(({ keys }) => last$1(keys)).filter((key) => key !== LEAF).join("");
+  }
+  value() {
+    return last$1(this._path).node.get(LEAF);
+  }
+  result() {
+    switch (this._type) {
+      case VALUES:
+        return this.value();
+      case KEYS:
+        return this.key();
+      default:
+        return [this.key(), this.value()];
+    }
+  }
+  [Symbol.iterator]() {
+    return this;
+  }
+};
+var last$1 = (array) => {
+  return array[array.length - 1];
+};
+var fuzzySearch = (node, query, maxDistance) => {
+  const results = /* @__PURE__ */ new Map();
+  if (query === void 0)
+    return results;
+  const n2 = query.length + 1;
+  const m3 = n2 + maxDistance;
+  const matrix = new Uint8Array(m3 * n2).fill(maxDistance + 1);
+  for (let j3 = 0; j3 < n2; ++j3)
+    matrix[j3] = j3;
+  for (let i3 = 1; i3 < m3; ++i3)
+    matrix[i3 * n2] = i3;
+  recurse(node, query, maxDistance, results, matrix, 1, n2, "");
+  return results;
+};
+var recurse = (node, query, maxDistance, results, matrix, m3, n2, prefix) => {
+  const offset = m3 * n2;
+  key: for (const key of node.keys()) {
+    if (key === LEAF) {
+      const distance = matrix[offset - 1];
+      if (distance <= maxDistance) {
+        results.set(prefix, [node.get(key), distance]);
+      }
+    } else {
+      let i3 = m3;
+      for (let pos = 0; pos < key.length; ++pos, ++i3) {
+        const char = key[pos];
+        const thisRowOffset = n2 * i3;
+        const prevRowOffset = thisRowOffset - n2;
+        let minDistance = matrix[thisRowOffset];
+        const jmin = Math.max(0, i3 - maxDistance - 1);
+        const jmax = Math.min(n2 - 1, i3 + maxDistance);
+        for (let j3 = jmin; j3 < jmax; ++j3) {
+          const different = char !== query[j3];
+          const rpl = matrix[prevRowOffset + j3] + +different;
+          const del = matrix[prevRowOffset + j3 + 1] + 1;
+          const ins = matrix[thisRowOffset + j3] + 1;
+          const dist = matrix[thisRowOffset + j3 + 1] = Math.min(rpl, del, ins);
+          if (dist < minDistance)
+            minDistance = dist;
+        }
+        if (minDistance > maxDistance) {
+          continue key;
+        }
+      }
+      recurse(node.get(key), query, maxDistance, results, matrix, i3, n2, prefix + key);
+    }
+  }
+};
+var SearchableMap = class _SearchableMap {
+  /**
+   * The constructor is normally called without arguments, creating an empty
+   * map. In order to create a {@link SearchableMap} from an iterable or from an
+   * object, check {@link SearchableMap.from} and {@link
+   * SearchableMap.fromObject}.
+   *
+   * The constructor arguments are for internal use, when creating derived
+   * mutable views of a map at a prefix.
+   */
+  constructor(tree = /* @__PURE__ */ new Map(), prefix = "") {
+    this._size = void 0;
+    this._tree = tree;
+    this._prefix = prefix;
+  }
+  /**
+   * Creates and returns a mutable view of this {@link SearchableMap},
+   * containing only entries that share the given prefix.
+   *
+   * ### Usage:
+   *
+   * ```javascript
+   * let map = new SearchableMap()
+   * map.set("unicorn", 1)
+   * map.set("universe", 2)
+   * map.set("university", 3)
+   * map.set("unique", 4)
+   * map.set("hello", 5)
+   *
+   * let uni = map.atPrefix("uni")
+   * uni.get("unique") // => 4
+   * uni.get("unicorn") // => 1
+   * uni.get("hello") // => undefined
+   *
+   * let univer = map.atPrefix("univer")
+   * univer.get("unique") // => undefined
+   * univer.get("universe") // => 2
+   * univer.get("university") // => 3
+   * ```
+   *
+   * @param prefix  The prefix
+   * @return A {@link SearchableMap} representing a mutable view of the original
+   * Map at the given prefix
+   */
+  atPrefix(prefix) {
+    if (!prefix.startsWith(this._prefix)) {
+      throw new Error("Mismatched prefix");
+    }
+    const [node, path] = trackDown(this._tree, prefix.slice(this._prefix.length));
+    if (node === void 0) {
+      const [parentNode, key] = last(path);
+      for (const k3 of parentNode.keys()) {
+        if (k3 !== LEAF && k3.startsWith(key)) {
+          const node2 = /* @__PURE__ */ new Map();
+          node2.set(k3.slice(key.length), parentNode.get(k3));
+          return new _SearchableMap(node2, prefix);
+        }
+      }
+    }
+    return new _SearchableMap(node, prefix);
+  }
+  /**
+   * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/clear
+   */
+  clear() {
+    this._size = void 0;
+    this._tree.clear();
+  }
+  /**
+   * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/delete
+   * @param key  Key to delete
+   */
+  delete(key) {
+    this._size = void 0;
+    return remove(this._tree, key);
+  }
+  /**
+   * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/entries
+   * @return An iterator iterating through `[key, value]` entries.
+   */
+  entries() {
+    return new TreeIterator(this, ENTRIES);
+  }
+  /**
+   * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/forEach
+   * @param fn  Iteration function
+   */
+  forEach(fn) {
+    for (const [key, value] of this) {
+      fn(key, value, this);
+    }
+  }
+  /**
+   * Returns a Map of all the entries that have a key within the given edit
+   * distance from the search key. The keys of the returned Map are the matching
+   * keys, while the values are two-element arrays where the first element is
+   * the value associated to the key, and the second is the edit distance of the
+   * key to the search key.
+   *
+   * ### Usage:
+   *
+   * ```javascript
+   * let map = new SearchableMap()
+   * map.set('hello', 'world')
+   * map.set('hell', 'yeah')
+   * map.set('ciao', 'mondo')
+   *
+   * // Get all entries that match the key 'hallo' with a maximum edit distance of 2
+   * map.fuzzyGet('hallo', 2)
+   * // => Map(2) { 'hello' => ['world', 1], 'hell' => ['yeah', 2] }
+   *
+   * // In the example, the "hello" key has value "world" and edit distance of 1
+   * // (change "e" to "a"), the key "hell" has value "yeah" and edit distance of 2
+   * // (change "e" to "a", delete "o")
+   * ```
+   *
+   * @param key  The search key
+   * @param maxEditDistance  The maximum edit distance (Levenshtein)
+   * @return A Map of the matching keys to their value and edit distance
+   */
+  fuzzyGet(key, maxEditDistance) {
+    return fuzzySearch(this._tree, key, maxEditDistance);
+  }
+  /**
+   * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/get
+   * @param key  Key to get
+   * @return Value associated to the key, or `undefined` if the key is not
+   * found.
+   */
+  get(key) {
+    const node = lookup(this._tree, key);
+    return node !== void 0 ? node.get(LEAF) : void 0;
+  }
+  /**
+   * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/has
+   * @param key  Key
+   * @return True if the key is in the map, false otherwise
+   */
+  has(key) {
+    const node = lookup(this._tree, key);
+    return node !== void 0 && node.has(LEAF);
+  }
+  /**
+   * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/keys
+   * @return An `Iterable` iterating through keys
+   */
+  keys() {
+    return new TreeIterator(this, KEYS);
+  }
+  /**
+   * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/set
+   * @param key  Key to set
+   * @param value  Value to associate to the key
+   * @return The {@link SearchableMap} itself, to allow chaining
+   */
+  set(key, value) {
+    if (typeof key !== "string") {
+      throw new Error("key must be a string");
+    }
+    this._size = void 0;
+    const node = createPath(this._tree, key);
+    node.set(LEAF, value);
+    return this;
+  }
+  /**
+   * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/size
+   */
+  get size() {
+    if (this._size) {
+      return this._size;
+    }
+    this._size = 0;
+    const iter = this.entries();
+    while (!iter.next().done)
+      this._size += 1;
+    return this._size;
+  }
+  /**
+   * Updates the value at the given key using the provided function. The function
+   * is called with the current value at the key, and its return value is used as
+   * the new value to be set.
+   *
+   * ### Example:
+   *
+   * ```javascript
+   * // Increment the current value by one
+   * searchableMap.update('somekey', (currentValue) => currentValue == null ? 0 : currentValue + 1)
+   * ```
+   *
+   * If the value at the given key is or will be an object, it might not require
+   * re-assignment. In that case it is better to use `fetch()`, because it is
+   * faster.
+   *
+   * @param key  The key to update
+   * @param fn  The function used to compute the new value from the current one
+   * @return The {@link SearchableMap} itself, to allow chaining
+   */
+  update(key, fn) {
+    if (typeof key !== "string") {
+      throw new Error("key must be a string");
+    }
+    this._size = void 0;
+    const node = createPath(this._tree, key);
+    node.set(LEAF, fn(node.get(LEAF)));
+    return this;
+  }
+  /**
+   * Fetches the value of the given key. If the value does not exist, calls the
+   * given function to create a new value, which is inserted at the given key
+   * and subsequently returned.
+   *
+   * ### Example:
+   *
+   * ```javascript
+   * const map = searchableMap.fetch('somekey', () => new Map())
+   * map.set('foo', 'bar')
+   * ```
+   *
+   * @param key  The key to update
+   * @param initial  A function that creates a new value if the key does not exist
+   * @return The existing or new value at the given key
+   */
+  fetch(key, initial) {
+    if (typeof key !== "string") {
+      throw new Error("key must be a string");
+    }
+    this._size = void 0;
+    const node = createPath(this._tree, key);
+    let value = node.get(LEAF);
+    if (value === void 0) {
+      node.set(LEAF, value = initial());
+    }
+    return value;
+  }
+  /**
+   * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/values
+   * @return An `Iterable` iterating through values.
+   */
+  values() {
+    return new TreeIterator(this, VALUES);
+  }
+  /**
+   * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/@@iterator
+   */
+  [Symbol.iterator]() {
+    return this.entries();
+  }
+  /**
+   * Creates a {@link SearchableMap} from an `Iterable` of entries
+   *
+   * @param entries  Entries to be inserted in the {@link SearchableMap}
+   * @return A new {@link SearchableMap} with the given entries
+   */
+  static from(entries) {
+    const tree = new _SearchableMap();
+    for (const [key, value] of entries) {
+      tree.set(key, value);
+    }
+    return tree;
+  }
+  /**
+   * Creates a {@link SearchableMap} from the iterable properties of a JavaScript object
+   *
+   * @param object  Object of entries for the {@link SearchableMap}
+   * @return A new {@link SearchableMap} with the given entries
+   */
+  static fromObject(object) {
+    return _SearchableMap.from(Object.entries(object));
+  }
+};
+var trackDown = (tree, key, path = []) => {
+  if (key.length === 0 || tree == null) {
+    return [tree, path];
+  }
+  for (const k3 of tree.keys()) {
+    if (k3 !== LEAF && key.startsWith(k3)) {
+      path.push([tree, k3]);
+      return trackDown(tree.get(k3), key.slice(k3.length), path);
+    }
+  }
+  path.push([tree, key]);
+  return trackDown(void 0, "", path);
+};
+var lookup = (tree, key) => {
+  if (key.length === 0 || tree == null) {
+    return tree;
+  }
+  for (const k3 of tree.keys()) {
+    if (k3 !== LEAF && key.startsWith(k3)) {
+      return lookup(tree.get(k3), key.slice(k3.length));
+    }
+  }
+};
+var createPath = (node, key) => {
+  const keyLength = key.length;
+  outer: for (let pos = 0; node && pos < keyLength; ) {
+    for (const k3 of node.keys()) {
+      if (k3 !== LEAF && key[pos] === k3[0]) {
+        const len = Math.min(keyLength - pos, k3.length);
+        let offset = 1;
+        while (offset < len && key[pos + offset] === k3[offset])
+          ++offset;
+        const child2 = node.get(k3);
+        if (offset === k3.length) {
+          node = child2;
+        } else {
+          const intermediate = /* @__PURE__ */ new Map();
+          intermediate.set(k3.slice(offset), child2);
+          node.set(key.slice(pos, pos + offset), intermediate);
+          node.delete(k3);
+          node = intermediate;
+        }
+        pos += offset;
+        continue outer;
+      }
+    }
+    const child = /* @__PURE__ */ new Map();
+    node.set(key.slice(pos), child);
+    return child;
+  }
+  return node;
+};
+var remove = (tree, key) => {
+  const [node, path] = trackDown(tree, key);
+  if (node === void 0) {
+    return;
+  }
+  node.delete(LEAF);
+  if (node.size === 0) {
+    cleanup(path);
+  } else if (node.size === 1) {
+    const [key2, value] = node.entries().next().value;
+    merge(path, key2, value);
+  }
+};
+var cleanup = (path) => {
+  if (path.length === 0) {
+    return;
+  }
+  const [node, key] = last(path);
+  node.delete(key);
+  if (node.size === 0) {
+    cleanup(path.slice(0, -1));
+  } else if (node.size === 1) {
+    const [key2, value] = node.entries().next().value;
+    if (key2 !== LEAF) {
+      merge(path.slice(0, -1), key2, value);
+    }
+  }
+};
+var merge = (path, key, value) => {
+  if (path.length === 0) {
+    return;
+  }
+  const [node, nodeKey] = last(path);
+  node.set(nodeKey + key, value);
+  node.delete(nodeKey);
+};
+var last = (array) => {
+  return array[array.length - 1];
+};
+var OR = "or";
+var AND = "and";
+var AND_NOT = "and_not";
+var MiniSearch = class _MiniSearch {
+  /**
+   * @param options  Configuration options
+   *
+   * ### Examples:
+   *
+   * ```javascript
+   * // Create a search engine that indexes the 'title' and 'text' fields of your
+   * // documents:
+   * const miniSearch = new MiniSearch({ fields: ['title', 'text'] })
+   * ```
+   *
+   * ### ID Field:
+   *
+   * ```javascript
+   * // Your documents are assumed to include a unique 'id' field, but if you want
+   * // to use a different field for document identification, you can set the
+   * // 'idField' option:
+   * const miniSearch = new MiniSearch({ idField: 'key', fields: ['title', 'text'] })
+   * ```
+   *
+   * ### Options and defaults:
+   *
+   * ```javascript
+   * // The full set of options (here with their default value) is:
+   * const miniSearch = new MiniSearch({
+   *   // idField: field that uniquely identifies a document
+   *   idField: 'id',
+   *
+   *   // extractField: function used to get the value of a field in a document.
+   *   // By default, it assumes the document is a flat object with field names as
+   *   // property keys and field values as string property values, but custom logic
+   *   // can be implemented by setting this option to a custom extractor function.
+   *   extractField: (document, fieldName) => document[fieldName],
+   *
+   *   // tokenize: function used to split fields into individual terms. By
+   *   // default, it is also used to tokenize search queries, unless a specific
+   *   // `tokenize` search option is supplied. When tokenizing an indexed field,
+   *   // the field name is passed as the second argument.
+   *   tokenize: (string, _fieldName) => string.split(SPACE_OR_PUNCTUATION),
+   *
+   *   // processTerm: function used to process each tokenized term before
+   *   // indexing. It can be used for stemming and normalization. Return a falsy
+   *   // value in order to discard a term. By default, it is also used to process
+   *   // search queries, unless a specific `processTerm` option is supplied as a
+   *   // search option. When processing a term from a indexed field, the field
+   *   // name is passed as the second argument.
+   *   processTerm: (term, _fieldName) => term.toLowerCase(),
+   *
+   *   // searchOptions: default search options, see the `search` method for
+   *   // details
+   *   searchOptions: undefined,
+   *
+   *   // fields: document fields to be indexed. Mandatory, but not set by default
+   *   fields: undefined
+   *
+   *   // storeFields: document fields to be stored and returned as part of the
+   *   // search results.
+   *   storeFields: []
+   * })
+   * ```
+   */
+  constructor(options) {
+    if ((options === null || options === void 0 ? void 0 : options.fields) == null) {
+      throw new Error('MiniSearch: option "fields" must be provided');
+    }
+    const autoVacuum = options.autoVacuum == null || options.autoVacuum === true ? defaultAutoVacuumOptions : options.autoVacuum;
+    this._options = {
+      ...defaultOptions,
+      ...options,
+      autoVacuum,
+      searchOptions: { ...defaultSearchOptions, ...options.searchOptions || {} },
+      autoSuggestOptions: { ...defaultAutoSuggestOptions, ...options.autoSuggestOptions || {} }
+    };
+    this._index = new SearchableMap();
+    this._documentCount = 0;
+    this._documentIds = /* @__PURE__ */ new Map();
+    this._idToShortId = /* @__PURE__ */ new Map();
+    this._fieldIds = {};
+    this._fieldLength = /* @__PURE__ */ new Map();
+    this._avgFieldLength = [];
+    this._nextId = 0;
+    this._storedFields = /* @__PURE__ */ new Map();
+    this._dirtCount = 0;
+    this._currentVacuum = null;
+    this._enqueuedVacuum = null;
+    this._enqueuedVacuumConditions = defaultVacuumConditions;
+    this.addFields(this._options.fields);
+  }
+  /**
+   * Adds a document to the index
+   *
+   * @param document  The document to be indexed
+   */
+  add(document2) {
+    const { extractField, stringifyField, tokenize, processTerm, fields, idField } = this._options;
+    const id = extractField(document2, idField);
+    if (id == null) {
+      throw new Error(`MiniSearch: document does not have ID field "${idField}"`);
+    }
+    if (this._idToShortId.has(id)) {
+      throw new Error(`MiniSearch: duplicate ID ${id}`);
+    }
+    const shortDocumentId = this.addDocumentId(id);
+    this.saveStoredFields(shortDocumentId, document2);
+    for (const field of fields) {
+      const fieldValue = extractField(document2, field);
+      if (fieldValue == null)
+        continue;
+      const tokens = tokenize(stringifyField(fieldValue, field), field);
+      const fieldId = this._fieldIds[field];
+      const uniqueTerms2 = new Set(tokens).size;
+      this.addFieldLength(shortDocumentId, fieldId, this._documentCount - 1, uniqueTerms2);
+      for (const term of tokens) {
+        const processedTerm = processTerm(term, field);
+        if (Array.isArray(processedTerm)) {
+          for (const t3 of processedTerm) {
+            this.addTerm(fieldId, shortDocumentId, t3);
+          }
+        } else if (processedTerm) {
+          this.addTerm(fieldId, shortDocumentId, processedTerm);
+        }
+      }
+    }
+  }
+  /**
+   * Adds all the given documents to the index
+   *
+   * @param documents  An array of documents to be indexed
+   */
+  addAll(documents) {
+    for (const document2 of documents)
+      this.add(document2);
+  }
+  /**
+   * Adds all the given documents to the index asynchronously.
+   *
+   * Returns a promise that resolves (to `undefined`) when the indexing is done.
+   * This method is useful when index many documents, to avoid blocking the main
+   * thread. The indexing is performed asynchronously and in chunks.
+   *
+   * @param documents  An array of documents to be indexed
+   * @param options  Configuration options
+   * @return A promise resolving to `undefined` when the indexing is done
+   */
+  addAllAsync(documents, options = {}) {
+    const { chunkSize = 10 } = options;
+    const acc = { chunk: [], promise: Promise.resolve() };
+    const { chunk, promise } = documents.reduce(({ chunk: chunk2, promise: promise2 }, document2, i3) => {
+      chunk2.push(document2);
+      if ((i3 + 1) % chunkSize === 0) {
+        return {
+          chunk: [],
+          promise: promise2.then(() => new Promise((resolve) => setTimeout(resolve, 0))).then(() => this.addAll(chunk2))
+        };
+      } else {
+        return { chunk: chunk2, promise: promise2 };
+      }
+    }, acc);
+    return promise.then(() => this.addAll(chunk));
+  }
+  /**
+   * Removes the given document from the index.
+   *
+   * The document to remove must NOT have changed between indexing and removal,
+   * otherwise the index will be corrupted.
+   *
+   * This method requires passing the full document to be removed (not just the
+   * ID), and immediately removes the document from the inverted index, allowing
+   * memory to be released. A convenient alternative is {@link
+   * MiniSearch#discard}, which needs only the document ID, and has the same
+   * visible effect, but delays cleaning up the index until the next vacuuming.
+   *
+   * @param document  The document to be removed
+   */
+  remove(document2) {
+    const { tokenize, processTerm, extractField, stringifyField, fields, idField } = this._options;
+    const id = extractField(document2, idField);
+    if (id == null) {
+      throw new Error(`MiniSearch: document does not have ID field "${idField}"`);
+    }
+    const shortId = this._idToShortId.get(id);
+    if (shortId == null) {
+      throw new Error(`MiniSearch: cannot remove document with ID ${id}: it is not in the index`);
+    }
+    for (const field of fields) {
+      const fieldValue = extractField(document2, field);
+      if (fieldValue == null)
+        continue;
+      const tokens = tokenize(stringifyField(fieldValue, field), field);
+      const fieldId = this._fieldIds[field];
+      const uniqueTerms2 = new Set(tokens).size;
+      this.removeFieldLength(shortId, fieldId, this._documentCount, uniqueTerms2);
+      for (const term of tokens) {
+        const processedTerm = processTerm(term, field);
+        if (Array.isArray(processedTerm)) {
+          for (const t3 of processedTerm) {
+            this.removeTerm(fieldId, shortId, t3);
+          }
+        } else if (processedTerm) {
+          this.removeTerm(fieldId, shortId, processedTerm);
+        }
+      }
+    }
+    this._storedFields.delete(shortId);
+    this._documentIds.delete(shortId);
+    this._idToShortId.delete(id);
+    this._fieldLength.delete(shortId);
+    this._documentCount -= 1;
+  }
+  /**
+   * Removes all the given documents from the index. If called with no arguments,
+   * it removes _all_ documents from the index.
+   *
+   * @param documents  The documents to be removed. If this argument is omitted,
+   * all documents are removed. Note that, for removing all documents, it is
+   * more efficient to call this method with no arguments than to pass all
+   * documents.
+   */
+  removeAll(documents) {
+    if (documents) {
+      for (const document2 of documents)
+        this.remove(document2);
+    } else if (arguments.length > 0) {
+      throw new Error("Expected documents to be present. Omit the argument to remove all documents.");
+    } else {
+      this._index = new SearchableMap();
+      this._documentCount = 0;
+      this._documentIds = /* @__PURE__ */ new Map();
+      this._idToShortId = /* @__PURE__ */ new Map();
+      this._fieldLength = /* @__PURE__ */ new Map();
+      this._avgFieldLength = [];
+      this._storedFields = /* @__PURE__ */ new Map();
+      this._nextId = 0;
+    }
+  }
+  /**
+   * Discards the document with the given ID, so it won't appear in search results
+   *
+   * It has the same visible effect of {@link MiniSearch.remove} (both cause the
+   * document to stop appearing in searches), but a different effect on the
+   * internal data structures:
+   *
+   *   - {@link MiniSearch#remove} requires passing the full document to be
+   *   removed as argument, and removes it from the inverted index immediately.
+   *
+   *   - {@link MiniSearch#discard} instead only needs the document ID, and
+   *   works by marking the current version of the document as discarded, so it
+   *   is immediately ignored by searches. This is faster and more convenient
+   *   than {@link MiniSearch#remove}, but the index is not immediately
+   *   modified. To take care of that, vacuuming is performed after a certain
+   *   number of documents are discarded, cleaning up the index and allowing
+   *   memory to be released.
+   *
+   * After discarding a document, it is possible to re-add a new version, and
+   * only the new version will appear in searches. In other words, discarding
+   * and re-adding a document works exactly like removing and re-adding it. The
+   * {@link MiniSearch.replace} method can also be used to replace a document
+   * with a new version.
+   *
+   * #### Details about vacuuming
+   *
+   * Repetite calls to this method would leave obsolete document references in
+   * the index, invisible to searches. Two mechanisms take care of cleaning up:
+   * clean up during search, and vacuuming.
+   *
+   *   - Upon search, whenever a discarded ID is found (and ignored for the
+   *   results), references to the discarded document are removed from the
+   *   inverted index entries for the search terms. This ensures that subsequent
+   *   searches for the same terms do not need to skip these obsolete references
+   *   again.
+   *
+   *   - In addition, vacuuming is performed automatically by default (see the
+   *   `autoVacuum` field in {@link Options}) after a certain number of
+   *   documents are discarded. Vacuuming traverses all terms in the index,
+   *   cleaning up all references to discarded documents. Vacuuming can also be
+   *   triggered manually by calling {@link MiniSearch#vacuum}.
+   *
+   * @param id  The ID of the document to be discarded
+   */
+  discard(id) {
+    const shortId = this._idToShortId.get(id);
+    if (shortId == null) {
+      throw new Error(`MiniSearch: cannot discard document with ID ${id}: it is not in the index`);
+    }
+    this._idToShortId.delete(id);
+    this._documentIds.delete(shortId);
+    this._storedFields.delete(shortId);
+    (this._fieldLength.get(shortId) || []).forEach((fieldLength, fieldId) => {
+      this.removeFieldLength(shortId, fieldId, this._documentCount, fieldLength);
+    });
+    this._fieldLength.delete(shortId);
+    this._documentCount -= 1;
+    this._dirtCount += 1;
+    this.maybeAutoVacuum();
+  }
+  maybeAutoVacuum() {
+    if (this._options.autoVacuum === false) {
+      return;
+    }
+    const { minDirtFactor, minDirtCount, batchSize, batchWait } = this._options.autoVacuum;
+    this.conditionalVacuum({ batchSize, batchWait }, { minDirtCount, minDirtFactor });
+  }
+  /**
+   * Discards the documents with the given IDs, so they won't appear in search
+   * results
+   *
+   * It is equivalent to calling {@link MiniSearch#discard} for all the given
+   * IDs, but with the optimization of triggering at most one automatic
+   * vacuuming at the end.
+   *
+   * Note: to remove all documents from the index, it is faster and more
+   * convenient to call {@link MiniSearch.removeAll} with no argument, instead
+   * of passing all IDs to this method.
+   */
+  discardAll(ids) {
+    const autoVacuum = this._options.autoVacuum;
+    try {
+      this._options.autoVacuum = false;
+      for (const id of ids) {
+        this.discard(id);
+      }
+    } finally {
+      this._options.autoVacuum = autoVacuum;
+    }
+    this.maybeAutoVacuum();
+  }
+  /**
+   * It replaces an existing document with the given updated version
+   *
+   * It works by discarding the current version and adding the updated one, so
+   * it is functionally equivalent to calling {@link MiniSearch#discard}
+   * followed by {@link MiniSearch#add}. The ID of the updated document should
+   * be the same as the original one.
+   *
+   * Since it uses {@link MiniSearch#discard} internally, this method relies on
+   * vacuuming to clean up obsolete document references from the index, allowing
+   * memory to be released (see {@link MiniSearch#discard}).
+   *
+   * @param updatedDocument  The updated document to replace the old version
+   * with
+   */
+  replace(updatedDocument) {
+    const { idField, extractField } = this._options;
+    const id = extractField(updatedDocument, idField);
+    this.discard(id);
+    this.add(updatedDocument);
+  }
+  /**
+   * Triggers a manual vacuuming, cleaning up references to discarded documents
+   * from the inverted index
+   *
+   * Vacuuming is only useful for applications that use the {@link
+   * MiniSearch#discard} or {@link MiniSearch#replace} methods.
+   *
+   * By default, vacuuming is performed automatically when needed (controlled by
+   * the `autoVacuum` field in {@link Options}), so there is usually no need to
+   * call this method, unless one wants to make sure to perform vacuuming at a
+   * specific moment.
+   *
+   * Vacuuming traverses all terms in the inverted index in batches, and cleans
+   * up references to discarded documents from the posting list, allowing memory
+   * to be released.
+   *
+   * The method takes an optional object as argument with the following keys:
+   *
+   *   - `batchSize`: the size of each batch (1000 by default)
+   *
+   *   - `batchWait`: the number of milliseconds to wait between batches (10 by
+   *   default)
+   *
+   * On large indexes, vacuuming could have a non-negligible cost: batching
+   * avoids blocking the thread for long, diluting this cost so that it is not
+   * negatively affecting the application. Nonetheless, this method should only
+   * be called when necessary, and relying on automatic vacuuming is usually
+   * better.
+   *
+   * It returns a promise that resolves (to undefined) when the clean up is
+   * completed. If vacuuming is already ongoing at the time this method is
+   * called, a new one is enqueued immediately after the ongoing one, and a
+   * corresponding promise is returned. However, no more than one vacuuming is
+   * enqueued on top of the ongoing one, even if this method is called more
+   * times (enqueuing multiple ones would be useless).
+   *
+   * @param options  Configuration options for the batch size and delay. See
+   * {@link VacuumOptions}.
+   */
+  vacuum(options = {}) {
+    return this.conditionalVacuum(options);
+  }
+  conditionalVacuum(options, conditions) {
+    if (this._currentVacuum) {
+      this._enqueuedVacuumConditions = this._enqueuedVacuumConditions && conditions;
+      if (this._enqueuedVacuum != null) {
+        return this._enqueuedVacuum;
+      }
+      this._enqueuedVacuum = this._currentVacuum.then(() => {
+        const conditions2 = this._enqueuedVacuumConditions;
+        this._enqueuedVacuumConditions = defaultVacuumConditions;
+        return this.performVacuuming(options, conditions2);
+      });
+      return this._enqueuedVacuum;
+    }
+    if (this.vacuumConditionsMet(conditions) === false) {
+      return Promise.resolve();
+    }
+    this._currentVacuum = this.performVacuuming(options);
+    return this._currentVacuum;
+  }
+  async performVacuuming(options, conditions) {
+    const initialDirtCount = this._dirtCount;
+    if (this.vacuumConditionsMet(conditions)) {
+      const batchSize = options.batchSize || defaultVacuumOptions.batchSize;
+      const batchWait = options.batchWait || defaultVacuumOptions.batchWait;
+      let i3 = 1;
+      for (const [term, fieldsData] of this._index) {
+        for (const [fieldId, fieldIndex] of fieldsData) {
+          for (const [shortId] of fieldIndex) {
+            if (this._documentIds.has(shortId)) {
+              continue;
+            }
+            if (fieldIndex.size <= 1) {
+              fieldsData.delete(fieldId);
+            } else {
+              fieldIndex.delete(shortId);
+            }
+          }
+        }
+        if (this._index.get(term).size === 0) {
+          this._index.delete(term);
+        }
+        if (i3 % batchSize === 0) {
+          await new Promise((resolve) => setTimeout(resolve, batchWait));
+        }
+        i3 += 1;
+      }
+      this._dirtCount -= initialDirtCount;
+    }
+    await null;
+    this._currentVacuum = this._enqueuedVacuum;
+    this._enqueuedVacuum = null;
+  }
+  vacuumConditionsMet(conditions) {
+    if (conditions == null) {
+      return true;
+    }
+    let { minDirtCount, minDirtFactor } = conditions;
+    minDirtCount = minDirtCount || defaultAutoVacuumOptions.minDirtCount;
+    minDirtFactor = minDirtFactor || defaultAutoVacuumOptions.minDirtFactor;
+    return this.dirtCount >= minDirtCount && this.dirtFactor >= minDirtFactor;
+  }
+  /**
+   * Is `true` if a vacuuming operation is ongoing, `false` otherwise
+   */
+  get isVacuuming() {
+    return this._currentVacuum != null;
+  }
+  /**
+   * The number of documents discarded since the most recent vacuuming
+   */
+  get dirtCount() {
+    return this._dirtCount;
+  }
+  /**
+   * A number between 0 and 1 giving an indication about the proportion of
+   * documents that are discarded, and can therefore be cleaned up by vacuuming.
+   * A value close to 0 means that the index is relatively clean, while a higher
+   * value means that the index is relatively dirty, and vacuuming could release
+   * memory.
+   */
+  get dirtFactor() {
+    return this._dirtCount / (1 + this._documentCount + this._dirtCount);
+  }
+  /**
+   * Returns `true` if a document with the given ID is present in the index and
+   * available for search, `false` otherwise
+   *
+   * @param id  The document ID
+   */
+  has(id) {
+    return this._idToShortId.has(id);
+  }
+  /**
+   * Returns the stored fields (as configured in the `storeFields` constructor
+   * option) for the given document ID. Returns `undefined` if the document is
+   * not present in the index.
+   *
+   * @param id  The document ID
+   */
+  getStoredFields(id) {
+    const shortId = this._idToShortId.get(id);
+    if (shortId == null) {
+      return void 0;
+    }
+    return this._storedFields.get(shortId);
+  }
+  /**
+   * Search for documents matching the given search query.
+   *
+   * The result is a list of scored document IDs matching the query, sorted by
+   * descending score, and each including data about which terms were matched and
+   * in which fields.
+   *
+   * ### Basic usage:
+   *
+   * ```javascript
+   * // Search for "zen art motorcycle" with default options: terms have to match
+   * // exactly, and individual terms are joined with OR
+   * miniSearch.search('zen art motorcycle')
+   * // => [ { id: 2, score: 2.77258, match: { ... } }, { id: 4, score: 1.38629, match: { ... } } ]
+   * ```
+   *
+   * ### Restrict search to specific fields:
+   *
+   * ```javascript
+   * // Search only in the 'title' field
+   * miniSearch.search('zen', { fields: ['title'] })
+   * ```
+   *
+   * ### Field boosting:
+   *
+   * ```javascript
+   * // Boost a field
+   * miniSearch.search('zen', { boost: { title: 2 } })
+   * ```
+   *
+   * ### Prefix search:
+   *
+   * ```javascript
+   * // Search for "moto" with prefix search (it will match documents
+   * // containing terms that start with "moto" or "neuro")
+   * miniSearch.search('moto neuro', { prefix: true })
+   * ```
+   *
+   * ### Fuzzy search:
+   *
+   * ```javascript
+   * // Search for "ismael" with fuzzy search (it will match documents containing
+   * // terms similar to "ismael", with a maximum edit distance of 0.2 term.length
+   * // (rounded to nearest integer)
+   * miniSearch.search('ismael', { fuzzy: 0.2 })
+   * ```
+   *
+   * ### Combining strategies:
+   *
+   * ```javascript
+   * // Mix of exact match, prefix search, and fuzzy search
+   * miniSearch.search('ismael mob', {
+   *  prefix: true,
+   *  fuzzy: 0.2
+   * })
+   * ```
+   *
+   * ### Advanced prefix and fuzzy search:
+   *
+   * ```javascript
+   * // Perform fuzzy and prefix search depending on the search term. Here
+   * // performing prefix and fuzzy search only on terms longer than 3 characters
+   * miniSearch.search('ismael mob', {
+   *  prefix: term => term.length > 3
+   *  fuzzy: term => term.length > 3 ? 0.2 : null
+   * })
+   * ```
+   *
+   * ### Combine with AND:
+   *
+   * ```javascript
+   * // Combine search terms with AND (to match only documents that contain both
+   * // "motorcycle" and "art")
+   * miniSearch.search('motorcycle art', { combineWith: 'AND' })
+   * ```
+   *
+   * ### Combine with AND_NOT:
+   *
+   * There is also an AND_NOT combinator, that finds documents that match the
+   * first term, but do not match any of the other terms. This combinator is
+   * rarely useful with simple queries, and is meant to be used with advanced
+   * query combinations (see later for more details).
+   *
+   * ### Filtering results:
+   *
+   * ```javascript
+   * // Filter only results in the 'fiction' category (assuming that 'category'
+   * // is a stored field)
+   * miniSearch.search('motorcycle art', {
+   *   filter: (result) => result.category === 'fiction'
+   * })
+   * ```
+   *
+   * ### Wildcard query
+   *
+   * Searching for an empty string (assuming the default tokenizer) returns no
+   * results. Sometimes though, one needs to match all documents, like in a
+   * "wildcard" search. This is possible by passing the special value
+   * {@link MiniSearch.wildcard} as the query:
+   *
+   * ```javascript
+   * // Return search results for all documents
+   * miniSearch.search(MiniSearch.wildcard)
+   * ```
+   *
+   * Note that search options such as `filter` and `boostDocument` are still
+   * applied, influencing which results are returned, and their order:
+   *
+   * ```javascript
+   * // Return search results for all documents in the 'fiction' category
+   * miniSearch.search(MiniSearch.wildcard, {
+   *   filter: (result) => result.category === 'fiction'
+   * })
+   * ```
+   *
+   * ### Advanced combination of queries:
+   *
+   * It is possible to combine different subqueries with OR, AND, and AND_NOT,
+   * and even with different search options, by passing a query expression
+   * tree object as the first argument, instead of a string.
+   *
+   * ```javascript
+   * // Search for documents that contain "zen" and ("motorcycle" or "archery")
+   * miniSearch.search({
+   *   combineWith: 'AND',
+   *   queries: [
+   *     'zen',
+   *     {
+   *       combineWith: 'OR',
+   *       queries: ['motorcycle', 'archery']
+   *     }
+   *   ]
+   * })
+   *
+   * // Search for documents that contain ("apple" or "pear") but not "juice" and
+   * // not "tree"
+   * miniSearch.search({
+   *   combineWith: 'AND_NOT',
+   *   queries: [
+   *     {
+   *       combineWith: 'OR',
+   *       queries: ['apple', 'pear']
+   *     },
+   *     'juice',
+   *     'tree'
+   *   ]
+   * })
+   * ```
+   *
+   * Each node in the expression tree can be either a string, or an object that
+   * supports all {@link SearchOptions} fields, plus a `queries` array field for
+   * subqueries.
+   *
+   * Note that, while this can become complicated to do by hand for complex or
+   * deeply nested queries, it provides a formalized expression tree API for
+   * external libraries that implement a parser for custom query languages.
+   *
+   * @param query  Search query
+   * @param searchOptions  Search options. Each option, if not given, defaults to the corresponding value of `searchOptions` given to the constructor, or to the library default.
+   */
+  search(query, searchOptions = {}) {
+    const { searchOptions: globalSearchOptions } = this._options;
+    const searchOptionsWithDefaults = { ...globalSearchOptions, ...searchOptions };
+    const rawResults = this.executeQuery(query, searchOptions);
+    const results = [];
+    for (const [docId, { score, terms, match }] of rawResults) {
+      const quality = terms.length || 1;
+      const result = {
+        id: this._documentIds.get(docId),
+        score: score * quality,
+        terms: Object.keys(match),
+        queryTerms: terms,
+        match
+      };
+      Object.assign(result, this._storedFields.get(docId));
+      if (searchOptionsWithDefaults.filter == null || searchOptionsWithDefaults.filter(result)) {
+        results.push(result);
+      }
+    }
+    if (query === _MiniSearch.wildcard && searchOptionsWithDefaults.boostDocument == null) {
+      return results;
+    }
+    results.sort(byScore);
+    return results;
+  }
+  /**
+   * Provide suggestions for the given search query
+   *
+   * The result is a list of suggested modified search queries, derived from the
+   * given search query, each with a relevance score, sorted by descending score.
+   *
+   * By default, it uses the same options used for search, except that by
+   * default it performs prefix search on the last term of the query, and
+   * combine terms with `'AND'` (requiring all query terms to match). Custom
+   * options can be passed as a second argument. Defaults can be changed upon
+   * calling the {@link MiniSearch} constructor, by passing a
+   * `autoSuggestOptions` option.
+   *
+   * ### Basic usage:
+   *
+   * ```javascript
+   * // Get suggestions for 'neuro':
+   * miniSearch.autoSuggest('neuro')
+   * // => [ { suggestion: 'neuromancer', terms: [ 'neuromancer' ], score: 0.46240 } ]
+   * ```
+   *
+   * ### Multiple words:
+   *
+   * ```javascript
+   * // Get suggestions for 'zen ar':
+   * miniSearch.autoSuggest('zen ar')
+   * // => [
+   * //  { suggestion: 'zen archery art', terms: [ 'zen', 'archery', 'art' ], score: 1.73332 },
+   * //  { suggestion: 'zen art', terms: [ 'zen', 'art' ], score: 1.21313 }
+   * // ]
+   * ```
+   *
+   * ### Fuzzy suggestions:
+   *
+   * ```javascript
+   * // Correct spelling mistakes using fuzzy search:
+   * miniSearch.autoSuggest('neromancer', { fuzzy: 0.2 })
+   * // => [ { suggestion: 'neuromancer', terms: [ 'neuromancer' ], score: 1.03998 } ]
+   * ```
+   *
+   * ### Filtering:
+   *
+   * ```javascript
+   * // Get suggestions for 'zen ar', but only within the 'fiction' category
+   * // (assuming that 'category' is a stored field):
+   * miniSearch.autoSuggest('zen ar', {
+   *   filter: (result) => result.category === 'fiction'
+   * })
+   * // => [
+   * //  { suggestion: 'zen archery art', terms: [ 'zen', 'archery', 'art' ], score: 1.73332 },
+   * //  { suggestion: 'zen art', terms: [ 'zen', 'art' ], score: 1.21313 }
+   * // ]
+   * ```
+   *
+   * @param queryString  Query string to be expanded into suggestions
+   * @param options  Search options. The supported options and default values
+   * are the same as for the {@link MiniSearch#search} method, except that by
+   * default prefix search is performed on the last term in the query, and terms
+   * are combined with `'AND'`.
+   * @return  A sorted array of suggestions sorted by relevance score.
+   */
+  autoSuggest(queryString, options = {}) {
+    options = { ...this._options.autoSuggestOptions, ...options };
+    const suggestions = /* @__PURE__ */ new Map();
+    for (const { score, terms } of this.search(queryString, options)) {
+      const phrase = terms.join(" ");
+      const suggestion = suggestions.get(phrase);
+      if (suggestion != null) {
+        suggestion.score += score;
+        suggestion.count += 1;
+      } else {
+        suggestions.set(phrase, { score, terms, count: 1 });
+      }
+    }
+    const results = [];
+    for (const [suggestion, { score, terms, count }] of suggestions) {
+      results.push({ suggestion, terms, score: score / count });
+    }
+    results.sort(byScore);
+    return results;
+  }
+  /**
+   * Total number of documents available to search
+   */
+  get documentCount() {
+    return this._documentCount;
+  }
+  /**
+   * Number of terms in the index
+   */
+  get termCount() {
+    return this._index.size;
+  }
+  /**
+   * Deserializes a JSON index (serialized with `JSON.stringify(miniSearch)`)
+   * and instantiates a MiniSearch instance. It should be given the same options
+   * originally used when serializing the index.
+   *
+   * ### Usage:
+   *
+   * ```javascript
+   * // If the index was serialized with:
+   * let miniSearch = new MiniSearch({ fields: ['title', 'text'] })
+   * miniSearch.addAll(documents)
+   *
+   * const json = JSON.stringify(miniSearch)
+   * // It can later be deserialized like this:
+   * miniSearch = MiniSearch.loadJSON(json, { fields: ['title', 'text'] })
+   * ```
+   *
+   * @param json  JSON-serialized index
+   * @param options  configuration options, same as the constructor
+   * @return An instance of MiniSearch deserialized from the given JSON.
+   */
+  static loadJSON(json, options) {
+    if (options == null) {
+      throw new Error("MiniSearch: loadJSON should be given the same options used when serializing the index");
+    }
+    return this.loadJS(JSON.parse(json), options);
+  }
+  /**
+   * Async equivalent of {@link MiniSearch.loadJSON}
+   *
+   * This function is an alternative to {@link MiniSearch.loadJSON} that returns
+   * a promise, and loads the index in batches, leaving pauses between them to avoid
+   * blocking the main thread. It tends to be slower than the synchronous
+   * version, but does not block the main thread, so it can be a better choice
+   * when deserializing very large indexes.
+   *
+   * @param json  JSON-serialized index
+   * @param options  configuration options, same as the constructor
+   * @return A Promise that will resolve to an instance of MiniSearch deserialized from the given JSON.
+   */
+  static async loadJSONAsync(json, options) {
+    if (options == null) {
+      throw new Error("MiniSearch: loadJSON should be given the same options used when serializing the index");
+    }
+    return this.loadJSAsync(JSON.parse(json), options);
+  }
+  /**
+   * Returns the default value of an option. It will throw an error if no option
+   * with the given name exists.
+   *
+   * @param optionName  Name of the option
+   * @return The default value of the given option
+   *
+   * ### Usage:
+   *
+   * ```javascript
+   * // Get default tokenizer
+   * MiniSearch.getDefault('tokenize')
+   *
+   * // Get default term processor
+   * MiniSearch.getDefault('processTerm')
+   *
+   * // Unknown options will throw an error
+   * MiniSearch.getDefault('notExisting')
+   * // => throws 'MiniSearch: unknown option "notExisting"'
+   * ```
+   */
+  static getDefault(optionName) {
+    if (defaultOptions.hasOwnProperty(optionName)) {
+      return getOwnProperty(defaultOptions, optionName);
+    } else {
+      throw new Error(`MiniSearch: unknown option "${optionName}"`);
+    }
+  }
+  /**
+   * @ignore
+   */
+  static loadJS(js, options) {
+    const { index, documentIds, fieldLength, storedFields, serializationVersion } = js;
+    const miniSearch = this.instantiateMiniSearch(js, options);
+    miniSearch._documentIds = objectToNumericMap(documentIds);
+    miniSearch._fieldLength = objectToNumericMap(fieldLength);
+    miniSearch._storedFields = objectToNumericMap(storedFields);
+    for (const [shortId, id] of miniSearch._documentIds) {
+      miniSearch._idToShortId.set(id, shortId);
+    }
+    for (const [term, data] of index) {
+      const dataMap = /* @__PURE__ */ new Map();
+      for (const fieldId of Object.keys(data)) {
+        let indexEntry = data[fieldId];
+        if (serializationVersion === 1) {
+          indexEntry = indexEntry.ds;
+        }
+        dataMap.set(parseInt(fieldId, 10), objectToNumericMap(indexEntry));
+      }
+      miniSearch._index.set(term, dataMap);
+    }
+    return miniSearch;
+  }
+  /**
+   * @ignore
+   */
+  static async loadJSAsync(js, options) {
+    const { index, documentIds, fieldLength, storedFields, serializationVersion } = js;
+    const miniSearch = this.instantiateMiniSearch(js, options);
+    miniSearch._documentIds = await objectToNumericMapAsync(documentIds);
+    miniSearch._fieldLength = await objectToNumericMapAsync(fieldLength);
+    miniSearch._storedFields = await objectToNumericMapAsync(storedFields);
+    for (const [shortId, id] of miniSearch._documentIds) {
+      miniSearch._idToShortId.set(id, shortId);
+    }
+    let count = 0;
+    for (const [term, data] of index) {
+      const dataMap = /* @__PURE__ */ new Map();
+      for (const fieldId of Object.keys(data)) {
+        let indexEntry = data[fieldId];
+        if (serializationVersion === 1) {
+          indexEntry = indexEntry.ds;
+        }
+        dataMap.set(parseInt(fieldId, 10), await objectToNumericMapAsync(indexEntry));
+      }
+      if (++count % 1e3 === 0)
+        await wait(0);
+      miniSearch._index.set(term, dataMap);
+    }
+    return miniSearch;
+  }
+  /**
+   * @ignore
+   */
+  static instantiateMiniSearch(js, options) {
+    const { documentCount, nextId, fieldIds, averageFieldLength, dirtCount, serializationVersion } = js;
+    if (serializationVersion !== 1 && serializationVersion !== 2) {
+      throw new Error("MiniSearch: cannot deserialize an index created with an incompatible version");
+    }
+    const miniSearch = new _MiniSearch(options);
+    miniSearch._documentCount = documentCount;
+    miniSearch._nextId = nextId;
+    miniSearch._idToShortId = /* @__PURE__ */ new Map();
+    miniSearch._fieldIds = fieldIds;
+    miniSearch._avgFieldLength = averageFieldLength;
+    miniSearch._dirtCount = dirtCount || 0;
+    miniSearch._index = new SearchableMap();
+    return miniSearch;
+  }
+  /**
+   * @ignore
+   */
+  executeQuery(query, searchOptions = {}) {
+    if (query === _MiniSearch.wildcard) {
+      return this.executeWildcardQuery(searchOptions);
+    }
+    if (typeof query !== "string") {
+      const options2 = { ...searchOptions, ...query, queries: void 0 };
+      const results2 = query.queries.map((subquery) => this.executeQuery(subquery, options2));
+      return this.combineResults(results2, options2.combineWith);
+    }
+    const { tokenize, processTerm, searchOptions: globalSearchOptions } = this._options;
+    const options = { tokenize, processTerm, ...globalSearchOptions, ...searchOptions };
+    const { tokenize: searchTokenize, processTerm: searchProcessTerm } = options;
+    const terms = searchTokenize(query).flatMap((term) => searchProcessTerm(term)).filter((term) => !!term);
+    const queries = terms.map(termToQuerySpec(options));
+    const results = queries.map((query2) => this.executeQuerySpec(query2, options));
+    return this.combineResults(results, options.combineWith);
+  }
+  /**
+   * @ignore
+   */
+  executeQuerySpec(query, searchOptions) {
+    const options = { ...this._options.searchOptions, ...searchOptions };
+    const boosts = (options.fields || this._options.fields).reduce((boosts2, field) => ({ ...boosts2, [field]: getOwnProperty(options.boost, field) || 1 }), {});
+    const { boostDocument, weights, maxFuzzy, bm25: bm25params } = options;
+    const { fuzzy: fuzzyWeight, prefix: prefixWeight } = { ...defaultSearchOptions.weights, ...weights };
+    const data = this._index.get(query.term);
+    const results = this.termResults(query.term, query.term, 1, query.termBoost, data, boosts, boostDocument, bm25params);
+    let prefixMatches;
+    let fuzzyMatches;
+    if (query.prefix) {
+      prefixMatches = this._index.atPrefix(query.term);
+    }
+    if (query.fuzzy) {
+      const fuzzy = query.fuzzy === true ? 0.2 : query.fuzzy;
+      const maxDistance = fuzzy < 1 ? Math.min(maxFuzzy, Math.round(query.term.length * fuzzy)) : fuzzy;
+      if (maxDistance)
+        fuzzyMatches = this._index.fuzzyGet(query.term, maxDistance);
+    }
+    if (prefixMatches) {
+      for (const [term, data2] of prefixMatches) {
+        const distance = term.length - query.term.length;
+        if (!distance) {
+          continue;
+        }
+        fuzzyMatches === null || fuzzyMatches === void 0 ? void 0 : fuzzyMatches.delete(term);
+        const weight = prefixWeight * term.length / (term.length + 0.3 * distance);
+        this.termResults(query.term, term, weight, query.termBoost, data2, boosts, boostDocument, bm25params, results);
+      }
+    }
+    if (fuzzyMatches) {
+      for (const term of fuzzyMatches.keys()) {
+        const [data2, distance] = fuzzyMatches.get(term);
+        if (!distance) {
+          continue;
+        }
+        const weight = fuzzyWeight * term.length / (term.length + distance);
+        this.termResults(query.term, term, weight, query.termBoost, data2, boosts, boostDocument, bm25params, results);
+      }
+    }
+    return results;
+  }
+  /**
+   * @ignore
+   */
+  executeWildcardQuery(searchOptions) {
+    const results = /* @__PURE__ */ new Map();
+    const options = { ...this._options.searchOptions, ...searchOptions };
+    for (const [shortId, id] of this._documentIds) {
+      const score = options.boostDocument ? options.boostDocument(id, "", this._storedFields.get(shortId)) : 1;
+      results.set(shortId, {
+        score,
+        terms: [],
+        match: {}
+      });
+    }
+    return results;
+  }
+  /**
+   * @ignore
+   */
+  combineResults(results, combineWith = OR) {
+    if (results.length === 0) {
+      return /* @__PURE__ */ new Map();
+    }
+    const operator = combineWith.toLowerCase();
+    const combinator = combinators[operator];
+    if (!combinator) {
+      throw new Error(`Invalid combination operator: ${combineWith}`);
+    }
+    return results.reduce(combinator) || /* @__PURE__ */ new Map();
+  }
+  /**
+   * Allows serialization of the index to JSON, to possibly store it and later
+   * deserialize it with {@link MiniSearch.loadJSON}.
+   *
+   * Normally one does not directly call this method, but rather call the
+   * standard JavaScript `JSON.stringify()` passing the {@link MiniSearch}
+   * instance, and JavaScript will internally call this method. Upon
+   * deserialization, one must pass to {@link MiniSearch.loadJSON} the same
+   * options used to create the original instance that was serialized.
+   *
+   * ### Usage:
+   *
+   * ```javascript
+   * // Serialize the index:
+   * let miniSearch = new MiniSearch({ fields: ['title', 'text'] })
+   * miniSearch.addAll(documents)
+   * const json = JSON.stringify(miniSearch)
+   *
+   * // Later, to deserialize it:
+   * miniSearch = MiniSearch.loadJSON(json, { fields: ['title', 'text'] })
+   * ```
+   *
+   * @return A plain-object serializable representation of the search index.
+   */
+  toJSON() {
+    const index = [];
+    for (const [term, fieldIndex] of this._index) {
+      const data = {};
+      for (const [fieldId, freqs] of fieldIndex) {
+        data[fieldId] = Object.fromEntries(freqs);
+      }
+      index.push([term, data]);
+    }
+    return {
+      documentCount: this._documentCount,
+      nextId: this._nextId,
+      documentIds: Object.fromEntries(this._documentIds),
+      fieldIds: this._fieldIds,
+      fieldLength: Object.fromEntries(this._fieldLength),
+      averageFieldLength: this._avgFieldLength,
+      storedFields: Object.fromEntries(this._storedFields),
+      dirtCount: this._dirtCount,
+      index,
+      serializationVersion: 2
+    };
+  }
+  /**
+   * @ignore
+   */
+  termResults(sourceTerm, derivedTerm, termWeight, termBoost, fieldTermData, fieldBoosts, boostDocumentFn, bm25params, results = /* @__PURE__ */ new Map()) {
+    if (fieldTermData == null)
+      return results;
+    for (const field of Object.keys(fieldBoosts)) {
+      const fieldBoost = fieldBoosts[field];
+      const fieldId = this._fieldIds[field];
+      const fieldTermFreqs = fieldTermData.get(fieldId);
+      if (fieldTermFreqs == null)
+        continue;
+      let matchingFields = fieldTermFreqs.size;
+      const avgFieldLength = this._avgFieldLength[fieldId];
+      for (const docId of fieldTermFreqs.keys()) {
+        if (!this._documentIds.has(docId)) {
+          this.removeTerm(fieldId, docId, derivedTerm);
+          matchingFields -= 1;
+          continue;
+        }
+        const docBoost = boostDocumentFn ? boostDocumentFn(this._documentIds.get(docId), derivedTerm, this._storedFields.get(docId)) : 1;
+        if (!docBoost)
+          continue;
+        const termFreq = fieldTermFreqs.get(docId);
+        const fieldLength = this._fieldLength.get(docId)[fieldId];
+        const rawScore = calcBM25Score(termFreq, matchingFields, this._documentCount, fieldLength, avgFieldLength, bm25params);
+        const weightedScore = termWeight * termBoost * fieldBoost * docBoost * rawScore;
+        const result = results.get(docId);
+        if (result) {
+          result.score += weightedScore;
+          assignUniqueTerm(result.terms, sourceTerm);
+          const match = getOwnProperty(result.match, derivedTerm);
+          if (match) {
+            match.push(field);
+          } else {
+            result.match[derivedTerm] = [field];
+          }
+        } else {
+          results.set(docId, {
+            score: weightedScore,
+            terms: [sourceTerm],
+            match: { [derivedTerm]: [field] }
+          });
+        }
+      }
+    }
+    return results;
+  }
+  /**
+   * @ignore
+   */
+  addTerm(fieldId, documentId, term) {
+    const indexData = this._index.fetch(term, createMap);
+    let fieldIndex = indexData.get(fieldId);
+    if (fieldIndex == null) {
+      fieldIndex = /* @__PURE__ */ new Map();
+      fieldIndex.set(documentId, 1);
+      indexData.set(fieldId, fieldIndex);
+    } else {
+      const docs = fieldIndex.get(documentId);
+      fieldIndex.set(documentId, (docs || 0) + 1);
+    }
+  }
+  /**
+   * @ignore
+   */
+  removeTerm(fieldId, documentId, term) {
+    if (!this._index.has(term)) {
+      this.warnDocumentChanged(documentId, fieldId, term);
+      return;
+    }
+    const indexData = this._index.fetch(term, createMap);
+    const fieldIndex = indexData.get(fieldId);
+    if (fieldIndex == null || fieldIndex.get(documentId) == null) {
+      this.warnDocumentChanged(documentId, fieldId, term);
+    } else if (fieldIndex.get(documentId) <= 1) {
+      if (fieldIndex.size <= 1) {
+        indexData.delete(fieldId);
+      } else {
+        fieldIndex.delete(documentId);
+      }
+    } else {
+      fieldIndex.set(documentId, fieldIndex.get(documentId) - 1);
+    }
+    if (this._index.get(term).size === 0) {
+      this._index.delete(term);
+    }
+  }
+  /**
+   * @ignore
+   */
+  warnDocumentChanged(shortDocumentId, fieldId, term) {
+    for (const fieldName of Object.keys(this._fieldIds)) {
+      if (this._fieldIds[fieldName] === fieldId) {
+        this._options.logger("warn", `MiniSearch: document with ID ${this._documentIds.get(shortDocumentId)} has changed before removal: term "${term}" was not present in field "${fieldName}". Removing a document after it has changed can corrupt the index!`, "version_conflict");
+        return;
+      }
+    }
+  }
+  /**
+   * @ignore
+   */
+  addDocumentId(documentId) {
+    const shortDocumentId = this._nextId;
+    this._idToShortId.set(documentId, shortDocumentId);
+    this._documentIds.set(shortDocumentId, documentId);
+    this._documentCount += 1;
+    this._nextId += 1;
+    return shortDocumentId;
+  }
+  /**
+   * @ignore
+   */
+  addFields(fields) {
+    for (let i3 = 0; i3 < fields.length; i3++) {
+      this._fieldIds[fields[i3]] = i3;
+    }
+  }
+  /**
+   * @ignore
+   */
+  addFieldLength(documentId, fieldId, count, length) {
+    let fieldLengths = this._fieldLength.get(documentId);
+    if (fieldLengths == null)
+      this._fieldLength.set(documentId, fieldLengths = []);
+    fieldLengths[fieldId] = length;
+    const averageFieldLength = this._avgFieldLength[fieldId] || 0;
+    const totalFieldLength = averageFieldLength * count + length;
+    this._avgFieldLength[fieldId] = totalFieldLength / (count + 1);
+  }
+  /**
+   * @ignore
+   */
+  removeFieldLength(documentId, fieldId, count, length) {
+    if (count === 1) {
+      this._avgFieldLength[fieldId] = 0;
+      return;
+    }
+    const totalFieldLength = this._avgFieldLength[fieldId] * count - length;
+    this._avgFieldLength[fieldId] = totalFieldLength / (count - 1);
+  }
+  /**
+   * @ignore
+   */
+  saveStoredFields(documentId, doc) {
+    const { storeFields, extractField } = this._options;
+    if (storeFields == null || storeFields.length === 0) {
+      return;
+    }
+    let documentFields = this._storedFields.get(documentId);
+    if (documentFields == null)
+      this._storedFields.set(documentId, documentFields = {});
+    for (const fieldName of storeFields) {
+      const fieldValue = extractField(doc, fieldName);
+      if (fieldValue !== void 0)
+        documentFields[fieldName] = fieldValue;
+    }
+  }
+};
+MiniSearch.wildcard = Symbol("*");
+var getOwnProperty = (object, property) => Object.prototype.hasOwnProperty.call(object, property) ? object[property] : void 0;
+var combinators = {
+  [OR]: (a3, b2) => {
+    for (const docId of b2.keys()) {
+      const existing = a3.get(docId);
+      if (existing == null) {
+        a3.set(docId, b2.get(docId));
+      } else {
+        const { score, terms, match } = b2.get(docId);
+        existing.score = existing.score + score;
+        existing.match = Object.assign(existing.match, match);
+        assignUniqueTerms(existing.terms, terms);
+      }
+    }
+    return a3;
+  },
+  [AND]: (a3, b2) => {
+    const combined = /* @__PURE__ */ new Map();
+    for (const docId of b2.keys()) {
+      const existing = a3.get(docId);
+      if (existing == null)
+        continue;
+      const { score, terms, match } = b2.get(docId);
+      assignUniqueTerms(existing.terms, terms);
+      combined.set(docId, {
+        score: existing.score + score,
+        terms: existing.terms,
+        match: Object.assign(existing.match, match)
+      });
+    }
+    return combined;
+  },
+  [AND_NOT]: (a3, b2) => {
+    for (const docId of b2.keys())
+      a3.delete(docId);
+    return a3;
+  }
+};
+var defaultBM25params = { k: 1.2, b: 0.7, d: 0.5 };
+var calcBM25Score = (termFreq, matchingCount, totalCount, fieldLength, avgFieldLength, bm25params) => {
+  const { k: k3, b: b2, d: d3 } = bm25params;
+  const invDocFreq = Math.log(1 + (totalCount - matchingCount + 0.5) / (matchingCount + 0.5));
+  return invDocFreq * (d3 + termFreq * (k3 + 1) / (termFreq + k3 * (1 - b2 + b2 * fieldLength / avgFieldLength)));
+};
+var termToQuerySpec = (options) => (term, i3, terms) => {
+  const fuzzy = typeof options.fuzzy === "function" ? options.fuzzy(term, i3, terms) : options.fuzzy || false;
+  const prefix = typeof options.prefix === "function" ? options.prefix(term, i3, terms) : options.prefix === true;
+  const termBoost = typeof options.boostTerm === "function" ? options.boostTerm(term, i3, terms) : 1;
+  return { term, fuzzy, prefix, termBoost };
+};
+var defaultOptions = {
+  idField: "id",
+  extractField: (document2, fieldName) => document2[fieldName],
+  stringifyField: (fieldValue, fieldName) => fieldValue.toString(),
+  tokenize: (text) => text.split(SPACE_OR_PUNCTUATION),
+  processTerm: (term) => term.toLowerCase(),
+  fields: void 0,
+  searchOptions: void 0,
+  storeFields: [],
+  logger: (level, message) => {
+    if (typeof (console === null || console === void 0 ? void 0 : console[level]) === "function")
+      console[level](message);
+  },
+  autoVacuum: true
+};
+var defaultSearchOptions = {
+  combineWith: OR,
+  prefix: false,
+  fuzzy: false,
+  maxFuzzy: 6,
+  boost: {},
+  weights: { fuzzy: 0.45, prefix: 0.375 },
+  bm25: defaultBM25params
+};
+var defaultAutoSuggestOptions = {
+  combineWith: AND,
+  prefix: (term, i3, terms) => i3 === terms.length - 1
+};
+var defaultVacuumOptions = { batchSize: 1e3, batchWait: 10 };
+var defaultVacuumConditions = { minDirtFactor: 0.1, minDirtCount: 20 };
+var defaultAutoVacuumOptions = { ...defaultVacuumOptions, ...defaultVacuumConditions };
+var assignUniqueTerm = (target, term) => {
+  if (!target.includes(term))
+    target.push(term);
+};
+var assignUniqueTerms = (target, source) => {
+  for (const term of source) {
+    if (!target.includes(term))
+      target.push(term);
+  }
+};
+var byScore = ({ score: a3 }, { score: b2 }) => b2 - a3;
+var createMap = () => /* @__PURE__ */ new Map();
+var objectToNumericMap = (object) => {
+  const map = /* @__PURE__ */ new Map();
+  for (const key of Object.keys(object)) {
+    map.set(parseInt(key, 10), object[key]);
+  }
+  return map;
+};
+var objectToNumericMapAsync = async (object) => {
+  const map = /* @__PURE__ */ new Map();
+  let count = 0;
+  for (const key of Object.keys(object)) {
+    map.set(parseInt(key, 10), object[key]);
+    if (++count % 1e3 === 0) {
+      await wait(0);
+    }
+  }
+  return map;
+};
+var wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+var SPACE_OR_PUNCTUATION = /[\n\r\p{Z}\p{P}]+/u;
+
+// vendor/tavernary-core/src/search-normalization.ts
+var FUNCTION_WORDS = /* @__PURE__ */ new Set([
+  "a",
+  "an",
+  "and",
+  "for",
+  "of",
+  "the",
+  "to",
+  "with"
+]);
+function separateCamelCase(value) {
+  return value.replace(/([\p{Ll}\d])(\p{Lu})/gu, "$1 $2");
+}
+function normalizeSearchText(value) {
+  return separateCamelCase(value).normalize("NFKD").replace(/\p{M}+/gu, "").toLowerCase().replace(/[^\p{L}\p{N}]+/gu, " ").trim().replace(/\s+/gu, " ");
+}
+function searchTerms(value) {
+  const terms = normalizeSearchText(value).split(" ").filter(Boolean);
+  const meaningful = terms.filter((term) => !FUNCTION_WORDS.has(term));
+  return meaningful.length > 0 ? meaningful : terms;
+}
+function searchDocumentTerms(value) {
+  const normalizedTerms = normalizeSearchText(value).split(" ").filter(Boolean);
+  const compactTerms = value.normalize("NFKD").replace(/\p{M}+/gu, "").toLowerCase().split(/[^\p{L}\p{N}]+/gu).filter(Boolean);
+  return [.../* @__PURE__ */ new Set([...normalizedTerms, ...compactTerms])];
+}
+function searchClauses(value) {
+  return value.split("+").map((clause) => searchTerms(clause).join(" ")).filter(Boolean);
+}
+function searchMeaning(value) {
+  return searchClauses(value).join("+");
+}
+function allowedEditDistance(term) {
+  if (term.length < 5) return 0;
+  if (term.length < 8) return 1;
+  return 2;
+}
+
+// vendor/tavernary-core/src/search-types.ts
+var SEARCH_FIELD_NAMES = [
+  "title",
+  "aliases",
+  "source",
+  "summary",
+  "kind",
+  "primaryFunction",
+  "tags",
+  "frontends",
+  "compatibility",
+  "maintainers",
+  "relationships"
+];
+
+// vendor/tavernary-core/src/project-search.ts
+var FIELD_BOOST = {
+  title: 12,
+  aliases: 10,
+  source: 8,
+  summary: 4,
+  kind: 5,
+  primaryFunction: 5,
+  tags: 5,
+  frontends: 3,
+  compatibility: 3,
+  maintainers: 2,
+  relationships: 2
+};
+var EVIDENCE_FIELD_PRIORITY = [
+  "title",
+  "aliases",
+  "maintainers",
+  "source",
+  "summary",
+  "kind",
+  "primaryFunction",
+  "tags",
+  "frontends",
+  "compatibility",
+  "relationships"
+];
+function documentText(document2) {
+  return SEARCH_FIELD_NAMES.flatMap((field) => document2[field]).join(" ");
+}
+function tokenSet(value) {
+  return new Set(searchDocumentTerms(value));
+}
+function uniqueTerms(value) {
+  return [...new Set(searchTerms(value))];
+}
+function authorityTier(document2, query) {
+  const title = normalizeSearchText(document2.title.join(" "));
+  if (title === query) return 5;
+  if (document2.aliases.some((value) => normalizeSearchText(value) === query)) {
+    return 4;
+  }
+  if (document2.source.some((value) => normalizeSearchText(value) === query)) {
+    return 4;
+  }
+  if (title.includes(query)) return 3;
+  if (uniqueTerms(query).every((term) => tokenSet(title).has(term))) return 2;
+  return 0;
+}
+function proximityBonus(document2, query) {
+  const titleTerms = normalizeSearchText(document2.title.join(" ")).split(" ").filter(Boolean);
+  const positions = uniqueTerms(query).map((term) => titleTerms.indexOf(term));
+  if (positions.length === 0 || positions.some((position) => position < 0)) {
+    return 0;
+  }
+  const span = Math.max(...positions) - Math.min(...positions);
+  const gaps = Math.max(0, span - (positions.length - 1));
+  return Math.max(0, 99 - gaps);
+}
+function levenshteinDistance(left, right) {
+  const previous = Array.from(
+    { length: right.length + 1 },
+    (_2, index) => index
+  );
+  const current = new Array(right.length + 1);
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+    current[0] = leftIndex;
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+      const substitution = previous[rightIndex - 1] + (left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1);
+      current[rightIndex] = Math.min(
+        previous[rightIndex] + 1,
+        current[rightIndex - 1] + 1,
+        substitution
+      );
+    }
+    previous.splice(0, previous.length, ...current);
+  }
+  return previous[right.length];
+}
+function fuzzyForTerm(term) {
+  const edits = allowedEditDistance(term);
+  return edits === 0 ? false : edits;
+}
+function prefixForTerm(term) {
+  return term.length >= 3;
+}
+function bestTermMatch(result, queryTerm) {
+  if (result.terms.includes(queryTerm)) {
+    return { kind: "exact", matchedTerm: queryTerm, queryTerm };
+  }
+  const prefix = result.terms.filter((term) => term.startsWith(queryTerm)).sort(
+    (left, right) => left.length - right.length || left.localeCompare(right)
+  ).at(0);
+  if (prefix) return { kind: "prefix", matchedTerm: prefix, queryTerm };
+  const distanceLimit = allowedEditDistance(queryTerm);
+  if (distanceLimit === 0) return null;
+  const fuzzy = result.terms.map((term) => ({
+    distance: levenshteinDistance(queryTerm, term),
+    term
+  })).filter(({ distance }) => distance <= distanceLimit).sort(
+    (left, right) => left.distance - right.distance || left.term.localeCompare(right.term)
+  ).at(0);
+  return fuzzy ? { kind: "fuzzy", matchedTerm: fuzzy.term, queryTerm } : null;
+}
+function evidenceValue(document2, field, matchedTerm) {
+  return document2[field].find((value) => tokenSet(value).has(matchedTerm)) ?? document2[field][0] ?? matchedTerm;
+}
+function evidenceForResult(document2, result, query) {
+  return uniqueTerms(query).flatMap((queryTerm) => {
+    const match = bestTermMatch(result, queryTerm);
+    if (!match) return [];
+    const field = EVIDENCE_FIELD_PRIORITY.find(
+      (candidate) => result.match[match.matchedTerm]?.includes(candidate)
+    );
+    if (!field) return [];
+    return [
+      {
+        field,
+        value: evidenceValue(document2, field, match.matchedTerm),
+        ...match
+      }
+    ];
+  });
+}
+function exactEvidence(document2, query) {
+  return uniqueTerms(query).flatMap((term) => {
+    const field = EVIDENCE_FIELD_PRIORITY.find(
+      (candidate) => document2[candidate].some((value) => tokenSet(value).has(term))
+    );
+    if (!field) return [];
+    return [
+      {
+        field,
+        value: evidenceValue(document2, field, term),
+        kind: "exact",
+        queryTerm: term,
+        matchedTerm: term
+      }
+    ];
+  });
+}
+function matchScore(document2, fullQuery, exactnessTier, miniSearchScore) {
+  return exactnessTier * 1e6 + authorityTier(document2, fullQuery) * 1e5 + proximityBonus(document2, fullQuery) * 1e3 + Math.min(miniSearchScore, 999);
+}
+function reportSearchFailure(message, error) {
+  console.error(message, error);
+}
+function degradedFallback(documents, query) {
+  return { ...exactAllTermSearch(documents, query), degraded: true };
+}
+function mergeMatches(matches) {
+  const bestById = /* @__PURE__ */ new Map();
+  for (const match of matches) {
+    const current = bestById.get(match.id);
+    if (!current || match.score > current.score) {
+      bestById.set(match.id, match);
+    }
+  }
+  return [...bestById.values()].sort(
+    (left, right) => right.score - left.score || left.id.localeCompare(right.id)
+  );
+}
+function conservativeCorrection(original, candidate) {
+  const originalTerms = uniqueTerms(original);
+  const candidateTerms = uniqueTerms(candidate);
+  if (originalTerms.length !== candidateTerms.length) return false;
+  return originalTerms.every((term, index) => {
+    const candidateTerm = candidateTerms[index];
+    return candidateTerm !== void 0 && levenshteinDistance(term, candidateTerm) <= allowedEditDistance(term);
+  });
+}
+function correctionForQuery(miniSearch, query) {
+  const exactOrPrefix = miniSearch.search(query, {
+    combineWith: "AND",
+    fuzzy: false,
+    prefix: prefixForTerm
+  });
+  if (exactOrPrefix.length > 0) return null;
+  const suggestions = miniSearch.autoSuggest(query, {
+    combineWith: "AND",
+    fuzzy: fuzzyForTerm,
+    maxFuzzy: 2,
+    prefix: prefixForTerm
+  });
+  for (const suggestion of suggestions) {
+    const candidate = searchMeaning(suggestion.suggestion);
+    if (candidate && candidate !== query && conservativeCorrection(query, candidate) && miniSearch.search(candidate).length > 0) {
+      return candidate;
+    }
+  }
+  return null;
+}
+function exactAllTermSearch(documents, query) {
+  const clauses = searchClauses(query);
+  const normalizedQuery = clauses.join("+");
+  if (!normalizedQuery) {
+    return {
+      normalizedQuery,
+      matches: [],
+      correction: null,
+      degraded: false
+    };
+  }
+  const matches = mergeMatches(
+    clauses.flatMap((clause) => {
+      const terms = uniqueTerms(clause);
+      const fullQuery = normalizeSearchText(clause);
+      return documents.filter((document2) => {
+        const tokens = tokenSet(documentText(document2));
+        return terms.every((term) => tokens.has(term));
+      }).map((document2) => ({
+        id: document2.id,
+        score: matchScore(document2, fullQuery, 3, 0),
+        evidence: exactEvidence(document2, clause)
+      }));
+    })
+  );
+  return {
+    normalizedQuery,
+    matches,
+    correction: null,
+    degraded: false
+  };
+}
+function createCatalogSearchIndex(documents) {
+  const documentsById = new Map(
+    documents.map((document2) => [document2.id, document2])
+  );
+  let miniSearch;
+  try {
+    miniSearch = new MiniSearch({
+      fields: [...SEARCH_FIELD_NAMES],
+      storeFields: ["id"],
+      extractField: (document2, fieldName) => {
+        const value = document2[fieldName];
+        return Array.isArray(value) ? value.join(" ") : String(value ?? "");
+      },
+      tokenize: searchDocumentTerms,
+      processTerm: (term) => term,
+      searchOptions: {
+        boost: FIELD_BOOST,
+        combineWith: "AND",
+        fuzzy: fuzzyForTerm,
+        maxFuzzy: 2,
+        prefix: prefixForTerm
+      }
+    });
+    miniSearch.addAll(documents);
+  } catch (error) {
+    reportSearchFailure(
+      "Catalog search initialization failed; using exact-token fallback.",
+      error
+    );
+    return {
+      search: (query) => degradedFallback(documents, query)
+    };
+  }
+  return {
+    search(query) {
+      const clauses = searchClauses(query);
+      const normalizedQuery = clauses.join("+");
+      if (!normalizedQuery) {
+        return {
+          normalizedQuery,
+          matches: [],
+          correction: null,
+          degraded: false
+        };
+      }
+      try {
+        const matches = mergeMatches(
+          clauses.flatMap((clause) => {
+            const fullQuery = normalizeSearchText(clause);
+            const terms = uniqueTerms(clause);
+            return miniSearch.search(clause).flatMap((result) => {
+              const document2 = documentsById.get(String(result.id));
+              if (!document2) return [];
+              const termMatches = terms.map((term) => bestTermMatch(result, term)).filter((match) => match !== null);
+              if (termMatches.length !== terms.length) {
+                return [];
+              }
+              const exactnessTier = termMatches.some(
+                ({ kind }) => kind === "fuzzy"
+              ) ? 1 : termMatches.some(({ kind }) => kind === "prefix") ? 2 : 3;
+              return [
+                {
+                  id: document2.id,
+                  score: matchScore(
+                    document2,
+                    fullQuery,
+                    exactnessTier,
+                    result.score
+                  ),
+                  evidence: evidenceForResult(document2, result, clause)
+                }
+              ];
+            });
+          })
+        );
+        const correctedClauses = clauses.map(
+          (clause) => correctionForQuery(miniSearch, clause) ?? clause
+        );
+        const correction = correctedClauses.some(
+          (clause, index) => clause !== clauses[index]
+        ) ? correctedClauses.join("+") : null;
+        return {
+          normalizedQuery,
+          matches,
+          correction,
+          degraded: false
+        };
+      } catch (error) {
+        reportSearchFailure(
+          "Catalog search query failed; using exact-token fallback.",
+          error
+        );
+        return degradedFallback(documents, query);
+      }
+    }
+  };
+}
 
 // vendor/tavernary-core/src/kit-selectors.ts
 var collator = new Intl.Collator("en", { sensitivity: "base" });
@@ -1320,6 +3348,21 @@ var frontends_default = {
   ]
 };
 
+// vendor/tavernary-core/src/catalog-tag-filter.ts
+function matchesSelectedTags(selectedIds, projectTagIds, vocabulary) {
+  if (selectedIds.length === 0) return true;
+  const vocabularyById = new Map(vocabulary.map((tag) => [tag.id, tag]));
+  const goals = /* @__PURE__ */ new Set();
+  const traits = /* @__PURE__ */ new Set();
+  for (const id of new Set(selectedIds)) {
+    const definition = vocabularyById.get(id);
+    if (!definition) return false;
+    (definition.facet === "goal" ? goals : traits).add(id);
+  }
+  const projectTags = new Set(projectTagIds);
+  return (goals.size === 0 || [...goals].some((id) => projectTags.has(id))) && (traits.size === 0 || [...traits].some((id) => projectTags.has(id)));
+}
+
 // vendor/tavernary-core/src/project-query.ts
 var DEFAULT_CATALOG_BROWSE_SORT = "recent";
 var CATALOG_BROWSE_SORTS = /* @__PURE__ */ new Set([
@@ -1396,11 +3439,172 @@ var validFrontends = new Set(
 
 // vendor/tavernary-core/src/activity.ts
 var DAY_MS = 24 * 60 * 60 * 1e3;
+function isWithinDays(timestamp, now, days) {
+  if (timestamp === null) {
+    return false;
+  }
+  const age = new Date(now).getTime() - new Date(timestamp).getTime();
+  return Number.isFinite(age) && age >= 0 && age <= days * DAY_MS;
+}
+function releaseTimestamp(project) {
+  return project.latestReleaseAt ?? project.preset?.publishedAt ?? null;
+}
+
+// vendor/tavernary-core/src/catalog-license.ts
+function licenseFilter(project) {
+  if (project.license.status === "osi-approved") {
+    return "open-source";
+  }
+  return project.license.status;
+}
 
 // vendor/tavernary-core/src/project-selectors.ts
 var collator2 = new Intl.Collator("en", { sensitivity: "base" });
+function matchesAny(selected, values) {
+  return selected.length === 0 || selected.some((value) => values.includes(value));
+}
+function matchesDevelopment(project, selected, now) {
+  return selected.length === 0 || selected.some((filter) => {
+    if (filter === "active-month") {
+      return isWithinDays(project.activity.latestSourceActivityAt, now, 30);
+    }
+    if (filter === "new-release") {
+      return isWithinDays(releaseTimestamp(project), now, 30);
+    }
+    return project.activity.dormant;
+  });
+}
+function matchesView(project, view, now) {
+  if (view === "active") {
+    return isWithinDays(project.activity.latestSourceActivityAt, now, 30);
+  }
+  if (view === "new") {
+    return project.catalogCohort === "standard" && isWithinDays(project.catalogedAt, now, 30);
+  }
+  if (view === "released") {
+    return isWithinDays(releaseTimestamp(project), now, 30);
+  }
+  return true;
+}
+function fallbackOrder(left, right) {
+  const dateOrder = new Date(right.catalogedAt).getTime() - new Date(left.catalogedAt).getTime();
+  return dateOrder || collator2.compare(left.name, right.name) || collator2.compare(left.id, right.id);
+}
+function nullableDescending(left, right, leftProject, rightProject) {
+  if (left === null && right === null) {
+    return fallbackOrder(leftProject, rightProject);
+  }
+  if (left === null) {
+    return 1;
+  }
+  if (right === null) {
+    return -1;
+  }
+  return right - left || collator2.compare(leftProject.name, rightProject.name) || collator2.compare(leftProject.id, rightProject.id);
+}
+function activityRecency(project) {
+  const sourceTime = project.activity.latestSourceActivityAt ? new Date(project.activity.latestSourceActivityAt).getTime() : Number.NEGATIVE_INFINITY;
+  const releasedAt = releaseTimestamp(project);
+  const releaseTime = releasedAt ? new Date(releasedAt).getTime() : Number.NEGATIVE_INFINITY;
+  const recency = Math.max(sourceTime, releaseTime);
+  return Number.isFinite(recency) ? recency : null;
+}
+function sortProjects(projects, sort, searchResults) {
+  const scores = new Map(
+    searchResults?.matches.map(({ id, score }) => [id, score]) ?? []
+  );
+  return projects.sort((left, right) => {
+    if (sort === "relevance") {
+      const scoreOrder = (scores.get(right.id) ?? 0) - (scores.get(left.id) ?? 0);
+      if (scoreOrder !== 0) return scoreOrder;
+      const leftRecency = activityRecency(left);
+      const rightRecency = activityRecency(right);
+      if (leftRecency === null && rightRecency !== null) return 1;
+      if (leftRecency !== null && rightRecency === null) return -1;
+      if (leftRecency !== null && rightRecency !== null && leftRecency !== rightRecency) {
+        return rightRecency - leftRecency;
+      }
+      return collator2.compare(left.name, right.name) || collator2.compare(left.id, right.id);
+    }
+    if (sort === "alphabetical") {
+      return collator2.compare(left.name, right.name) || collator2.compare(left.id, right.id);
+    }
+    if (sort === "date-added") {
+      return fallbackOrder(left, right);
+    }
+    if (sort === "sustained") {
+      const leftWeeks = left.activity.activeWeeks12;
+      const rightWeeks = right.activity.activeWeeks12;
+      if (leftWeeks === null && rightWeeks !== null) return 1;
+      if (leftWeeks !== null && rightWeeks === null) return -1;
+      if (leftWeeks !== null && rightWeeks !== null && leftWeeks !== rightWeeks) {
+        return rightWeeks - leftWeeks;
+      }
+      const leftRecency = activityRecency(left);
+      const rightRecency = activityRecency(right);
+      if (leftRecency === null && rightRecency !== null) return 1;
+      if (leftRecency !== null && rightRecency === null) return -1;
+      if (leftRecency !== null && rightRecency !== null && leftRecency !== rightRecency) {
+        return rightRecency - leftRecency;
+      }
+      return collator2.compare(left.name, right.name) || collator2.compare(left.id, right.id);
+    }
+    if (sort === "popularity") {
+      return nullableDescending(
+        left.community?.aggregate ?? null,
+        right.community?.aggregate ?? null,
+        left,
+        right
+      );
+    }
+    return nullableDescending(
+      activityRecency(left),
+      activityRecency(right),
+      left,
+      right
+    );
+  });
+}
+function selectProjects(projects, query, context, searchResults) {
+  const search = searchMeaning(query.search);
+  const effectiveSearchResults = searchResults?.normalizedQuery === search ? searchResults : exactAllTermSearch(
+    projects.map(({ id, search: fields }) => ({ id, ...fields })),
+    query.search
+  );
+  const matchingProjectIds = new Set(
+    effectiveSearchResults.matches.map(({ id }) => id)
+  );
+  const tagVocabulary = context.tagVocabulary ?? [
+    ...new Map(
+      projects.flatMap(
+        ({ tags }) => tags.map((tag) => [
+          tag.id,
+          { ...tag, aliases: [], applicable_kinds: [] }
+        ])
+      )
+    ).values()
+  ];
+  const selected = projects.filter(
+    (project) => (!search || matchingProjectIds.has(project.id)) && (!query.category || (query.category === "frontend" || query.category === "preset" ? project.kind === query.category : project.primaryFunction === query.category)) && matchesAny(
+      query.frontends,
+      project.frontends.map(({ id }) => id)
+    ) && matchesAny(query.kinds, [project.kind]) && matchesSelectedTags(
+      query.tags,
+      project.tags.map(({ id }) => id),
+      tagVocabulary
+    ) && matchesModelFamilies(
+      query.modelFamilies ?? [],
+      project.preset?.modelFamilies?.map(({ id }) => id) ?? []
+    ) && matchesCompletionFormats(
+      query.completionFormats ?? [],
+      project.preset?.completionFormats?.map(({ id }) => id) ?? []
+    ) && matchesDevelopment(project, query.development, context.now) && matchesAny(query.licenses, [licenseFilter(project)]) && matchesView(project, query.view, context.now)
+  );
+  return sortProjects(selected, query.sort, effectiveSearchResults);
+}
 
 // src/catalog/catalog-core.ts
+var SUPPORTED_CATALOG_SCHEMA = 7;
 var DEFAULT_COMPANION_QUERY = {
   ...DEFAULT_QUERY,
   frontends: ["sillytavern"],
@@ -1417,6 +3621,2058 @@ var DEFAULT_COMPANION_QUERY = {
     modelFamilies: []
   }
 };
+
+// src/catalog/catalog-transport.ts
+var CATALOG_URL = "https://tavernary.org/catalog/tavernary-catalog.json";
+function fetchCatalog(fetchImpl, { etag, signal }) {
+  return fetchImpl(CATALOG_URL, {
+    method: "GET",
+    cache: "no-store",
+    credentials: "omit",
+    headers: {
+      Accept: "application/json",
+      ...etag ? { "If-None-Match": etag } : {}
+    },
+    signal
+  });
+}
+
+// src/catalog/catalog-client.ts
+var OPEN_THROTTLE_MS = 15 * 60 * 1e3;
+var FOCUS_RECHECK_MS = 60 * 60 * 1e3;
+function elapsed(now, previous) {
+  if (!previous) return Number.POSITIVE_INFINITY;
+  const milliseconds = Date.parse(now) - Date.parse(previous);
+  return Number.isFinite(milliseconds) && milliseconds >= 0 ? milliseconds : Number.POSITIVE_INFINITY;
+}
+function errorMessage(cause) {
+  return cause instanceof Error ? cause.message : "Catalog refresh failed.";
+}
+async function webSha256(body) {
+  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+var DefaultCatalogClient = class {
+  #cache;
+  #fetch;
+  #now;
+  #sha256;
+  #listeners = /* @__PURE__ */ new Set();
+  #snapshot = {
+    state: "empty-loading",
+    canMutate: false,
+    checkedAt: null
+  };
+  #catalog = null;
+  #activeRecord = null;
+  #lastCheckedAt = null;
+  #opened = false;
+  #opening = null;
+  #refreshing = null;
+  constructor(options) {
+    this.#cache = options.cache;
+    this.#fetch = options.fetch ?? fetch;
+    this.#now = options.now ?? (() => (/* @__PURE__ */ new Date()).toISOString());
+    this.#sha256 = options.sha256 ?? webSha256;
+  }
+  open() {
+    if (this.#opening) return this.#opening;
+    this.#opening = this.#open();
+    return this.#opening;
+  }
+  async #open() {
+    if (this.#opened) return;
+    this.#opened = true;
+    const [activeRecord, metadata] = await Promise.all([
+      this.#cache.readActive(),
+      this.#cache.readMetadata()
+    ]);
+    this.#lastCheckedAt = metadata.lastCheckedAt;
+    if (activeRecord) {
+      try {
+        this.#catalog = parseCatalogV7(JSON.parse(activeRecord.body));
+        this.#activeRecord = activeRecord;
+        this.#publish({
+          state: "ready-stale",
+          canMutate: true,
+          checkedAt: this.#lastCheckedAt,
+          catalog: this.#catalog
+        });
+      } catch {
+        this.#catalog = null;
+        this.#activeRecord = null;
+      }
+    }
+    const now = this.#now();
+    if (this.#catalog && elapsed(now, this.#lastCheckedAt) < OPEN_THROTTLE_MS) {
+      this.#publish({
+        state: "ready-current",
+        canMutate: true,
+        checkedAt: this.#lastCheckedAt,
+        catalog: this.#catalog
+      });
+      return;
+    }
+    await this.refresh();
+  }
+  async refresh({ force = false } = {}) {
+    if (this.#refreshing) return this.#refreshing;
+    const now = this.#now();
+    if (!force && elapsed(now, this.#lastCheckedAt) < OPEN_THROTTLE_MS) {
+      return;
+    }
+    this.#refreshing = this.#performRefresh(now).finally(() => {
+      this.#refreshing = null;
+    });
+    return this.#refreshing;
+  }
+  async onFocus() {
+    const now = this.#now();
+    if (elapsed(now, this.#lastCheckedAt) < FOCUS_RECHECK_MS) return;
+    await this.refresh({ force: true });
+  }
+  read() {
+    return this.#snapshot;
+  }
+  subscribe(listener) {
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
+  }
+  async #performRefresh(checkedAt) {
+    try {
+      const response = await fetchCatalog(this.#fetch, {
+        etag: this.#activeRecord?.etag ?? null
+      });
+      if (response.status === 304) {
+        if (!this.#catalog) {
+          throw new CatalogClientError("http", "Catalog returned 304 without a compatible cache.");
+        }
+        await this.#recordChecked(checkedAt);
+        this.#publish({
+          state: "ready-current",
+          canMutate: true,
+          checkedAt,
+          catalog: this.#catalog
+        });
+        return;
+      }
+      if (!response.ok) {
+        throw new CatalogClientError(
+          "http",
+          `Catalog request failed with status ${response.status}.`
+        );
+      }
+      const contentType = response.headers.get("Content-Type") ?? "";
+      if (!/(?:^|\s|;)application\/(?:[a-z0-9.-]+\+)?json(?:\s|;|$)/iu.test(contentType)) {
+        throw new CatalogClientError("content-type", "Catalog response is not JSON.");
+      }
+      const body = await response.text();
+      let value;
+      try {
+        value = JSON.parse(body);
+      } catch (cause) {
+        throw new CatalogClientError("invalid-json", "Catalog JSON is malformed.", {
+          cause
+        });
+      }
+      const remoteSchemaVersion = typeof value === "object" && value !== null && "schemaVersion" in value && Number.isInteger(value.schemaVersion) ? value.schemaVersion : null;
+      if (remoteSchemaVersion !== SUPPORTED_CATALOG_SCHEMA) {
+        if (remoteSchemaVersion === null) {
+          throw new CatalogClientError("invalid-catalog", "Catalog schema version is missing.");
+        }
+        await this.#recordChecked(checkedAt);
+        this.#publish(
+          this.#catalog ? {
+            state: "incompatible-with-cache",
+            canMutate: false,
+            checkedAt,
+            catalog: this.#catalog,
+            remoteSchemaVersion
+          } : {
+            state: "incompatible-empty",
+            canMutate: false,
+            checkedAt,
+            remoteSchemaVersion
+          }
+        );
+        return;
+      }
+      let catalog;
+      try {
+        catalog = parseCatalogV7(value);
+      } catch (cause) {
+        throw new CatalogClientError("invalid-catalog", "Catalog schema validation failed.", {
+          cause
+        });
+      }
+      const bodySha256 = await this.#sha256(body);
+      const record = {
+        id: `${catalog.generatedAt}:${bodySha256}`,
+        schemaVersion: SUPPORTED_CATALOG_SCHEMA,
+        generatedAt: catalog.generatedAt,
+        etag: response.headers.get("ETag"),
+        fetchedAt: checkedAt,
+        bodySha256,
+        body
+      };
+      await this.#cache.stage(record);
+      await this.#cache.activate(record.id);
+      await this.#recordChecked(checkedAt);
+      this.#activeRecord = record;
+      this.#catalog = catalog;
+      this.#publish({
+        state: "ready-current",
+        canMutate: true,
+        checkedAt,
+        catalog
+      });
+    } catch (cause) {
+      await this.#recordChecked(checkedAt).catch(() => void 0);
+      if (this.#snapshot.state === "incompatible-with-cache") return;
+      const message = errorMessage(cause);
+      this.#publish(
+        this.#catalog ? {
+          state: "ready-offline",
+          canMutate: true,
+          checkedAt,
+          catalog: this.#catalog,
+          error: message
+        } : {
+          state: "error-empty",
+          canMutate: false,
+          checkedAt,
+          error: message
+        }
+      );
+    }
+  }
+  async #recordChecked(checkedAt) {
+    await this.#cache.recordCheck(checkedAt);
+    this.#lastCheckedAt = checkedAt;
+  }
+  #publish(snapshot) {
+    this.#snapshot = snapshot;
+    for (const listener of this.#listeners) listener(snapshot);
+  }
+};
+function createCatalogClient(options) {
+  return new DefaultCatalogClient(options);
+}
+
+// src/catalog/installed-view-model.ts
+function toInstalledSectionViewModel(inventory) {
+  return [
+    {
+      id: "managed",
+      title: "Managed by Companion",
+      rows: inventory.managed.map(({ project, extension }) => ({
+        id: project.id,
+        name: project.name,
+        detail: extension.folderName,
+        enabled: extension.enabled,
+        action: {
+          kind: "uninstall",
+          label: "Uninstall",
+          reason: "Managed by Companion"
+        }
+      }))
+    },
+    {
+      id: "external",
+      title: "Installed outside Companion",
+      rows: inventory.external.map(({ project, extension }) => ({
+        id: project.id,
+        name: project.name,
+        detail: extension.folderName,
+        enabled: extension.enabled,
+        action: {
+          kind: "uninstall",
+          label: "Uninstall",
+          reason: "Installed outside Companion"
+        }
+      }))
+    },
+    {
+      id: "unknown",
+      title: "Not found in current catalog",
+      rows: inventory.unknown.map(({ extension }) => ({
+        id: extension.internalName,
+        name: typeof extension.manifest?.display_name === "string" ? extension.manifest.display_name : extension.folderName,
+        detail: extension.internalName,
+        enabled: extension.enabled,
+        action: {
+          kind: "manage-in-sillytavern",
+          label: "Manage in SillyTavern",
+          reason: "No unambiguous Tavernary project identity."
+        }
+      }))
+    },
+    {
+      id: "attention",
+      title: "Needs attention",
+      rows: inventory.missingManaged.map(({ record, project }) => ({
+        id: record.projectId,
+        name: project?.name ?? record.folderName,
+        detail: "Managed record is missing from SillyTavern.",
+        enabled: null,
+        action: {
+          kind: "manage-in-sillytavern",
+          label: "Manage in SillyTavern",
+          reason: "Reconcile the missing extension in SillyTavern."
+        }
+      }))
+    }
+  ];
+}
+
+// src/lifecycle/self-protection.ts
+var COMPANION_PROJECT_ID = "mentallyquill-tavernary-companion";
+var SelfProtectedProjectError = class extends Error {
+  operation;
+  constructor(operation) {
+    super(`Tavernary Companion cannot ${operation} itself.`);
+    this.name = "SelfProtectedProjectError";
+    this.operation = operation;
+  }
+};
+function assertNotCompanionProject(projectId, operation = "manage") {
+  if (projectId === COMPANION_PROJECT_ID) throw new SelfProtectedProjectError(operation);
+}
+
+// src/inventory/managed-registry.ts
+function folderIdentity(value) {
+  return value.normalize("NFKC").toLocaleLowerCase("en-US");
+}
+var ManagedRegistry = class {
+  #records;
+  constructor(initial = {}) {
+    this.#records = structuredClone(initial);
+    delete this.#records[COMPANION_PROJECT_ID];
+  }
+  read() {
+    return structuredClone(this.#records);
+  }
+  recordInstalled({
+    projectId,
+    expectedFolderName,
+    extension,
+    installedAt,
+    installedBy
+  }) {
+    assertNotCompanionProject(projectId);
+    if (folderIdentity(extension.folderName) !== folderIdentity(expectedFolderName)) {
+      throw new Error("Installed extension does not match the rediscovered folder.");
+    }
+    const record = {
+      projectId,
+      internalName: extension.internalName,
+      folderName: extension.folderName,
+      installedAt,
+      installedBy
+    };
+    this.#records[projectId] = structuredClone(record);
+    return structuredClone(record);
+  }
+  remove(projectId) {
+    if (!(projectId in this.#records)) return false;
+    delete this.#records[projectId];
+    return true;
+  }
+  pruneAbsent(hostExtensions) {
+    const removed = [];
+    for (const [projectId, record] of Object.entries(this.#records)) {
+      const present = hostExtensions.some(
+        (extension) => extension.internalName === record.internalName && folderIdentity(extension.folderName) === folderIdentity(record.folderName)
+      );
+      if (!present) {
+        delete this.#records[projectId];
+        removed.push(projectId);
+      }
+    }
+    return removed.sort();
+  }
+};
+function normalizeManagedExtensionMap(value) {
+  const result = {};
+  for (const [projectId, candidate] of Object.entries(value)) {
+    if (!isManagedRecord(candidate) || candidate.projectId !== projectId) continue;
+    result[projectId] = structuredClone(candidate);
+  }
+  delete result[COMPANION_PROJECT_ID];
+  return result;
+}
+function isManagedRecord(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const record = value;
+  return typeof record.projectId === "string" && typeof record.internalName === "string" && typeof record.folderName === "string" && typeof record.installedAt === "string" && (record.installedBy === "individual" || record.installedBy === "kit");
+}
+
+// src/catalog/project-view-model.ts
+function installedOwnership(projectId, inventory) {
+  if (inventory.managed.some(({ project }) => project.id === projectId)) {
+    return "managed";
+  }
+  if (inventory.external.some(({ project }) => project.id === projectId)) {
+    return "external";
+  }
+  return "absent";
+}
+function actionFor(project, context, ownership) {
+  if (project.id === COMPANION_PROJECT_ID) {
+    return {
+      kind: "current-extension",
+      label: "Current extension",
+      reason: "Manage Tavernary Companion in SillyTavern."
+    };
+  }
+  if (context.snapshot.state.startsWith("incompatible")) {
+    return {
+      kind: "update-required",
+      label: "Update Companion",
+      reason: "Catalog schema updated; update Companion to restore actions."
+    };
+  }
+  if (ownership !== "absent") {
+    return {
+      kind: "uninstall",
+      label: "Uninstall",
+      reason: ownership === "managed" ? "Managed by Companion" : "Installed outside Companion"
+    };
+  }
+  if (project.kind === "preset") {
+    return {
+      kind: "view-project",
+      label: "View project",
+      reason: "Preset installation is not available in V1"
+    };
+  }
+  if (project.kind !== "extension" || !project.frontends.some(({ id }) => id === "sillytavern")) {
+    return {
+      kind: "view-project",
+      label: "View project",
+      reason: "Browse-only in Companion"
+    };
+  }
+  try {
+    if (!project.install) throw new Error("missing contract");
+    parseInstallContract(project.install);
+  } catch {
+    return {
+      kind: "view-project",
+      label: "View project",
+      reason: "Install contract unavailable"
+    };
+  }
+  return { kind: "install", label: "Install", reason: null };
+}
+function toProjectCardViewModel(project, context) {
+  const ownership = installedOwnership(project.id, context.inventory);
+  return {
+    id: project.id,
+    name: project.name,
+    summary: project.summary,
+    kind: project.kind,
+    frontends: project.frontends.map(({ label }) => label),
+    primaryFunction: primaryFunctionLabel(project.primaryFunction),
+    activity: {
+      latestSourceActivityAt: project.activity.latestSourceActivityAt,
+      activeWeeks12: project.activity.activeWeeks12,
+      dormant: project.activity.dormant
+    },
+    tavernKeeper: project.tavernKeeper,
+    installed: ownership !== "absent",
+    ownership,
+    action: actionFor(project, context, ownership)
+  };
+}
+function primaryFunctionLabel(value) {
+  const labels = {
+    "memory-retrieval": "Memory & Retrieval",
+    "generation-reasoning": "Generation & Reasoning",
+    "character-worldbuilding": "Character & Worldbuilding",
+    "rpg-systems": "RPG Systems & Suites",
+    "interface-workflow": "Interface & Workflow",
+    "developer-infrastructure": "Developer Infrastructure"
+  };
+  return labels[value] ?? value;
+}
+function toProjectDetailViewModel(project, context) {
+  return {
+    ...toProjectCardViewModel(project, context),
+    canonicalUrl: project.canonicalUrl,
+    primaryFunction: primaryFunctionLabel(project.primaryFunction),
+    tags: project.tags.map(({ label }) => label),
+    license: structuredClone(project.license),
+    metadataStatus: project.metadataStatus,
+    sourceStatus: project.sourceStatus,
+    catalogedAt: project.catalogedAt,
+    latestReleaseAt: project.latestReleaseAt,
+    refreshedAt: project.refreshedAt,
+    attribution: structuredClone(project.attribution),
+    fork: structuredClone(project.fork),
+    kitReferences: (context.kits ?? []).filter((kit) => kit.components.some(({ projectId }) => projectId === project.id)).map(({ id, title }) => ({ id, title }))
+  };
+}
+
+// src/catalog/discovery-controller.ts
+var DefaultDiscoveryController = class {
+  #now;
+  #createIndex;
+  #snapshot;
+  #inventory;
+  #query = structuredClone(DEFAULT_COMPANION_QUERY);
+  #indexedCatalog = null;
+  #index = null;
+  #state;
+  #subscribers = /* @__PURE__ */ new Set();
+  constructor(options) {
+    this.#snapshot = options.snapshot;
+    this.#inventory = structuredClone(options.inventory);
+    this.#now = options.now ?? (() => (/* @__PURE__ */ new Date()).toISOString());
+    this.#createIndex = options.createIndex ?? createCatalogSearchIndex;
+    this.#state = this.#compute();
+  }
+  read() {
+    return structuredClone(this.#state);
+  }
+  subscribe(subscriber) {
+    this.#subscribers.add(subscriber);
+    return () => this.#subscribers.delete(subscriber);
+  }
+  setQuery(query) {
+    this.#query = structuredClone(query);
+    this.#state = this.#compute();
+    this.#notify();
+  }
+  setInventory(inventory) {
+    this.#inventory = structuredClone(inventory);
+    this.#state = this.#compute();
+    this.#notify();
+  }
+  setSnapshot(snapshot) {
+    this.#snapshot = snapshot;
+    this.#state = this.#compute();
+    this.#notify();
+  }
+  #compute() {
+    const catalog = "catalog" in this.#snapshot ? this.#snapshot.catalog : null;
+    let projects = [];
+    let projectDetails = {};
+    if (catalog) {
+      if (catalog !== this.#indexedCatalog) {
+        this.#indexedCatalog = catalog;
+        this.#index = this.#createIndex(
+          catalog.projects.map(({ id, search }) => ({ id, ...search }))
+        );
+      }
+      const searchResults = this.#index?.search(this.#query.search);
+      projects = selectProjects(
+        [...catalog.projects],
+        this.#query,
+        { now: this.#now(), tagVocabulary: catalog.tagVocabulary },
+        searchResults
+      ).map(
+        (project) => toProjectCardViewModel(project, {
+          snapshot: this.#snapshot,
+          inventory: this.#inventory
+        })
+      );
+      projectDetails = Object.fromEntries(
+        catalog.projects.map((project) => [
+          project.id,
+          toProjectDetailViewModel(project, {
+            snapshot: this.#snapshot,
+            inventory: this.#inventory,
+            kits: catalog.kits
+          })
+        ])
+      );
+    }
+    return {
+      query: structuredClone(this.#query),
+      catalogState: this.#snapshot.state,
+      projects,
+      projectDetails,
+      installedSections: toInstalledSectionViewModel(this.#inventory),
+      facets: catalog ? {
+        frontends: [
+          ...new Map(
+            catalog.projects.flatMap(
+              (project) => project.frontends.map(({ id, label }) => [id, { id, label }])
+            )
+          ).values()
+        ].sort((left, right) => left.label.localeCompare(right.label)),
+        tags: catalog.tagVocabulary.map(({ id, label }) => ({ id, label })).sort((left, right) => left.label.localeCompare(right.label))
+      } : { frontends: [], tags: [] }
+    };
+  }
+  #notify() {
+    const snapshot = this.read();
+    for (const subscriber of this.#subscribers) subscriber(snapshot);
+  }
+};
+function createDiscoveryController(options) {
+  return new DefaultDiscoveryController(options);
+}
+
+// src/catalog/indexeddb-catalog-cache.ts
+var DATABASE_NAME = "tavernary-companion";
+var DATABASE_VERSION = 1;
+var RECORDS_STORE = "catalog-records";
+var META_STORE = "catalog-meta";
+var ACTIVE_KEY = "activeCatalogRecordId";
+var LAST_CHECKED_KEY = "lastCheckedAt";
+var CORRUPTION_KEY = "corruption";
+function requestResult(request) {
+  return new Promise((resolve, reject) => {
+    request.addEventListener("success", () => resolve(request.result), {
+      once: true
+    });
+    request.addEventListener(
+      "error",
+      () => reject(request.error ?? new Error("IndexedDB request failed.")),
+      { once: true }
+    );
+  });
+}
+function transactionDone(transaction) {
+  return new Promise((resolve, reject) => {
+    transaction.addEventListener("complete", () => resolve(), { once: true });
+    transaction.addEventListener(
+      "abort",
+      () => reject(transaction.error ?? new Error("IndexedDB transaction aborted.")),
+      { once: true }
+    );
+    transaction.addEventListener(
+      "error",
+      () => reject(transaction.error ?? new Error("IndexedDB transaction failed.")),
+      { once: true }
+    );
+  });
+}
+function openDatabase(factory, name) {
+  const request = factory.open(name, DATABASE_VERSION);
+  request.addEventListener("upgradeneeded", () => {
+    const database = request.result;
+    if (!database.objectStoreNames.contains(RECORDS_STORE)) {
+      database.createObjectStore(RECORDS_STORE, { keyPath: "id" });
+    }
+    if (!database.objectStoreNames.contains(META_STORE)) {
+      database.createObjectStore(META_STORE, { keyPath: "key" });
+    }
+  });
+  return requestResult(request);
+}
+function putMeta(store, key, value) {
+  store.put({ key, value });
+}
+async function readMetaValue(store, key) {
+  const record = await requestResult(store.get(key));
+  return record?.value ?? null;
+}
+var IndexedDbCatalogCache = class {
+  #database;
+  constructor(factory, databaseName) {
+    this.#database = openDatabase(factory, databaseName);
+  }
+  async readActive() {
+    const database = await this.#database;
+    const transaction = database.transaction([RECORDS_STORE, META_STORE], "readonly");
+    const id = await readMetaValue(transaction.objectStore(META_STORE), ACTIVE_KEY);
+    const record = id ? await requestResult(transaction.objectStore(RECORDS_STORE).get(id)) : void 0;
+    await transactionDone(transaction);
+    if (!id) return null;
+    if (!record) {
+      await this.#writeMeta(CORRUPTION_KEY, "missing-active-record");
+      return null;
+    }
+    return structuredClone(record);
+  }
+  async stage(record) {
+    const database = await this.#database;
+    const transaction = database.transaction(RECORDS_STORE, "readwrite");
+    transaction.objectStore(RECORDS_STORE).put(structuredClone(record));
+    await transactionDone(transaction);
+  }
+  async activate(id) {
+    const database = await this.#database;
+    const transaction = database.transaction([RECORDS_STORE, META_STORE], "readwrite");
+    const records = transaction.objectStore(RECORDS_STORE);
+    const metadata = transaction.objectStore(META_STORE);
+    const staged = await requestResult(records.get(id));
+    if (!staged) {
+      transaction.abort();
+      await transactionDone(transaction).catch(() => void 0);
+      throw new Error("staged record is missing");
+    }
+    const previousId = await readMetaValue(metadata, ACTIVE_KEY);
+    putMeta(metadata, ACTIVE_KEY, id);
+    putMeta(metadata, CORRUPTION_KEY, null);
+    const keep = /* @__PURE__ */ new Set([id, ...previousId ? [previousId] : []]);
+    const keys = await requestResult(records.getAllKeys());
+    for (const key of keys) {
+      if (typeof key === "string" && !keep.has(key)) records.delete(key);
+    }
+    await transactionDone(transaction);
+  }
+  async recordCheck(lastCheckedAt) {
+    await this.#writeMeta(LAST_CHECKED_KEY, lastCheckedAt);
+  }
+  async readMetadata() {
+    const database = await this.#database;
+    const transaction = database.transaction(META_STORE, "readonly");
+    const store = transaction.objectStore(META_STORE);
+    const [activeCatalogRecordId, lastCheckedAt, corruption] = await Promise.all([
+      readMetaValue(store, ACTIVE_KEY),
+      readMetaValue(store, LAST_CHECKED_KEY),
+      readMetaValue(store, CORRUPTION_KEY)
+    ]);
+    await transactionDone(transaction);
+    return {
+      activeCatalogRecordId,
+      lastCheckedAt,
+      corruption: corruption === "missing-active-record" ? corruption : null
+    };
+  }
+  async #writeMeta(key, value) {
+    const database = await this.#database;
+    const transaction = database.transaction(META_STORE, "readwrite");
+    putMeta(transaction.objectStore(META_STORE), key, value);
+    await transactionDone(transaction);
+  }
+};
+function createIndexedDbCatalogCache({
+  indexedDb = globalThis.indexedDB,
+  databaseName = DATABASE_NAME
+} = {}) {
+  if (!indexedDb) throw new Error("IndexedDB is unavailable.");
+  return new IndexedDbCatalogCache(indexedDb, databaseName);
+}
+
+// src/inventory/inventory-reconciler.ts
+function folderIdentity2(value) {
+  return value.normalize("NFKC").toLocaleLowerCase("en-US");
+}
+function reconcileInventory({
+  projects,
+  hostExtensions,
+  managed
+}) {
+  const projectsById = new Map(projects.map((project) => [project.id, project]));
+  const projectsByFolder = /* @__PURE__ */ new Map();
+  for (const project of projects) {
+    if (!project.install || project.kind !== "extension" || !project.frontends.some(({ id }) => id === "sillytavern")) {
+      continue;
+    }
+    const identity = folderIdentity2(project.install.folderName);
+    const matches = projectsByFolder.get(identity) ?? [];
+    matches.push(project);
+    projectsByFolder.set(identity, matches);
+  }
+  const snapshot = {
+    managed: [],
+    external: [],
+    unknown: [],
+    missingManaged: []
+  };
+  const representedManagedIds = /* @__PURE__ */ new Set();
+  for (const extension of hostExtensions) {
+    const matches = projectsByFolder.get(folderIdentity2(extension.folderName)) ?? [];
+    if (matches.length !== 1) {
+      snapshot.unknown.push({
+        extension: structuredClone(extension),
+        reason: matches.length > 1 ? "ambiguous-folder" : "folder-not-in-catalog"
+      });
+      continue;
+    }
+    const project = matches[0];
+    const record = managed[project.id];
+    if (project.id !== COMPANION_PROJECT_ID && record && record.projectId === project.id && record.internalName === extension.internalName && folderIdentity2(record.folderName) === folderIdentity2(extension.folderName)) {
+      snapshot.managed.push({
+        project,
+        extension: structuredClone(extension),
+        record: structuredClone(record)
+      });
+      representedManagedIds.add(project.id);
+    } else {
+      snapshot.external.push({ project, extension: structuredClone(extension) });
+    }
+  }
+  for (const record of Object.values(managed).sort(
+    (left, right) => left.projectId.localeCompare(right.projectId)
+  )) {
+    if (record.projectId === COMPANION_PROJECT_ID || representedManagedIds.has(record.projectId)) {
+      continue;
+    }
+    snapshot.missingManaged.push({
+      record: structuredClone(record),
+      project: projectsById.get(record.projectId) ?? null
+    });
+  }
+  return snapshot;
+}
+
+// src/trust/trust-copy.ts
+var CURRENT_ASSESSMENT_WARNING = "TavernKeeper\u2019s latest assessment identified potential security concerns in this project. Extensions can run code inside SillyTavern. Responsibility for safety falls upon you. Review the scan and project before continuing.";
+var STALE_ASSESSMENT_WARNING = "TavernKeeper\u2019s latest available assessment identified potential security concerns in this project. Extensions can run code inside SillyTavern. Responsibility for safety falls upon you. Review the scan and project before continuing. This assessment covers an older version of the project.";
+var UNSANDBOXED_CODE_DISCLOSURE = "Third-party extensions run unsandboxed code inside SillyTavern. Companion installs only from Tavernary\u2019s validated install contract. TavernKeeper provides evidence, not a guarantee of safety. Responsibility for safety falls upon you.";
+
+// src/trust/trust-policy.ts
+function selectTrustPrompts({
+  trustAcknowledgedAt,
+  assessment
+}) {
+  const prompts = [];
+  if (!trustAcknowledgedAt) {
+    prompts.push({
+      kind: "unsandboxed-disclosure",
+      copy: UNSANDBOXED_CODE_DISCLOSURE
+    });
+  }
+  if (assessment?.riskLevel === "material" || assessment?.riskLevel === "high") {
+    const stale = assessment.freshness === "stale";
+    prompts.push({
+      kind: "assessment-warning",
+      severity: assessment.riskLevel,
+      stale,
+      reportUrl: assessment.reportUrl,
+      reviewDisabledReason: assessment.reportUrl ? null : "No TavernKeeper Scan Review link is available.",
+      copy: stale ? STALE_ASSESSMENT_WARNING : CURRENT_ASSESSMENT_WARNING
+    });
+  }
+  return prompts;
+}
+
+// src/lifecycle/lifecycle-policy.ts
+function evaluateLifecycle({
+  operation,
+  project,
+  context
+}) {
+  if (project?.id === COMPANION_PROJECT_ID) {
+    return { kind: "rejected", reason: "self-protected" };
+  }
+  if (!project) return { kind: "rejected", reason: "project-not-found" };
+  if (context.operationInProgress) {
+    return { kind: "rejected", reason: "operation-in-progress" };
+  }
+  if (!context.snapshot.canMutate) {
+    return { kind: "rejected", reason: "catalog-incompatible" };
+  }
+  if (!isActionableExtension(project)) {
+    return { kind: "rejected", reason: "browse-only-project" };
+  }
+  const installed = installedEntry(
+    project.id,
+    context.inventory.managed,
+    context.inventory.external
+  );
+  if (operation === "install") {
+    if (installed) return { kind: "rejected", reason: "already-installed" };
+    try {
+      if (!project.install) throw new Error("Install contract is missing.");
+      const contract = parseInstallContract(project.install);
+      if (contract.folderName !== project.install.folderName) {
+        return { kind: "rejected", reason: "invalid-install-contract" };
+      }
+      return { kind: "allowed", operation, contract };
+    } catch {
+      return { kind: "rejected", reason: "invalid-install-contract" };
+    }
+  }
+  if (!installed) return { kind: "rejected", reason: "not-installed" };
+  if (installed.entry.extension.type !== "local") {
+    return { kind: "rejected", reason: "host-non-removable" };
+  }
+  return {
+    kind: "allowed",
+    operation,
+    extension: structuredClone(installed.entry.extension),
+    ownership: installed.ownership
+  };
+}
+function isActionableExtension(project) {
+  return Boolean(
+    project?.kind === "extension" && project.frontends.some(({ id }) => id === "sillytavern")
+  );
+}
+function installedEntry(projectId, managed, external) {
+  const managedEntry = managed.find(({ project }) => project.id === projectId);
+  if (managedEntry) return { ownership: "managed", entry: managedEntry };
+  const externalEntry = external.find(({ project }) => project.id === projectId);
+  return externalEntry ? { ownership: "external", entry: externalEntry } : null;
+}
+
+// src/lifecycle/operation-lock.ts
+var OperationInProgressError = class extends Error {
+  active;
+  constructor(active) {
+    super(`Lifecycle operation ${active.operationId} is already in progress.`);
+    this.name = "OperationInProgressError";
+    this.active = structuredClone(active);
+  }
+};
+var OperationLock = class {
+  #subscribers = /* @__PURE__ */ new Set();
+  #active = null;
+  read() {
+    return this.#active ? structuredClone(this.#active) : null;
+  }
+  subscribe(subscriber) {
+    this.#subscribers.add(subscriber);
+    return () => this.#subscribers.delete(subscriber);
+  }
+  async runExclusive(operationId, callback) {
+    if (this.#active) throw new OperationInProgressError(this.#active);
+    this.#active = { operationId, phase: "preflight" };
+    this.#notify();
+    try {
+      return await callback({
+        setPhase: (phase) => {
+          if (!this.#active || this.#active.operationId !== operationId) return;
+          this.#active = { operationId, phase };
+          this.#notify();
+        }
+      });
+    } finally {
+      this.#active = null;
+      this.#notify();
+    }
+  }
+  #notify() {
+    const snapshot = this.read();
+    for (const subscriber of this.#subscribers) subscriber(snapshot);
+  }
+};
+
+// src/lifecycle/operation-receipt.ts
+function createReceipt(input) {
+  const order = [
+    "requested",
+    "host-accepted",
+    "verified",
+    "recorded"
+  ];
+  const completedIndex = input.completedThrough ? order.indexOf(input.completedThrough) : -1;
+  return {
+    id: input.id,
+    kind: input.kind,
+    projectId: input.projectId,
+    projectName: input.projectName,
+    startedAt: input.startedAt,
+    finishedAt: input.finishedAt,
+    status: input.status,
+    safeError: input.safeError,
+    reloadRequired: input.reloadRequired,
+    steps: order.map((id, index) => ({
+      id,
+      status: id === input.failedAt ? "failed" : index <= completedIndex ? "succeeded" : input.status === "cancelled" || input.status === "rejected" ? "skipped" : "pending"
+    }))
+  };
+}
+
+// src/lifecycle/removal-impact.ts
+function previewRemovalImpact({
+  projectId,
+  projectName: projectName2,
+  ownership,
+  installedKits,
+  activeKitId,
+  removable
+}) {
+  const references = kitReferences(projectId, installedKits);
+  const activeKitAffected = references.some(({ id }) => id === activeKitId);
+  const kitNames = references.map(({ title }) => title).join(", ");
+  const consequence = references.length === 0 ? "" : ` ${kitNames} will become incomplete${activeKitAffected ? ", and the active Kit will show drift" : ""}.`;
+  return {
+    projectId,
+    projectName: projectName2,
+    ownership,
+    ownershipLabel: {
+      managed: "Managed by Companion",
+      external: "Installed outside Companion",
+      absent: "Not installed"
+    }[ownership],
+    installedKits: references,
+    activeKitAffected,
+    removable,
+    confirmation: `Uninstall ${projectName2}?${consequence}`
+  };
+}
+function markInstalledKitsIncomplete(installedKits, projectId) {
+  const next = structuredClone(installedKits);
+  for (const [kitId, candidate] of Object.entries(next)) {
+    if (!kitProjectIds(candidate).includes(projectId) || !isRecord4(candidate)) continue;
+    const missing = Array.isArray(candidate.missingProjectIds) ? candidate.missingProjectIds.filter((value) => typeof value === "string") : [];
+    next[kitId] = {
+      ...candidate,
+      status: "incomplete",
+      missingProjectIds: [.../* @__PURE__ */ new Set([...missing, projectId])].sort()
+    };
+  }
+  return next;
+}
+function kitReferences(projectId, installedKits) {
+  return Object.entries(installedKits).filter(([, candidate]) => kitProjectIds(candidate).includes(projectId)).map(([id, candidate]) => ({
+    id,
+    title: isRecord4(candidate) && typeof candidate.title === "string" ? candidate.title : id
+  })).sort((left, right) => left.title.localeCompare(right.title));
+}
+function kitProjectIds(value) {
+  if (!isRecord4(value)) return [];
+  const ids = Array.isArray(value.projectIds) ? value.projectIds : Array.isArray(value.members) ? value.members : [];
+  return ids.filter((candidate) => typeof candidate === "string");
+}
+function isRecord4(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+// src/lifecycle/lifecycle-coordinator.ts
+var DefaultLifecycleCoordinator = class {
+  lock;
+  #host;
+  #store;
+  #getSnapshot;
+  #confirm;
+  #now;
+  #createId;
+  constructor(options) {
+    this.#host = options.host;
+    this.#store = options.store;
+    this.#getSnapshot = options.getSnapshot;
+    this.#confirm = options.confirm;
+    this.#now = options.now ?? (() => (/* @__PURE__ */ new Date()).toISOString());
+    this.#createId = options.createId ?? (() => crypto.randomUUID());
+    this.lock = options.lock ?? new OperationLock();
+  }
+  install(projectId) {
+    return this.lock.runExclusive(`install:${projectId}`, async ({ setPhase }) => {
+      const startedAt = this.#now();
+      const id = this.#createId();
+      const snapshot = this.#getSnapshot();
+      const catalog = "catalog" in snapshot ? snapshot.catalog : null;
+      const project = catalog?.projects.find((candidate) => candidate.id === projectId) ?? null;
+      if (projectId === COMPANION_PROJECT_ID) {
+        return this.#rejected({
+          id,
+          projectId,
+          projectName: project?.name ?? projectId,
+          startedAt
+        });
+      }
+      setPhase("discovering");
+      const before = await this.#host.discover();
+      const registry = new ManagedRegistry(
+        normalizeManagedExtensionMap(this.#store.read().managedExtensions)
+      );
+      const inventory = reconcileInventory({
+        projects: catalog?.projects ?? [],
+        hostExtensions: before,
+        managed: registry.read()
+      });
+      const decision = evaluateLifecycle({
+        operation: "install",
+        project,
+        context: { snapshot, inventory }
+      });
+      if (decision.kind !== "allowed" || decision.operation !== "install" || !project) {
+        return this.#rejected({
+          id,
+          projectId,
+          projectName: project?.name ?? projectId,
+          startedAt
+        });
+      }
+      const state = this.#store.read();
+      const prompts = selectTrustPrompts({
+        trustAcknowledgedAt: state.trustAcknowledgedAt,
+        assessment: project.tavernKeeper ? {
+          riskLevel: project.tavernKeeper.riskLevel,
+          freshness: project.tavernKeeper.freshness,
+          reportUrl: project.tavernKeeper.report?.reportUrl ?? null
+        } : null
+      });
+      let disclosureAccepted = Boolean(state.trustAcknowledgedAt);
+      setPhase("awaiting-confirmation");
+      for (const prompt of prompts) {
+        const approved = await this.#confirm(prompt, project);
+        if (!approved) {
+          const receipt2 = createReceipt({
+            id,
+            kind: "install",
+            projectId,
+            projectName: project.name,
+            startedAt,
+            finishedAt: this.#now(),
+            status: "cancelled",
+            safeError: null,
+            reloadRequired: false
+          });
+          await this.#persistNonMutation(receipt2, disclosureAccepted ? this.#now() : null);
+          return receipt2;
+        }
+        if (prompt.kind === "unsandboxed-disclosure") disclosureAccepted = true;
+      }
+      setPhase("host-request");
+      try {
+        await this.#host.install({
+          repositoryUrl: decision.contract.repositoryUrl,
+          branch: decision.contract.branch
+        });
+      } catch {
+        const receipt2 = createReceipt({
+          id,
+          kind: "install",
+          projectId,
+          projectName: project.name,
+          startedAt,
+          finishedAt: this.#now(),
+          status: "failed",
+          completedThrough: "requested",
+          failedAt: "host-accepted",
+          safeError: "SillyTavern did not complete the install request.",
+          reloadRequired: false
+        });
+        await this.#persistNonMutation(receipt2, disclosureAccepted ? this.#now() : null);
+        return receipt2;
+      }
+      setPhase("verifying");
+      const after = await this.#host.discover();
+      const installed = exactFolder(after, decision.contract.folderName);
+      if (!installed) {
+        const receipt2 = createReceipt({
+          id,
+          kind: "install",
+          projectId,
+          projectName: project.name,
+          startedAt,
+          finishedAt: this.#now(),
+          status: "verification-failed",
+          completedThrough: "host-accepted",
+          failedAt: "verified",
+          safeError: "SillyTavern did not report the expected installed extension.",
+          reloadRequired: false
+        });
+        await this.#persistNonMutation(receipt2, disclosureAccepted ? this.#now() : null);
+        return receipt2;
+      }
+      registry.recordInstalled({
+        projectId,
+        expectedFolderName: decision.contract.folderName,
+        extension: installed,
+        installedAt: this.#now(),
+        installedBy: "individual"
+      });
+      const receipt = createReceipt({
+        id,
+        kind: "install",
+        projectId,
+        projectName: project.name,
+        startedAt,
+        finishedAt: this.#now(),
+        status: "succeeded",
+        completedThrough: "recorded",
+        safeError: null,
+        reloadRequired: true
+      });
+      setPhase("recording");
+      try {
+        await this.#store.update((draft) => {
+          draft.managedExtensions = registry.read();
+          if (disclosureAccepted && !draft.trustAcknowledgedAt) {
+            draft.trustAcknowledgedAt = this.#now();
+          }
+          draft.operationReceipt = structuredClone(receipt);
+        });
+        return receipt;
+      } catch {
+        return createReceipt({
+          id,
+          kind: "install",
+          projectId,
+          projectName: project.name,
+          startedAt,
+          finishedAt: this.#now(),
+          status: "installed-unrecorded",
+          completedThrough: "verified",
+          failedAt: "recorded",
+          safeError: "The extension is installed, but Companion could not record ownership. Reopen Companion to reconcile it.",
+          reloadRequired: true
+        });
+      }
+    });
+  }
+  async previewRemoval(projectId) {
+    const snapshot = this.#getSnapshot();
+    const catalog = "catalog" in snapshot ? snapshot.catalog : null;
+    const project = catalog?.projects.find((candidate) => candidate.id === projectId) ?? null;
+    if (projectId === COMPANION_PROJECT_ID || !project) {
+      return previewRemovalImpact({
+        projectId,
+        projectName: project?.name ?? projectId,
+        ownership: "absent",
+        installedKits: this.#store.read().installedKits,
+        activeKitId: this.#store.read().activeKitId,
+        removable: false
+      });
+    }
+    const hostExtensions = await this.#host.discover();
+    const inventory = reconcileInventory({
+      projects: catalog?.projects ?? [],
+      hostExtensions,
+      managed: normalizeManagedExtensionMap(this.#store.read().managedExtensions)
+    });
+    const decision = evaluateLifecycle({
+      operation: "remove",
+      project,
+      context: { snapshot, inventory }
+    });
+    const state = this.#store.read();
+    const discoveredOwnership = inventory.managed.some(
+      ({ project: candidate }) => candidate.id === projectId
+    ) ? "managed" : inventory.external.some(({ project: candidate }) => candidate.id === projectId) ? "external" : "absent";
+    return previewRemovalImpact({
+      projectId,
+      projectName: project.name,
+      ownership: decision.kind === "allowed" && decision.operation === "remove" ? decision.ownership : discoveredOwnership,
+      installedKits: state.installedKits,
+      activeKitId: state.activeKitId,
+      removable: decision.kind === "allowed" && decision.operation === "remove"
+    });
+  }
+  remove(projectId) {
+    return this.lock.runExclusive(`remove:${projectId}`, async ({ setPhase }) => {
+      const startedAt = this.#now();
+      const id = this.#createId();
+      const snapshot = this.#getSnapshot();
+      const catalog = "catalog" in snapshot ? snapshot.catalog : null;
+      const project = catalog?.projects.find((candidate) => candidate.id === projectId) ?? null;
+      if (projectId === COMPANION_PROJECT_ID) {
+        return this.#rejectedRemoval({
+          id,
+          projectId,
+          projectName: project?.name ?? projectId,
+          startedAt
+        });
+      }
+      setPhase("discovering");
+      const before = await this.#host.discover();
+      const registry = new ManagedRegistry(
+        normalizeManagedExtensionMap(this.#store.read().managedExtensions)
+      );
+      const inventory = reconcileInventory({
+        projects: catalog?.projects ?? [],
+        hostExtensions: before,
+        managed: registry.read()
+      });
+      const decision = evaluateLifecycle({
+        operation: "remove",
+        project,
+        context: { snapshot, inventory }
+      });
+      if (decision.kind !== "allowed" || decision.operation !== "remove" || !project) {
+        return this.#rejectedRemoval({
+          id,
+          projectId,
+          projectName: project?.name ?? projectId,
+          startedAt
+        });
+      }
+      setPhase("host-request");
+      try {
+        await this.#host.remove({
+          internalName: decision.extension.internalName,
+          type: decision.extension.type
+        });
+      } catch {
+        const receipt2 = createReceipt({
+          id,
+          kind: "remove",
+          projectId,
+          projectName: project.name,
+          startedAt,
+          finishedAt: this.#now(),
+          status: "failed",
+          completedThrough: "requested",
+          failedAt: "host-accepted",
+          safeError: "SillyTavern did not complete the uninstall request.",
+          reloadRequired: false
+        });
+        await this.#persistNonMutation(receipt2, null);
+        return receipt2;
+      }
+      setPhase("verifying");
+      const after = await this.#host.discover();
+      const stillPresent = after.some(
+        (extension) => extension.internalName === decision.extension.internalName && extension.type === decision.extension.type
+      );
+      if (stillPresent) {
+        const receipt2 = createReceipt({
+          id,
+          kind: "remove",
+          projectId,
+          projectName: project.name,
+          startedAt,
+          finishedAt: this.#now(),
+          status: "verification-failed",
+          completedThrough: "host-accepted",
+          failedAt: "verified",
+          safeError: "SillyTavern still reports the extension as installed.",
+          reloadRequired: false
+        });
+        await this.#persistNonMutation(receipt2, null);
+        return receipt2;
+      }
+      registry.remove(projectId);
+      const receipt = createReceipt({
+        id,
+        kind: "remove",
+        projectId,
+        projectName: project.name,
+        startedAt,
+        finishedAt: this.#now(),
+        status: "succeeded",
+        completedThrough: "recorded",
+        safeError: null,
+        reloadRequired: true
+      });
+      setPhase("recording");
+      try {
+        await this.#store.update((draft) => {
+          draft.managedExtensions = registry.read();
+          draft.installedKits = markInstalledKitsIncomplete(draft.installedKits, projectId);
+          draft.operationReceipt = structuredClone(receipt);
+        });
+        return receipt;
+      } catch {
+        return createReceipt({
+          id,
+          kind: "remove",
+          projectId,
+          projectName: project.name,
+          startedAt,
+          finishedAt: this.#now(),
+          status: "removed-unrecorded",
+          completedThrough: "verified",
+          failedAt: "recorded",
+          safeError: "The extension was removed, but Companion could not update its records. Reopen Companion to reconcile it.",
+          reloadRequired: true
+        });
+      }
+    });
+  }
+  #rejected(input) {
+    return createReceipt({
+      ...input,
+      kind: "install",
+      finishedAt: this.#now(),
+      status: "rejected",
+      safeError: "This project is not eligible for installation.",
+      reloadRequired: false
+    });
+  }
+  #rejectedRemoval(input) {
+    return createReceipt({
+      ...input,
+      kind: "remove",
+      finishedAt: this.#now(),
+      status: "rejected",
+      safeError: "This installed project is not eligible for direct removal.",
+      reloadRequired: false
+    });
+  }
+  async #persistNonMutation(receipt, trustAcknowledgedAt) {
+    await this.#store.update((draft) => {
+      if (trustAcknowledgedAt && !draft.trustAcknowledgedAt) {
+        draft.trustAcknowledgedAt = trustAcknowledgedAt;
+      }
+      draft.operationReceipt = structuredClone(receipt);
+    }).catch(() => void 0);
+  }
+};
+function exactFolder(extensions, folder) {
+  const identity = folder.normalize("NFKC").toLocaleLowerCase("en-US");
+  const matches = extensions.filter(
+    (extension) => extension.folderName.normalize("NFKC").toLocaleLowerCase("en-US") === identity
+  );
+  return matches.length === 1 ? matches[0] : null;
+}
+function createLifecycleCoordinator(options) {
+  return new DefaultLifecycleCoordinator(options);
+}
+
+// src/lifecycle/trust-prompt-broker.ts
+var TrustPromptBroker = class {
+  #subscribers = /* @__PURE__ */ new Set();
+  #pending = null;
+  #resolve = null;
+  read() {
+    return this.#pending ? structuredClone(this.#pending) : null;
+  }
+  subscribe(subscriber) {
+    this.#subscribers.add(subscriber);
+    return () => this.#subscribers.delete(subscriber);
+  }
+  request(prompt, project) {
+    if (this.#pending) throw new Error("A trust prompt is already pending.");
+    this.#pending = { prompt: structuredClone(prompt), project: structuredClone(project) };
+    this.#notify();
+    return new Promise((resolve) => {
+      this.#resolve = resolve;
+    });
+  }
+  respond(approved) {
+    const resolve = this.#resolve;
+    if (!resolve) return;
+    this.#pending = null;
+    this.#resolve = null;
+    this.#notify();
+    resolve(approved);
+  }
+  cancel() {
+    this.respond(false);
+  }
+  #notify() {
+    const snapshot = this.read();
+    for (const subscriber of this.#subscribers) subscriber(snapshot);
+  }
+};
+
+// node_modules/preact/jsx-runtime/dist/jsxRuntime.module.js
+var f3 = 0;
+function u3(e3, t3, n2, o3, i3, u4) {
+  t3 || (t3 = {});
+  var a3, c3, p3 = t3;
+  if ("ref" in p3) for (c3 in p3 = {}, t3) "ref" == c3 ? a3 = t3[c3] : p3[c3] = t3[c3];
+  var l3 = { type: e3, props: p3, key: n2, ref: a3, __k: null, __: null, __b: 0, __e: null, __c: null, constructor: void 0, __v: --f3, __i: -1, __u: 0, __source: i3, __self: u4 };
+  if ("function" == typeof e3 && (a3 = e3.defaultProps)) for (c3 in a3) void 0 === p3[c3] && (p3[c3] = a3[c3]);
+  return l.vnode && l.vnode(l3), l3;
+}
+
+// src/ui/lifecycle/dialog-frame.tsx
+function DialogFrame({
+  label,
+  className = "",
+  onCancel,
+  children
+}) {
+  const dialog = A2(null);
+  h2(() => {
+    const controls = dialog.current?.querySelectorAll(
+      'button:not([disabled]), a[href], input:not([disabled]), [tabindex="0"]'
+    );
+    controls?.[0]?.focus();
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCancel();
+        return;
+      }
+      if (event.key !== "Tab" || !controls || controls.length === 0) return;
+      const first = controls[0];
+      const last2 = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last2.focus();
+      } else if (!event.shiftKey && document.activeElement === last2) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onCancel]);
+  return /* @__PURE__ */ u3("div", { class: "tavernary-companion-dialog-backdrop", children: /* @__PURE__ */ u3(
+    "div",
+    {
+      ref: dialog,
+      role: "dialog",
+      "aria-modal": "true",
+      "aria-label": label,
+      class: `tavernary-companion-dialog ${className}`.trim(),
+      children
+    }
+  ) });
+}
+
+// src/ui/lifecycle/assessment-warning-dialog.tsx
+function AssessmentWarningDialog({
+  projectName: projectName2,
+  prompt,
+  onReview,
+  onCancel,
+  onConfirm
+}) {
+  const high = prompt.severity === "high";
+  return /* @__PURE__ */ u3(
+    DialogFrame,
+    {
+      label: `Security warning for ${projectName2}`,
+      className: high ? "is-high" : "is-material",
+      onCancel,
+      children: [
+        /* @__PURE__ */ u3("p", { class: "tavernary-companion-dialog__severity", children: high ? "Immediate danger" : "Material concern" }),
+        /* @__PURE__ */ u3("h2", { children: [
+          "Review before installing ",
+          projectName2
+        ] }),
+        /* @__PURE__ */ u3("p", { children: prompt.copy }),
+        prompt.reviewDisabledReason ? /* @__PURE__ */ u3("p", { children: prompt.reviewDisabledReason }) : null,
+        /* @__PURE__ */ u3("div", { class: "tavernary-companion-dialog__actions", children: [
+          /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              onClick: () => prompt.reportUrl && onReview(prompt.reportUrl),
+              disabled: !prompt.reportUrl,
+              children: "Scan Review"
+            }
+          ),
+          /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "is-danger", onClick: onConfirm, children: "Install anyway" })
+        ] })
+      ]
+    }
+  );
+}
+
+// src/ui/lifecycle/operation-receipt.tsx
+function OperationReceipt({
+  receipt,
+  onDismiss
+}) {
+  const succeeded = receipt.status === "succeeded";
+  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-operation-receipt", "aria-label": "Operation receipt", children: [
+    /* @__PURE__ */ u3("h3", { children: receiptHeading(receipt) }),
+    receipt.safeError ? /* @__PURE__ */ u3("p", { children: receipt.safeError }) : null,
+    receipt.reloadRequired ? /* @__PURE__ */ u3("p", { children: "Reload required" }) : null,
+    /* @__PURE__ */ u3("ol", { children: receipt.steps.map((step) => /* @__PURE__ */ u3("li", { "data-status": step.status, children: [
+      stepLabel(step.id),
+      ": ",
+      step.status
+    ] })) }),
+    /* @__PURE__ */ u3("p", { children: succeeded ? "Verified against SillyTavern." : "No unverified success was recorded." }),
+    onDismiss ? /* @__PURE__ */ u3("button", { type: "button", onClick: onDismiss, children: "Dismiss" }) : null
+  ] });
+}
+function receiptHeading(receipt) {
+  if (receipt.status === "succeeded") {
+    return `${receipt.projectName} ${receipt.kind === "install" ? "installed" : "removed"} and verified`;
+  }
+  if (receipt.status === "cancelled") return `${receipt.projectName} operation cancelled`;
+  return `${receipt.projectName} ${receipt.kind} did not complete`;
+}
+function stepLabel(id) {
+  return {
+    requested: "Requested",
+    "host-accepted": "Host accepted",
+    verified: "Verified",
+    recorded: "Recorded"
+  }[id];
+}
+
+// src/ui/lifecycle/operation-tray.tsx
+function OperationTray({
+  active,
+  receipt,
+  error,
+  onDismissReceipt,
+  onDismissError
+}) {
+  if (error) {
+    return /* @__PURE__ */ u3(
+      "aside",
+      {
+        class: "tavernary-companion-operation-tray tavernary-companion-operation-tray--error",
+        role: "alert",
+        children: [
+          /* @__PURE__ */ u3("p", { children: error }),
+          /* @__PURE__ */ u3("button", { type: "button", onClick: onDismissError, children: "Dismiss" })
+        ]
+      }
+    );
+  }
+  if (active) {
+    return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-operation-tray", role: "status", "aria-live": "polite", children: [
+      /* @__PURE__ */ u3("span", { class: "tavernary-companion-operation-tray__indicator", "aria-hidden": "true" }),
+      /* @__PURE__ */ u3("p", { children: phaseLabel(active.phase) })
+    ] });
+  }
+  if (receipt) {
+    return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-operation-tray", children: /* @__PURE__ */ u3(OperationReceipt, { receipt, onDismiss: onDismissReceipt }) });
+  }
+  return null;
+}
+function phaseLabel(phase) {
+  return {
+    preflight: "Checking project eligibility\u2026",
+    discovering: "Reading installed extensions\u2026",
+    "awaiting-confirmation": "Waiting for confirmation\u2026",
+    "host-request": "SillyTavern is applying the change\u2026",
+    verifying: "Verifying installed state\u2026",
+    recording: "Recording verified state\u2026"
+  }[phase] ?? "Working\u2026";
+}
+
+// src/ui/lifecycle/removal-dialog.tsx
+function RemovalDialog({
+  impact,
+  onCancel,
+  onConfirm
+}) {
+  return /* @__PURE__ */ u3(DialogFrame, { label: `Uninstall ${impact.projectName}`, onCancel, children: [
+    /* @__PURE__ */ u3("h2", { children: [
+      "Uninstall ",
+      impact.projectName,
+      "?"
+    ] }),
+    /* @__PURE__ */ u3("p", { children: impact.ownershipLabel }),
+    /* @__PURE__ */ u3("p", { children: impact.confirmation }),
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-dialog__actions", children: [
+      /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "is-danger", onClick: onConfirm, disabled: !impact.removable, children: "Uninstall" })
+    ] })
+  ] });
+}
+
+// src/ui/lifecycle/trust-disclosure-dialog.tsx
+function TrustDisclosureDialog({
+  prompt,
+  onCancel,
+  onConfirm
+}) {
+  return /* @__PURE__ */ u3(DialogFrame, { label: "Third-party extension disclosure", onCancel, children: [
+    /* @__PURE__ */ u3("h2", { children: "Before installing extensions" }),
+    /* @__PURE__ */ u3("p", { children: prompt.copy }),
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-dialog__actions", children: [
+      /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { type: "button", onClick: onConfirm, children: "I understand" })
+    ] })
+  ] });
+}
+
+// src/ui/installed/installed-section.tsx
+function InstalledSection({
+  section,
+  onOpenProject,
+  onAction,
+  onManage,
+  lifecycleDisabled
+}) {
+  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-installed-section", children: [
+    /* @__PURE__ */ u3("header", { children: [
+      /* @__PURE__ */ u3("h3", { children: section.title }),
+      /* @__PURE__ */ u3("span", { children: section.rows.length })
+    ] }),
+    section.rows.length === 0 ? /* @__PURE__ */ u3("p", { children: emptyExplanation(section.id) }) : /* @__PURE__ */ u3("ul", { children: section.rows.map((row) => /* @__PURE__ */ u3(
+      InstalledRow,
+      {
+        row,
+        sectionId: section.id,
+        onOpenProject,
+        onAction,
+        onManage,
+        lifecycleDisabled
+      }
+    )) })
+  ] });
+}
+function InstalledRow({
+  row,
+  sectionId,
+  onOpenProject,
+  onAction,
+  onManage,
+  lifecycleDisabled
+}) {
+  const unknown = sectionId === "unknown" || row.action.kind === "manage-in-sillytavern";
+  return /* @__PURE__ */ u3("li", { children: [
+    /* @__PURE__ */ u3("div", { children: [
+      /* @__PURE__ */ u3("strong", { children: row.name }),
+      /* @__PURE__ */ u3("span", { children: row.detail }),
+      row.enabled !== null ? /* @__PURE__ */ u3("span", { children: row.enabled ? "Enabled" : "Disabled" }) : null
+    ] }),
+    !unknown ? /* @__PURE__ */ u3(
+      "button",
+      {
+        type: "button",
+        "data-focus-key": `installed-${row.id}`,
+        onClick: () => onOpenProject?.(row.id),
+        "aria-label": `View ${row.name}`,
+        children: "Details"
+      }
+    ) : null,
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        type: "button",
+        "aria-label": unknown ? `Manage ${row.name} in SillyTavern` : `${row.action.label} ${row.name}`,
+        onClick: () => unknown ? onManage?.() : onAction?.(row.id, row.action),
+        disabled: !unknown && lifecycleDisabled,
+        children: row.action.label
+      }
+    )
+  ] });
+}
+function emptyExplanation(id) {
+  return {
+    managed: "No installed extensions are currently managed by Companion.",
+    external: "No catalog extensions were found outside Companion management.",
+    unknown: "Every discovered extension matched the current catalog.",
+    attention: "No managed records need attention."
+  }[id];
+}
+
+// src/ui/installed/installed-route.tsx
+function InstalledRoute({
+  sections,
+  refreshing = false,
+  onRefresh,
+  onOpenProject,
+  onAction,
+  onManage,
+  lifecycleDisabled
+}) {
+  h2(() => {
+    void onRefresh();
+  }, [onRefresh]);
+  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-installed-route", "aria-labelledby": "installed-heading", children: [
+    /* @__PURE__ */ u3("header", { children: [
+      /* @__PURE__ */ u3("h2", { id: "installed-heading", children: "Installed extensions" }),
+      refreshing ? /* @__PURE__ */ u3("p", { role: "status", children: "Updating installed extensions\u2026" }) : null
+    ] }),
+    sections.map((section) => /* @__PURE__ */ u3(
+      InstalledSection,
+      {
+        section,
+        onOpenProject,
+        onAction,
+        onManage,
+        lifecycleDisabled
+      },
+      section.id
+    ))
+  ] });
+}
+
+// src/ui/catalog/catalog-freshness.tsx
+function CatalogFreshness({
+  snapshot,
+  now = (/* @__PURE__ */ new Date()).toISOString(),
+  refreshing = false
+}) {
+  const label = refreshing ? "Checking for updates" : freshnessLabel(snapshot, now);
+  return /* @__PURE__ */ u3("span", { class: "tavernary-companion-catalog-freshness", "data-state": snapshot.state, children: label });
+}
+function freshnessLabel(snapshot, now) {
+  switch (snapshot.state) {
+    case "empty-loading":
+      return "Checking for updates";
+    case "ready-current":
+      return `Updated ${relativeAge(snapshot.catalog.generatedAt, now)}`;
+    case "ready-stale":
+      return "Saved catalog may be outdated";
+    case "ready-offline":
+      return "Using saved catalog \u2014 offline";
+    case "incompatible-with-cache":
+    case "incompatible-empty":
+      return "Companion update required";
+    case "error-empty":
+      return "Catalog unavailable";
+  }
+}
+function relativeAge(value, now) {
+  const elapsed2 = Math.max(0, Date.parse(now) - Date.parse(value));
+  const minutes = Math.floor(elapsed2 / 6e4);
+  if (minutes < 1) return "just now";
+  if (minutes < 60) return `${minutes} minute${minutes === 1 ? "" : "s"} ago`;
+  const hours = Math.floor(minutes / 60);
+  if (hours < 24) return `${hours} hour${hours === 1 ? "" : "s"} ago`;
+  const days = Math.floor(hours / 24);
+  return `${days} day${days === 1 ? "" : "s"} ago`;
+}
+
+// src/ui/catalog/catalog-state-panel.tsx
+function CatalogStatePanel({
+  snapshot,
+  onRefresh,
+  onUpdateCompanion,
+  onUseCached,
+  onOpenTavernary,
+  children
+}) {
+  const [refreshing, setRefreshing] = d2(false);
+  const [announcement, setAnnouncement] = d2("");
+  const [usingCache, setUsingCache] = d2(false);
+  const refresh = async () => {
+    if (refreshing) return;
+    setRefreshing(true);
+    setAnnouncement("");
+    try {
+      await onRefresh();
+      setAnnouncement("Catalog is current");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+  const incompatible = snapshot.state.startsWith("incompatible");
+  const emptyError = snapshot.state === "error-empty";
+  return /* @__PURE__ */ u3(
+    "section",
+    {
+      class: "tavernary-companion-catalog-state",
+      "data-testid": "catalog-state-panel",
+      "data-lifecycle-disabled": String(!snapshot.canMutate),
+      children: [
+        /* @__PURE__ */ u3("header", { children: [
+          /* @__PURE__ */ u3(CatalogFreshness, { snapshot, refreshing }),
+          !incompatible ? /* @__PURE__ */ u3("button", { type: "button", onClick: () => void refresh(), disabled: refreshing, children: emptyError ? "Try again" : "Refresh catalog" }) : null
+        ] }),
+        /* @__PURE__ */ u3("span", { class: "tavernary-companion-sr-only", role: "status", "aria-live": "polite", children: announcement }),
+        incompatible && !usingCache ? /* @__PURE__ */ u3("section", { "aria-labelledby": "catalog-update-heading", children: [
+          /* @__PURE__ */ u3("h2", { id: "catalog-update-heading", children: "Companion update required" }),
+          /* @__PURE__ */ u3("p", { children: [
+            "Tavernary now publishes catalog schema",
+            " ",
+            "remoteSchemaVersion" in snapshot ? snapshot.remoteSchemaVersion : "a newer version",
+            ". Update Companion before refreshing or changing installed extensions."
+          ] }),
+          /* @__PURE__ */ u3("div", { children: [
+            /* @__PURE__ */ u3("button", { type: "button", onClick: onUpdateCompanion, children: "Update Companion" }),
+            snapshot.state === "incompatible-with-cache" ? /* @__PURE__ */ u3(
+              "button",
+              {
+                type: "button",
+                onClick: () => {
+                  setUsingCache(true);
+                  onUseCached();
+                },
+                children: "Use cached catalog"
+              }
+            ) : null,
+            /* @__PURE__ */ u3("button", { type: "button", onClick: onOpenTavernary, children: "Open Tavernary" })
+          ] })
+        ] }) : emptyError ? /* @__PURE__ */ u3("section", { "aria-labelledby": "catalog-error-heading", children: [
+          /* @__PURE__ */ u3("h2", { id: "catalog-error-heading", children: "Catalog unavailable" }),
+          /* @__PURE__ */ u3("p", { children: "No saved catalog is available. Check the connection and try again." }),
+          /* @__PURE__ */ u3("details", { children: [
+            /* @__PURE__ */ u3("summary", { children: "Error details" }),
+            /* @__PURE__ */ u3("p", { children: "Unable to reach or validate the Tavernary catalog." })
+          ] })
+        ] }) : snapshot.state === "empty-loading" ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-catalog-skeleton", "aria-label": "Loading catalog", children: [
+          /* @__PURE__ */ u3("span", {}),
+          /* @__PURE__ */ u3("span", {}),
+          /* @__PURE__ */ u3("span", {})
+        ] }) : children
+      ]
+    }
+  );
+}
+
+// src/ui/shared/activity-summary.tsx
+function ActivitySummary({ activity }) {
+  if (activity.activeWeeks12 === null) {
+    return /* @__PURE__ */ u3("span", { children: "Activity unavailable" });
+  }
+  return /* @__PURE__ */ u3("span", { children: [
+    activity.activeWeeks12,
+    " of 12 active weeks",
+    activity.dormant ? " \xB7 Dormant" : ""
+  ] });
+}
+
+// src/ui/shared/assessment-badge.tsx
+function AssessmentBadge({ status }) {
+  if (!status || status.freshness === "unassessed") {
+    return /* @__PURE__ */ u3("span", { class: "tavernary-companion-assessment is-neutral", children: "Not assessed" });
+  }
+  if (status.freshness === "unsupported") {
+    return /* @__PURE__ */ u3("span", { class: "tavernary-companion-assessment is-neutral", children: "Scan unsupported" });
+  }
+  if (!status.riskLevel) {
+    return /* @__PURE__ */ u3("span", { class: "tavernary-companion-assessment is-neutral", children: "Scan unavailable" });
+  }
+  const concern = {
+    low: "Low concern",
+    material: "Potential concerns",
+    high: "High concern"
+  }[status.riskLevel];
+  const freshness = status.freshness === "current" ? "current scan" : "scan not current";
+  return /* @__PURE__ */ u3("span", { class: `tavernary-companion-assessment is-${status.state}`, children: [
+    concern,
+    " \xB7 ",
+    freshness
+  ] });
+}
+
+// src/ui/projects/project-evidence.tsx
+function ProjectEvidence({ project }) {
+  const report = project.tavernKeeper?.report;
+  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-project-evidence", "aria-labelledby": "project-assessment", children: [
+    /* @__PURE__ */ u3("h3", { id: "project-assessment", children: "TavernKeeper assessment" }),
+    /* @__PURE__ */ u3(AssessmentBadge, { status: project.tavernKeeper }),
+    report ? /* @__PURE__ */ u3(S, { children: [
+      /* @__PURE__ */ u3("h4", { children: report.headline }),
+      /* @__PURE__ */ u3("p", { children: report.summary }),
+      /* @__PURE__ */ u3("dl", { children: [
+        /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("dt", { children: "Minor cautions" }),
+          /* @__PURE__ */ u3("dd", { children: report.minorCautions })
+        ] }),
+        /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("dt", { children: "Material concerns" }),
+          /* @__PURE__ */ u3("dd", { children: report.materialConcerns })
+        ] }),
+        /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("dt", { children: "High danger findings" }),
+          /* @__PURE__ */ u3("dd", { children: report.highDanger })
+        ] }),
+        /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("dt", { children: "Scanned commit" }),
+          /* @__PURE__ */ u3("dd", { children: report.scannedSha.slice(0, 12) })
+        ] })
+      ] }),
+      /* @__PURE__ */ u3("a", { href: report.reportUrl, target: "_blank", rel: "noreferrer noopener", children: "Open Scan Review (new tab)" })
+    ] }) : /* @__PURE__ */ u3("p", { children: "No current TavernKeeper assessment is available." }),
+    /* @__PURE__ */ u3("h3", { children: "Activity evidence" }),
+    /* @__PURE__ */ u3(ActivitySummary, { activity: project.activity }),
+    project.activity.latestSourceActivityAt ? /* @__PURE__ */ u3("p", { children: [
+      "Latest source activity: ",
+      formatDate(project.activity.latestSourceActivityAt)
+    ] }) : null
+  ] });
+}
+function formatDate(value) {
+  return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
+}
+
+// src/ui/projects/project-detail.tsx
+function ProjectDetail({
+  project,
+  onAction,
+  onManageInSillyTavern,
+  lifecycleDisabled = false
+}) {
+  const selfProtected = project.id === COMPANION_PROJECT_ID || project.action.kind === "current-extension";
+  return /* @__PURE__ */ u3("article", { class: "tavernary-companion-project-detail", children: [
+    /* @__PURE__ */ u3("header", { children: [
+      /* @__PURE__ */ u3("p", { children: project.kind }),
+      /* @__PURE__ */ u3("h2", { children: project.name }),
+      /* @__PURE__ */ u3("p", { children: project.summary }),
+      selfProtected ? /* @__PURE__ */ u3("button", { type: "button", onClick: onManageInSillyTavern, children: "Manage in SillyTavern" }) : /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          "aria-label": `${project.action.label} ${project.name}`,
+          onClick: () => onAction(project.action),
+          disabled: lifecycleDisabled,
+          children: project.action.label
+        }
+      ),
+      project.action.reason ? /* @__PURE__ */ u3("p", { children: project.action.reason }) : null
+    ] }),
+    /* @__PURE__ */ u3("section", { "aria-labelledby": "project-details-heading", children: [
+      /* @__PURE__ */ u3("h3", { id: "project-details-heading", children: "Project details" }),
+      /* @__PURE__ */ u3("dl", { children: [
+        /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("dt", { children: "Frontends" }),
+          /* @__PURE__ */ u3("dd", { children: project.frontends.join(", ") || "Not specified" })
+        ] }),
+        /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("dt", { children: "Category" }),
+          /* @__PURE__ */ u3("dd", { children: project.primaryFunction })
+        ] }),
+        /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("dt", { children: "License" }),
+          /* @__PURE__ */ u3("dd", { title: project.license.tooltip, children: project.license.label })
+        ] }),
+        /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("dt", { children: "Catalog metadata" }),
+          /* @__PURE__ */ u3("dd", { children: project.metadataStatus })
+        ] }),
+        /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("dt", { children: "Source status" }),
+          /* @__PURE__ */ u3("dd", { children: project.sourceStatus })
+        ] }),
+        /* @__PURE__ */ u3("div", { children: [
+          /* @__PURE__ */ u3("dt", { children: "Installed ownership" }),
+          /* @__PURE__ */ u3("dd", { children: project.ownership })
+        ] })
+      ] }),
+      project.tags.length > 0 ? /* @__PURE__ */ u3("ul", { "aria-label": "Project tags", children: project.tags.map((tag) => /* @__PURE__ */ u3("li", { children: tag })) }) : null
+    ] }),
+    /* @__PURE__ */ u3(ProjectEvidence, { project }),
+    project.attribution ? /* @__PURE__ */ u3("p", { children: [
+      "Catalog attribution: ",
+      project.attribution.owner.login
+    ] }) : /* @__PURE__ */ u3("p", { children: "Catalog attribution is pending." }),
+    project.fork ? /* @__PURE__ */ u3("p", { children: [
+      "Fork of",
+      " ",
+      project.fork.parentUrl ? /* @__PURE__ */ u3("a", { href: project.fork.parentUrl, target: "_blank", rel: "noreferrer noopener", children: [
+        project.fork.parentName,
+        " (new tab)"
+      ] }) : project.fork.parentName
+    ] }) : null,
+    project.kitReferences.length > 0 ? /* @__PURE__ */ u3("section", { "aria-labelledby": "project-kits-heading", children: [
+      /* @__PURE__ */ u3("h3", { id: "project-kits-heading", children: "Included in Kits" }),
+      /* @__PURE__ */ u3("ul", { children: project.kitReferences.map((kit) => /* @__PURE__ */ u3("li", { children: kit.title })) })
+    ] }) : null,
+    /* @__PURE__ */ u3("a", { href: project.canonicalUrl, target: "_blank", rel: "noreferrer noopener", children: "Open project source (new tab)" })
+  ] });
+}
+
+// src/ui/projects/active-filter-chips.tsx
+function ActiveFilterChips({
+  query,
+  facets,
+  onQueryChange
+}) {
+  const frontendLabels = new Map(facets.frontends.map(({ id, label }) => [id, label]));
+  const kindLabels = /* @__PURE__ */ new Map([
+    ["frontend", "Frontend"],
+    ["extension", "Extension"],
+    ["preset", "Preset"]
+  ]);
+  return /* @__PURE__ */ u3("div", { class: "tavernary-companion-filter-chips", "aria-label": "Active filters", children: [
+    query.frontends.map((id) => {
+      const label = frontendLabels.get(id) ?? id;
+      return /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          "aria-label": `Remove ${label} filter`,
+          onClick: () => onQueryChange({
+            ...query,
+            frontends: query.frontends.filter((value) => value !== id)
+          }),
+          children: [
+            label,
+            " \xD7"
+          ]
+        }
+      );
+    }),
+    query.kinds.map((id) => {
+      const label = kindLabels.get(id) ?? id;
+      return /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          "aria-label": `Remove ${label} filter`,
+          onClick: () => onQueryChange({
+            ...query,
+            kinds: query.kinds.filter((value) => value !== id)
+          }),
+          children: [
+            label,
+            " \xD7"
+          ]
+        }
+      );
+    })
+  ] });
+}
 
 // src/ui/projects/filter-panel.tsx
 var kinds = [
@@ -1585,7 +5841,14 @@ function toggle(values, id) {
 }
 
 // src/ui/projects/project-card.tsx
-function ProjectCard({ project, onOpen, onAction }) {
+function ProjectCard({
+  project,
+  onOpen,
+  onAction,
+  onManageInSillyTavern,
+  lifecycleDisabled = false
+}) {
+  const selfProtected = project.id === COMPANION_PROJECT_ID || project.action.kind === "current-extension";
   return /* @__PURE__ */ u3("article", { class: "tavernary-companion-project-card", "data-project-id": project.id, children: [
     /* @__PURE__ */ u3("header", { children: [
       /* @__PURE__ */ u3("h3", { children: project.name }),
@@ -1613,7 +5876,7 @@ function ProjectCard({ project, onOpen, onAction }) {
           children: "Details"
         }
       ),
-      /* @__PURE__ */ u3(
+      selfProtected ? /* @__PURE__ */ u3("button", { type: "button", onClick: onManageInSillyTavern, children: "Manage in SillyTavern" }) : /* @__PURE__ */ u3(
         "button",
         {
           type: "button",
@@ -1621,7 +5884,7 @@ function ProjectCard({ project, onOpen, onAction }) {
           "data-testid": "project-primary-action",
           "aria-label": `${project.action.label} ${project.name}`,
           onClick: () => onAction(project.action),
-          disabled: project.action.kind === "current-extension",
+          disabled: lifecycleDisabled,
           children: project.action.label
         }
       )
@@ -1636,7 +5899,9 @@ function kindLabel(kind) {
 function ProjectGrid({
   projects,
   onOpenProject,
-  onProjectAction
+  onProjectAction,
+  onManageInSillyTavern,
+  lifecycleDisabled
 }) {
   if (projects.length === 0) {
     return /* @__PURE__ */ u3("p", { children: "No projects match the current filters." });
@@ -1646,7 +5911,9 @@ function ProjectGrid({
     {
       project,
       onOpen: () => onOpenProject(project.id),
-      onAction: (action) => onProjectAction(project.id, action)
+      onAction: (action) => onProjectAction(project.id, action),
+      onManageInSillyTavern,
+      lifecycleDisabled
     },
     project.id
   )) });
@@ -1708,7 +5975,9 @@ function ProjectsRoute({
   facets = state.facets ?? defaultFacets,
   onQueryChange,
   onOpenProject = () => void 0,
-  onProjectAction = () => void 0
+  onProjectAction = () => void 0,
+  onManageInSillyTavern,
+  lifecycleDisabled
 }) {
   const [filtersOpen, setFiltersOpen] = d2(false);
   const filterTrigger = A2(null);
@@ -1731,11 +6000,11 @@ function ProjectsRoute({
       }
       if (event.key !== "Tab" || !controls || controls.length === 0) return;
       const first = controls[0];
-      const last = controls[controls.length - 1];
+      const last2 = controls[controls.length - 1];
       if (event.shiftKey && document.activeElement === first) {
         event.preventDefault();
-        last.focus();
-      } else if (!event.shiftKey && document.activeElement === last) {
+        last2.focus();
+      } else if (!event.shiftKey && document.activeElement === last2) {
         event.preventDefault();
         first.focus();
       }
@@ -1790,7 +6059,9 @@ function ProjectsRoute({
         {
           projects: state.projects,
           onOpenProject,
-          onProjectAction
+          onProjectAction,
+          onManageInSillyTavern,
+          lifecycleDisabled
         }
       )
     ] })
@@ -1851,6 +6122,7 @@ function CompanionShell({
   onRefreshInventory = noRefresh,
   inventoryRefreshing = false,
   onOpenExtensionManager,
+  lifecycleDisabled = false,
   catalogSnapshot,
   catalogRefreshing = false,
   onRefreshCatalog = noRefresh,
@@ -1911,7 +6183,15 @@ function CompanionShell({
                       facets: facets ?? discoveryState.facets,
                       onQueryChange: (query) => discovery.setQuery(query),
                       onOpenProject: (id) => controller.openDetail({ kind: "project", id, focusKey: `project-${id}` }),
-                      onProjectAction: (id, action) => onProjectAction?.(id, action)
+                      onProjectAction: (id, action) => {
+                        if (action.kind === "view-project") {
+                          controller.openDetail({ kind: "project", id, focusKey: `project-${id}` });
+                        } else {
+                          onProjectAction?.(id, action);
+                        }
+                      },
+                      onManageInSillyTavern: onOpenExtensionManager,
+                      lifecycleDisabled
                     }
                   ) : /* @__PURE__ */ u3(S, { children: [
                     /* @__PURE__ */ u3("h2", { id: "tavernary-companion-projects-heading", children: "Projects" }),
@@ -1952,7 +6232,8 @@ function CompanionShell({
                       onRefresh: onRefreshInventory,
                       onOpenProject: (id) => controller.openDetail({ kind: "project", id, focusKey: `installed-${id}` }),
                       onAction: (id, action) => onProjectAction?.(id, action),
-                      onManage: onOpenExtensionManager
+                      onManage: onOpenExtensionManager,
+                      lifecycleDisabled
                     }
                   ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-installed-heading", children: "Installed extensions" })
                 }
@@ -1963,7 +6244,9 @@ function CompanionShell({
                   ProjectDetail,
                   {
                     project: discoveryState.projectDetails[detail.id],
-                    onAction: (action) => onProjectAction?.(detail.id, action)
+                    onAction: (action) => onProjectAction?.(detail.id, action),
+                    onManageInSillyTavern: onOpenExtensionManager,
+                    lifecycleDisabled
                   }
                 ) : /* @__PURE__ */ u3("h2", { children: projectName(projects, discoveryState, detail.id) })
               ] }) : null
@@ -2100,16 +6383,188 @@ function createShellController(options) {
 }
 
 // src/ui/popup-host.tsx
-function CompanionPopupHost({ store }) {
-  const controller = createShellController({
-    initialRoute: store?.read().preferences.route ?? "projects",
-    persistRoute: store ? async (route) => {
-      await store.update((draft) => {
-        draft.preferences.route = route;
-      });
-    } : void 0
+var emptyInventory = { managed: [], external: [], unknown: [], missingManaged: [] };
+function CompanionPopupHost({ store, host }) {
+  const shell = T2(
+    () => createShellController({
+      initialRoute: store?.read().preferences.route ?? "projects",
+      persistRoute: store ? async (route) => {
+        await store.update((draft) => {
+          draft.preferences.route = route;
+        });
+      } : void 0
+    }),
+    [store]
+  );
+  const runtime = T2(() => createPopupRuntime(store, host), [host, store]);
+  const [catalogSnapshot, setCatalogSnapshot] = d2(
+    runtime?.catalog.read()
+  );
+  const [catalogRefreshing, setCatalogRefreshing] = d2(false);
+  const [inventoryRefreshing, setInventoryRefreshing] = d2(false);
+  const [activeOperation, setActiveOperation] = d2(
+    runtime?.lifecycle.lock.read() ?? null
+  );
+  const [pendingPrompt, setPendingPrompt] = d2(
+    runtime?.prompts.read() ?? null
+  );
+  const [removalImpact, setRemovalImpact] = d2(null);
+  const [receipt, setReceipt] = d2(
+    parseReceipt(store?.read().operationReceipt)
+  );
+  const [operationError, setOperationError] = d2(null);
+  const refreshInventory = q2(async () => {
+    if (!runtime || !host || !store) return;
+    setInventoryRefreshing(true);
+    try {
+      const extensions = await host.discover();
+      const snapshot = runtime.catalog.read();
+      runtime.discovery.setInventory(
+        reconcileInventory({
+          projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
+          hostExtensions: extensions,
+          managed: normalizeManagedExtensionMap(store.read().managedExtensions)
+        })
+      );
+    } finally {
+      setInventoryRefreshing(false);
+    }
+  }, [host, runtime, store]);
+  const refreshCatalog = q2(async () => {
+    if (!runtime) return;
+    setCatalogRefreshing(true);
+    try {
+      await runtime.catalog.refresh({ force: true });
+    } finally {
+      setCatalogRefreshing(false);
+    }
+  }, [runtime]);
+  h2(() => {
+    if (!runtime) return;
+    const unsubscribeCatalog = runtime.catalog.subscribe((snapshot) => {
+      setCatalogSnapshot(snapshot);
+      runtime.discovery.setSnapshot(snapshot);
+      if ("catalog" in snapshot) void refreshInventory();
+    });
+    const unsubscribeLock = runtime.lifecycle.lock.subscribe(setActiveOperation);
+    const unsubscribePrompts = runtime.prompts.subscribe(setPendingPrompt);
+    const unsubscribeStore = store?.subscribe((state) => {
+      setReceipt(parseReceipt(state.operationReceipt));
+    });
+    const onFocus = () => void runtime.catalog.onFocus();
+    window.addEventListener("focus", onFocus);
+    setCatalogRefreshing(true);
+    void runtime.catalog.open().finally(() => setCatalogRefreshing(false));
+    return () => {
+      unsubscribeCatalog();
+      unsubscribeLock();
+      unsubscribePrompts();
+      unsubscribeStore?.();
+      runtime.prompts.cancel();
+      window.removeEventListener("focus", onFocus);
+    };
+  }, [refreshInventory, runtime, store]);
+  const runAction = async (projectId, action) => {
+    if (!runtime || !host) return;
+    setOperationError(null);
+    try {
+      if (action.kind === "install") {
+        const result = await runtime.lifecycle.install(projectId);
+        setReceipt(result);
+        await refreshInventory();
+      } else if (action.kind === "uninstall") {
+        setRemovalImpact(await runtime.lifecycle.previewRemoval(projectId));
+      } else if (action.kind === "update-required" || action.kind === "manage-in-sillytavern") {
+        await host.openExtensionManager();
+      }
+    } catch (error) {
+      setOperationError(error instanceof Error ? error.message : "The operation could not finish.");
+    }
+  };
+  return /* @__PURE__ */ u3(S, { children: [
+    /* @__PURE__ */ u3(
+      CompanionShell,
+      {
+        controller: shell,
+        discovery: runtime?.discovery,
+        catalogSnapshot,
+        catalogRefreshing,
+        inventoryRefreshing,
+        onRefreshCatalog: refreshCatalog,
+        onRefreshInventory: refreshInventory,
+        onProjectAction: (projectId, action) => void runAction(projectId, action),
+        onOpenExtensionManager: () => void host?.openExtensionManager(),
+        onUpdateCompanion: () => void host?.openExtensionManager(),
+        onOpenTavernary: () => host?.openExternal("https://tavernary.org/"),
+        lifecycleDisabled: activeOperation !== null
+      }
+    ),
+    pendingPrompt?.prompt.kind === "unsandboxed-disclosure" ? /* @__PURE__ */ u3(
+      TrustDisclosureDialog,
+      {
+        prompt: pendingPrompt.prompt,
+        onCancel: () => runtime?.prompts.respond(false),
+        onConfirm: () => runtime?.prompts.respond(true)
+      }
+    ) : null,
+    pendingPrompt?.prompt.kind === "assessment-warning" ? /* @__PURE__ */ u3(
+      AssessmentWarningDialog,
+      {
+        projectName: pendingPrompt.project.name,
+        prompt: pendingPrompt.prompt,
+        onReview: (url) => host?.openExternal(url),
+        onCancel: () => runtime?.prompts.respond(false),
+        onConfirm: () => runtime?.prompts.respond(true)
+      }
+    ) : null,
+    removalImpact ? /* @__PURE__ */ u3(
+      RemovalDialog,
+      {
+        impact: removalImpact,
+        onCancel: () => setRemovalImpact(null),
+        onConfirm: () => {
+          const projectId = removalImpact.projectId;
+          setRemovalImpact(null);
+          void runtime?.lifecycle.remove(projectId).then(async (result) => {
+            setReceipt(result);
+            await refreshInventory();
+          });
+        }
+      }
+    ) : null,
+    /* @__PURE__ */ u3(
+      OperationTray,
+      {
+        active: activeOperation,
+        receipt,
+        error: operationError,
+        onDismissReceipt: () => setReceipt(null),
+        onDismissError: () => setOperationError(null)
+      }
+    )
+  ] });
+}
+function createPopupRuntime(store, host) {
+  if (!store || !host || !globalThis.indexedDB) return null;
+  const catalog = createCatalogClient({ cache: createIndexedDbCatalogCache() });
+  const discovery = createDiscoveryController({
+    snapshot: catalog.read(),
+    inventory: emptyInventory
   });
-  return /* @__PURE__ */ u3(CompanionShell, { controller });
+  const prompts = new TrustPromptBroker();
+  const lifecycle = createLifecycleCoordinator({
+    host,
+    store,
+    getSnapshot: () => catalog.read(),
+    confirm: (prompt, project) => prompts.request(prompt, project)
+  });
+  return { catalog, discovery, lifecycle, prompts };
+}
+function parseReceipt(value) {
+  if (!value || typeof value.id !== "string" || value.kind !== "install" && value.kind !== "remove" || typeof value.projectId !== "string" || typeof value.projectName !== "string" || !Array.isArray(value.steps)) {
+    return null;
+  }
+  return structuredClone(value);
 }
 function renderCompanionPopup(container, options = {}) {
   R(/* @__PURE__ */ u3(CompanionPopupHost, { ...options }), container);
@@ -2137,7 +6592,7 @@ function mountCompanionLauncher(input) {
     content.dataset.tavernaryCompanionPopup = "";
     content.tabIndex = -1;
     popupContent = content;
-    unmountPopup = renderCompanionPopup(content, { store: input.store });
+    unmountPopup = renderCompanionPopup(content, { store: input.store, host: input.host });
     void input.host.showPopup(content, {
       id: "tavernary-companion",
       wide: true,

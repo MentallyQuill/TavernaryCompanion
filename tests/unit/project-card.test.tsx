@@ -2,6 +2,7 @@ import { fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ProjectCardViewModel } from "../../src/catalog/project-view-model";
+import { COMPANION_PROJECT_ID } from "../../src/lifecycle/self-protection";
 import { ProjectCard } from "../../src/ui/projects/project-card";
 
 afterEach(() => document.body.replaceChildren());
@@ -63,5 +64,18 @@ describe("ProjectCard", () => {
 
     expect(screen.getByText("Preset installation is not available in V1")).toBeVisible();
     expect(screen.queryByRole("button", { name: /Install Alpha/ })).not.toBeInTheDocument();
+  });
+
+  it("never renders a lifecycle action for Companion even with a malformed model", () => {
+    render(
+      <ProjectCard
+        project={project({ id: COMPANION_PROJECT_ID, action: project().action })}
+        onOpen={vi.fn()}
+        onAction={vi.fn()}
+        onManageInSillyTavern={vi.fn()}
+      />,
+    );
+    expect(screen.queryByRole("button", { name: /Install Alpha/ })).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Manage in SillyTavern" })).toBeVisible();
   });
 });

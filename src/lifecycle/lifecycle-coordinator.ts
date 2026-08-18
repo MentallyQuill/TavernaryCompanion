@@ -2,8 +2,7 @@ import type { CatalogSnapshot } from "../catalog/catalog-client";
 import type { CatalogProject } from "../catalog/catalog-core";
 import type { HostExtensionAdapter } from "../host/host-types";
 import { reconcileInventory } from "../inventory/inventory-reconciler";
-import { ManagedRegistry } from "../inventory/managed-registry";
-import type { ManagedExtensionMap, ManagedExtensionRecord } from "../inventory/inventory-types";
+import { ManagedRegistry, normalizeManagedExtensionMap } from "../inventory/managed-registry";
 import type { ProfileStore } from "../state/profile-store";
 import { selectTrustPrompts } from "../trust/trust-policy";
 import type { TrustPrompt } from "../trust/trust-types";
@@ -71,7 +70,9 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
 
       setPhase("discovering");
       const before = await this.#host.discover();
-      const registry = new ManagedRegistry(managedMap(this.#store.read().managedExtensions));
+      const registry = new ManagedRegistry(
+        normalizeManagedExtensionMap(this.#store.read().managedExtensions),
+      );
       const inventory = reconcileInventory({
         projects: catalog?.projects ?? [],
         hostExtensions: before,
@@ -235,7 +236,7 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
     const inventory = reconcileInventory({
       projects: catalog?.projects ?? [],
       hostExtensions,
-      managed: managedMap(this.#store.read().managedExtensions),
+      managed: normalizeManagedExtensionMap(this.#store.read().managedExtensions),
     });
     const decision = evaluateLifecycle({
       operation: "remove",
@@ -281,7 +282,9 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
 
       setPhase("discovering");
       const before = await this.#host.discover();
-      const registry = new ManagedRegistry(managedMap(this.#store.read().managedExtensions));
+      const registry = new ManagedRegistry(
+        normalizeManagedExtensionMap(this.#store.read().managedExtensions),
+      );
       const inventory = reconcileInventory({
         projects: catalog?.projects ?? [],
         hostExtensions: before,
@@ -443,27 +446,6 @@ function exactFolder(
     (extension) => extension.folderName.normalize("NFKC").toLocaleLowerCase("en-US") === identity,
   );
   return matches.length === 1 ? matches[0] : null;
-}
-
-function managedMap(value: Record<string, unknown>): ManagedExtensionMap {
-  const result: ManagedExtensionMap = {};
-  for (const [projectId, candidate] of Object.entries(value)) {
-    if (!isManagedRecord(candidate) || candidate.projectId !== projectId) continue;
-    result[projectId] = structuredClone(candidate);
-  }
-  return result;
-}
-
-function isManagedRecord(value: unknown): value is ManagedExtensionRecord {
-  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const record = value as Partial<ManagedExtensionRecord>;
-  return (
-    typeof record.projectId === "string" &&
-    typeof record.internalName === "string" &&
-    typeof record.folderName === "string" &&
-    typeof record.installedAt === "string" &&
-    (record.installedBy === "individual" || record.installedBy === "kit")
-  );
 }
 
 export function createLifecycleCoordinator(

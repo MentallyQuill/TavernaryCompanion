@@ -11,6 +11,7 @@ interface InstalledRouteProps {
   onOpenProject?(id: string): void;
   onAction?(id: string, action: ProjectPrimaryAction): void;
   onManage?(): void;
+  lifecycleDisabled?: boolean;
 }
 
 export function InstalledRoute({
@@ -20,6 +21,7 @@ export function InstalledRoute({
   onOpenProject,
   onAction,
   onManage,
+  lifecycleDisabled,
 }: InstalledRouteProps): preact.JSX.Element {
   useEffect(() => {
     void onRefresh();
@@ -37,6 +39,7 @@ export function InstalledRoute({
           onOpenProject={onOpenProject}
           onAction={onAction}
           onManage={onManage}
+          lifecycleDisabled={lifecycleDisabled}
         />
       ))}
     </section>

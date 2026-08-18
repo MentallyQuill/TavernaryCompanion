@@ -2,28 +2,44 @@ import type {
   ProjectDetailViewModel,
   ProjectPrimaryAction,
 } from "../../catalog/project-view-model";
+import { COMPANION_PROJECT_ID } from "../../lifecycle/self-protection";
 import { ProjectEvidence } from "./project-evidence";
 
 interface ProjectDetailProps {
   project: ProjectDetailViewModel;
   onAction(action: ProjectPrimaryAction): void;
+  onManageInSillyTavern?(): void;
+  lifecycleDisabled?: boolean;
 }
 
-export function ProjectDetail({ project, onAction }: ProjectDetailProps): preact.JSX.Element {
+export function ProjectDetail({
+  project,
+  onAction,
+  onManageInSillyTavern,
+  lifecycleDisabled = false,
+}: ProjectDetailProps): preact.JSX.Element {
+  const selfProtected =
+    project.id === COMPANION_PROJECT_ID || project.action.kind === "current-extension";
   return (
     <article class="tavernary-companion-project-detail">
       <header>
         <p>{project.kind}</p>
         <h2>{project.name}</h2>
         <p>{project.summary}</p>
-        <button
-          type="button"
-          aria-label={`${project.action.label} ${project.name}`}
-          onClick={() => onAction(project.action)}
-          disabled={project.action.kind === "current-extension"}
-        >
-          {project.action.label}
-        </button>
+        {selfProtected ? (
+          <button type="button" onClick={onManageInSillyTavern}>
+            Manage in SillyTavern
+          </button>
+        ) : (
+          <button
+            type="button"
+            aria-label={`${project.action.label} ${project.name}`}
+            onClick={() => onAction(project.action)}
+            disabled={lifecycleDisabled}
+          >
+            {project.action.label}
+          </button>
+        )}
         {project.action.reason ? <p>{project.action.reason}</p> : null}
       </header>
       <section aria-labelledby="project-details-heading">

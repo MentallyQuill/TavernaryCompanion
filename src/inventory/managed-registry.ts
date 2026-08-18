@@ -74,3 +74,25 @@ export class ManagedRegistry {
     return removed.sort();
   }
 }
+
+export function normalizeManagedExtensionMap(value: Record<string, unknown>): ManagedExtensionMap {
+  const result: ManagedExtensionMap = {};
+  for (const [projectId, candidate] of Object.entries(value)) {
+    if (!isManagedRecord(candidate) || candidate.projectId !== projectId) continue;
+    result[projectId] = structuredClone(candidate);
+  }
+  delete result[COMPANION_PROJECT_ID];
+  return result;
+}
+
+function isManagedRecord(value: unknown): value is ManagedExtensionRecord {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const record = value as Partial<ManagedExtensionRecord>;
+  return (
+    typeof record.projectId === "string" &&
+    typeof record.internalName === "string" &&
+    typeof record.folderName === "string" &&
+    typeof record.installedAt === "string" &&
+    (record.installedBy === "individual" || record.installedBy === "kit")
+  );
+}

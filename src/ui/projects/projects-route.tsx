@@ -14,6 +14,8 @@ interface ProjectsRouteProps {
   onQueryChange(query: CatalogQuery): void;
   onOpenProject?(id: string): void;
   onProjectAction?(id: string, action: ProjectPrimaryAction): void;
+  onManageInSillyTavern?(): void;
+  lifecycleDisabled?: boolean;
 }
 
 const defaultFacets: ProjectFacets = {
@@ -27,6 +29,8 @@ export function ProjectsRoute({
   onQueryChange,
   onOpenProject = () => undefined,
   onProjectAction = () => undefined,
+  onManageInSillyTavern,
+  lifecycleDisabled,
 }: ProjectsRouteProps): preact.JSX.Element {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filterTrigger = useRef<HTMLButtonElement>(null);
@@ -111,6 +115,8 @@ export function ProjectsRoute({
           projects={state.projects}
           onOpenProject={onOpenProject}
           onProjectAction={onProjectAction}
+          onManageInSillyTavern={onManageInSillyTavern}
+          lifecycleDisabled={lifecycleDisabled}
         />
       </div>
     </section>

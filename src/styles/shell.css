@@ -1,4 +1,5 @@
 .tavernary-companion-root {
+  position: relative;
   container: tavernary-companion / inline-size;
   inline-size: min(92vw, 1440px);
   block-size: min(90dvh, 960px);

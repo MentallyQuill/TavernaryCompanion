@@ -1,4 +1,5 @@
 import type { ProjectCardViewModel, ProjectPrimaryAction } from "../../catalog/project-view-model";
+import { COMPANION_PROJECT_ID } from "../../lifecycle/self-protection";
 import { ActivitySummary } from "../shared/activity-summary";
 import { AssessmentBadge } from "../shared/assessment-badge";
 
@@ -6,9 +7,19 @@ interface ProjectCardProps {
   project: ProjectCardViewModel;
   onOpen(): void;
   onAction(action: ProjectPrimaryAction): void;
+  onManageInSillyTavern?(): void;
+  lifecycleDisabled?: boolean;
 }
 
-export function ProjectCard({ project, onOpen, onAction }: ProjectCardProps): preact.JSX.Element {
+export function ProjectCard({
+  project,
+  onOpen,
+  onAction,
+  onManageInSillyTavern,
+  lifecycleDisabled = false,
+}: ProjectCardProps): preact.JSX.Element {
+  const selfProtected =
+    project.id === COMPANION_PROJECT_ID || project.action.kind === "current-extension";
   return (
     <article class="tavernary-companion-project-card" data-project-id={project.id}>
       <header>
@@ -35,16 +46,22 @@ export function ProjectCard({ project, onOpen, onAction }: ProjectCardProps): pr
         >
           Details
         </button>
-        <button
-          type="button"
-          class="tavernary-companion-project-card__primary"
-          data-testid="project-primary-action"
-          aria-label={`${project.action.label} ${project.name}`}
-          onClick={() => onAction(project.action)}
-          disabled={project.action.kind === "current-extension"}
-        >
-          {project.action.label}
-        </button>
+        {selfProtected ? (
+          <button type="button" onClick={onManageInSillyTavern}>
+            Manage in SillyTavern
+          </button>
+        ) : (
+          <button
+            type="button"
+            class="tavernary-companion-project-card__primary"
+            data-testid="project-primary-action"
+            aria-label={`${project.action.label} ${project.name}`}
+            onClick={() => onAction(project.action)}
+            disabled={lifecycleDisabled}
+          >
+            {project.action.label}
+          </button>
+        )}
       </footer>
     </article>
   );

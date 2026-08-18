@@ -9,6 +9,7 @@ interface InstalledSectionProps {
   onOpenProject?(id: string): void;
   onAction?(id: string, action: ProjectPrimaryAction): void;
   onManage?(): void;
+  lifecycleDisabled?: boolean;
 }
 
 export function InstalledSection({
@@ -16,6 +17,7 @@ export function InstalledSection({
   onOpenProject,
   onAction,
   onManage,
+  lifecycleDisabled,
 }: InstalledSectionProps): preact.JSX.Element {
   return (
     <section class="tavernary-companion-installed-section">
@@ -34,6 +36,7 @@ export function InstalledSection({
               onOpenProject={onOpenProject}
               onAction={onAction}
               onManage={onManage}
+              lifecycleDisabled={lifecycleDisabled}
             />
           ))}
         </ul>
@@ -48,12 +51,14 @@ function InstalledRow({
   onOpenProject,
   onAction,
   onManage,
+  lifecycleDisabled,
 }: {
   row: InstalledRowViewModel;
   sectionId: InstalledSectionViewModel["id"];
   onOpenProject?: (id: string) => void;
   onAction?: (id: string, action: ProjectPrimaryAction) => void;
   onManage?: () => void;
+  lifecycleDisabled?: boolean;
 }): preact.JSX.Element {
   const unknown = sectionId === "unknown" || row.action.kind === "manage-in-sillytavern";
   return (
@@ -79,6 +84,7 @@ function InstalledRow({
           unknown ? `Manage ${row.name} in SillyTavern` : `${row.action.label} ${row.name}`
         }
         onClick={() => (unknown ? onManage?.() : onAction?.(row.id, row.action))}
+        disabled={!unknown && lifecycleDisabled}
       >
         {row.action.label}
       </button>
