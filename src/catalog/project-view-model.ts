@@ -36,6 +36,12 @@ export interface ProjectCardViewModel {
   summary: string;
   kind: CatalogProject["kind"];
   frontends: string[];
+  primaryFunction: string;
+  activity: {
+    latestSourceActivityAt: string | null;
+    activeWeeks12: number | null;
+    dormant: boolean;
+  };
   tavernKeeper: CatalogProject["tavernKeeper"];
   installed: boolean;
   ownership: "managed" | "external" | "absent";
@@ -131,11 +137,29 @@ export function toProjectCardViewModel(
     summary: project.summary,
     kind: project.kind,
     frontends: project.frontends.map(({ label }) => label),
+    primaryFunction: primaryFunctionLabel(project.primaryFunction),
+    activity: {
+      latestSourceActivityAt: project.activity.latestSourceActivityAt,
+      activeWeeks12: project.activity.activeWeeks12,
+      dormant: project.activity.dormant,
+    },
     tavernKeeper: project.tavernKeeper,
     installed: ownership !== "absent",
     ownership,
     action: actionFor(project, context, ownership),
   };
+}
+
+function primaryFunctionLabel(value: string): string {
+  const labels: Record<string, string> = {
+    "memory-retrieval": "Memory & Retrieval",
+    "generation-reasoning": "Generation & Reasoning",
+    "character-worldbuilding": "Character & Worldbuilding",
+    "rpg-systems": "RPG Systems & Suites",
+    "interface-workflow": "Interface & Workflow",
+    "developer-infrastructure": "Developer Infrastructure",
+  };
+  return labels[value] ?? value;
 }
 
 export function toProjectDetailViewModel(

@@ -1,5 +1,9 @@
 import { useEffect, useState } from "preact/hooks";
 
+import type { DiscoveryController } from "../../catalog/discovery-controller";
+import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
+import type { ProjectFacets } from "../projects/filter-panel";
+import { ProjectsRoute } from "../projects/projects-route";
 import type { ShellController } from "./shell-controller";
 import { ShellHeader } from "./shell-header";
 import { RouteTabs } from "./route-tabs";
@@ -12,17 +16,29 @@ interface ShellProjectStub {
 interface CompanionShellProps {
   controller: ShellController;
   projects?: ShellProjectStub[];
+  discovery?: DiscoveryController;
+  facets?: ProjectFacets;
+  onProjectAction?(id: string, action: ProjectPrimaryAction): void;
   onRequestClose?: () => void;
 }
 
 export function CompanionShell({
   controller,
   projects = [],
+  discovery,
+  facets,
+  onProjectAction,
   onRequestClose,
 }: CompanionShellProps): preact.JSX.Element {
   const [state, setState] = useState(controller.read());
+  const [discoveryState, setDiscoveryState] = useState(discovery?.read() ?? null);
 
   useEffect(() => controller.subscribe(setState), [controller]);
+  useEffect(() => {
+    if (!discovery) return;
+    setDiscoveryState(discovery.read());
+    return discovery.subscribe(setDiscoveryState);
+  }, [discovery]);
   useEffect(() => {
     const onPopState = () => restoreAfterBack(controller);
     window.addEventListener("popstate", onPopState);
@@ -43,20 +59,36 @@ export function CompanionShell({
           aria-labelledby="tavernary-companion-projects-heading"
           hidden={state.route !== "projects" || Boolean(detail)}
         >
-          <h2 id="tavernary-companion-projects-heading">Projects</h2>
-          {projects.map((project) => {
-            const focusKey = `project-${project.id}`;
-            return (
-              <button
-                type="button"
-                data-focus-key={focusKey}
-                aria-label={`View ${project.name}`}
-                onClick={() => controller.openDetail({ kind: "project", id: project.id, focusKey })}
-              >
-                {project.name}
-              </button>
-            );
-          })}
+          {discovery && discoveryState ? (
+            <ProjectsRoute
+              state={discoveryState}
+              facets={facets ?? discoveryState.facets}
+              onQueryChange={(query) => discovery.setQuery(query)}
+              onOpenProject={(id) =>
+                controller.openDetail({ kind: "project", id, focusKey: `project-${id}` })
+              }
+              onProjectAction={(id, action) => onProjectAction?.(id, action)}
+            />
+          ) : (
+            <>
+              <h2 id="tavernary-companion-projects-heading">Projects</h2>
+              {projects.map((project) => {
+                const focusKey = `project-${project.id}`;
+                return (
+                  <button
+                    type="button"
+                    data-focus-key={focusKey}
+                    aria-label={`View ${project.name}`}
+                    onClick={() =>
+                      controller.openDetail({ kind: "project", id: project.id, focusKey })
+                    }
+                  >
+                    {project.name}
+                  </button>
+                );
+              })}
+            </>
+          )}
         </section>
         <section
           aria-labelledby="tavernary-companion-kits-heading"
@@ -75,7 +107,7 @@ export function CompanionShell({
             <button type="button" onClick={() => restoreAfterBack(controller)}>
               Back
             </button>
-            <h2>{projectName(projects, detail.id)}</h2>
+            <h2>{projectName(projects, discoveryState, detail.id)}</h2>
           </section>
         ) : null}
       </main>
@@ -97,6 +129,14 @@ function restoreAfterBack(controller: ShellController): void {
   });
 }
 
-function projectName(projects: ShellProjectStub[], id: string): string {
-  return projects.find((project) => project.id === id)?.name ?? id;
+function projectName(
+  projects: ShellProjectStub[],
+  discoveryState: ReturnType<DiscoveryController["read"]> | null,
+  id: string,
+): string {
+  return (
+    projects.find((project) => project.id === id)?.name ??
+    discoveryState?.projects.find((project) => project.id === id)?.name ??
+    id
+  );
 }

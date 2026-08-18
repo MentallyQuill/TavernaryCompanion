@@ -20,10 +20,15 @@ export interface DiscoveryState {
   catalogState: CatalogSnapshot["state"];
   projects: ProjectCardViewModel[];
   installedSections: InstalledSectionViewModel[];
+  facets?: {
+    frontends: Array<{ id: string; label: string }>;
+    tags: Array<{ id: string; label: string }>;
+  };
 }
 
 export interface DiscoveryController {
   read(): DiscoveryState;
+  subscribe(subscriber: (state: DiscoveryState) => void): () => void;
   setQuery(query: CatalogQuery): void;
   setInventory(inventory: InventorySnapshot): void;
   setSnapshot(snapshot: CatalogSnapshot): void;
@@ -45,6 +50,7 @@ class DefaultDiscoveryController implements DiscoveryController {
   #indexedCatalog: CatalogV7 | null = null;
   #index: CatalogSearchIndex | null = null;
   #state: DiscoveryState;
+  readonly #subscribers = new Set<(state: DiscoveryState) => void>();
 
   constructor(options: DiscoveryControllerOptions) {
     this.#snapshot = options.snapshot;
@@ -58,19 +64,27 @@ class DefaultDiscoveryController implements DiscoveryController {
     return structuredClone(this.#state);
   }
 
+  subscribe(subscriber: (state: DiscoveryState) => void): () => void {
+    this.#subscribers.add(subscriber);
+    return () => this.#subscribers.delete(subscriber);
+  }
+
   setQuery(query: CatalogQuery) {
     this.#query = structuredClone(query);
     this.#state = this.#compute();
+    this.#notify();
   }
 
   setInventory(inventory: InventorySnapshot) {
     this.#inventory = structuredClone(inventory);
     this.#state = this.#compute();
+    this.#notify();
   }
 
   setSnapshot(snapshot: CatalogSnapshot) {
     this.#snapshot = snapshot;
     this.#state = this.#compute();
+    this.#notify();
   }
 
   #compute(): DiscoveryState {
@@ -101,7 +115,26 @@ class DefaultDiscoveryController implements DiscoveryController {
       catalogState: this.#snapshot.state,
       projects,
       installedSections: toInstalledSectionViewModel(this.#inventory),
+      facets: catalog
+        ? {
+            frontends: [
+              ...new Map(
+                catalog.projects.flatMap((project) =>
+                  project.frontends.map(({ id, label }) => [id, { id, label }] as const),
+                ),
+              ).values(),
+            ].sort((left, right) => left.label.localeCompare(right.label)),
+            tags: catalog.tagVocabulary
+              .map(({ id, label }) => ({ id, label }))
+              .sort((left, right) => left.label.localeCompare(right.label)),
+          }
+        : { frontends: [], tags: [] },
     };
+  }
+
+  #notify(): void {
+    const snapshot = this.read();
+    for (const subscriber of this.#subscribers) subscriber(snapshot);
   }
 }
 

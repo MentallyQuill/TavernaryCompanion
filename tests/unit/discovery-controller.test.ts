@@ -62,6 +62,10 @@ describe("DiscoveryController", () => {
       "zeta-extension",
       "alpha-preset",
     ]);
+    expect(controller.read().facets?.frontends).toEqual([
+      { id: "risuai", label: "risuai" },
+      { id: "sillytavern", label: "sillytavern" },
+    ]);
   });
 
   it("preserves literal search input and does not rebuild the index for inventory", () => {
