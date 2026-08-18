@@ -1,5 +1,6 @@
 import type { ProfileStore } from "../state/profile-store";
 import type { CreatePersonalKitInput, InstalledKitStateV1, PersonalKitV1 } from "./kit-types";
+import type { CatalogKit } from "../catalog/catalog-core";
 import { parseInstalledKitState, parsePersonalKit } from "./kit-validation";
 
 interface KitStoreDependencies {
@@ -56,6 +57,14 @@ export class KitStore {
     });
     return structuredClone(kit);
   }
+  async importDefinition(value: PersonalKitV1): Promise<PersonalKitV1> {
+    const kit = parsePersonalKit(value);
+    await this.#profile.update((draft) => {
+      if (draft.personalKits[kit.id]) throw new Error("Kit ID already exists.");
+      draft.personalKits[kit.id] = kit;
+    });
+    return structuredClone(kit);
+  }
   async update(
     id: string,
     change: Partial<Pick<PersonalKitV1, "title" | "description" | "projectIds">>,
@@ -76,6 +85,16 @@ export class KitStore {
       description: source.description,
       projectIds: source.projectIds,
       origin: { kind: "local" },
+    });
+  }
+  async copyPublished(kit: CatalogKit): Promise<PersonalKitV1> {
+    return this.create({
+      title: `${kit.title} copy`,
+      description: kit.description,
+      projectIds: kit.components
+        .map(({ projectId }) => projectId)
+        .filter((id) => id !== "mentallyquill-tavernary-companion"),
+      origin: { kind: "published-copy", tavernaryKitId: kit.id },
     });
   }
   async removeDefinition(id: string): Promise<boolean> {

@@ -4,8 +4,12 @@ import { useEffect, useState } from "preact/hooks";
 import type { CatalogSnapshot } from "../../catalog/catalog-client";
 import type { DiscoveryController } from "../../catalog/discovery-controller";
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
+import type { KitDiscoveryController } from "../../kits/kit-discovery-controller";
+import type { KitInspectorViewModel, KitPrimaryAction } from "../../kits/kit-view-model";
 import type { ProjectFacets } from "../projects/filter-panel";
 import { InstalledRoute } from "../installed/installed-route";
+import { KitInspector } from "../kits/kit-inspector";
+import { KitsRoute } from "../kits/kits-route";
 import { CatalogStatePanel } from "../catalog/catalog-state-panel";
 import { ProjectDetail } from "../projects/project-detail";
 import { ProjectsRoute } from "../projects/projects-route";
@@ -28,6 +32,15 @@ interface CompanionShellProps {
   inventoryRefreshing?: boolean;
   onOpenExtensionManager?(): void;
   lifecycleDisabled?: boolean;
+  kitDiscovery?: KitDiscoveryController;
+  kitInspectors?: Readonly<Record<string, KitInspectorViewModel>>;
+  onKitAction?(id: string, action: KitPrimaryAction): void;
+  onNewKit?(): void;
+  onImportKit?(): void;
+  onEditKit?(id: string): void;
+  onCopyKit?(id: string): void;
+  onExportKit?(id: string): void;
+  onUninstallKit?(id: string): void;
   catalogSnapshot?: CatalogSnapshot;
   catalogRefreshing?: boolean;
   onRefreshCatalog?(): void | Promise<void>;
@@ -50,6 +63,15 @@ export function CompanionShell({
   inventoryRefreshing = false,
   onOpenExtensionManager,
   lifecycleDisabled = false,
+  kitDiscovery,
+  kitInspectors = {},
+  onKitAction,
+  onNewKit,
+  onImportKit,
+  onEditKit,
+  onCopyKit,
+  onExportKit,
+  onUninstallKit,
   catalogSnapshot,
   catalogRefreshing = false,
   onRefreshCatalog = noRefresh,
@@ -142,7 +164,20 @@ export function CompanionShell({
             aria-labelledby="tavernary-companion-kits-heading"
             hidden={state.route !== "kits" || Boolean(detail)}
           >
-            <h2 id="tavernary-companion-kits-heading">Kits</h2>
+            {kitDiscovery ? (
+              <KitsRoute
+                controller={kitDiscovery}
+                lifecycleDisabled={lifecycleDisabled}
+                onOpenKit={(id) =>
+                  controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` })
+                }
+                onAction={(id, action) => onKitAction?.(id, action)}
+                onNewKit={onNewKit}
+                onImport={onImportKit}
+              />
+            ) : (
+              <h2 id="tavernary-companion-kits-heading">Kits</h2>
+            )}
           </section>
           <section
             aria-labelledby="tavernary-companion-installed-heading"
@@ -175,6 +210,16 @@ export function CompanionShell({
                   onAction={(action) => onProjectAction?.(detail.id, action)}
                   onManageInSillyTavern={onOpenExtensionManager}
                   lifecycleDisabled={lifecycleDisabled}
+                />
+              ) : detail.kind === "kit" && kitInspectors[detail.id] ? (
+                <KitInspector
+                  kit={kitInspectors[detail.id]}
+                  disabled={lifecycleDisabled}
+                  onAction={(action) => onKitAction?.(detail.id, action)}
+                  onEdit={() => onEditKit?.(detail.id)}
+                  onCopy={() => onCopyKit?.(detail.id)}
+                  onExport={() => onExportKit?.(detail.id)}
+                  onUninstall={() => onUninstallKit?.(detail.id)}
                 />
               ) : (
                 <h2>{projectName(projects, discoveryState, detail.id)}</h2>

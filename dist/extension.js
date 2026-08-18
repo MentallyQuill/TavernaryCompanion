@@ -3,8 +3,8 @@ var HostOperationError = class extends Error {
   operation;
   status;
   details;
-  constructor(operation, message, options = {}) {
-    super(message, { cause: options.cause });
+  constructor(operation, message2, options = {}) {
+    super(message2, { cause: options.cause });
     this.name = "HostOperationError";
     this.operation = operation;
     this.status = options.status ?? null;
@@ -257,8 +257,8 @@ var ProfileStore = class {
   update(mutator) {
     const execute = async () => {
       const draft = structuredClone(this.#state);
-      const result = await mutator(draft);
-      const next = migrateProfileState(result ?? draft);
+      const result2 = await mutator(draft);
+      const next = migrateProfileState(result2 ?? draft);
       const hadPrevious = Object.hasOwn(this.#dependencies.extensionSettings, PROFILE_NAMESPACE);
       const previous = this.#dependencies.extensionSettings[PROFILE_NAMESPACE];
       this.#dependencies.extensionSettings[PROFILE_NAMESPACE] = structuredClone(next);
@@ -697,8 +697,8 @@ function D2(n2, t3) {
 // src/catalog/catalog-errors.ts
 var CatalogClientError = class extends Error {
   code;
-  constructor(code, message, options) {
-    super(message, options);
+  constructor(code, message2, options) {
+    super(message2, options);
     this.name = "CatalogClientError";
     this.code = code;
   }
@@ -715,8 +715,8 @@ var contractKeys = [
 var safeFolderName = /^[A-Za-z0-9._-]+$/u;
 var InstallContractValidationError = class extends Error {
   field;
-  constructor(field, message) {
-    super(message);
+  constructor(field, message2) {
+    super(message2);
     this.name = "InstallContractValidationError";
     this.field = field;
   }
@@ -2120,16 +2120,16 @@ var MiniSearch = class _MiniSearch {
     const results = [];
     for (const [docId, { score, terms, match }] of rawResults) {
       const quality = terms.length || 1;
-      const result = {
+      const result2 = {
         id: this._documentIds.get(docId),
         score: score * quality,
         terms: Object.keys(match),
         queryTerms: terms,
         match
       };
-      Object.assign(result, this._storedFields.get(docId));
-      if (searchOptionsWithDefaults.filter == null || searchOptionsWithDefaults.filter(result)) {
-        results.push(result);
+      Object.assign(result2, this._storedFields.get(docId));
+      if (searchOptionsWithDefaults.filter == null || searchOptionsWithDefaults.filter(result2)) {
+        results.push(result2);
       }
     }
     if (query === _MiniSearch.wildcard && searchOptionsWithDefaults.boostDocument == null) {
@@ -2543,15 +2543,15 @@ var MiniSearch = class _MiniSearch {
         const fieldLength = this._fieldLength.get(docId)[fieldId];
         const rawScore = calcBM25Score(termFreq, matchingFields, this._documentCount, fieldLength, avgFieldLength, bm25params);
         const weightedScore = termWeight * termBoost * fieldBoost * docBoost * rawScore;
-        const result = results.get(docId);
-        if (result) {
-          result.score += weightedScore;
-          assignUniqueTerm(result.terms, sourceTerm);
-          const match = getOwnProperty(result.match, derivedTerm);
+        const result2 = results.get(docId);
+        if (result2) {
+          result2.score += weightedScore;
+          assignUniqueTerm(result2.terms, sourceTerm);
+          const match = getOwnProperty(result2.match, derivedTerm);
           if (match) {
             match.push(field);
           } else {
-            result.match[derivedTerm] = [field];
+            result2.match[derivedTerm] = [field];
           }
         } else {
           results.set(docId, {
@@ -2730,14 +2730,14 @@ var defaultOptions = {
   idField: "id",
   extractField: (document2, fieldName) => document2[fieldName],
   stringifyField: (fieldValue, fieldName) => fieldValue.toString(),
-  tokenize: (text) => text.split(SPACE_OR_PUNCTUATION),
+  tokenize: (text2) => text2.split(SPACE_OR_PUNCTUATION),
   processTerm: (term) => term.toLowerCase(),
   fields: void 0,
   searchOptions: void 0,
   storeFields: [],
-  logger: (level, message) => {
+  logger: (level, message2) => {
     if (typeof (console === null || console === void 0 ? void 0 : console[level]) === "function")
-      console[level](message);
+      console[level](message2);
   },
   autoVacuum: true
 };
@@ -2930,17 +2930,17 @@ function fuzzyForTerm(term) {
 function prefixForTerm(term) {
   return term.length >= 3;
 }
-function bestTermMatch(result, queryTerm) {
-  if (result.terms.includes(queryTerm)) {
+function bestTermMatch(result2, queryTerm) {
+  if (result2.terms.includes(queryTerm)) {
     return { kind: "exact", matchedTerm: queryTerm, queryTerm };
   }
-  const prefix = result.terms.filter((term) => term.startsWith(queryTerm)).sort(
+  const prefix = result2.terms.filter((term) => term.startsWith(queryTerm)).sort(
     (left, right) => left.length - right.length || left.localeCompare(right)
   ).at(0);
   if (prefix) return { kind: "prefix", matchedTerm: prefix, queryTerm };
   const distanceLimit = allowedEditDistance(queryTerm);
   if (distanceLimit === 0) return null;
-  const fuzzy = result.terms.map((term) => ({
+  const fuzzy = result2.terms.map((term) => ({
     distance: levenshteinDistance(queryTerm, term),
     term
   })).filter(({ distance }) => distance <= distanceLimit).sort(
@@ -2951,12 +2951,12 @@ function bestTermMatch(result, queryTerm) {
 function evidenceValue(document2, field, matchedTerm) {
   return document2[field].find((value) => tokenSet(value).has(matchedTerm)) ?? document2[field][0] ?? matchedTerm;
 }
-function evidenceForResult(document2, result, query) {
+function evidenceForResult(document2, result2, query) {
   return uniqueTerms(query).flatMap((queryTerm) => {
-    const match = bestTermMatch(result, queryTerm);
+    const match = bestTermMatch(result2, queryTerm);
     if (!match) return [];
     const field = EVIDENCE_FIELD_PRIORITY.find(
-      (candidate) => result.match[match.matchedTerm]?.includes(candidate)
+      (candidate) => result2.match[match.matchedTerm]?.includes(candidate)
     );
     if (!field) return [];
     return [
@@ -2988,8 +2988,8 @@ function exactEvidence(document2, query) {
 function matchScore(document2, fullQuery, exactnessTier, miniSearchScore) {
   return exactnessTier * 1e6 + authorityTier(document2, fullQuery) * 1e5 + proximityBonus(document2, fullQuery) * 1e3 + Math.min(miniSearchScore, 999);
 }
-function reportSearchFailure(message, error) {
-  console.error(message, error);
+function reportSearchFailure(message2, error) {
+  console.error(message2, error);
 }
 function degradedFallback(documents, query) {
   return { ...exactAllTermSearch(documents, query), degraded: true };
@@ -3118,10 +3118,10 @@ function createCatalogSearchIndex(documents) {
           clauses.flatMap((clause) => {
             const fullQuery = normalizeSearchText(clause);
             const terms = uniqueTerms(clause);
-            return miniSearch.search(clause).flatMap((result) => {
-              const document2 = documentsById.get(String(result.id));
+            return miniSearch.search(clause).flatMap((result2) => {
+              const document2 = documentsById.get(String(result2.id));
               if (!document2) return [];
-              const termMatches = terms.map((term) => bestTermMatch(result, term)).filter((match) => match !== null);
+              const termMatches = terms.map((term) => bestTermMatch(result2, term)).filter((match) => match !== null);
               if (termMatches.length !== terms.length) {
                 return [];
               }
@@ -3135,9 +3135,9 @@ function createCatalogSearchIndex(documents) {
                     document2,
                     fullQuery,
                     exactnessTier,
-                    result.score
+                    result2.score
                   ),
-                  evidence: evidenceForResult(document2, result, clause)
+                  evidence: evidenceForResult(document2, result2, clause)
                 }
               ];
             });
@@ -3168,6 +3168,78 @@ function createCatalogSearchIndex(documents) {
 
 // vendor/tavernary-core/src/kit-selectors.ts
 var collator = new Intl.Collator("en", { sensitivity: "base" });
+function matchesAny(selected, values) {
+  return selected.length === 0 || selected.some((value) => values.includes(value));
+}
+function compareTitleAndId(left, right) {
+  return collator.compare(left.title, right.title) || collator.compare(left.id, right.id);
+}
+function comparePublished(left, right) {
+  return Date.parse(right.publishedAt) - Date.parse(left.publishedAt) || compareTitleAndId(left, right);
+}
+function kitComparator(sort, searchResults) {
+  const scores = new Map(
+    searchResults?.matches.map(({ id, score }) => [id, score]) ?? []
+  );
+  return (left, right) => {
+    if (sort === "relevance") {
+      return (scores.get(right.id) ?? 0) - (scores.get(left.id) ?? 0) || Date.parse(right.updatedAt) - Date.parse(left.updatedAt) || compareTitleAndId(left, right);
+    }
+    if (sort === "alphabetical") {
+      return compareTitleAndId(left, right);
+    }
+    if (sort === "newest") {
+      return comparePublished(left, right);
+    }
+    if (sort === "updated") {
+      return Date.parse(right.updatedAt) - Date.parse(left.updatedAt) || compareTitleAndId(left, right);
+    }
+    if (left.trendingScore === null && right.trendingScore === null) {
+      return comparePublished(left, right);
+    }
+    if (left.trendingScore === null) {
+      return 1;
+    }
+    if (right.trendingScore === null) {
+      return -1;
+    }
+    return right.trendingScore - left.trendingScore || comparePublished(left, right);
+  };
+}
+function selectKits(kits, query, search = "", searchResults) {
+  const normalized = searchMeaning(search);
+  const effectiveSearchResults = searchResults?.normalizedQuery === normalized ? searchResults : exactAllTermSearch(
+    kits.map(({ id, search: fields }) => ({ id, ...fields })),
+    search
+  );
+  const matchingKitIds = new Set(
+    effectiveSearchResults.matches.map(({ id }) => id)
+  );
+  return kits.filter((kit) => !normalized || matchingKitIds.has(kit.id)).filter(
+    (kit) => matchesAny(
+      query.frontends,
+      kit.frontends.map(({ id }) => id)
+    )
+  ).filter(
+    (kit) => matchesModelFamilies(
+      query.modelFamilies ?? [],
+      kit.modelFamilies?.map(({ id }) => id) ?? []
+    )
+  ).filter(
+    (kit) => matchesAny(
+      query.purposes,
+      kit.purposes.map(({ id }) => id)
+    )
+  ).filter(
+    (kit) => !query.includesProjectId || kit.components.some(
+      ({ projectId }) => projectId === query.includesProjectId
+    )
+  ).filter(
+    (kit) => kit.components.length >= query.minProjects && kit.components.length <= query.maxProjects
+  ).filter(
+    (kit) => !query.allComponentsAvailable || kit.flaggedProjectCount === 0
+  ).sort(kitComparator(query.sort, effectiveSearchResults));
+}
 
 // vendor/tavernary-core/src/frontends.json
 var frontends_default = {
@@ -3462,7 +3534,7 @@ function licenseFilter(project) {
 
 // vendor/tavernary-core/src/project-selectors.ts
 var collator2 = new Intl.Collator("en", { sensitivity: "base" });
-function matchesAny(selected, values) {
+function matchesAny2(selected, values) {
   return selected.length === 0 || selected.some((value) => values.includes(value));
 }
 function matchesDevelopment(project, selected, now) {
@@ -3587,10 +3659,10 @@ function selectProjects(projects, query, context, searchResults) {
     ).values()
   ];
   const selected = projects.filter(
-    (project) => (!search || matchingProjectIds.has(project.id)) && (!query.category || (query.category === "frontend" || query.category === "preset" ? project.kind === query.category : project.primaryFunction === query.category)) && matchesAny(
+    (project) => (!search || matchingProjectIds.has(project.id)) && (!query.category || (query.category === "frontend" || query.category === "preset" ? project.kind === query.category : project.primaryFunction === query.category)) && matchesAny2(
       query.frontends,
       project.frontends.map(({ id }) => id)
-    ) && matchesAny(query.kinds, [project.kind]) && matchesSelectedTags(
+    ) && matchesAny2(query.kinds, [project.kind]) && matchesSelectedTags(
       query.tags,
       project.tags.map(({ id }) => id),
       tagVocabulary
@@ -3600,7 +3672,7 @@ function selectProjects(projects, query, context, searchResults) {
     ) && matchesCompletionFormats(
       query.completionFormats ?? [],
       project.preset?.completionFormats?.map(({ id }) => id) ?? []
-    ) && matchesDevelopment(project, query.development, context.now) && matchesAny(query.licenses, [licenseFilter(project)]) && matchesView(project, query.view, context.now)
+    ) && matchesDevelopment(project, query.development, context.now) && matchesAny2(query.licenses, [licenseFilter(project)]) && matchesView(project, query.view, context.now)
   );
   return sortProjects(selected, query.sort, effectiveSearchResults);
 }
@@ -3808,7 +3880,7 @@ var DefaultCatalogClient = class {
         });
       }
       const bodySha256 = await this.#sha256(body);
-      const record = {
+      const record2 = {
         id: `${catalog.generatedAt}:${bodySha256}`,
         schemaVersion: SUPPORTED_CATALOG_SCHEMA,
         generatedAt: catalog.generatedAt,
@@ -3817,10 +3889,10 @@ var DefaultCatalogClient = class {
         bodySha256,
         body
       };
-      await this.#cache.stage(record);
-      await this.#cache.activate(record.id);
+      await this.#cache.stage(record2);
+      await this.#cache.activate(record2.id);
       await this.#recordChecked(checkedAt);
-      this.#activeRecord = record;
+      this.#activeRecord = record2;
       this.#catalog = catalog;
       this.#publish({
         state: "ready-current",
@@ -3831,19 +3903,19 @@ var DefaultCatalogClient = class {
     } catch (cause) {
       await this.#recordChecked(checkedAt).catch(() => void 0);
       if (this.#snapshot.state === "incompatible-with-cache") return;
-      const message = errorMessage(cause);
+      const message2 = errorMessage(cause);
       this.#publish(
         this.#catalog ? {
           state: "ready-offline",
           canMutate: true,
           checkedAt,
           catalog: this.#catalog,
-          error: message
+          error: message2
         } : {
           state: "error-empty",
           canMutate: false,
           checkedAt,
-          error: message
+          error: message2
         }
       );
     }
@@ -3912,9 +3984,9 @@ function toInstalledSectionViewModel(inventory) {
     {
       id: "attention",
       title: "Needs attention",
-      rows: inventory.missingManaged.map(({ record, project }) => ({
-        id: record.projectId,
-        name: project?.name ?? record.folderName,
+      rows: inventory.missingManaged.map(({ record: record2, project }) => ({
+        id: record2.projectId,
+        name: project?.name ?? record2.folderName,
         detail: "Managed record is missing from SillyTavern.",
         enabled: null,
         action: {
@@ -3965,15 +4037,15 @@ var ManagedRegistry = class {
     if (folderIdentity(extension.folderName) !== folderIdentity(expectedFolderName)) {
       throw new Error("Installed extension does not match the rediscovered folder.");
     }
-    const record = {
+    const record2 = {
       projectId,
       internalName: extension.internalName,
       folderName: extension.folderName,
       installedAt,
       installedBy
     };
-    this.#records[projectId] = structuredClone(record);
-    return structuredClone(record);
+    this.#records[projectId] = structuredClone(record2);
+    return structuredClone(record2);
   }
   remove(projectId) {
     if (!(projectId in this.#records)) return false;
@@ -3982,9 +4054,9 @@ var ManagedRegistry = class {
   }
   pruneAbsent(hostExtensions) {
     const removed = [];
-    for (const [projectId, record] of Object.entries(this.#records)) {
+    for (const [projectId, record2] of Object.entries(this.#records)) {
       const present = hostExtensions.some(
-        (extension) => extension.internalName === record.internalName && folderIdentity(extension.folderName) === folderIdentity(record.folderName)
+        (extension) => extension.internalName === record2.internalName && folderIdentity(extension.folderName) === folderIdentity(record2.folderName)
       );
       if (!present) {
         delete this.#records[projectId];
@@ -3995,18 +4067,18 @@ var ManagedRegistry = class {
   }
 };
 function normalizeManagedExtensionMap(value) {
-  const result = {};
+  const result2 = {};
   for (const [projectId, candidate] of Object.entries(value)) {
     if (!isManagedRecord(candidate) || candidate.projectId !== projectId) continue;
-    result[projectId] = structuredClone(candidate);
+    result2[projectId] = structuredClone(candidate);
   }
-  delete result[COMPANION_PROJECT_ID];
-  return result;
+  delete result2[COMPANION_PROJECT_ID];
+  return result2;
 }
 function isManagedRecord(value) {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
-  const record = value;
-  return typeof record.projectId === "string" && typeof record.internalName === "string" && typeof record.folderName === "string" && typeof record.installedAt === "string" && (record.installedBy === "individual" || record.installedBy === "kit");
+  const record2 = value;
+  return typeof record2.projectId === "string" && typeof record2.internalName === "string" && typeof record2.folderName === "string" && typeof record2.installedAt === "string" && (record2.installedBy === "individual" || record2.installedBy === "kit");
 }
 
 // src/catalog/project-view-model.ts
@@ -4269,8 +4341,8 @@ function putMeta(store, key, value) {
   store.put({ key, value });
 }
 async function readMetaValue(store, key) {
-  const record = await requestResult(store.get(key));
-  return record?.value ?? null;
+  const record2 = await requestResult(store.get(key));
+  return record2?.value ?? null;
 }
 var IndexedDbCatalogCache = class {
   #database;
@@ -4281,19 +4353,19 @@ var IndexedDbCatalogCache = class {
     const database = await this.#database;
     const transaction = database.transaction([RECORDS_STORE, META_STORE], "readonly");
     const id = await readMetaValue(transaction.objectStore(META_STORE), ACTIVE_KEY);
-    const record = id ? await requestResult(transaction.objectStore(RECORDS_STORE).get(id)) : void 0;
+    const record2 = id ? await requestResult(transaction.objectStore(RECORDS_STORE).get(id)) : void 0;
     await transactionDone(transaction);
     if (!id) return null;
-    if (!record) {
+    if (!record2) {
       await this.#writeMeta(CORRUPTION_KEY, "missing-active-record");
       return null;
     }
-    return structuredClone(record);
+    return structuredClone(record2);
   }
-  async stage(record) {
+  async stage(record2) {
     const database = await this.#database;
     const transaction = database.transaction(RECORDS_STORE, "readwrite");
-    transaction.objectStore(RECORDS_STORE).put(structuredClone(record));
+    transaction.objectStore(RECORDS_STORE).put(structuredClone(record2));
     await transactionDone(transaction);
   }
   async activate(id) {
@@ -4388,27 +4460,27 @@ function reconcileInventory({
       continue;
     }
     const project = matches[0];
-    const record = managed[project.id];
-    if (project.id !== COMPANION_PROJECT_ID && record && record.projectId === project.id && record.internalName === extension.internalName && folderIdentity2(record.folderName) === folderIdentity2(extension.folderName)) {
+    const record2 = managed[project.id];
+    if (project.id !== COMPANION_PROJECT_ID && record2 && record2.projectId === project.id && record2.internalName === extension.internalName && folderIdentity2(record2.folderName) === folderIdentity2(extension.folderName)) {
       snapshot.managed.push({
         project,
         extension: structuredClone(extension),
-        record: structuredClone(record)
+        record: structuredClone(record2)
       });
       representedManagedIds.add(project.id);
     } else {
       snapshot.external.push({ project, extension: structuredClone(extension) });
     }
   }
-  for (const record of Object.values(managed).sort(
+  for (const record2 of Object.values(managed).sort(
     (left, right) => left.projectId.localeCompare(right.projectId)
   )) {
-    if (record.projectId === COMPANION_PROJECT_ID || representedManagedIds.has(record.projectId)) {
+    if (record2.projectId === COMPANION_PROJECT_ID || representedManagedIds.has(record2.projectId)) {
       continue;
     }
     snapshot.missingManaged.push({
-      record: structuredClone(record),
-      project: projectsById.get(record.projectId) ?? null
+      record: structuredClone(record2),
+      project: projectsById.get(record2.projectId) ?? null
     });
   }
   return snapshot;
@@ -4530,9 +4602,9 @@ var OperationLock = class {
     this.#notify();
     try {
       return await callback({
-        setPhase: (phase) => {
+        setPhase: (phase2) => {
           if (!this.#active || this.#active.operationId !== operationId) return;
-          this.#active = { operationId, phase };
+          this.#active = { operationId, phase: phase2 };
           this.#notify();
         }
       });
@@ -5040,6 +5112,1115 @@ var TrustPromptBroker = class {
   }
 };
 
+// src/kits/kit-view-model.ts
+function toPersonalKitCardViewModel(kit, status) {
+  return {
+    id: kit.id,
+    title: kit.title,
+    description: kit.description,
+    origin: "personal",
+    originLabel: "Personal Kit",
+    componentCount: kit.projectIds.length,
+    flaggedCount: 0,
+    operationalStatus: statusLabel(status),
+    primaryAction: actionFor2(status)
+  };
+}
+function toPublishedKitCardViewModel(kit, status) {
+  return {
+    id: kit.id,
+    title: kit.title,
+    description: kit.description,
+    origin: "published",
+    originLabel: "Published Kit",
+    componentCount: kit.components.length,
+    flaggedCount: kit.flaggedProjectCount,
+    operationalStatus: statusLabel(status),
+    primaryAction: actionFor2(status)
+  };
+}
+function toPersonalKitInspector(kit, projects, status) {
+  const byId = new Map(projects.map((project) => [project.id, project]));
+  return {
+    ...toPersonalKitCardViewModel(kit, status),
+    editable: true,
+    components: kit.projectIds.map((projectId) => component(byId.get(projectId), projectId))
+  };
+}
+function toPublishedKitInspector(kit, status) {
+  return {
+    ...toPublishedKitCardViewModel(kit, status),
+    editable: false,
+    components: kit.components.map(({ projectId, name, availability, canonicalUrl, project }) => ({
+      projectId,
+      name,
+      group: availability === "available" ? groupFor(project) : "unavailable",
+      available: availability === "available",
+      assessment: project?.tavernKeeper?.riskLevel ?? null,
+      canonicalUrl
+    }))
+  };
+}
+function component(project, id) {
+  return {
+    projectId: id,
+    name: project?.name ?? id,
+    group: project ? groupFor(project) : "unavailable",
+    available: Boolean(project),
+    assessment: project?.tavernKeeper?.riskLevel ?? null,
+    canonicalUrl: project?.canonicalUrl ?? null
+  };
+}
+function groupFor(project) {
+  if (!project) return "unavailable";
+  return project.kind === "extension" && project.install ? "managed" : "context";
+}
+function statusLabel(status) {
+  return {
+    saved: "Saved",
+    installed: "Installed",
+    active: "Active",
+    incomplete: "Incomplete",
+    drifted: "Drifted",
+    changedOnTavernary: "Changed on Tavernary"
+  }[status];
+}
+function actionFor2(status) {
+  if (status === "saved") return { kind: "install", label: "Install Kit" };
+  if (status === "installed") return { kind: "activate", label: "Activate" };
+  if (status === "active") return { kind: "deactivate", label: "Deactivate" };
+  if (status === "incomplete") return { kind: "retry", label: "Retry" };
+  return { kind: "review", label: "Review" };
+}
+
+// src/kits/kit-discovery-controller.ts
+var KitDiscoveryController = class {
+  #listeners = /* @__PURE__ */ new Set();
+  #catalog;
+  #personal;
+  #statuses;
+  #segment = "published";
+  #search = "";
+  #query = structuredClone(DEFAULT_KIT_QUERY);
+  constructor(input) {
+    this.#catalog = input.catalog;
+    this.#personal = structuredClone(input.personal);
+    this.#statuses = input.statuses;
+  }
+  read() {
+    const published = selectKits(this.#catalog.kits, this.#query, this.#search).map(
+      (kit) => toPublishedKitCardViewModel(kit, this.#statuses.get(kit.id) ?? "saved")
+    );
+    const meaning = this.#search.trim().toLocaleLowerCase("en-US");
+    const personal = this.#personal.filter(
+      (kit) => !meaning || `${kit.title} ${kit.description} ${kit.projectIds.join(" ")}`.toLocaleLowerCase("en-US").includes(meaning)
+    ).map((kit) => toPersonalKitCardViewModel(kit, this.#statuses.get(kit.id) ?? "saved"));
+    return {
+      segment: this.#segment,
+      search: this.#search,
+      query: structuredClone(this.#query),
+      publishedCount: this.#catalog.kits.length,
+      personalCount: this.#personal.length,
+      visible: structuredClone(this.#segment === "published" ? published : personal)
+    };
+  }
+  subscribe(listener) {
+    this.#listeners.add(listener);
+    return () => this.#listeners.delete(listener);
+  }
+  setSegment(segment) {
+    this.#segment = segment;
+    this.#emit();
+  }
+  setSearch(search) {
+    this.#search = search;
+    this.#emit();
+  }
+  setQuery(query) {
+    this.#query = structuredClone(query);
+    this.#emit();
+  }
+  setData(input) {
+    this.#catalog = input.catalog;
+    this.#personal = structuredClone(input.personal);
+    this.#statuses = input.statuses;
+    this.#emit();
+  }
+  #emit() {
+    const state = this.read();
+    for (const listener of this.#listeners) listener(state);
+  }
+};
+function createKitDiscoveryController(input) {
+  return new KitDiscoveryController(input);
+}
+
+// src/kits/kit-activation-commit.ts
+async function applyActivationMutations({
+  host,
+  enable,
+  disable,
+  resolveInternalName
+}) {
+  const failures = [];
+  let changed = false;
+  for (const [action, steps] of [
+    ["enable", enable],
+    ["disable", disable]
+  ]) {
+    for (const step2 of steps) {
+      const internalName = resolveInternalName(step2.projectId, step2.internalName);
+      if (!internalName) {
+        failures.push({
+          projectId: step2.projectId,
+          action,
+          error: "Managed extension identity is unavailable."
+        });
+        continue;
+      }
+      try {
+        await host[action](internalName);
+        changed = true;
+      } catch (error) {
+        failures.push({
+          projectId: step2.projectId,
+          action,
+          error: error instanceof Error ? error.message : "Host mutation failed."
+        });
+      }
+    }
+  }
+  return { changed, failures };
+}
+
+// src/kits/kit-operation-journal.ts
+var KitOperationJournal = class {
+  #profile;
+  constructor(profile) {
+    this.#profile = profile;
+  }
+  read() {
+    const value = this.#profile.read().kitOperationJournal;
+    return isJournal(value) ? structuredClone(value) : null;
+  }
+  async write(journal) {
+    if (!isJournal(journal)) throw new Error("Invalid Kit operation journal.");
+    await this.#profile.update((draft) => {
+      draft.kitOperationJournal = structuredClone(journal);
+    });
+  }
+  async clear() {
+    await this.#profile.update((draft) => {
+      draft.kitOperationJournal = null;
+    });
+  }
+};
+function isJournal(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const journal = value;
+  return journal.formatVersion === 1 && typeof journal.operationId === "string" && typeof journal.planId === "string" && typeof journal.kitId === "string" && (journal.operation === "install" || journal.operation === "activate" || journal.operation === "deactivate" || journal.operation === "uninstall") && typeof journal.phase === "string" && typeof journal.startedAt === "string" && (journal.currentProjectId === null || typeof journal.currentProjectId === "string") && Array.isArray(journal.completedProjects) && Array.isArray(journal.requiredProjectIds) && (journal.preOperationActiveKitId === null || typeof journal.preOperationActiveKitId === "string");
+}
+
+// src/kits/kit-executor.ts
+var KitExecutor = class {
+  #host;
+  #profile;
+  #kits;
+  #lock;
+  #getCatalog;
+  #getInventoryFingerprint;
+  #now;
+  #operationId;
+  journal;
+  constructor(deps) {
+    this.#host = deps.host;
+    this.#profile = deps.profile;
+    this.#kits = deps.kits;
+    this.#lock = deps.lock;
+    this.#getCatalog = deps.getCatalog;
+    this.#getInventoryFingerprint = deps.getInventoryFingerprint;
+    this.#now = deps.now ?? (() => (/* @__PURE__ */ new Date()).toISOString());
+    this.#operationId = deps.operationId ?? (() => crypto.randomUUID());
+    this.journal = new KitOperationJournal(deps.profile);
+  }
+  async execute(plan, approval) {
+    validateApproval(plan, approval);
+    if (plan.blockingIssues.length) throw new Error("Kit plan has blocking issues.");
+    if (await this.#getInventoryFingerprint() !== plan.inventoryFingerprint)
+      throw new Error("Kit plan is stale. Review it again.");
+    return this.#lock.runExclusive(`kit:${plan.id}`, async ({ setPhase }) => {
+      const startedAt = this.#now();
+      const previousActiveKitId = this.#kits.readActiveId();
+      const journal = {
+        formatVersion: 1,
+        operationId: this.#operationId(),
+        planId: plan.id,
+        operation: plan.operation,
+        kitId: plan.kitId,
+        phase: "starting",
+        startedAt,
+        currentProjectId: null,
+        completedProjects: [],
+        preOperationActiveKitId: previousActiveKitId,
+        requiredProjectIds: [...plan.requiredProjectIds]
+      };
+      await this.journal.write(journal);
+      let receipt;
+      try {
+        if (plan.operation === "install" || plan.operation === "activate") {
+          receipt = await this.#installOrActivate(plan, journal, previousActiveKitId, setPhase);
+        } else if (plan.operation === "deactivate") {
+          receipt = await this.#deactivate(plan, journal, previousActiveKitId, setPhase);
+        } else {
+          receipt = await this.#uninstall(plan, journal, previousActiveKitId, setPhase);
+        }
+      } catch (error) {
+        receipt = this.#receipt(plan, journal, previousActiveKitId, "failed", [
+          {
+            projectId: journal.currentProjectId ?? plan.kitId,
+            action: "context",
+            status: "failed",
+            message: error instanceof Error ? error.message : "Kit operation failed.",
+            retryable: true
+          }
+        ]);
+      }
+      await this.#persistReceipt(receipt);
+      await this.journal.clear();
+      return receipt;
+    });
+  }
+  async recoverInterrupted() {
+    const journal = this.journal.read();
+    if (!journal) return null;
+    const extensions = await this.#host.discover();
+    const catalog = this.#getCatalog();
+    const present = presentProjectIds(catalog.projects, extensions);
+    const results = journal.requiredProjectIds.map((projectId) => ({
+      projectId,
+      action: "context",
+      status: present.has(projectId) ? "verified" : "failed",
+      message: present.has(projectId) ? "Present after interruption." : "Missing after interruption.",
+      retryable: !present.has(projectId)
+    }));
+    const receipt = {
+      formatVersion: 1,
+      kind: "kit-operation",
+      id: journal.operationId,
+      planId: journal.planId,
+      operation: journal.operation,
+      kitId: journal.kitId,
+      startedAt: journal.startedAt,
+      completedAt: this.#now(),
+      outcome: "interrupted",
+      previousActiveKitId: journal.preOperationActiveKitId,
+      activeKitId: this.#kits.readActiveId(),
+      projects: [...journal.completedProjects, ...results],
+      keptForOtherKits: []
+    };
+    await this.#persistReceipt(receipt);
+    await this.journal.clear();
+    return receipt;
+  }
+  async #installOrActivate(plan, journal, previousActiveKitId, setPhase) {
+    const catalog = this.#getCatalog();
+    const byId = new Map(catalog.projects.map((project) => [project.id, project]));
+    const results = [];
+    let changed = false;
+    for (const step2 of plan.install) {
+      journal.currentProjectId = step2.projectId;
+      journal.phase = "installing";
+      setPhase(`installing:${step2.projectId}`);
+      await this.journal.write(journal);
+      const project = byId.get(step2.projectId);
+      try {
+        if (!project?.install || project.id === "mentallyquill-tavernary-companion")
+          throw new Error("Install contract is unavailable.");
+        await this.#host.install({
+          repositoryUrl: project.install.repositoryUrl,
+          branch: project.install.branch
+        });
+        changed = true;
+        const extensions = await this.#host.discover();
+        const extension = exactFolder2(extensions, project.install.folderName);
+        if (!extension) throw new Error("Installed extension could not be verified.");
+        await this.#recordManaged(project, extension);
+        results.push(
+          result(step2.projectId, "install", "verified", "Installed and verified.", false)
+        );
+      } catch (error) {
+        results.push(result(step2.projectId, "install", "failed", message(error), true));
+      }
+      journal.completedProjects = structuredClone(results);
+      await this.journal.write(journal);
+    }
+    const discovered = await this.#host.discover();
+    const present = presentProjectIds(catalog.projects, discovered);
+    const requiredActionable = plan.requiredProjectIds.filter((id) => {
+      const project = byId.get(id);
+      return project?.kind === "extension" && Boolean(project.install);
+    });
+    const missing = requiredActionable.filter((id) => !present.has(id));
+    await this.#recordKitState(
+      plan,
+      requiredActionable.filter((id) => present.has(id)),
+      missing,
+      missing.length ? "incomplete" : "installed"
+    );
+    if (plan.operation === "activate" && missing.length) {
+      if (changed) this.#host.reload();
+      return this.#receipt(plan, journal, previousActiveKitId, "partial", results);
+    }
+    if (plan.operation === "activate") {
+      journal.phase = "activating";
+      setPhase("activating");
+      await this.journal.write(journal);
+      const records = normalizeManagedExtensionMap(this.#profile.read().managedExtensions);
+      const mutations = await applyActivationMutations({
+        host: this.#host,
+        enable: plan.enable,
+        disable: plan.disable,
+        resolveInternalName: (projectId, planned) => planned ?? records[projectId]?.internalName ?? null
+      });
+      changed ||= mutations.changed;
+      for (const failure of mutations.failures)
+        results.push(result(failure.projectId, failure.action, "failed", failure.error, true));
+      const verified = await this.#verifyEnabled(
+        plan,
+        normalizeManagedExtensionMap(this.#profile.read().managedExtensions)
+      );
+      if (mutations.failures.length || !verified) {
+        await this.#markDrifted(plan.kitId);
+        if (previousActiveKitId) await this.#markDrifted(previousActiveKitId);
+        if (changed) this.#host.reload();
+        return this.#receipt(plan, journal, previousActiveKitId, "failed", results);
+      }
+      await this.#kits.setActive(plan.kitId);
+    }
+    for (const step2 of plan.externalContext)
+      results.push(
+        result(step2.projectId, "context", "external", "External extension left unchanged.", false)
+      );
+    if (changed) this.#host.reload();
+    return this.#receipt(
+      plan,
+      journal,
+      previousActiveKitId,
+      results.some(({ status }) => status === "failed") ? "partial" : "completed",
+      results
+    );
+  }
+  async #deactivate(plan, journal, previousActiveKitId, setPhase) {
+    journal.phase = "deactivating";
+    setPhase("deactivating");
+    await this.journal.write(journal);
+    const mutations = await applyActivationMutations({
+      host: this.#host,
+      enable: [],
+      disable: plan.disable,
+      resolveInternalName: (_id, planned) => planned
+    });
+    const results = plan.disable.map((step2) => {
+      const failure = mutations.failures.find(({ projectId }) => projectId === step2.projectId);
+      return result(
+        step2.projectId,
+        "disable",
+        failure ? "failed" : "verified",
+        failure?.error ?? "Disabled and verified.",
+        Boolean(failure)
+      );
+    });
+    if (mutations.failures.length) await this.#markDrifted(plan.kitId);
+    else await this.#kits.setActive(null);
+    if (mutations.changed) this.#host.reload();
+    return this.#receipt(
+      plan,
+      journal,
+      previousActiveKitId,
+      mutations.failures.length ? "partial" : "completed",
+      results
+    );
+  }
+  async #uninstall(plan, journal, previousActiveKitId, setPhase) {
+    const results = [];
+    let changed = false;
+    if (previousActiveKitId === plan.kitId && plan.disable.length) {
+      const mutations = await applyActivationMutations({
+        host: this.#host,
+        enable: [],
+        disable: plan.disable,
+        resolveInternalName: (_id, planned) => planned
+      });
+      changed ||= mutations.changed;
+      if (mutations.failures.length) {
+        await this.#markDrifted(plan.kitId);
+        for (const failure of mutations.failures)
+          results.push(result(failure.projectId, "disable", "failed", failure.error, true));
+        if (changed) this.#host.reload();
+        return this.#receipt(plan, journal, previousActiveKitId, "failed", results);
+      }
+      await this.#kits.setActive(null);
+    }
+    for (const step2 of plan.remove) {
+      journal.currentProjectId = step2.projectId;
+      journal.phase = "removing";
+      setPhase(`removing:${step2.projectId}`);
+      await this.journal.write(journal);
+      const records = normalizeManagedExtensionMap(this.#profile.read().managedExtensions);
+      const record2 = records[step2.projectId];
+      try {
+        if (!record2) throw new Error("Managed identity is unavailable.");
+        const extension = (await this.#host.discover()).find(
+          (candidate) => candidate.internalName === record2.internalName && candidate.folderName.toLocaleLowerCase() === record2.folderName.toLocaleLowerCase()
+        );
+        if (!extension) throw new Error("Managed extension is already missing.");
+        await this.#host.remove({ internalName: extension.internalName, type: extension.type });
+        changed = true;
+        const stillPresent = (await this.#host.discover()).some(
+          (candidate) => candidate.internalName === extension.internalName && candidate.type === extension.type
+        );
+        if (stillPresent) throw new Error("Removal could not be verified.");
+        await this.#profile.update((draft) => {
+          delete draft.managedExtensions[step2.projectId];
+        });
+        results.push(result(step2.projectId, "remove", "verified", "Removed and verified.", false));
+      } catch (error) {
+        results.push(result(step2.projectId, "remove", "failed", message(error), true));
+      }
+      journal.completedProjects = structuredClone(results);
+      await this.journal.write(journal);
+    }
+    for (const step2 of plan.keptForOtherKits)
+      results.push(
+        result(step2.projectId, "keep", "kept", "Kept for another installed Kit.", false)
+      );
+    const failed = results.some(({ status }) => status === "failed");
+    if (failed) await this.#markDrifted(plan.kitId);
+    else await this.#kits.removeInstalledState(plan.kitId);
+    if (changed) this.#host.reload();
+    return this.#receipt(
+      plan,
+      journal,
+      previousActiveKitId,
+      failed ? "partial" : "completed",
+      results
+    );
+  }
+  async #recordManaged(project, extension) {
+    if (!project.install) throw new Error("Missing install contract.");
+    await this.#profile.update((draft) => {
+      const registry = new ManagedRegistry(normalizeManagedExtensionMap(draft.managedExtensions));
+      registry.recordInstalled({
+        projectId: project.id,
+        expectedFolderName: project.install.folderName,
+        extension,
+        installedAt: this.#now(),
+        installedBy: "kit"
+      });
+      draft.managedExtensions = registry.read();
+    });
+  }
+  async #recordKitState(plan, installed, missing, status) {
+    await this.#kits.recordInstalledState({
+      kitId: plan.kitId,
+      definitionFingerprint: await topologyHash(plan.requiredProjectIds),
+      installedProjectIds: installed,
+      missingProjectIds: missing,
+      status,
+      installedAt: this.#now(),
+      lastVerifiedAt: this.#now()
+    });
+  }
+  async #markDrifted(kitId) {
+    const state = this.#kits.readInstalled(kitId);
+    if (!state) return;
+    await this.#kits.recordInstalledState({
+      ...state,
+      status: "drifted",
+      lastVerifiedAt: this.#now()
+    });
+  }
+  async #verifyEnabled(plan, records) {
+    const extensions = await this.#host.discover();
+    return plan.enable.every((step2) => {
+      const name = step2.internalName ?? records[step2.projectId]?.internalName;
+      return Boolean(
+        name && extensions.find((extension) => extension.internalName === name)?.enabled
+      );
+    }) && plan.disable.every(
+      (step2) => Boolean(
+        extensions.find((extension) => extension.internalName === step2.internalName) && !extensions.find((extension) => extension.internalName === step2.internalName)?.enabled
+      )
+    );
+  }
+  #receipt(plan, journal, previousActiveKitId, outcome, projects) {
+    return {
+      formatVersion: 1,
+      kind: "kit-operation",
+      id: journal.operationId,
+      planId: plan.id,
+      operation: plan.operation,
+      kitId: plan.kitId,
+      startedAt: journal.startedAt,
+      completedAt: this.#now(),
+      outcome,
+      previousActiveKitId,
+      activeKitId: this.#kits.readActiveId(),
+      projects,
+      keptForOtherKits: plan.keptForOtherKits.map(({ projectId }) => projectId)
+    };
+  }
+  async #persistReceipt(receipt) {
+    await this.#profile.update((draft) => {
+      draft.operationReceipt = structuredClone(receipt);
+    });
+  }
+};
+function createKitExecutor(deps) {
+  return new KitExecutor(deps);
+}
+function validateApproval(plan, approval) {
+  if (approval.planId !== plan.id || approval.inventoryFingerprint !== plan.inventoryFingerprint || approval.catalogGeneratedAt !== plan.catalogGeneratedAt)
+    throw new Error("Kit approval does not match this plan.");
+  const accepted = new Set(approval.acceptedWarningProjectIds);
+  if (plan.warnings.some(({ projectId }) => !accepted.has(projectId)))
+    throw new Error("Every project warning must be accepted.");
+}
+function exactFolder2(extensions, folderName) {
+  const matches = extensions.filter(
+    (extension) => extension.folderName.normalize("NFKC").toLocaleLowerCase("en-US") === folderName.normalize("NFKC").toLocaleLowerCase("en-US")
+  );
+  return matches.length === 1 ? matches[0] : null;
+}
+function presentProjectIds(projects, extensions) {
+  return new Set(
+    projects.filter((project) => project.install && exactFolder2(extensions, project.install.folderName)).map(({ id }) => id)
+  );
+}
+function result(projectId, action, status, messageText, retryable) {
+  return { projectId, action, status, message: messageText, retryable };
+}
+function message(error) {
+  return error instanceof Error ? error.message : "Host operation failed.";
+}
+async function topologyHash(projectIds) {
+  const digest = await crypto.subtle.digest(
+    "SHA-256",
+    new TextEncoder().encode(JSON.stringify(projectIds))
+  );
+  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+}
+
+// src/kits/kit-plan.ts
+function freezeKitPlan(plan) {
+  for (const value of Object.values(plan)) {
+    if (Array.isArray(value)) {
+      for (const item of value) if (typeof item === "object" && item) Object.freeze(item);
+      Object.freeze(value);
+    }
+  }
+  return Object.freeze(plan);
+}
+
+// src/kits/kit-reference-index.ts
+function buildKitReferenceIndex(installed) {
+  const mutable = /* @__PURE__ */ new Map();
+  for (const kit of installed) {
+    for (const projectId of new Set(kit.installedProjectIds)) {
+      const kitIds = mutable.get(projectId) ?? [];
+      kitIds.push(kit.kitId);
+      mutable.set(projectId, kitIds);
+    }
+  }
+  return new Map(
+    [...mutable].map(([projectId, kitIds]) => [projectId, Object.freeze(kitIds.sort())])
+  );
+}
+
+// src/kits/kit-planner.ts
+function planKitOperation(input) {
+  const projectById = new Map(input.catalog.projects.map((project) => [project.id, project]));
+  const managedById = new Map(input.inventory.managed.map((entry) => [entry.project.id, entry]));
+  const externalById = new Map(input.inventory.external.map((entry) => [entry.project.id, entry]));
+  const references = buildKitReferenceIndex(input.installedKits);
+  const plan = {
+    id: planId(input),
+    operation: input.operation,
+    kitId: input.kit.id,
+    catalogGeneratedAt: input.catalog.generatedAt,
+    inventoryFingerprint: inventoryFingerprint(input),
+    requiredProjectIds: [...input.kit.projectIds],
+    install: [],
+    enable: [],
+    disable: [],
+    remove: [],
+    alreadyManaged: [],
+    externalContext: [],
+    contextOnly: [],
+    keptForOtherKits: [],
+    warnings: [],
+    blockingIssues: [],
+    reloadRequired: false
+  };
+  if (!input.catalogCanMutate) {
+    plan.blockingIssues.push({
+      code: "catalog-incompatible",
+      projectId: null,
+      message: "Update Companion before changing Kits."
+    });
+  }
+  for (const projectId of input.kit.projectIds) {
+    const project = projectById.get(projectId);
+    if (projectId === COMPANION_PROJECT_ID) {
+      if (input.kit.origin === "published")
+        plan.contextOnly.push(step(projectId, "Tavernary Companion", null));
+      else
+        plan.blockingIssues.push({
+          code: "companion-member",
+          projectId,
+          message: "Companion cannot belong to a personal Kit."
+        });
+      continue;
+    }
+    if (!project) {
+      plan.blockingIssues.push({
+        code: "project-unavailable",
+        projectId,
+        message: `${projectId} is unavailable.`
+      });
+      continue;
+    }
+    if (!isActionable(project)) {
+      plan.contextOnly.push(stepFor(project, null));
+      if (project.kind === "extension")
+        plan.blockingIssues.push({
+          code: "invalid-install-contract",
+          projectId,
+          message: `${project.name} cannot be installed by Companion.`
+        });
+      continue;
+    }
+    addWarning(plan, project);
+    const managedEntry = managedById.get(projectId);
+    const externalEntry = externalById.get(projectId);
+    if (externalEntry) {
+      plan.externalContext.push(stepFor(project, externalEntry.extension.internalName));
+      continue;
+    }
+    if (managedEntry) {
+      plan.alreadyManaged.push(stepFor(project, managedEntry.extension.internalName));
+    }
+    if (input.operation === "install" || input.operation === "activate") {
+      if (!managedEntry) plan.install.push(stepFor(project, null));
+      if (input.operation === "activate")
+        plan.enable.push(stepFor(project, managedEntry?.extension.internalName ?? null));
+    } else if (input.operation === "deactivate") {
+      if (managedEntry?.extension.enabled)
+        plan.disable.push(stepFor(project, managedEntry.extension.internalName));
+    } else {
+      if (!managedEntry) continue;
+      const otherReferences = (references.get(projectId) ?? []).filter((id) => id !== input.kit.id);
+      if (otherReferences.length)
+        plan.keptForOtherKits.push(stepFor(project, managedEntry.extension.internalName));
+      else plan.remove.push(stepFor(project, managedEntry.extension.internalName));
+    }
+  }
+  if (input.operation === "activate" && input.activeKitId && input.activeKitId !== input.kit.id) {
+    const previous = input.installedKits.find(({ kitId }) => kitId === input.activeKitId);
+    for (const projectId of previous?.installedProjectIds ?? []) {
+      if (input.kit.projectIds.includes(projectId)) continue;
+      const entry = managedById.get(projectId);
+      if (entry?.extension.enabled)
+        plan.disable.push(stepFor(entry.project, entry.extension.internalName));
+    }
+  }
+  if (input.operation === "uninstall" && input.activeKitId === input.kit.id) {
+    for (const entry of input.inventory.managed) {
+      if (input.kit.projectIds.includes(entry.project.id) && entry.extension.enabled) {
+        plan.disable.push(stepFor(entry.project, entry.extension.internalName));
+      }
+    }
+  }
+  plan.reloadRequired = Boolean(
+    plan.install.length || plan.enable.length || plan.disable.length || plan.remove.length
+  );
+  return freezeKitPlan(plan);
+}
+function inventoryFingerprint(input) {
+  const payload = JSON.stringify({
+    managed: input.inventory.managed.map(({ project, extension }) => [project.id, extension.internalName, extension.enabled]).sort(),
+    external: input.inventory.external.map(({ project, extension }) => [project.id, extension.internalName, extension.enabled]).sort(),
+    records: Object.keys(input.managed).sort(),
+    installedKits: input.installedKits.map(({ kitId, installedProjectIds }) => [kitId, [...installedProjectIds].sort()]).sort(),
+    activeKitId: input.activeKitId
+  });
+  let hash = 2166136261;
+  for (let index = 0; index < payload.length; index += 1)
+    hash = Math.imul(hash ^ payload.charCodeAt(index), 16777619);
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+function planId(input) {
+  return `${input.operation}:${input.kit.id}:${input.catalog.generatedAt}:${inventoryFingerprint(input)}`;
+}
+function isActionable(project) {
+  return project.kind === "extension" && project.frontends.some(({ id }) => id === "sillytavern") && project.install?.kind === "sillytavern-extension-git";
+}
+function step(projectId, projectName2, internalName) {
+  return { projectId, projectName: projectName2, internalName };
+}
+function stepFor(project, internalName) {
+  return step(project.id, project.name, internalName);
+}
+function addWarning(plan, project) {
+  const assessment = project.tavernKeeper;
+  if (assessment?.riskLevel !== "material" && assessment?.riskLevel !== "high") return;
+  plan.warnings.push({
+    projectId: project.id,
+    projectName: project.name,
+    severity: assessment.riskLevel,
+    freshness: assessment.freshness,
+    reportUrl: assessment.report?.reportUrl ?? null
+  });
+}
+
+// src/kits/kit-validation.ts
+var KIT_KEYS = [
+  "formatVersion",
+  "id",
+  "title",
+  "description",
+  "targetFrontend",
+  "projectIds",
+  "createdAt",
+  "updatedAt",
+  "origin"
+];
+var UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-8][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/iu;
+var SHA256 = /^[0-9a-f]{64}$/u;
+function parsePersonalKit(value) {
+  const input = record(value, "Kit must be an object.");
+  exactKeys(input, KIT_KEYS, "Kit");
+  if (input.formatVersion !== 1) throw new Error("Unsupported Kit format version.");
+  if (typeof input.id !== "string" || !UUID.test(input.id)) throw new Error("Invalid Kit ID.");
+  const title = text(input.title, "title").trim();
+  if (!title) throw new Error("Kit title is required.");
+  const description = text(input.description, "description").trim();
+  if (input.targetFrontend !== "sillytavern") throw new Error("Kit must target SillyTavern.");
+  if (!Array.isArray(input.projectIds)) throw new Error("Kit projectIds must be an array.");
+  const projectIds = input.projectIds.map((id) => text(id, "project ID").trim());
+  if (projectIds.some((id) => !id)) throw new Error("Kit project IDs cannot be empty.");
+  if (new Set(projectIds).size !== projectIds.length) throw new Error("Duplicate Kit project ID.");
+  if (projectIds.includes(COMPANION_PROJECT_ID))
+    throw new Error("Companion cannot belong to a Kit.");
+  const createdAt = iso(input.createdAt, "createdAt");
+  const updatedAt = iso(input.updatedAt, "updatedAt");
+  return {
+    formatVersion: 1,
+    id: input.id,
+    title,
+    description,
+    targetFrontend: "sillytavern",
+    projectIds,
+    createdAt,
+    updatedAt,
+    origin: parseOrigin(input.origin)
+  };
+}
+function parseInstalledKitState(value) {
+  const input = record(value, "Installed Kit state must be an object.");
+  exactKeys(
+    input,
+    [
+      "kitId",
+      "definitionFingerprint",
+      "installedProjectIds",
+      "missingProjectIds",
+      "status",
+      "installedAt",
+      "lastVerifiedAt"
+    ],
+    "Installed Kit state"
+  );
+  const kitId = text(input.kitId, "kitId");
+  const definitionFingerprint = text(input.definitionFingerprint, "fingerprint");
+  if (!SHA256.test(definitionFingerprint)) throw new Error("Invalid Kit fingerprint.");
+  const installedProjectIds = uniqueStrings(input.installedProjectIds, "installedProjectIds");
+  const missingProjectIds = uniqueStrings(input.missingProjectIds, "missingProjectIds");
+  if (input.status !== "installed" && input.status !== "incomplete" && input.status !== "drifted") {
+    throw new Error("Invalid installed Kit status.");
+  }
+  return {
+    kitId,
+    definitionFingerprint,
+    installedProjectIds,
+    missingProjectIds,
+    status: input.status,
+    installedAt: iso(input.installedAt, "installedAt"),
+    lastVerifiedAt: iso(input.lastVerifiedAt, "lastVerifiedAt")
+  };
+}
+function parseOrigin(value) {
+  const origin = record(value, "Kit origin must be an object.");
+  if (origin.kind === "local") {
+    exactKeys(origin, ["kind"], "Kit origin");
+    return { kind: "local" };
+  }
+  if (origin.kind === "published-copy") {
+    exactKeys(origin, ["kind", "tavernaryKitId"], "Kit origin");
+    return {
+      kind: "published-copy",
+      tavernaryKitId: text(origin.tavernaryKitId, "tavernaryKitId")
+    };
+  }
+  if (origin.kind === "imported") {
+    exactKeys(origin, ["kind", "sourceId"], "Kit origin");
+    return { kind: "imported", sourceId: text(origin.sourceId, "sourceId") };
+  }
+  throw new Error("Invalid Kit origin.");
+}
+function record(value, message2) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) throw new Error(message2);
+  return value;
+}
+function exactKeys(value, expected, label) {
+  const expectedSet = new Set(expected);
+  if (Object.keys(value).some((key) => !expectedSet.has(key)))
+    throw new Error(`${label} contains unknown fields.`);
+  if (expected.some((key) => !Object.hasOwn(value, key)))
+    throw new Error(`${label} is missing fields.`);
+}
+function text(value, label) {
+  if (typeof value !== "string") throw new Error(`Invalid ${label}.`);
+  return value;
+}
+function iso(value, label) {
+  const result2 = text(value, label);
+  if (!Number.isFinite(Date.parse(result2)) || new Date(result2).toISOString() !== result2)
+    throw new Error(`Invalid ${label}.`);
+  return result2;
+}
+function uniqueStrings(value, label) {
+  if (!Array.isArray(value)) throw new Error(`Invalid ${label}.`);
+  const result2 = value.map((entry) => text(entry, label));
+  if (new Set(result2).size !== result2.length) throw new Error(`Duplicate ${label}.`);
+  return result2;
+}
+
+// src/kits/kit-portability.ts
+var MAX_KIT_FILE_BYTES = 1024 * 1024;
+function serializeKit(kit) {
+  const parsed = parsePersonalKit(kit);
+  return {
+    text: `${JSON.stringify(parsed, null, 2)}
+`,
+    filename: `${slug(parsed.title)}.tavernary-kit.json`,
+    mimeType: "application/json"
+  };
+}
+function parseKitText(text2) {
+  if (new TextEncoder().encode(text2).byteLength > MAX_KIT_FILE_BYTES)
+    throw new Error("Kit file exceeds 1 MiB.");
+  let value;
+  try {
+    value = JSON.parse(text2);
+  } catch {
+    throw new Error("Kit file is not valid JSON.");
+  }
+  return parsePersonalKit(value);
+}
+function prepareImportedKit(kit, existingIds, uuid = () => crypto.randomUUID(), now = () => (/* @__PURE__ */ new Date()).toISOString()) {
+  if (!existingIds.has(kit.id)) return structuredClone(kit);
+  const timestamp = now();
+  return parsePersonalKit({
+    ...kit,
+    id: uuid(),
+    createdAt: timestamp,
+    updatedAt: timestamp,
+    origin: { kind: "imported", sourceId: kit.id }
+  });
+}
+function slug(value) {
+  return value.normalize("NFKD").replace(/[\u0300-\u036f]/gu, "").toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/gu, "-").replace(/^-|-$/gu, "") || "kit";
+}
+
+// src/kits/kit-store.ts
+var KitStore = class {
+  #profile;
+  #uuid;
+  #now;
+  constructor(profile, dependencies = {}) {
+    this.#profile = profile;
+    this.#uuid = dependencies.uuid ?? (() => crypto.randomUUID());
+    this.#now = dependencies.now ?? (() => (/* @__PURE__ */ new Date()).toISOString());
+  }
+  readDefinitions() {
+    return Object.values(this.#profile.read().personalKits).flatMap((value) => safeParse(parsePersonalKit, value)).sort((a3, b2) => a3.title.localeCompare(b2.title));
+  }
+  readDefinition(id) {
+    return safeParse(parsePersonalKit, this.#profile.read().personalKits[id])[0] ?? null;
+  }
+  readInstalled(id) {
+    return safeParse(parseInstalledKitState, this.#profile.read().installedKits[id])[0] ?? null;
+  }
+  readInstalledStates() {
+    return Object.values(this.#profile.read().installedKits).flatMap(
+      (value) => safeParse(parseInstalledKitState, value)
+    );
+  }
+  readActiveId() {
+    return this.#profile.read().activeKitId;
+  }
+  async create(input) {
+    const now = this.#now();
+    const kit = parsePersonalKit({
+      formatVersion: 1,
+      id: this.#uuid(),
+      title: input.title,
+      description: input.description ?? "",
+      targetFrontend: "sillytavern",
+      projectIds: input.projectIds,
+      createdAt: now,
+      updatedAt: now,
+      origin: input.origin ?? { kind: "local" }
+    });
+    await this.#profile.update((draft) => {
+      if (draft.personalKits[kit.id]) throw new Error("Kit ID already exists.");
+      draft.personalKits[kit.id] = kit;
+    });
+    return structuredClone(kit);
+  }
+  async importDefinition(value) {
+    const kit = parsePersonalKit(value);
+    await this.#profile.update((draft) => {
+      if (draft.personalKits[kit.id]) throw new Error("Kit ID already exists.");
+      draft.personalKits[kit.id] = kit;
+    });
+    return structuredClone(kit);
+  }
+  async update(id, change) {
+    const current = this.readDefinition(id);
+    if (!current) throw new Error("Unknown personal Kit.");
+    const next = parsePersonalKit({ ...current, ...change, updatedAt: this.#now() });
+    await this.#profile.update((draft) => {
+      draft.personalKits[id] = next;
+    });
+    return structuredClone(next);
+  }
+  async duplicate(id) {
+    const source = this.readDefinition(id);
+    if (!source) throw new Error("Unknown personal Kit.");
+    return this.create({
+      title: `${source.title} copy`,
+      description: source.description,
+      projectIds: source.projectIds,
+      origin: { kind: "local" }
+    });
+  }
+  async copyPublished(kit) {
+    return this.create({
+      title: `${kit.title} copy`,
+      description: kit.description,
+      projectIds: kit.components.map(({ projectId }) => projectId).filter((id) => id !== "mentallyquill-tavernary-companion"),
+      origin: { kind: "published-copy", tavernaryKitId: kit.id }
+    });
+  }
+  async removeDefinition(id) {
+    if (!this.readDefinition(id)) return false;
+    await this.#profile.update((draft) => {
+      delete draft.personalKits[id];
+    });
+    return true;
+  }
+  async recordInstalledState(state) {
+    const parsed = parseInstalledKitState(state);
+    await this.#profile.update((draft) => {
+      draft.installedKits[state.kitId] = parsed;
+    });
+    return structuredClone(parsed);
+  }
+  async reconcile(state) {
+    return this.recordInstalledState(state);
+  }
+  async removeInstalledState(id) {
+    await this.#profile.update((draft) => {
+      delete draft.installedKits[id];
+      if (draft.activeKitId === id) draft.activeKitId = null;
+    });
+  }
+  async setActive(id) {
+    if (id && !this.readInstalled(id)) throw new Error("Only an installed Kit can be active.");
+    await this.#profile.update((draft) => {
+      draft.activeKitId = id;
+    });
+  }
+};
+function safeParse(parser, value) {
+  try {
+    return [parser(value)];
+  } catch {
+    return [];
+  }
+}
+
+// src/ui/kits/kit-export-action.ts
+function exportKitFile(kit) {
+  const file = serializeKit(kit);
+  const url = URL.createObjectURL(new Blob([file.text], { type: file.mimeType }));
+  const anchor = document.createElement("a");
+  anchor.href = url;
+  anchor.download = file.filename;
+  anchor.click();
+  URL.revokeObjectURL(url);
+}
+
+// src/kits/kit-draft.ts
+function createKitDraft(source) {
+  return validateDraft({
+    sourceId: source?.id ?? null,
+    title: source?.title ?? "",
+    description: source?.description ?? "",
+    targetFrontend: "sillytavern",
+    projectIds: [...source?.projectIds ?? []],
+    dirty: false,
+    issues: []
+  });
+}
+function updateKitDraft(draft, change) {
+  return validateDraft({
+    ...draft,
+    ...change,
+    projectIds: change.projectIds ? [...change.projectIds] : draft.projectIds,
+    dirty: true,
+    issues: []
+  });
+}
+function addDraftMember(draft, projectId) {
+  if (projectId === COMPANION_PROJECT_ID || draft.projectIds.includes(projectId)) return draft;
+  return updateKitDraft(draft, { projectIds: [...draft.projectIds, projectId] });
+}
+function moveDraftMember(draft, projectId, direction) {
+  const index = draft.projectIds.indexOf(projectId);
+  const target = index + direction;
+  if (index < 0 || target < 0 || target >= draft.projectIds.length) return draft;
+  const ids = [...draft.projectIds];
+  [ids[index], ids[target]] = [ids[target], ids[index]];
+  return updateKitDraft(draft, { projectIds: ids });
+}
+function selectableKitProjects(projects) {
+  return projects.filter(
+    (project) => project.id !== COMPANION_PROJECT_ID && project.kind === "extension" && project.frontends.some(({ id }) => id === "sillytavern") && project.install
+  );
+}
+function validateDraft(draft) {
+  const issues = [];
+  if (!draft.title.trim()) issues.push("Title is required.");
+  if (draft.projectIds.includes(COMPANION_PROJECT_ID))
+    issues.push("Companion cannot belong to a Kit.");
+  if (new Set(draft.projectIds).size !== draft.projectIds.length)
+    issues.push("Duplicate projects are not allowed.");
+  return { ...draft, title: draft.title, description: draft.description, issues };
+}
+
 // node_modules/preact/jsx-runtime/dist/jsxRuntime.module.js
 var f3 = 0;
 function u3(e3, t3, n2, o3, i3, u4) {
@@ -5097,6 +6278,340 @@ function DialogFrame({
   ) });
 }
 
+// src/ui/kits/kit-member-picker.tsx
+function KitMemberPicker({
+  projects,
+  selected,
+  onAdd
+}) {
+  const options = selectableKitProjects(projects).filter(({ id }) => !selected.includes(id));
+  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-member-picker", children: [
+    /* @__PURE__ */ u3("h3", { children: "Add extensions" }),
+    options.length ? /* @__PURE__ */ u3("ul", { children: options.map((project) => /* @__PURE__ */ u3("li", { children: [
+      /* @__PURE__ */ u3("span", { children: project.name }),
+      /* @__PURE__ */ u3("button", { type: "button", onClick: () => onAdd(project.id), children: "Add" })
+    ] }, project.id)) }) : /* @__PURE__ */ u3("p", { children: "No eligible extensions remain." })
+  ] });
+}
+
+// src/ui/kits/kit-member-row.tsx
+function KitMemberRow({
+  id,
+  name,
+  first,
+  last: last2,
+  onMove,
+  onRemove
+}) {
+  return /* @__PURE__ */ u3("li", { "data-project-id": id, children: [
+    /* @__PURE__ */ u3("span", { children: name }),
+    /* @__PURE__ */ u3("div", { children: [
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          disabled: first,
+          "aria-label": `Move ${name} up`,
+          onClick: () => onMove(-1),
+          children: "\u2191"
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          disabled: last2,
+          "aria-label": `Move ${name} down`,
+          onClick: () => onMove(1),
+          children: "\u2193"
+        }
+      ),
+      /* @__PURE__ */ u3("button", { type: "button", "aria-label": `Remove ${name}`, onClick: onRemove, children: "Remove" })
+    ] })
+  ] });
+}
+
+// src/ui/kits/kit-editor.tsx
+function KitEditor({
+  source,
+  projects,
+  onSave,
+  onCancel
+}) {
+  const [draft, setDraft] = d2(() => createKitDraft(source));
+  const byId = T2(() => new Map(projects.map((project) => [project.id, project])), [projects]);
+  return /* @__PURE__ */ u3(DialogFrame, { label: source ? "Edit personal Kit" : "New personal Kit", onCancel, children: /* @__PURE__ */ u3(
+    "form",
+    {
+      onSubmit: (event) => {
+        event.preventDefault();
+        if (!draft.issues.length) onSave(draft);
+      },
+      children: [
+        /* @__PURE__ */ u3("label", { children: [
+          "Title",
+          /* @__PURE__ */ u3(
+            "input",
+            {
+              value: draft.title,
+              onInput: (event) => setDraft(updateKitDraft(draft, { title: event.currentTarget.value }))
+            }
+          )
+        ] }),
+        /* @__PURE__ */ u3("label", { children: [
+          "Description",
+          /* @__PURE__ */ u3(
+            "textarea",
+            {
+              value: draft.description,
+              onInput: (event) => setDraft(updateKitDraft(draft, { description: event.currentTarget.value }))
+            }
+          )
+        ] }),
+        /* @__PURE__ */ u3("p", { children: [
+          "Frontend: ",
+          /* @__PURE__ */ u3("strong", { children: "SillyTavern" })
+        ] }),
+        /* @__PURE__ */ u3("section", { children: [
+          /* @__PURE__ */ u3("h3", { children: "Kit members" }),
+          draft.projectIds.length ? /* @__PURE__ */ u3("ol", { children: draft.projectIds.map((id, index) => /* @__PURE__ */ u3(
+            KitMemberRow,
+            {
+              id,
+              name: byId.get(id)?.name ?? id,
+              first: index === 0,
+              last: index === draft.projectIds.length - 1,
+              onMove: (direction) => setDraft(moveDraftMember(draft, id, direction)),
+              onRemove: () => setDraft(
+                updateKitDraft(draft, {
+                  projectIds: draft.projectIds.filter((candidate) => candidate !== id)
+                })
+              )
+            },
+            id
+          )) }) : /* @__PURE__ */ u3("p", { children: "No extensions selected yet." })
+        ] }),
+        /* @__PURE__ */ u3(
+          KitMemberPicker,
+          {
+            projects,
+            selected: draft.projectIds,
+            onAdd: (id) => setDraft(addDraftMember(draft, id))
+          }
+        ),
+        draft.issues.length ? /* @__PURE__ */ u3("ul", { role: "alert", children: draft.issues.map((issue) => /* @__PURE__ */ u3("li", { children: issue }, issue)) }) : null,
+        /* @__PURE__ */ u3("footer", { children: [
+          /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" }),
+          /* @__PURE__ */ u3("button", { type: "submit", disabled: draft.issues.length > 0, children: "Save Kit" })
+        ] })
+      ]
+    }
+  ) });
+}
+
+// src/ui/kits/kit-import-dialog.tsx
+function KitImportDialog({
+  onCancel,
+  onImport
+}) {
+  const [preview, setPreview] = d2(null);
+  const [error, setError] = d2(null);
+  const load = async (file) => {
+    if (!file) return;
+    try {
+      setPreview(parseKitText(await file.text()));
+      setError(null);
+    } catch (cause) {
+      setPreview(null);
+      setError(cause instanceof Error ? cause.message : "Kit file is invalid.");
+    }
+  };
+  return /* @__PURE__ */ u3(DialogFrame, { label: "Import personal Kit", onCancel, children: [
+    /* @__PURE__ */ u3("h2", { children: "Import personal Kit" }),
+    /* @__PURE__ */ u3("label", { children: [
+      "Kit JSON file",
+      /* @__PURE__ */ u3(
+        "input",
+        {
+          type: "file",
+          accept: ".json,application/json",
+          onChange: (event) => void load(event.currentTarget.files?.[0])
+        }
+      )
+    ] }),
+    error ? /* @__PURE__ */ u3("p", { role: "alert", children: error }) : null,
+    preview ? /* @__PURE__ */ u3("section", { children: [
+      /* @__PURE__ */ u3("h3", { children: preview.title }),
+      /* @__PURE__ */ u3("p", { children: preview.description }),
+      /* @__PURE__ */ u3("dl", { children: [
+        /* @__PURE__ */ u3("dt", { children: "Frontend" }),
+        /* @__PURE__ */ u3("dd", { children: "SillyTavern" }),
+        /* @__PURE__ */ u3("dt", { children: "Members" }),
+        /* @__PURE__ */ u3("dd", { children: preview.projectIds.length }),
+        /* @__PURE__ */ u3("dt", { children: "Origin" }),
+        /* @__PURE__ */ u3("dd", { children: preview.origin.kind })
+      ] })
+    ] }) : null,
+    /* @__PURE__ */ u3("footer", { children: [
+      /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { type: "button", disabled: !preview, onClick: () => preview && onImport(preview), children: "Import Kit" })
+    ] })
+  ] });
+}
+
+// src/ui/kits/kit-receipt.tsx
+function KitReceipt({
+  receipt,
+  onDismiss,
+  onRetry
+}) {
+  return /* @__PURE__ */ u3("article", { class: "tavernary-companion-kit-receipt", children: [
+    /* @__PURE__ */ u3("header", { children: [
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("h3", { children: receipt.operation === "activate" && receipt.outcome === "completed" ? "Managed Kit activated" : `Kit ${receipt.outcome}` }),
+        receipt.previousActiveKitId && receipt.activeKitId === receipt.previousActiveKitId && receipt.outcome !== "completed" ? /* @__PURE__ */ u3("p", { children: [
+          receipt.previousActiveKitId,
+          " remains active."
+        ] }) : null
+      ] }),
+      /* @__PURE__ */ u3("button", { type: "button", onClick: onDismiss, children: "Dismiss" })
+    ] }),
+    /* @__PURE__ */ u3("ul", { children: receipt.projects.map((project, index) => /* @__PURE__ */ u3("li", { children: [
+      /* @__PURE__ */ u3("strong", { children: project.projectId }),
+      /* @__PURE__ */ u3("span", { children: [
+        project.action,
+        " \xB7 ",
+        project.status
+      ] }),
+      /* @__PURE__ */ u3("span", { children: project.message })
+    ] }, `${project.projectId}-${project.action}-${index}`)) }),
+    receipt.projects.some(({ retryable }) => retryable) ? /* @__PURE__ */ u3("button", { type: "button", onClick: onRetry, children: "Review retry" }) : null
+  ] });
+}
+
+// src/ui/kits/kit-operation-tray.tsx
+function KitOperationTray({
+  active,
+  receipt,
+  onDismiss,
+  onRetry
+}) {
+  if (active?.operationId.startsWith("kit:"))
+    return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-kit-operation-tray", role: "status", "aria-live": "polite", children: [
+      /* @__PURE__ */ u3("span", { "aria-hidden": "true" }),
+      " ",
+      /* @__PURE__ */ u3("p", { children: phase(active.phase) })
+    ] });
+  if (receipt)
+    return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-kit-operation-tray", children: /* @__PURE__ */ u3(KitReceipt, { receipt, onDismiss, onRetry }) });
+  return null;
+}
+function phase(value) {
+  if (value.startsWith("installing:")) return `Installing ${value.slice(11)}\u2026`;
+  if (value.startsWith("removing:")) return `Removing ${value.slice(9)}\u2026`;
+  return {
+    activating: "Activating managed extensions\u2026",
+    deactivating: "Deactivating managed extensions\u2026",
+    preflight: "Checking Kit plan\u2026"
+  }[value] ?? "Applying Kit changes\u2026";
+}
+
+// src/ui/kits/kit-impact-summary.tsx
+var groups = [
+  { key: "install", title: "Install" },
+  { key: "enable", title: "Enable" },
+  { key: "disable", title: "Disable" },
+  { key: "remove", title: "Remove" },
+  { key: "alreadyManaged", title: "Already managed" },
+  { key: "externalContext", title: "External, unchanged" },
+  { key: "contextOnly", title: "Context only" },
+  { key: "keptForOtherKits", title: "Kept for other Kits" }
+];
+function KitImpactSummary({ plan }) {
+  return /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-impact", children: [
+    groups.map(({ key, title }) => /* @__PURE__ */ u3(ImpactGroup, { title, steps: plan[key] }, key)),
+    plan.blockingIssues.length ? /* @__PURE__ */ u3("section", { children: [
+      /* @__PURE__ */ u3("h3", { children: "Cannot continue" }),
+      /* @__PURE__ */ u3("ul", { children: plan.blockingIssues.map((issue, index) => /* @__PURE__ */ u3("li", { children: issue.message }, `${issue.code}-${index}`)) })
+    ] }) : null
+  ] });
+}
+function ImpactGroup({
+  title,
+  steps
+}) {
+  return steps.length ? /* @__PURE__ */ u3("section", { children: [
+    /* @__PURE__ */ u3("h3", { children: title }),
+    /* @__PURE__ */ u3("ul", { children: steps.map((step2) => /* @__PURE__ */ u3("li", { children: step2.projectName }, step2.projectId)) })
+  ] }) : null;
+}
+
+// src/ui/kits/kit-warning-group.tsx
+function KitWarningGroup({
+  warnings,
+  onReview
+}) {
+  if (!warnings.length) return null;
+  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-warnings", role: "alert", children: [
+    /* @__PURE__ */ u3("h3", { children: "Security concerns" }),
+    /* @__PURE__ */ u3("p", { children: CURRENT_ASSESSMENT_WARNING }),
+    /* @__PURE__ */ u3("ul", { children: warnings.map((warning) => /* @__PURE__ */ u3("li", { children: [
+      /* @__PURE__ */ u3("span", { children: [
+        /* @__PURE__ */ u3("strong", { children: warning.projectName }),
+        " \xB7",
+        " ",
+        warning.severity === "high" ? "Immediate danger" : "Potential concern",
+        warning.freshness === "stale" ? " \xB7 stale assessment" : ""
+      ] }),
+      warning.reportUrl ? /* @__PURE__ */ u3("button", { type: "button", onClick: () => onReview(warning.reportUrl), children: "Scan Review" }) : /* @__PURE__ */ u3("span", { children: "No scan link available" })
+    ] }, warning.projectId)) })
+  ] });
+}
+
+// src/ui/kits/kit-preflight-dialog.tsx
+function KitPreflightDialog({
+  plan,
+  onCancel,
+  onReview,
+  onConfirm
+}) {
+  const confirm = plan.warnings.length ? "Install anyway" : {
+    install: "Install Kit",
+    activate: "Activate Kit",
+    deactivate: "Deactivate Kit",
+    uninstall: "Uninstall Kit"
+  }[plan.operation];
+  return /* @__PURE__ */ u3(DialogFrame, { label: `${confirm} review`, onCancel, children: [
+    /* @__PURE__ */ u3("header", { children: [
+      /* @__PURE__ */ u3("h2", { children: [
+        "Review ",
+        plan.operation,
+        " changes"
+      ] }),
+      /* @__PURE__ */ u3("p", { children: "Companion changes only extensions it manages. External extensions remain untouched." })
+    ] }),
+    /* @__PURE__ */ u3(KitImpactSummary, { plan }),
+    /* @__PURE__ */ u3(KitWarningGroup, { warnings: plan.warnings, onReview }),
+    /* @__PURE__ */ u3("footer", { children: [
+      /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" }),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          disabled: plan.blockingIssues.length > 0,
+          onClick: () => onConfirm({
+            planId: plan.id,
+            inventoryFingerprint: plan.inventoryFingerprint,
+            catalogGeneratedAt: plan.catalogGeneratedAt,
+            acceptedWarningProjectIds: plan.warnings.map(({ projectId }) => projectId)
+          }),
+          children: confirm
+        }
+      )
+    ] })
+  ] });
+}
+
 // src/ui/lifecycle/assessment-warning-dialog.tsx
 function AssessmentWarningDialog({
   projectName: projectName2,
@@ -5148,10 +6663,10 @@ function OperationReceipt({
     /* @__PURE__ */ u3("h3", { children: receiptHeading(receipt) }),
     receipt.safeError ? /* @__PURE__ */ u3("p", { children: receipt.safeError }) : null,
     receipt.reloadRequired ? /* @__PURE__ */ u3("p", { children: "Reload required" }) : null,
-    /* @__PURE__ */ u3("ol", { children: receipt.steps.map((step) => /* @__PURE__ */ u3("li", { "data-status": step.status, children: [
-      stepLabel(step.id),
+    /* @__PURE__ */ u3("ol", { children: receipt.steps.map((step2) => /* @__PURE__ */ u3("li", { "data-status": step2.status, children: [
+      stepLabel(step2.id),
       ": ",
-      step.status
+      step2.status
     ] })) }),
     /* @__PURE__ */ u3("p", { children: succeeded ? "Verified against SillyTavern." : "No unverified success was recorded." }),
     onDismiss ? /* @__PURE__ */ u3("button", { type: "button", onClick: onDismiss, children: "Dismiss" }) : null
@@ -5205,7 +6720,7 @@ function OperationTray({
   }
   return null;
 }
-function phaseLabel(phase) {
+function phaseLabel(phase2) {
   return {
     preflight: "Checking project eligibility\u2026",
     discovering: "Reading installed extensions\u2026",
@@ -5213,7 +6728,7 @@ function phaseLabel(phase) {
     "host-request": "SillyTavern is applying the change\u2026",
     verifying: "Verifying installed state\u2026",
     recording: "Recording verified state\u2026"
-  }[phase] ?? "Working\u2026";
+  }[phase2] ?? "Working\u2026";
 }
 
 // src/ui/lifecycle/removal-dialog.tsx
@@ -5354,6 +6869,304 @@ function InstalledRoute({
       },
       section.id
     ))
+  ] });
+}
+
+// src/ui/kits/kit-component-group.tsx
+function KitComponentGroup({
+  title,
+  components
+}) {
+  if (!components.length) return null;
+  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-components", children: [
+    /* @__PURE__ */ u3("h3", { children: title }),
+    /* @__PURE__ */ u3("ul", { children: components.map((component2) => /* @__PURE__ */ u3("li", { children: [
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("strong", { children: component2.name }),
+        /* @__PURE__ */ u3("span", { children: [
+          component2.available ? "Available" : "Unavailable",
+          component2.assessment ? ` \xB7 ${component2.assessment} concern` : ""
+        ] })
+      ] }),
+      component2.canonicalUrl ? /* @__PURE__ */ u3("a", { href: component2.canonicalUrl, target: "_blank", rel: "noreferrer", children: "Project" }) : null
+    ] }, component2.projectId)) })
+  ] });
+}
+
+// src/ui/kits/kit-inspector.tsx
+var groups2 = [
+  { id: "managed", title: "Managed/actionable extensions" },
+  { id: "external", title: "External extensions" },
+  { id: "context", title: "Context-only projects" },
+  { id: "unavailable", title: "Unavailable or changed" }
+];
+function KitInspector({
+  kit,
+  disabled,
+  onAction,
+  onEdit,
+  onCopy,
+  onExport,
+  onUninstall
+}) {
+  return /* @__PURE__ */ u3("article", { class: "tavernary-companion-kit-inspector", children: [
+    /* @__PURE__ */ u3("header", { children: [
+      /* @__PURE__ */ u3("p", { children: [
+        kit.originLabel,
+        " \xB7 ",
+        kit.operationalStatus
+      ] }),
+      /* @__PURE__ */ u3("h2", { children: kit.title }),
+      /* @__PURE__ */ u3("p", { children: kit.description })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-inspector__actions", children: [
+      /* @__PURE__ */ u3("button", { type: "button", disabled, onClick: () => onAction(kit.primaryAction), children: kit.primaryAction.label }),
+      kit.editable ? /* @__PURE__ */ u3("button", { type: "button", onClick: onEdit, children: "Edit" }) : /* @__PURE__ */ u3("button", { type: "button", onClick: onCopy, children: "Copy to Personal Kits" }),
+      kit.editable ? /* @__PURE__ */ u3("button", { type: "button", onClick: onExport, children: "Export" }) : null,
+      kit.operationalStatus !== "Saved" ? /* @__PURE__ */ u3("button", { type: "button", disabled, onClick: onUninstall, children: "Uninstall Kit" }) : null
+    ] }),
+    groups2.map(({ id, title }) => /* @__PURE__ */ u3(
+      KitComponentGroup,
+      {
+        title,
+        components: kit.components.filter(({ group }) => group === id)
+      },
+      id
+    ))
+  ] });
+}
+
+// src/ui/kits/kit-card.tsx
+function KitCard({
+  kit,
+  disabled,
+  onOpen,
+  onAction
+}) {
+  return /* @__PURE__ */ u3("article", { class: "tavernary-companion-kit-card", "data-kit-id": kit.id, children: [
+    /* @__PURE__ */ u3("header", { children: [
+      /* @__PURE__ */ u3("h3", { children: kit.title }),
+      /* @__PURE__ */ u3("span", { children: kit.originLabel })
+    ] }),
+    /* @__PURE__ */ u3("p", { children: kit.description || "No description provided." }),
+    /* @__PURE__ */ u3("dl", { children: [
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("dt", { children: "Components" }),
+        /* @__PURE__ */ u3("dd", { children: kit.componentCount })
+      ] }),
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("dt", { children: "Status" }),
+        /* @__PURE__ */ u3("dd", { children: kit.operationalStatus })
+      ] }),
+      kit.flaggedCount ? /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("dt", { children: "Flagged" }),
+        /* @__PURE__ */ u3("dd", { children: kit.flaggedCount })
+      ] }) : null
+    ] }),
+    /* @__PURE__ */ u3("footer", { children: [
+      /* @__PURE__ */ u3("button", { type: "button", "data-focus-key": `kit-${kit.id}`, onClick: onOpen, children: "Details" }),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          class: "tavernary-companion-kit-card__primary",
+          disabled,
+          onClick: () => onAction(kit.primaryAction),
+          children: kit.primaryAction.label
+        }
+      )
+    ] })
+  ] });
+}
+
+// src/ui/kits/kit-filter-panel.tsx
+function KitFilterPanel({
+  query,
+  onChange
+}) {
+  const update = (change) => onChange({ ...query, ...change });
+  return /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-kit-filters", children: [
+    /* @__PURE__ */ u3("legend", { children: "Published Kit filters" }),
+    /* @__PURE__ */ u3("label", { children: [
+      "Frontend",
+      " ",
+      /* @__PURE__ */ u3(
+        "input",
+        {
+          value: query.frontends.join(", "),
+          onInput: (event) => update({ frontends: split(event.currentTarget.value) })
+        }
+      )
+    ] }),
+    /* @__PURE__ */ u3("label", { children: [
+      "Purpose",
+      " ",
+      /* @__PURE__ */ u3(
+        "input",
+        {
+          value: query.purposes.join(", "),
+          onInput: (event) => update({ purposes: split(event.currentTarget.value) })
+        }
+      )
+    ] }),
+    /* @__PURE__ */ u3("label", { children: [
+      "Model family",
+      " ",
+      /* @__PURE__ */ u3(
+        "input",
+        {
+          value: (query.modelFamilies ?? []).join(", "),
+          onInput: (event) => update({ modelFamilies: split(event.currentTarget.value) })
+        }
+      )
+    ] }),
+    /* @__PURE__ */ u3("label", { children: [
+      "Includes project",
+      " ",
+      /* @__PURE__ */ u3(
+        "input",
+        {
+          value: query.includesProjectId,
+          onInput: (event) => update({ includesProjectId: event.currentTarget.value.trim() })
+        }
+      )
+    ] }),
+    /* @__PURE__ */ u3("label", { children: [
+      "Minimum components",
+      " ",
+      /* @__PURE__ */ u3(
+        "input",
+        {
+          type: "number",
+          min: "0",
+          max: "50",
+          value: query.minProjects,
+          onInput: (event) => update({ minProjects: event.currentTarget.valueAsNumber || 0 })
+        }
+      )
+    ] }),
+    /* @__PURE__ */ u3("label", { children: [
+      "Maximum components",
+      " ",
+      /* @__PURE__ */ u3(
+        "input",
+        {
+          type: "number",
+          min: "1",
+          max: "100",
+          value: query.maxProjects,
+          onInput: (event) => update({ maxProjects: event.currentTarget.valueAsNumber || 50 })
+        }
+      )
+    ] }),
+    /* @__PURE__ */ u3("label", { children: [
+      /* @__PURE__ */ u3(
+        "input",
+        {
+          type: "checkbox",
+          checked: query.allComponentsAvailable,
+          onChange: (event) => update({ allComponentsAvailable: event.currentTarget.checked })
+        }
+      ),
+      " ",
+      "All components available"
+    ] }),
+    /* @__PURE__ */ u3("label", { children: [
+      "Sort",
+      " ",
+      /* @__PURE__ */ u3(
+        "select",
+        {
+          value: query.sort,
+          onChange: (event) => update({ sort: event.currentTarget.value }),
+          children: [
+            /* @__PURE__ */ u3("option", { value: "trending", children: "Trending" }),
+            /* @__PURE__ */ u3("option", { value: "newest", children: "Newest" }),
+            /* @__PURE__ */ u3("option", { value: "updated", children: "Recently updated" }),
+            /* @__PURE__ */ u3("option", { value: "alphabetical", children: "Alphabetical" }),
+            /* @__PURE__ */ u3("option", { value: "relevance", children: "Relevance" })
+          ]
+        }
+      )
+    ] })
+  ] });
+}
+function split(value) {
+  return value.split(",").map((part) => part.trim()).filter(Boolean);
+}
+
+// src/ui/kits/kits-route.tsx
+function KitsRoute({
+  controller,
+  lifecycleDisabled = false,
+  onOpenKit,
+  onAction,
+  onNewKit,
+  onImport
+}) {
+  const [state, setState] = d2(controller.read());
+  h2(() => controller.subscribe(setState), [controller]);
+  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-kits-route", "aria-labelledby": "kits-heading", children: [
+    /* @__PURE__ */ u3("header", { children: [
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("h2", { id: "kits-heading", children: "Kits" }),
+        /* @__PURE__ */ u3("p", { children: "Save, install, and switch extension collections." })
+      ] }),
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("button", { type: "button", onClick: onNewKit, children: "New Kit" }),
+        /* @__PURE__ */ u3("button", { type: "button", onClick: onImport, children: "Import" })
+      ] })
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-segments", role: "tablist", "aria-label": "Kit sources", children: [
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          role: "tab",
+          "aria-selected": state.segment === "published",
+          onClick: () => controller.setSegment("published"),
+          children: [
+            "Published ",
+            /* @__PURE__ */ u3("span", { children: state.publishedCount })
+          ]
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          role: "tab",
+          "aria-selected": state.segment === "personal",
+          onClick: () => controller.setSegment("personal"),
+          children: [
+            "Personal ",
+            /* @__PURE__ */ u3("span", { children: state.personalCount })
+          ]
+        }
+      )
+    ] }),
+    /* @__PURE__ */ u3("label", { class: "tavernary-companion-kit-search", children: [
+      "Search Kits",
+      /* @__PURE__ */ u3(
+        "input",
+        {
+          type: "search",
+          value: state.search,
+          onInput: (event) => controller.setSearch(event.currentTarget.value)
+        }
+      )
+    ] }),
+    state.segment === "published" ? /* @__PURE__ */ u3(KitFilterPanel, { query: state.query, onChange: (query) => controller.setQuery(query) }) : null,
+    state.visible.length ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-grid", children: state.visible.map((kit) => /* @__PURE__ */ u3(
+      KitCard,
+      {
+        kit,
+        disabled: lifecycleDisabled,
+        onOpen: () => onOpenKit(kit.id),
+        onAction: (action) => onAction(kit.id, action)
+      },
+      `${kit.origin}-${kit.id}`
+    )) }) : /* @__PURE__ */ u3("p", { children: "No Kits match the current view." })
   ] });
 }
 
@@ -5848,7 +7661,9 @@ function ProjectCard({
   onOpen,
   onAction,
   onManageInSillyTavern,
-  lifecycleDisabled = false
+  lifecycleDisabled = false,
+  kitSelectionActive = false,
+  onAddToKit
 }) {
   const selfProtected = project.id === COMPANION_PROJECT_ID || project.action.kind === "current-extension";
   return /* @__PURE__ */ u3("article", { class: "tavernary-companion-project-card", "data-project-id": project.id, children: [
@@ -5868,6 +7683,7 @@ function ProjectCard({
     ] }),
     project.action.reason ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__reason", children: project.action.reason }) : null,
     /* @__PURE__ */ u3("footer", { children: [
+      kitSelectionActive && !selfProtected && project.kind === "extension" ? /* @__PURE__ */ u3("button", { type: "button", onClick: () => onAddToKit?.(project.id), children: "Add to Kit" }) : null,
       /* @__PURE__ */ u3(
         "button",
         {
@@ -6125,6 +7941,15 @@ function CompanionShell({
   inventoryRefreshing = false,
   onOpenExtensionManager,
   lifecycleDisabled = false,
+  kitDiscovery,
+  kitInspectors = {},
+  onKitAction,
+  onNewKit,
+  onImportKit,
+  onEditKit,
+  onCopyKit,
+  onExportKit,
+  onUninstallKit,
   catalogSnapshot,
   catalogRefreshing = false,
   onRefreshCatalog = noRefresh,
@@ -6218,7 +8043,17 @@ function CompanionShell({
                 {
                   "aria-labelledby": "tavernary-companion-kits-heading",
                   hidden: state.route !== "kits" || Boolean(detail),
-                  children: /* @__PURE__ */ u3("h2", { id: "tavernary-companion-kits-heading", children: "Kits" })
+                  children: kitDiscovery ? /* @__PURE__ */ u3(
+                    KitsRoute,
+                    {
+                      controller: kitDiscovery,
+                      lifecycleDisabled,
+                      onOpenKit: (id) => controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` }),
+                      onAction: (id, action) => onKitAction?.(id, action),
+                      onNewKit,
+                      onImport: onImportKit
+                    }
+                  ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-kits-heading", children: "Kits" })
                 }
               ),
               /* @__PURE__ */ u3(
@@ -6249,6 +8084,17 @@ function CompanionShell({
                     onAction: (action) => onProjectAction?.(detail.id, action),
                     onManageInSillyTavern: onOpenExtensionManager,
                     lifecycleDisabled
+                  }
+                ) : detail.kind === "kit" && kitInspectors[detail.id] ? /* @__PURE__ */ u3(
+                  KitInspector,
+                  {
+                    kit: kitInspectors[detail.id],
+                    disabled: lifecycleDisabled,
+                    onAction: (action) => onKitAction?.(detail.id, action),
+                    onEdit: () => onEditKit?.(detail.id),
+                    onCopy: () => onCopyKit?.(detail.id),
+                    onExport: () => onExportKit?.(detail.id),
+                    onUninstall: () => onUninstallKit?.(detail.id)
                   }
                 ) : /* @__PURE__ */ u3("h2", { children: projectName(projects, discoveryState, detail.id) })
               ] }) : null
@@ -6281,12 +8127,12 @@ function CatalogBoundary({
   );
 }
 function restoreAfterBack(controller) {
-  const result = controller.back();
-  if (!result.handled || !result.focusKey) return;
+  const result2 = controller.back();
+  if (!result2.handled || !result2.focusKey) return;
   queueMicrotask(() => {
     const candidates = document.querySelectorAll("[data-focus-key]");
     for (const candidate of candidates) {
-      if (candidate.dataset.focusKey === result.focusKey) {
+      if (candidate.dataset.focusKey === result2.focusKey) {
         candidate.focus();
         return;
       }
@@ -6414,24 +8260,49 @@ function CompanionPopupHost({ store, host }) {
   const [receipt, setReceipt] = d2(
     parseReceipt(store?.read().operationReceipt)
   );
+  const [kitReceipt, setKitReceipt] = d2(
+    parseKitReceipt(store?.read().operationReceipt)
+  );
+  const [pendingKitPlan, setPendingKitPlan] = d2(null);
+  const [kitDisclosurePlan, setKitDisclosurePlan] = d2(null);
+  const [kitEditorSource, setKitEditorSource] = d2(null);
+  const [importingKit, setImportingKit] = d2(false);
+  const [kitInspectors, setKitInspectors] = d2({});
   const [operationError, setOperationError] = d2(null);
+  const syncKits = q2(() => {
+    if (!runtime || !store) return;
+    const snapshot = runtime.catalog.read();
+    if (!("catalog" in snapshot)) return;
+    const presentation = buildKitPresentation(
+      snapshot.catalog,
+      runtime.kits,
+      runtime.kitContext.inventory
+    );
+    runtime.kitDiscovery.setData({
+      catalog: snapshot.catalog,
+      personal: runtime.kits.readDefinitions(),
+      statuses: presentation.statuses
+    });
+    setKitInspectors(presentation.inspectors);
+  }, [runtime, store]);
   const refreshInventory = q2(async () => {
     if (!runtime || !host || !store) return;
     setInventoryRefreshing(true);
     try {
       const extensions = await host.discover();
       const snapshot = runtime.catalog.read();
-      runtime.discovery.setInventory(
-        reconcileInventory({
-          projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
-          hostExtensions: extensions,
-          managed: normalizeManagedExtensionMap(store.read().managedExtensions)
-        })
-      );
+      const inventory = reconcileInventory({
+        projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
+        hostExtensions: extensions,
+        managed: normalizeManagedExtensionMap(store.read().managedExtensions)
+      });
+      runtime.kitContext.inventory = inventory;
+      runtime.discovery.setInventory(inventory);
+      syncKits();
     } finally {
       setInventoryRefreshing(false);
     }
-  }, [host, runtime, store]);
+  }, [host, runtime, store, syncKits]);
   const refreshCatalog = q2(async () => {
     if (!runtime) return;
     setCatalogRefreshing(true);
@@ -6452,11 +8323,20 @@ function CompanionPopupHost({ store, host }) {
     const unsubscribePrompts = runtime.prompts.subscribe(setPendingPrompt);
     const unsubscribeStore = store?.subscribe((state) => {
       setReceipt(parseReceipt(state.operationReceipt));
+      setKitReceipt(parseKitReceipt(state.operationReceipt));
+      syncKits();
     });
     const onFocus = () => void runtime.catalog.onFocus();
     window.addEventListener("focus", onFocus);
     setCatalogRefreshing(true);
-    void runtime.catalog.open().finally(() => setCatalogRefreshing(false));
+    void runtime.catalog.open().finally(async () => {
+      setCatalogRefreshing(false);
+      if (runtime.kitExecutor.journal.read()) {
+        await refreshInventory();
+        setKitReceipt(await runtime.kitExecutor.recoverInterrupted());
+        syncKits();
+      }
+    });
     return () => {
       unsubscribeCatalog();
       unsubscribeLock();
@@ -6465,14 +8345,14 @@ function CompanionPopupHost({ store, host }) {
       runtime.prompts.cancel();
       window.removeEventListener("focus", onFocus);
     };
-  }, [refreshInventory, runtime, store]);
+  }, [refreshInventory, runtime, store, syncKits]);
   const runAction = async (projectId, action) => {
     if (!runtime || !host) return;
     setOperationError(null);
     try {
       if (action.kind === "install") {
-        const result = await runtime.lifecycle.install(projectId);
-        setReceipt(result);
+        const result2 = await runtime.lifecycle.install(projectId);
+        setReceipt(result2);
         await refreshInventory();
       } else if (action.kind === "uninstall") {
         setRemovalImpact(await runtime.lifecycle.previewRemoval(projectId));
@@ -6483,6 +8363,62 @@ function CompanionPopupHost({ store, host }) {
       setOperationError(error instanceof Error ? error.message : "The operation could not finish.");
     }
   };
+  const requestKitAction = (kitId, action) => {
+    if (!runtime || !store) return;
+    if (action !== "uninstall" && action.kind === "review") return;
+    const snapshot = runtime.catalog.read();
+    if (!("catalog" in snapshot)) return;
+    const kit = resolveKit(runtime, snapshot.catalog, kitId);
+    if (!kit) return;
+    const operation = action === "uninstall" ? "uninstall" : action.kind === "activate" ? "activate" : action.kind === "deactivate" ? "deactivate" : "install";
+    const plan = planKitOperation({
+      operation,
+      kit,
+      catalog: snapshot.catalog,
+      inventory: runtime.kitContext.inventory,
+      managed: normalizeManagedExtensionMap(store.read().managedExtensions),
+      installedKits: runtime.kits.readInstalledStates(),
+      activeKitId: runtime.kits.readActiveId(),
+      catalogCanMutate: snapshot.canMutate
+    });
+    if (!store.read().trustAcknowledgedAt && plan.install.length) setKitDisclosurePlan(plan);
+    else setPendingKitPlan(plan);
+  };
+  const executeKitPlan = async (plan, approval) => {
+    if (!runtime) return;
+    setPendingKitPlan(null);
+    setOperationError(null);
+    try {
+      const result2 = await runtime.kitExecutor.execute(plan, approval);
+      setKitReceipt(result2);
+      await refreshInventory();
+      syncKits();
+    } catch (error) {
+      setOperationError(
+        error instanceof Error ? error.message : "The Kit operation could not finish."
+      );
+    }
+  };
+  const saveKitDraft = async (draft) => {
+    if (!runtime) return;
+    if (draft.sourceId) {
+      await runtime.kits.update(draft.sourceId, {
+        title: draft.title,
+        description: draft.description,
+        projectIds: draft.projectIds
+      });
+    } else {
+      await runtime.kits.create({
+        title: draft.title,
+        description: draft.description,
+        projectIds: draft.projectIds
+      });
+    }
+    setKitEditorSource(null);
+    syncKits();
+  };
+  const runtimeCatalog = runtime?.catalog.read();
+  const kitEditorProjects = runtimeCatalog && "catalog" in runtimeCatalog ? runtimeCatalog.catalog.projects : null;
   return /* @__PURE__ */ u3(S, { children: [
     /* @__PURE__ */ u3(
       CompanionShell,
@@ -6498,9 +8434,77 @@ function CompanionPopupHost({ store, host }) {
         onOpenExtensionManager: () => void host?.openExtensionManager(),
         onUpdateCompanion: () => void host?.openExtensionManager(),
         onOpenTavernary: () => host?.openExternal("https://tavernary.org/"),
-        lifecycleDisabled: activeOperation !== null
+        lifecycleDisabled: activeOperation !== null,
+        kitDiscovery: runtime?.kitDiscovery,
+        kitInspectors,
+        onKitAction: requestKitAction,
+        onNewKit: () => setKitEditorSource("new"),
+        onImportKit: () => setImportingKit(true),
+        onEditKit: (id) => {
+          const kit = runtime?.kits.readDefinition(id);
+          if (kit) setKitEditorSource(kit);
+        },
+        onCopyKit: (id) => {
+          const snapshot = runtime?.catalog.read();
+          const kit = snapshot && "catalog" in snapshot ? snapshot.catalog.kits.find((item) => item.id === id) : null;
+          if (kit) void runtime?.kits.copyPublished(kit).then(syncKits);
+        },
+        onExportKit: (id) => {
+          const kit = runtime?.kits.readDefinition(id);
+          if (kit) exportKitFile(kit);
+        },
+        onUninstallKit: (id) => requestKitAction(id, "uninstall")
       }
     ),
+    kitEditorSource && kitEditorProjects ? /* @__PURE__ */ u3(
+      KitEditor,
+      {
+        source: kitEditorSource === "new" ? void 0 : kitEditorSource,
+        projects: kitEditorProjects,
+        onCancel: () => setKitEditorSource(null),
+        onSave: (draft) => void saveKitDraft(draft)
+      }
+    ) : null,
+    importingKit && runtime ? /* @__PURE__ */ u3(
+      KitImportDialog,
+      {
+        onCancel: () => setImportingKit(false),
+        onImport: (kit) => {
+          const prepared = prepareImportedKit(
+            kit,
+            new Set(runtime.kits.readDefinitions().map(({ id }) => id))
+          );
+          void runtime.kits.importDefinition(prepared).then(() => {
+            setImportingKit(false);
+            syncKits();
+          });
+        }
+      }
+    ) : null,
+    kitDisclosurePlan ? /* @__PURE__ */ u3(
+      TrustDisclosureDialog,
+      {
+        prompt: { kind: "unsandboxed-disclosure", copy: UNSANDBOXED_CODE_DISCLOSURE },
+        onCancel: () => setKitDisclosurePlan(null),
+        onConfirm: () => {
+          const plan = kitDisclosurePlan;
+          setKitDisclosurePlan(null);
+          void store?.update((draft) => {
+            draft.trustAcknowledgedAt = (/* @__PURE__ */ new Date()).toISOString();
+          });
+          setPendingKitPlan(plan);
+        }
+      }
+    ) : null,
+    pendingKitPlan ? /* @__PURE__ */ u3(
+      KitPreflightDialog,
+      {
+        plan: pendingKitPlan,
+        onCancel: () => setPendingKitPlan(null),
+        onReview: (url) => host?.openExternal(url),
+        onConfirm: (approval) => void executeKitPlan(pendingKitPlan, approval)
+      }
+    ) : null,
     pendingPrompt?.prompt.kind === "unsandboxed-disclosure" ? /* @__PURE__ */ u3(
       TrustDisclosureDialog,
       {
@@ -6527,8 +8531,8 @@ function CompanionPopupHost({ store, host }) {
         onConfirm: () => {
           const projectId = removalImpact.projectId;
           setRemovalImpact(null);
-          void runtime?.lifecycle.remove(projectId).then(async (result) => {
-            setReceipt(result);
+          void runtime?.lifecycle.remove(projectId).then(async (result2) => {
+            setReceipt(result2);
             await refreshInventory();
           });
         }
@@ -6537,11 +8541,24 @@ function CompanionPopupHost({ store, host }) {
     /* @__PURE__ */ u3(
       OperationTray,
       {
-        active: activeOperation,
+        active: activeOperation?.operationId.startsWith("kit:") ? null : activeOperation,
         receipt,
         error: operationError,
         onDismissReceipt: () => setReceipt(null),
         onDismissError: () => setOperationError(null)
+      }
+    ),
+    /* @__PURE__ */ u3(
+      KitOperationTray,
+      {
+        active: activeOperation,
+        receipt: kitReceipt,
+        onDismiss: () => setKitReceipt(null),
+        onRetry: () => {
+          if (!kitReceipt) return;
+          const action = kitReceipt.operation === "activate" ? { kind: "activate", label: "Activate" } : { kind: "retry", label: "Retry" };
+          requestKitAction(kitReceipt.kitId, action);
+        }
       }
     )
   ] });
@@ -6553,6 +8570,19 @@ function createPopupRuntime(store, host) {
     snapshot: catalog.read(),
     inventory: emptyInventory
   });
+  const kits = new KitStore(store);
+  const kitContext = { inventory: emptyInventory };
+  const kitDiscovery = createKitDiscoveryController({
+    catalog: {
+      schemaVersion: 7,
+      generatedAt: (/* @__PURE__ */ new Date(0)).toISOString(),
+      tagVocabulary: [],
+      projects: [],
+      kits: []
+    },
+    personal: kits.readDefinitions(),
+    statuses: /* @__PURE__ */ new Map()
+  });
   const prompts = new TrustPromptBroker();
   const lifecycle = createLifecycleCoordinator({
     host,
@@ -6560,13 +8590,68 @@ function createPopupRuntime(store, host) {
     getSnapshot: () => catalog.read(),
     confirm: (prompt, project) => prompts.request(prompt, project)
   });
-  return { catalog, discovery, lifecycle, prompts };
+  const lock = lifecycle.lock;
+  const kitExecutor = createKitExecutor({
+    host,
+    profile: store,
+    kits,
+    lock,
+    getCatalog: () => {
+      const snapshot = catalog.read();
+      if (!("catalog" in snapshot)) throw new Error("A compatible catalog is required.");
+      return snapshot.catalog;
+    },
+    getInventoryFingerprint: () => inventoryFingerprint({
+      inventory: kitContext.inventory,
+      managed: normalizeManagedExtensionMap(store.read().managedExtensions),
+      installedKits: kits.readInstalledStates(),
+      activeKitId: kits.readActiveId()
+    })
+  });
+  return { catalog, discovery, lifecycle, prompts, kits, kitDiscovery, kitExecutor, kitContext };
 }
 function parseReceipt(value) {
   if (!value || typeof value.id !== "string" || value.kind !== "install" && value.kind !== "remove" || typeof value.projectId !== "string" || typeof value.projectName !== "string" || !Array.isArray(value.steps)) {
     return null;
   }
   return structuredClone(value);
+}
+function parseKitReceipt(value) {
+  if (!value || value.kind !== "kit-operation" || value.formatVersion !== 1 || typeof value.id !== "string" || typeof value.planId !== "string" || typeof value.kitId !== "string" || !Array.isArray(value.projects)) {
+    return null;
+  }
+  return structuredClone(value);
+}
+function resolveKit(runtime, catalog, kitId) {
+  const personal = runtime.kits.readDefinition(kitId);
+  if (personal) return { id: personal.id, projectIds: personal.projectIds, origin: "personal" };
+  const published = catalog.kits.find((kit) => kit.id === kitId);
+  return published ? {
+    id: published.id,
+    projectIds: published.components.map(({ projectId }) => projectId),
+    origin: "published"
+  } : null;
+}
+function buildKitPresentation(catalog, kits, inventory) {
+  const statuses = /* @__PURE__ */ new Map();
+  const activeId = kits.readActiveId();
+  for (const state of kits.readInstalledStates()) {
+    statuses.set(
+      state.kitId,
+      activeId === state.kitId ? state.status === "drifted" ? "drifted" : "active" : state.status
+    );
+  }
+  const inspectors = {};
+  for (const kit of kits.readDefinitions()) {
+    const status = statuses.get(kit.id) ?? "saved";
+    inspectors[kit.id] = toPersonalKitInspector(kit, catalog.projects, status);
+  }
+  for (const kit of catalog.kits) {
+    const status = statuses.get(kit.id) ?? "saved";
+    inspectors[kit.id] = toPublishedKitInspector(kit, status);
+  }
+  void inventory;
+  return { statuses, inspectors };
 }
 function renderCompanionPopup(container, options = {}) {
   R(/* @__PURE__ */ u3(CompanionPopupHost, { ...options }), container);

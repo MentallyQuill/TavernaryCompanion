@@ -7,6 +7,7 @@ import { createIndexedDbCatalogCache } from "../catalog/indexeddb-catalog-cache"
 import type { ProjectPrimaryAction } from "../catalog/project-view-model";
 import type { HostExtensionAdapter } from "../host/host-types";
 import { reconcileInventory } from "../inventory/inventory-reconciler";
+import type { InventorySnapshot } from "../inventory/inventory-types";
 import { normalizeManagedExtensionMap } from "../inventory/managed-registry";
 import {
   createLifecycleCoordinator,
@@ -17,6 +18,28 @@ import type { LifecycleReceipt } from "../lifecycle/operation-receipt";
 import type { RemovalImpact } from "../lifecycle/removal-impact";
 import { TrustPromptBroker, type PendingTrustPrompt } from "../lifecycle/trust-prompt-broker";
 import type { ProfileStore } from "../state/profile-store";
+import { createKitDiscoveryController } from "../kits/kit-discovery-controller";
+import { createKitExecutor, type KitExecutor } from "../kits/kit-executor";
+import { planKitOperation, inventoryFingerprint, type PlannableKit } from "../kits/kit-planner";
+import type { KitPlan, KitOperation } from "../kits/kit-plan";
+import { prepareImportedKit } from "../kits/kit-portability";
+import type { KitReceipt } from "../kits/kit-receipt";
+import { KitStore } from "../kits/kit-store";
+import type { PersonalKitV1 } from "../kits/kit-types";
+import {
+  toPersonalKitInspector,
+  toPublishedKitInspector,
+  type KitInspectorViewModel,
+  type KitPrimaryAction,
+} from "../kits/kit-view-model";
+import type { ReconciledKitStatus } from "../kits/kit-reconciler";
+import { UNSANDBOXED_CODE_DISCLOSURE } from "../trust/trust-copy";
+import { exportKitFile } from "./kits/kit-export-action";
+import { KitEditor } from "./kits/kit-editor";
+import type { KitDraftState } from "../kits/kit-draft";
+import { KitImportDialog } from "./kits/kit-import-dialog";
+import { KitOperationTray } from "./kits/kit-operation-tray";
+import { KitPreflightDialog } from "./kits/kit-preflight-dialog";
 import { AssessmentWarningDialog } from "./lifecycle/assessment-warning-dialog";
 import { OperationTray } from "./lifecycle/operation-tray";
 import { RemovalDialog } from "./lifecycle/removal-dialog";
@@ -34,6 +57,10 @@ interface PopupRuntime {
   discovery: ReturnType<typeof createDiscoveryController>;
   lifecycle: LifecycleCoordinator;
   prompts: TrustPromptBroker;
+  kits: KitStore;
+  kitDiscovery: ReturnType<typeof createKitDiscoveryController>;
+  kitExecutor: KitExecutor;
+  kitContext: { inventory: InventorySnapshot };
 }
 
 const emptyInventory = { managed: [], external: [], unknown: [], missingManaged: [] };
@@ -69,7 +96,32 @@ export function CompanionPopupHost({ store, host }: CompanionPopupHostProps): pr
   const [receipt, setReceipt] = useState<LifecycleReceipt | null>(
     parseReceipt(store?.read().operationReceipt),
   );
+  const [kitReceipt, setKitReceipt] = useState<KitReceipt | null>(
+    parseKitReceipt(store?.read().operationReceipt),
+  );
+  const [pendingKitPlan, setPendingKitPlan] = useState<Readonly<KitPlan> | null>(null);
+  const [kitDisclosurePlan, setKitDisclosurePlan] = useState<Readonly<KitPlan> | null>(null);
+  const [kitEditorSource, setKitEditorSource] = useState<PersonalKitV1 | "new" | null>(null);
+  const [importingKit, setImportingKit] = useState(false);
+  const [kitInspectors, setKitInspectors] = useState<Record<string, KitInspectorViewModel>>({});
   const [operationError, setOperationError] = useState<string | null>(null);
+
+  const syncKits = useCallback(() => {
+    if (!runtime || !store) return;
+    const snapshot = runtime.catalog.read();
+    if (!("catalog" in snapshot)) return;
+    const presentation = buildKitPresentation(
+      snapshot.catalog,
+      runtime.kits,
+      runtime.kitContext.inventory,
+    );
+    runtime.kitDiscovery.setData({
+      catalog: snapshot.catalog,
+      personal: runtime.kits.readDefinitions(),
+      statuses: presentation.statuses,
+    });
+    setKitInspectors(presentation.inspectors);
+  }, [runtime, store]);
 
   const refreshInventory = useCallback(async () => {
     if (!runtime || !host || !store) return;
@@ -77,17 +129,18 @@ export function CompanionPopupHost({ store, host }: CompanionPopupHostProps): pr
     try {
       const extensions = await host.discover();
       const snapshot = runtime.catalog.read();
-      runtime.discovery.setInventory(
-        reconcileInventory({
-          projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
-          hostExtensions: extensions,
-          managed: normalizeManagedExtensionMap(store.read().managedExtensions),
-        }),
-      );
+      const inventory = reconcileInventory({
+        projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
+        hostExtensions: extensions,
+        managed: normalizeManagedExtensionMap(store.read().managedExtensions),
+      });
+      runtime.kitContext.inventory = inventory;
+      runtime.discovery.setInventory(inventory);
+      syncKits();
     } finally {
       setInventoryRefreshing(false);
     }
-  }, [host, runtime, store]);
+  }, [host, runtime, store, syncKits]);
 
   const refreshCatalog = useCallback(async () => {
     if (!runtime) return;
@@ -110,11 +163,20 @@ export function CompanionPopupHost({ store, host }: CompanionPopupHostProps): pr
     const unsubscribePrompts = runtime.prompts.subscribe(setPendingPrompt);
     const unsubscribeStore = store?.subscribe((state) => {
       setReceipt(parseReceipt(state.operationReceipt));
+      setKitReceipt(parseKitReceipt(state.operationReceipt));
+      syncKits();
     });
     const onFocus = () => void runtime.catalog.onFocus();
     window.addEventListener("focus", onFocus);
     setCatalogRefreshing(true);
-    void runtime.catalog.open().finally(() => setCatalogRefreshing(false));
+    void runtime.catalog.open().finally(async () => {
+      setCatalogRefreshing(false);
+      if (runtime.kitExecutor.journal.read()) {
+        await refreshInventory();
+        setKitReceipt(await runtime.kitExecutor.recoverInterrupted());
+        syncKits();
+      }
+    });
     return () => {
       unsubscribeCatalog();
       unsubscribeLock();
@@ -123,7 +185,7 @@ export function CompanionPopupHost({ store, host }: CompanionPopupHostProps): pr
       runtime.prompts.cancel();
       window.removeEventListener("focus", onFocus);
     };
-  }, [refreshInventory, runtime, store]);
+  }, [refreshInventory, runtime, store, syncKits]);
 
   const runAction = async (projectId: string, action: ProjectPrimaryAction) => {
     if (!runtime || !host) return;
@@ -143,6 +205,76 @@ export function CompanionPopupHost({ store, host }: CompanionPopupHostProps): pr
     }
   };
 
+  const requestKitAction = (kitId: string, action: KitPrimaryAction | "uninstall") => {
+    if (!runtime || !store) return;
+    if (action !== "uninstall" && action.kind === "review") return;
+    const snapshot = runtime.catalog.read();
+    if (!("catalog" in snapshot)) return;
+    const kit = resolveKit(runtime, snapshot.catalog, kitId);
+    if (!kit) return;
+    const operation: KitOperation =
+      action === "uninstall"
+        ? "uninstall"
+        : action.kind === "activate"
+          ? "activate"
+          : action.kind === "deactivate"
+            ? "deactivate"
+            : "install";
+    const plan = planKitOperation({
+      operation,
+      kit,
+      catalog: snapshot.catalog,
+      inventory: runtime.kitContext.inventory,
+      managed: normalizeManagedExtensionMap(store.read().managedExtensions),
+      installedKits: runtime.kits.readInstalledStates(),
+      activeKitId: runtime.kits.readActiveId(),
+      catalogCanMutate: snapshot.canMutate,
+    });
+    if (!store.read().trustAcknowledgedAt && plan.install.length) setKitDisclosurePlan(plan);
+    else setPendingKitPlan(plan);
+  };
+
+  const executeKitPlan = async (
+    plan: Readonly<KitPlan>,
+    approval: Parameters<KitExecutor["execute"]>[1],
+  ) => {
+    if (!runtime) return;
+    setPendingKitPlan(null);
+    setOperationError(null);
+    try {
+      const result = await runtime.kitExecutor.execute(plan, approval);
+      setKitReceipt(result);
+      await refreshInventory();
+      syncKits();
+    } catch (error) {
+      setOperationError(
+        error instanceof Error ? error.message : "The Kit operation could not finish.",
+      );
+    }
+  };
+
+  const saveKitDraft = async (draft: KitDraftState) => {
+    if (!runtime) return;
+    if (draft.sourceId) {
+      await runtime.kits.update(draft.sourceId, {
+        title: draft.title,
+        description: draft.description,
+        projectIds: draft.projectIds,
+      });
+    } else {
+      await runtime.kits.create({
+        title: draft.title,
+        description: draft.description,
+        projectIds: draft.projectIds,
+      });
+    }
+    setKitEditorSource(null);
+    syncKits();
+  };
+  const runtimeCatalog = runtime?.catalog.read();
+  const kitEditorProjects =
+    runtimeCatalog && "catalog" in runtimeCatalog ? runtimeCatalog.catalog.projects : null;
+
   return (
     <>
       <CompanionShell
@@ -158,7 +290,74 @@ export function CompanionPopupHost({ store, host }: CompanionPopupHostProps): pr
         onUpdateCompanion={() => void host?.openExtensionManager()}
         onOpenTavernary={() => host?.openExternal("https://tavernary.org/")}
         lifecycleDisabled={activeOperation !== null}
+        kitDiscovery={runtime?.kitDiscovery}
+        kitInspectors={kitInspectors}
+        onKitAction={requestKitAction}
+        onNewKit={() => setKitEditorSource("new")}
+        onImportKit={() => setImportingKit(true)}
+        onEditKit={(id) => {
+          const kit = runtime?.kits.readDefinition(id);
+          if (kit) setKitEditorSource(kit);
+        }}
+        onCopyKit={(id) => {
+          const snapshot = runtime?.catalog.read();
+          const kit =
+            snapshot && "catalog" in snapshot
+              ? snapshot.catalog.kits.find((item) => item.id === id)
+              : null;
+          if (kit) void runtime?.kits.copyPublished(kit).then(syncKits);
+        }}
+        onExportKit={(id) => {
+          const kit = runtime?.kits.readDefinition(id);
+          if (kit) exportKitFile(kit);
+        }}
+        onUninstallKit={(id) => requestKitAction(id, "uninstall")}
       />
+      {kitEditorSource && kitEditorProjects ? (
+        <KitEditor
+          source={kitEditorSource === "new" ? undefined : kitEditorSource}
+          projects={kitEditorProjects}
+          onCancel={() => setKitEditorSource(null)}
+          onSave={(draft) => void saveKitDraft(draft)}
+        />
+      ) : null}
+      {importingKit && runtime ? (
+        <KitImportDialog
+          onCancel={() => setImportingKit(false)}
+          onImport={(kit) => {
+            const prepared = prepareImportedKit(
+              kit,
+              new Set(runtime.kits.readDefinitions().map(({ id }) => id)),
+            );
+            void runtime.kits.importDefinition(prepared).then(() => {
+              setImportingKit(false);
+              syncKits();
+            });
+          }}
+        />
+      ) : null}
+      {kitDisclosurePlan ? (
+        <TrustDisclosureDialog
+          prompt={{ kind: "unsandboxed-disclosure", copy: UNSANDBOXED_CODE_DISCLOSURE }}
+          onCancel={() => setKitDisclosurePlan(null)}
+          onConfirm={() => {
+            const plan = kitDisclosurePlan;
+            setKitDisclosurePlan(null);
+            void store?.update((draft) => {
+              draft.trustAcknowledgedAt = new Date().toISOString();
+            });
+            setPendingKitPlan(plan);
+          }}
+        />
+      ) : null}
+      {pendingKitPlan ? (
+        <KitPreflightDialog
+          plan={pendingKitPlan}
+          onCancel={() => setPendingKitPlan(null)}
+          onReview={(url) => host?.openExternal(url)}
+          onConfirm={(approval) => void executeKitPlan(pendingKitPlan, approval)}
+        />
+      ) : null}
       {pendingPrompt?.prompt.kind === "unsandboxed-disclosure" ? (
         <TrustDisclosureDialog
           prompt={pendingPrompt.prompt}
@@ -190,11 +389,24 @@ export function CompanionPopupHost({ store, host }: CompanionPopupHostProps): pr
         />
       ) : null}
       <OperationTray
-        active={activeOperation}
+        active={activeOperation?.operationId.startsWith("kit:") ? null : activeOperation}
         receipt={receipt}
         error={operationError}
         onDismissReceipt={() => setReceipt(null)}
         onDismissError={() => setOperationError(null)}
+      />
+      <KitOperationTray
+        active={activeOperation}
+        receipt={kitReceipt}
+        onDismiss={() => setKitReceipt(null)}
+        onRetry={() => {
+          if (!kitReceipt) return;
+          const action =
+            kitReceipt.operation === "activate"
+              ? ({ kind: "activate", label: "Activate" } as const)
+              : ({ kind: "retry", label: "Retry" } as const);
+          requestKitAction(kitReceipt.kitId, action);
+        }}
       />
     </>
   );
@@ -210,6 +422,19 @@ function createPopupRuntime(
     snapshot: catalog.read(),
     inventory: emptyInventory,
   });
+  const kits = new KitStore(store);
+  const kitContext = { inventory: emptyInventory as InventorySnapshot };
+  const kitDiscovery = createKitDiscoveryController({
+    catalog: {
+      schemaVersion: 7,
+      generatedAt: new Date(0).toISOString(),
+      tagVocabulary: [],
+      projects: [],
+      kits: [],
+    },
+    personal: kits.readDefinitions(),
+    statuses: new Map(),
+  });
   const prompts = new TrustPromptBroker();
   const lifecycle = createLifecycleCoordinator({
     host,
@@ -217,7 +442,26 @@ function createPopupRuntime(
     getSnapshot: () => catalog.read(),
     confirm: (prompt, project) => prompts.request(prompt, project),
   });
-  return { catalog, discovery, lifecycle, prompts };
+  const lock = lifecycle.lock;
+  const kitExecutor = createKitExecutor({
+    host,
+    profile: store,
+    kits,
+    lock,
+    getCatalog: () => {
+      const snapshot = catalog.read();
+      if (!("catalog" in snapshot)) throw new Error("A compatible catalog is required.");
+      return snapshot.catalog;
+    },
+    getInventoryFingerprint: () =>
+      inventoryFingerprint({
+        inventory: kitContext.inventory,
+        managed: normalizeManagedExtensionMap(store.read().managedExtensions),
+        installedKits: kits.readInstalledStates(),
+        activeKitId: kits.readActiveId(),
+      }),
+  });
+  return { catalog, discovery, lifecycle, prompts, kits, kitDiscovery, kitExecutor, kitContext };
 }
 
 function parseReceipt(value: Record<string, unknown> | null | undefined): LifecycleReceipt | null {
@@ -232,6 +476,67 @@ function parseReceipt(value: Record<string, unknown> | null | undefined): Lifecy
     return null;
   }
   return structuredClone(value) as LifecycleReceipt;
+}
+
+function parseKitReceipt(value: Record<string, unknown> | null | undefined): KitReceipt | null {
+  if (
+    !value ||
+    value.kind !== "kit-operation" ||
+    value.formatVersion !== 1 ||
+    typeof value.id !== "string" ||
+    typeof value.planId !== "string" ||
+    typeof value.kitId !== "string" ||
+    !Array.isArray(value.projects)
+  ) {
+    return null;
+  }
+  return structuredClone(value) as unknown as KitReceipt;
+}
+
+function resolveKit(
+  runtime: PopupRuntime,
+  catalog: Extract<CatalogSnapshot, { catalog: unknown }>["catalog"],
+  kitId: string,
+): PlannableKit | null {
+  const personal = runtime.kits.readDefinition(kitId);
+  if (personal) return { id: personal.id, projectIds: personal.projectIds, origin: "personal" };
+  const published = catalog.kits.find((kit) => kit.id === kitId);
+  return published
+    ? {
+        id: published.id,
+        projectIds: published.components.map(({ projectId }) => projectId),
+        origin: "published",
+      }
+    : null;
+}
+
+function buildKitPresentation(
+  catalog: Extract<CatalogSnapshot, { catalog: unknown }>["catalog"],
+  kits: KitStore,
+  inventory: InventorySnapshot,
+): {
+  statuses: Map<string, ReconciledKitStatus>;
+  inspectors: Record<string, KitInspectorViewModel>;
+} {
+  const statuses = new Map<string, ReconciledKitStatus>();
+  const activeId = kits.readActiveId();
+  for (const state of kits.readInstalledStates()) {
+    statuses.set(
+      state.kitId,
+      activeId === state.kitId ? (state.status === "drifted" ? "drifted" : "active") : state.status,
+    );
+  }
+  const inspectors: Record<string, KitInspectorViewModel> = {};
+  for (const kit of kits.readDefinitions()) {
+    const status = statuses.get(kit.id) ?? "saved";
+    inspectors[kit.id] = toPersonalKitInspector(kit, catalog.projects, status);
+  }
+  for (const kit of catalog.kits) {
+    const status = statuses.get(kit.id) ?? "saved";
+    inspectors[kit.id] = toPublishedKitInspector(kit, status);
+  }
+  void inventory;
+  return { statuses, inspectors };
 }
 
 export function renderCompanionPopup(
