@@ -1,7 +1,4 @@
-import {
-  DEFAULT_QUERY,
-  type CatalogQuery,
-} from "@tavernary/catalog-core";
+import { DEFAULT_QUERY, type CatalogQuery } from "@tavernary/catalog-core";
 
 export * from "@tavernary/catalog-core";
 
