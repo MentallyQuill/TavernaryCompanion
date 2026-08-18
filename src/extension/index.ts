@@ -1,13 +1,29 @@
-export async function tavernaryCompanionOnInstall(): Promise<void> {}
+import { startCompanionLifecycle, stopCompanionLifecycle } from "./lifecycle";
 
-export async function tavernaryCompanionOnUpdate(): Promise<void> {}
+export async function tavernaryCompanionOnInstall(): Promise<void> {
+  await startCompanionLifecycle();
+}
 
-export async function tavernaryCompanionOnDelete(): Promise<void> {}
+export async function tavernaryCompanionOnUpdate(): Promise<void> {
+  await startCompanionLifecycle();
+}
 
-export async function tavernaryCompanionOnClean(): Promise<void> {}
+export async function tavernaryCompanionOnDelete(): Promise<void> {
+  stopCompanionLifecycle();
+}
 
-export async function tavernaryCompanionOnEnable(): Promise<void> {}
+export async function tavernaryCompanionOnClean(): Promise<void> {
+  stopCompanionLifecycle();
+}
 
-export async function tavernaryCompanionOnDisable(): Promise<void> {}
+export async function tavernaryCompanionOnEnable(): Promise<void> {
+  await startCompanionLifecycle();
+}
 
-export async function tavernaryCompanionOnActivate(): Promise<void> {}
+export async function tavernaryCompanionOnDisable(): Promise<void> {
+  stopCompanionLifecycle();
+}
+
+export async function tavernaryCompanionOnActivate(): Promise<void> {
+  await startCompanionLifecycle();
+}
