@@ -62,9 +62,26 @@ test("mobile brand header stays contained and readable", async ({ page }) => {
   expect(qualifier!.x + qualifier!.width).toBeLessThanOrEqual(utilities!.x);
   await expect(page.getByText("Where AI roleplay tools gather")).toBeVisible();
   await page.getByRole("button", { name: "Filters" }).click();
+  await expect(page.getByRole("img", { name: "Tavernary" })).toBeInViewport();
   await page.getByRole("button", { name: "Close filters" }).click();
   await page.getByRole("tab", { name: "Kits" }).click();
   await expect(page.getByRole("img", { name: "Tavernary" })).toBeInViewport();
+  const installedTab = page.getByRole("tab", { name: "Installed" });
+  expect(
+    await installedTab.evaluate((tab) => ({
+      whiteSpace: getComputedStyle(tab).whiteSpace,
+      fits: tab.scrollWidth <= tab.clientWidth,
+    })),
+  ).toEqual({ whiteSpace: "nowrap", fits: true });
+  await expect(page.getByRole("button", { name: "Kit filters" })).toBeVisible();
+  await expect(page.locator(".tavernary-companion-kit-filters")).not.toBeVisible();
+  await expect(
+    page
+      .locator(".tavernary-companion-kit-card, .tavernary-companion-kits-route > p:last-child")
+      .first(),
+  ).toBeInViewport();
+  await page.getByRole("button", { name: "Kit filters" }).click();
+  await expect(page.locator(".tavernary-companion-kit-filters")).toBeVisible();
 });
 
 test("project cards use Tavernary's surface, evidence hierarchy, and action color", async ({
@@ -99,6 +116,8 @@ test("Kits and Installed reuse the Tavernary card and control system", async ({ 
   await page.setViewportSize({ width: 1440, height: 960 });
   await openHarness(page);
   await page.getByRole("tab", { name: "Kits" }).click();
+  await expect(page.getByRole("button", { name: "Kit filters" })).not.toBeVisible();
+  await expect(page.locator(".tavernary-companion-kit-filters")).toBeVisible();
   await page.getByRole("tab", { name: /Personal/ }).click();
   const kit = page.locator(".tavernary-companion-kit-card").first();
   await expect(kit).toHaveCSS("background-color", "rgb(24, 34, 40)");

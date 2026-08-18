@@ -61,7 +61,7 @@ export function ProjectsRoute({
     const controls = filterSurface.current?.querySelectorAll<HTMLElement>(
       'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]',
     );
-    controls?.[0]?.focus();
+    controls?.[0]?.focus({ preventScroll: true });
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();

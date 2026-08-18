@@ -30,6 +30,7 @@ export function KitsRoute({
   onDeactivate?(): void;
 }): preact.JSX.Element {
   const [state, setState] = useState(controller.read());
+  const [filtersOpen, setFiltersOpen] = useState(false);
   useEffect(() => controller.subscribe(setState), [controller]);
   return (
     <section class="tavernary-companion-kits-route" aria-labelledby="kits-heading">
@@ -72,7 +73,10 @@ export function KitsRoute({
           type="button"
           role="tab"
           aria-selected={state.segment === "personal"}
-          onClick={() => controller.setSegment("personal")}
+          onClick={() => {
+            setFiltersOpen(false);
+            controller.setSegment("personal");
+          }}
         >
           Personal <span>{state.personalCount}</span>
         </button>
@@ -86,7 +90,23 @@ export function KitsRoute({
         />
       </label>
       {state.segment === "published" ? (
-        <KitFilterPanel query={state.query} onChange={(query) => controller.setQuery(query)} />
+        <>
+          <button
+            type="button"
+            class="tavernary-companion-kit-filter-trigger"
+            aria-label="Kit filters"
+            aria-controls="tavernary-companion-kit-filters"
+            aria-expanded={filtersOpen}
+            onClick={() => setFiltersOpen((current) => !current)}
+          >
+            Filters
+          </button>
+          <KitFilterPanel
+            query={state.query}
+            open={filtersOpen}
+            onChange={(query) => controller.setQuery(query)}
+          />
+        </>
       ) : null}
       {state.visible.length ? (
         <div class="tavernary-companion-kit-grid">

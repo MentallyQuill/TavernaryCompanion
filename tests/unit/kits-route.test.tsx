@@ -6,6 +6,22 @@ import { catalogFixture } from "../helpers/catalog-fixtures";
 
 afterEach(() => document.body.replaceChildren());
 
+it("toggles compact published Kit filters", () => {
+  const controller = createKitDiscoveryController({
+    catalog: catalogFixture(),
+    personal: [],
+    statuses: new Map(),
+  });
+  render(
+    <KitsRoute controller={controller} onOpenKit={() => undefined} onAction={() => undefined} />,
+  );
+
+  const trigger = screen.getByRole("button", { name: "Kit filters" });
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
+  fireEvent.click(trigger);
+  expect(trigger).toHaveAttribute("aria-expanded", "true");
+});
+
 it("switches between published and personal Kit segments", () => {
   const controller = createKitDiscoveryController({
     catalog: catalogFixture(),

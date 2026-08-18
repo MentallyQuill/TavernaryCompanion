@@ -877,16 +877,23 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   }
   .tavernary-companion-shell__tabs {
     padding: 0.35rem 0.5rem;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
   }
   .tavernary-companion-shell__tabs > div {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: flex;
+    inline-size: max-content;
+    min-inline-size: 100%;
   }
   .tavernary-companion-shell__tabs button {
+    flex: 1 0 auto;
     min-inline-size: 0;
     padding-inline: 0.35rem;
-    overflow-wrap: anywhere;
-    font-size: 0.82rem;
+    overflow-wrap: normal;
+    white-space: nowrap;
+    font-size: 0.76rem;
+    letter-spacing: 0.025em;
   }
   .tavernary-companion-catalog-state > header {
     padding-inline: 0.75rem;
@@ -1044,6 +1051,9 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 .tavernary-companion-kit-search input {
   min-block-size: 2.4rem;
 }
+.tavernary-companion-kit-filter-trigger {
+  display: none;
+}
 .tavernary-companion-kit-filters {
   display: grid;
   grid-template-columns: repeat(4, minmax(8rem, 1fr));
@@ -1166,6 +1176,14 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   }
   .tavernary-companion-kits-route > header {
     align-items: flex-start;
+  }
+  .tavernary-companion-kit-filter-trigger {
+    display: inline-flex;
+    inline-size: max-content;
+    margin-block: 0.7rem;
+  }
+  .tavernary-companion-kit-filters:not(.is-open) {
+    display: none;
   }
 }
 .tavernary-companion-dialog form,

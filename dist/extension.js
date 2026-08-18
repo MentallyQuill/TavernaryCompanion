@@ -14623,114 +14623,122 @@ function KitCard({
 // src/ui/kits/kit-filter-panel.tsx
 function KitFilterPanel({
   query,
+  open = false,
   onChange
 }) {
   const update = (change) => onChange({ ...query, ...change });
-  return /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-kit-filters", children: [
-    /* @__PURE__ */ u3("legend", { children: "Published Kit filters" }),
-    /* @__PURE__ */ u3("label", { children: [
-      "Frontend",
-      " ",
-      /* @__PURE__ */ u3(
-        "input",
-        {
-          value: query.frontends.join(", "),
-          onInput: (event) => update({ frontends: split(event.currentTarget.value) })
-        }
-      )
-    ] }),
-    /* @__PURE__ */ u3("label", { children: [
-      "Purpose",
-      " ",
-      /* @__PURE__ */ u3(
-        "input",
-        {
-          value: query.purposes.join(", "),
-          onInput: (event) => update({ purposes: split(event.currentTarget.value) })
-        }
-      )
-    ] }),
-    /* @__PURE__ */ u3("label", { children: [
-      "Model family",
-      " ",
-      /* @__PURE__ */ u3(
-        "input",
-        {
-          value: (query.modelFamilies ?? []).join(", "),
-          onInput: (event) => update({ modelFamilies: split(event.currentTarget.value) })
-        }
-      )
-    ] }),
-    /* @__PURE__ */ u3("label", { children: [
-      "Includes project",
-      " ",
-      /* @__PURE__ */ u3(
-        "input",
-        {
-          value: query.includesProjectId,
-          onInput: (event) => update({ includesProjectId: event.currentTarget.value.trim() })
-        }
-      )
-    ] }),
-    /* @__PURE__ */ u3("label", { children: [
-      "Minimum components",
-      " ",
-      /* @__PURE__ */ u3(
-        "input",
-        {
-          type: "number",
-          min: "0",
-          max: "50",
-          value: query.minProjects,
-          onInput: (event) => update({ minProjects: event.currentTarget.valueAsNumber || 0 })
-        }
-      )
-    ] }),
-    /* @__PURE__ */ u3("label", { children: [
-      "Maximum components",
-      " ",
-      /* @__PURE__ */ u3(
-        "input",
-        {
-          type: "number",
-          min: "1",
-          max: "100",
-          value: query.maxProjects,
-          onInput: (event) => update({ maxProjects: event.currentTarget.valueAsNumber || 50 })
-        }
-      )
-    ] }),
-    /* @__PURE__ */ u3("label", { children: [
-      /* @__PURE__ */ u3(
-        "input",
-        {
-          type: "checkbox",
-          checked: query.allComponentsAvailable,
-          onChange: (event) => update({ allComponentsAvailable: event.currentTarget.checked })
-        }
-      ),
-      " ",
-      "All components available"
-    ] }),
-    /* @__PURE__ */ u3("label", { children: [
-      "Sort",
-      " ",
-      /* @__PURE__ */ u3(
-        "select",
-        {
-          value: query.sort,
-          onChange: (event) => update({ sort: event.currentTarget.value }),
-          children: [
-            /* @__PURE__ */ u3("option", { value: "trending", children: "Trending" }),
-            /* @__PURE__ */ u3("option", { value: "newest", children: "Newest" }),
-            /* @__PURE__ */ u3("option", { value: "updated", children: "Recently updated" }),
-            /* @__PURE__ */ u3("option", { value: "alphabetical", children: "Alphabetical" }),
-            /* @__PURE__ */ u3("option", { value: "relevance", children: "Relevance" })
-          ]
-        }
-      )
-    ] })
-  ] });
+  return /* @__PURE__ */ u3(
+    "fieldset",
+    {
+      id: "tavernary-companion-kit-filters",
+      class: `tavernary-companion-kit-filters${open ? " is-open" : ""}`,
+      children: [
+        /* @__PURE__ */ u3("legend", { children: "Published Kit filters" }),
+        /* @__PURE__ */ u3("label", { children: [
+          "Frontend",
+          " ",
+          /* @__PURE__ */ u3(
+            "input",
+            {
+              value: query.frontends.join(", "),
+              onInput: (event) => update({ frontends: split(event.currentTarget.value) })
+            }
+          )
+        ] }),
+        /* @__PURE__ */ u3("label", { children: [
+          "Purpose",
+          " ",
+          /* @__PURE__ */ u3(
+            "input",
+            {
+              value: query.purposes.join(", "),
+              onInput: (event) => update({ purposes: split(event.currentTarget.value) })
+            }
+          )
+        ] }),
+        /* @__PURE__ */ u3("label", { children: [
+          "Model family",
+          " ",
+          /* @__PURE__ */ u3(
+            "input",
+            {
+              value: (query.modelFamilies ?? []).join(", "),
+              onInput: (event) => update({ modelFamilies: split(event.currentTarget.value) })
+            }
+          )
+        ] }),
+        /* @__PURE__ */ u3("label", { children: [
+          "Includes project",
+          " ",
+          /* @__PURE__ */ u3(
+            "input",
+            {
+              value: query.includesProjectId,
+              onInput: (event) => update({ includesProjectId: event.currentTarget.value.trim() })
+            }
+          )
+        ] }),
+        /* @__PURE__ */ u3("label", { children: [
+          "Minimum components",
+          " ",
+          /* @__PURE__ */ u3(
+            "input",
+            {
+              type: "number",
+              min: "0",
+              max: "50",
+              value: query.minProjects,
+              onInput: (event) => update({ minProjects: event.currentTarget.valueAsNumber || 0 })
+            }
+          )
+        ] }),
+        /* @__PURE__ */ u3("label", { children: [
+          "Maximum components",
+          " ",
+          /* @__PURE__ */ u3(
+            "input",
+            {
+              type: "number",
+              min: "1",
+              max: "100",
+              value: query.maxProjects,
+              onInput: (event) => update({ maxProjects: event.currentTarget.valueAsNumber || 50 })
+            }
+          )
+        ] }),
+        /* @__PURE__ */ u3("label", { children: [
+          /* @__PURE__ */ u3(
+            "input",
+            {
+              type: "checkbox",
+              checked: query.allComponentsAvailable,
+              onChange: (event) => update({ allComponentsAvailable: event.currentTarget.checked })
+            }
+          ),
+          " ",
+          "All components available"
+        ] }),
+        /* @__PURE__ */ u3("label", { children: [
+          "Sort",
+          " ",
+          /* @__PURE__ */ u3(
+            "select",
+            {
+              value: query.sort,
+              onChange: (event) => update({ sort: event.currentTarget.value }),
+              children: [
+                /* @__PURE__ */ u3("option", { value: "trending", children: "Trending" }),
+                /* @__PURE__ */ u3("option", { value: "newest", children: "Newest" }),
+                /* @__PURE__ */ u3("option", { value: "updated", children: "Recently updated" }),
+                /* @__PURE__ */ u3("option", { value: "alphabetical", children: "Alphabetical" }),
+                /* @__PURE__ */ u3("option", { value: "relevance", children: "Relevance" })
+              ]
+            }
+          )
+        ] })
+      ]
+    }
+  );
 }
 function split(value) {
   return value.split(",").map((part) => part.trim()).filter(Boolean);
@@ -14785,6 +14793,7 @@ function KitsRoute({
   onDeactivate
 }) {
   const [state, setState] = d2(controller.read());
+  const [filtersOpen, setFiltersOpen] = d2(false);
   h2(() => controller.subscribe(setState), [controller]);
   return /* @__PURE__ */ u3("section", { class: "tavernary-companion-kits-route", "aria-labelledby": "kits-heading", children: [
     /* @__PURE__ */ u3("header", { children: [
@@ -14829,7 +14838,10 @@ function KitsRoute({
           type: "button",
           role: "tab",
           "aria-selected": state.segment === "personal",
-          onClick: () => controller.setSegment("personal"),
+          onClick: () => {
+            setFiltersOpen(false);
+            controller.setSegment("personal");
+          },
           children: [
             "Personal ",
             /* @__PURE__ */ u3("span", { children: state.personalCount })
@@ -14848,7 +14860,28 @@ function KitsRoute({
         }
       )
     ] }),
-    state.segment === "published" ? /* @__PURE__ */ u3(KitFilterPanel, { query: state.query, onChange: (query) => controller.setQuery(query) }) : null,
+    state.segment === "published" ? /* @__PURE__ */ u3(S, { children: [
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          class: "tavernary-companion-kit-filter-trigger",
+          "aria-label": "Kit filters",
+          "aria-controls": "tavernary-companion-kit-filters",
+          "aria-expanded": filtersOpen,
+          onClick: () => setFiltersOpen((current) => !current),
+          children: "Filters"
+        }
+      ),
+      /* @__PURE__ */ u3(
+        KitFilterPanel,
+        {
+          query: state.query,
+          open: filtersOpen,
+          onChange: (query) => controller.setQuery(query)
+        }
+      )
+    ] }) : null,
     state.visible.length ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-grid", children: state.visible.map((kit2) => /* @__PURE__ */ u3(
       KitCard,
       {
@@ -15609,7 +15642,7 @@ function ProjectsRoute({
     const controls = filterSurface.current?.querySelectorAll(
       'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]'
     );
-    controls?.[0]?.focus();
+    controls?.[0]?.focus({ preventScroll: true });
     const onKeyDown = (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
