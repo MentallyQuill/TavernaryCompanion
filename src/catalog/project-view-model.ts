@@ -53,11 +53,20 @@ export interface ProjectDetailViewModel extends ProjectCardViewModel {
   primaryFunction: string;
   tags: string[];
   license: CatalogProject["license"];
+  metadataStatus: CatalogProject["metadataStatus"];
+  sourceStatus: CatalogProject["sourceStatus"];
+  catalogedAt: string;
+  latestReleaseAt: string | null;
+  refreshedAt: string | null;
+  attribution: CatalogProject["attribution"];
+  fork: CatalogProject["fork"];
+  kitReferences: Array<{ id: string; title: string }>;
 }
 
 export interface ProjectViewModelContext {
   snapshot: CatalogSnapshot;
   inventory: InventorySnapshot;
+  kits?: Array<{ id: string; title: string; components: Array<{ projectId: string }> }>;
 }
 
 function installedOwnership(
@@ -169,8 +178,18 @@ export function toProjectDetailViewModel(
   return {
     ...toProjectCardViewModel(project, context),
     canonicalUrl: project.canonicalUrl,
-    primaryFunction: project.primaryFunction,
+    primaryFunction: primaryFunctionLabel(project.primaryFunction),
     tags: project.tags.map(({ label }) => label),
     license: structuredClone(project.license),
+    metadataStatus: project.metadataStatus,
+    sourceStatus: project.sourceStatus,
+    catalogedAt: project.catalogedAt,
+    latestReleaseAt: project.latestReleaseAt,
+    refreshedAt: project.refreshedAt,
+    attribution: structuredClone(project.attribution),
+    fork: structuredClone(project.fork),
+    kitReferences: (context.kits ?? [])
+      .filter((kit) => kit.components.some(({ projectId }) => projectId === project.id))
+      .map(({ id, title }) => ({ id, title })),
   };
 }

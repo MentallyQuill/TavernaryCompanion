@@ -3,6 +3,8 @@ import { useEffect, useState } from "preact/hooks";
 import type { DiscoveryController } from "../../catalog/discovery-controller";
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
 import type { ProjectFacets } from "../projects/filter-panel";
+import { InstalledRoute } from "../installed/installed-route";
+import { ProjectDetail } from "../projects/project-detail";
 import { ProjectsRoute } from "../projects/projects-route";
 import type { ShellController } from "./shell-controller";
 import { ShellHeader } from "./shell-header";
@@ -19,8 +21,13 @@ interface CompanionShellProps {
   discovery?: DiscoveryController;
   facets?: ProjectFacets;
   onProjectAction?(id: string, action: ProjectPrimaryAction): void;
+  onRefreshInventory?(): void | Promise<void>;
+  inventoryRefreshing?: boolean;
+  onOpenExtensionManager?(): void;
   onRequestClose?: () => void;
 }
+
+const noRefresh = () => undefined;
 
 export function CompanionShell({
   controller,
@@ -28,6 +35,9 @@ export function CompanionShell({
   discovery,
   facets,
   onProjectAction,
+  onRefreshInventory = noRefresh,
+  inventoryRefreshing = false,
+  onOpenExtensionManager,
   onRequestClose,
 }: CompanionShellProps): preact.JSX.Element {
   const [state, setState] = useState(controller.read());
@@ -100,14 +110,34 @@ export function CompanionShell({
           aria-labelledby="tavernary-companion-installed-heading"
           hidden={state.route !== "installed" || Boolean(detail)}
         >
-          <h2 id="tavernary-companion-installed-heading">Installed extensions</h2>
+          {discoveryState ? (
+            <InstalledRoute
+              sections={discoveryState.installedSections}
+              refreshing={inventoryRefreshing}
+              onRefresh={onRefreshInventory}
+              onOpenProject={(id) =>
+                controller.openDetail({ kind: "project", id, focusKey: `installed-${id}` })
+              }
+              onAction={(id, action) => onProjectAction?.(id, action)}
+              onManage={onOpenExtensionManager}
+            />
+          ) : (
+            <h2 id="tavernary-companion-installed-heading">Installed extensions</h2>
+          )}
         </section>
         {detail ? (
           <section aria-label={`${detail.kind} detail`}>
             <button type="button" onClick={() => restoreAfterBack(controller)}>
               Back
             </button>
-            <h2>{projectName(projects, discoveryState, detail.id)}</h2>
+            {detail.kind === "project" && discoveryState?.projectDetails[detail.id] ? (
+              <ProjectDetail
+                project={discoveryState.projectDetails[detail.id]}
+                onAction={(action) => onProjectAction?.(detail.id, action)}
+              />
+            ) : (
+              <h2>{projectName(projects, discoveryState, detail.id)}</h2>
+            )}
           </section>
         ) : null}
       </main>
