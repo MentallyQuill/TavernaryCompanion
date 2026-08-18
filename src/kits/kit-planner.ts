@@ -33,6 +33,7 @@ export function planKitOperation(input: PlanKitOperationInput): Readonly<KitPlan
     kitId: input.kit.id,
     catalogGeneratedAt: input.catalog.generatedAt,
     inventoryFingerprint: inventoryFingerprint(input),
+    requiredProjectIds: [...input.kit.projectIds],
     install: [],
     enable: [],
     disable: [],

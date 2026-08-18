@@ -92,6 +92,9 @@ export class KitStore {
     });
     return structuredClone(parsed);
   }
+  async reconcile(state: InstalledKitStateV1): Promise<InstalledKitStateV1> {
+    return this.recordInstalledState(state);
+  }
   async removeInstalledState(id: string): Promise<void> {
     await this.#profile.update((draft) => {
       delete draft.installedKits[id];

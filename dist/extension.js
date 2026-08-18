@@ -175,7 +175,8 @@ function createDefaultProfileState() {
     personalKits: {},
     installedKits: {},
     activeKitId: null,
-    operationReceipt: null
+    operationReceipt: null,
+    kitOperationJournal: null
   };
 }
 
@@ -211,7 +212,8 @@ function migrateProfileState(value) {
     personalKits: cloneRecord(value.personalKits),
     installedKits: cloneRecord(value.installedKits),
     activeKitId: typeof value.activeKitId === "string" ? value.activeKitId : null,
-    operationReceipt: cloneNullableRecord(value.operationReceipt)
+    operationReceipt: cloneNullableRecord(value.operationReceipt),
+    kitOperationJournal: cloneNullableRecord(value.kitOperationJournal)
   };
 }
 function cloneRecord(value) {

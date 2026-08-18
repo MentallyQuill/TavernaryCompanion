@@ -32,6 +32,7 @@ export interface KitPlan {
   kitId: string;
   catalogGeneratedAt: string;
   inventoryFingerprint: string;
+  requiredProjectIds: string[];
   install: KitProjectStep[];
   enable: KitProjectStep[];
   disable: KitProjectStep[];
