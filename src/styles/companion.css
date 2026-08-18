@@ -1,0 +1,9 @@
+:root {
+  --tavernary-companion-surface: var(--SmartThemeBlurTintColor, #171a1f);
+  --tavernary-companion-text: var(--SmartThemeBodyColor, #f5f7fa);
+}
+
+.tavernary-companion-root {
+  color: var(--tavernary-companion-text);
+  background: var(--tavernary-companion-surface);
+}
