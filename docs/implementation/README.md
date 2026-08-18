@@ -36,12 +36,12 @@ This roadmap coordinates Tavernary's catalog foundation with Tavernary Companion
 
 ### Phase 1 — Tavernary foundation
 
-- Tavernary source commit: `714143a630387a68a6d2f6ea86efa56c58c5cc81`.
-- Canonical catalog SHA-256: `D7138A693EF3F56141F2F5D8985FF0B39F51ABAE19969384C58ED8BB8DCEDFD1`.
+- Tavernary source commit: `17a6188d2a765bc6ce91a9ab8e643d3e1f4585b4`.
+- Canonical catalog SHA-256: `94389ffb08988d44383ead77eeff673eb58aab55de7c04fa1301756d68c1fe4e`.
 - Catalog result: schema 7, 437 projects, 303 installable SillyTavern extensions, and 11 published Kits.
 - Evidence bootstrap: 306 verified repository-root manifests and 24 unavailable results at recorded immutable heads.
-- CatalogCore vendor lock: Companion commit `1ce0c84921fbe2c466b72ad833456824089a1818`, covering 26 files from the Tavernary commit above.
-- Tavernary gate: formatting, lint, palette audit, catalog validation, 512 TavernKeeper summaries, 2,528 tests, production build, 403 static pages, and export verification passed.
+- CatalogCore vendor lock: Companion commit `23b59754811bc6e0017a974b3888896ed814741d`, covering 26 files from the Tavernary commit above.
+- Tavernary gate: formatting, lint, palette audit, catalog validation, 512 TavernKeeper summaries, 2,541 tests, production build, 403 static pages, and export verification passed.
 - Deployment and live Pages response proof remain explicitly assigned to Phase 8.
 
 ### Phase 2 — Companion foundation
@@ -84,22 +84,23 @@ This roadmap coordinates Tavernary's catalog foundation with Tavernary Companion
 - Companion source commit: `7e59cad`.
 - Strict versioned Kit persistence, reference counts, deterministic planning, stale-plan detection, activation barriers, durable journals, one-reload execution, interruption recovery, and drift reconciliation are implemented.
 - Shared, externally installed, and manually managed extensions are preserved. Activating the already-active healthy Kit produces no mutation plan.
+- Final hardening at `23b59754811bc6e0017a974b3888896ed814741d` moved stale-plan verification inside the operation lock, validates persisted operation data strictly, and reconciles interrupted operations against the host before committing state.
 
 ### Phase 7 — Kit experience and portability
 
 - Companion source commit: `433bc60`.
 - Published and personal Kit browsing, compact filters, inspectors, personal editing, preflight review, progress, receipts, strict JSON import/export, and copy-to-personal behavior are implemented.
 - Tavernary Companion is excluded from Kit membership. The local schema retains V2 publication provenance fields without exposing submission UI or transport.
-- Desktop and mobile Kit actions passed at 1024x768 and 390x844 as part of the 13-test browser gate.
+- Desktop and mobile Kit actions passed at 1024x768 and 390x844 as part of the 17-test browser gate, including fast-switcher deactivation, shared-member preservation, failure, and interrupted recovery.
 
 ### Phase 8 — Integration, release, and live proof
 
-- Companion release source commit: `b4e330debcab8f508c0deaa4366f49101ff6861f`.
-- Release: `tavernary-companion-0.1.0-pre-alpha.1.zip`, SHA-256 `a7657ee6ad4dd4d2412659f60564f322aa4e0db9a3022d65ec1eb59aa64d817b`, containing exactly three installable files.
-- Fresh Companion gate: formatting, lint, typecheck, 58 test files/159 tests, production build, 13 Chromium responsive/accessibility tests, and release verification passed.
+- Companion release source commit: `23b59754811bc6e0017a974b3888896ed814741d`.
+- Release: `tavernary-companion-0.1.0-pre-alpha.1.zip`, SHA-256 `461227d62b4e02f614607400859eb1dfd636e4ef528b1baab36a3edefa8ef714`, containing exactly three installable files.
+- Fresh Companion gate: formatting, lint, typecheck, 61 test files/183 tests, production build, 17 Chromium responsive/accessibility and Kit-journey tests, and release verification passed.
 - Exact release files were installed into the isolated `companion-acceptance-v1` profile; SillyTavern discovered the extension and served all three files with byte-identical hashes.
 - Companion CI passed on [PR #1](https://github.com/MentallyQuill/TavernaryCompanion/pull/1).
-- Tavernary [PR #564](https://github.com/MentallyQuill/Tavernary/pull/564) contains the schema-7 publication. Its current branch passed the full local Tavernary gate after refreshing eight install-evidence records; GitHub verification and merge/deployment remain pending.
+- Tavernary [PR #564](https://github.com/MentallyQuill/Tavernary/pull/564) contains the schema-7 publication. Its current branch passed the full local Tavernary gate after refreshing install evidence and closing URL, same-SHA repository-rename, and vocabulary-forward-compatibility review gaps; GitHub verification, required review, and merge/deployment remain pending.
 - Installed interactive launcher/console/network journeys remain unproven because the in-app browser controller failed during trusted-runtime startup. See the [installed evidence](evidence/companion-installed-v1.md) and [readiness reconciliation](evidence/v1-release-readiness.md).
 
 ## Critical path
