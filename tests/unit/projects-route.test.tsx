@@ -107,4 +107,17 @@ describe("ProjectsRoute", () => {
       ]),
     );
   });
+
+  it("closes the compact filter surface with Escape and restores focus", async () => {
+    render(<ProjectsRoute state={state()} onQueryChange={vi.fn()} />);
+    const trigger = screen.getByRole("button", { name: "Filters" });
+    fireEvent.click(trigger);
+    expect(screen.getByRole("dialog", { name: "Project filters" })).toHaveAttribute(
+      "aria-modal",
+      "true",
+    );
+    fireEvent.keyDown(window, { key: "Escape" });
+    await vi.waitFor(() => expect(trigger).toHaveFocus());
+    expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
 });
