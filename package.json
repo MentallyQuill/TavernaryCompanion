@@ -1,0 +1,50 @@
+{
+  "name": "tavernary-companion",
+  "version": "0.1.0-pre-alpha.1",
+  "private": true,
+  "description": "Tavernary catalog and extension-kit companion for SillyTavern.",
+  "type": "module",
+  "license": "MIT",
+  "engines": {
+    "node": ">=24 <25"
+  },
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "dev": "node scripts/build.mjs --watch",
+    "format:check": "prettier --check .",
+    "format": "prettier --write .",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:e2e": "playwright test",
+    "vendor:sync": "node scripts/sync-tavernary-core.mjs",
+    "check": "npm run format:check && npm run lint && npm run typecheck && npm test && npm run build",
+    "release:package": "npm run build && node scripts/package-release.mjs",
+    "release:verify": "node scripts/verify-release.mjs"
+  },
+  "dependencies": {
+    "ajv": "^8.20.0",
+    "ajv-formats": "^3.0.1",
+    "minisearch": "^7.2.0",
+    "preact": "^10.27.2"
+  },
+  "devDependencies": {
+    "@eslint/js": "^9.39.5",
+    "@playwright/test": "^1.61.1",
+    "@testing-library/jest-dom": "^7.0.1",
+    "@testing-library/preact": "^3.2.4",
+    "@testing-library/user-event": "^14.6.1",
+    "@types/node": "^26.2.0",
+    "axe-core": "^4.13.0",
+    "esbuild": "^0.25.12",
+    "eslint": "^9.39.5",
+    "fake-indexeddb": "^6.2.4",
+    "globals": "^16.4.0",
+    "jsdom": "^29.1.1",
+    "prettier": "^3.9.0",
+    "typescript": "^6.0.3",
+    "typescript-eslint": "^8.46.1",
+    "vitest": "^4.1.10"
+  }
+}

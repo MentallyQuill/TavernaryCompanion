@@ -1,0 +1,21 @@
+{
+  "display_name": "Tavernary Companion",
+  "version": "0.1.0-pre-alpha.1",
+  "author": "MentallyQuill",
+  "key": "tavernary-companion",
+  "js": "dist/extension.js",
+  "css": "dist/companion.css",
+  "loading_order": 22,
+  "homePage": "https://github.com/MentallyQuill/TavernaryCompanion",
+  "minimum_client_version": "1.12.0",
+  "auto_update": false,
+  "hooks": {
+    "install": "tavernaryCompanionOnInstall",
+    "update": "tavernaryCompanionOnUpdate",
+    "delete": "tavernaryCompanionOnDelete",
+    "clean": "tavernaryCompanionOnClean",
+    "enable": "tavernaryCompanionOnEnable",
+    "disable": "tavernaryCompanionOnDisable",
+    "activate": "tavernaryCompanionOnActivate"
+  }
+}

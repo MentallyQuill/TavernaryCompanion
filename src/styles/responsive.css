@@ -1,0 +1,132 @@
+@container tavernary-companion (max-width: 1199px) {
+  .tavernary-companion-projects-route__workspace {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tavernary-companion-project-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .tavernary-companion-filter-trigger {
+    display: inline-flex;
+    inline-size: max-content;
+  }
+
+  .tavernary-companion-filter-surface {
+    position: absolute;
+    z-index: 8;
+    inset-block: 0;
+    inset-inline-start: 0;
+    display: none;
+    inline-size: min(24rem, 92%);
+    max-block-size: 100%;
+    box-shadow: 1rem 0 2rem rgb(0 0 0 / 45%);
+    transition:
+      opacity 120ms ease,
+      transform 120ms ease;
+  }
+
+  .tavernary-companion-filter-surface.is-open {
+    display: block;
+  }
+
+  .tavernary-companion-filter-close {
+    position: sticky;
+    z-index: 2;
+    inset-block-start: 0;
+    display: block;
+    inline-size: calc(100% - 1rem);
+    margin: 0.5rem;
+  }
+}
+
+@container tavernary-companion (max-width: 899px) {
+  .tavernary-companion-project-grid {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tavernary-companion-root button,
+  .tavernary-companion-root input,
+  .tavernary-companion-root select {
+    min-block-size: 44px;
+  }
+
+  .tavernary-companion-search-toolbar {
+    grid-template-columns: minmax(0, 1fr) minmax(9rem, auto);
+  }
+
+  .tavernary-companion-search-toolbar output {
+    grid-column: 1 / -1;
+  }
+}
+
+@media (max-width: 719px) {
+  .tavernary-companion-root {
+    inline-size: 100vw;
+    block-size: 100dvh;
+    min-block-size: 0;
+    padding-block: env(safe-area-inset-top, 0) env(safe-area-inset-bottom, 0);
+  }
+
+  .tavernary-companion-shell__header {
+    align-items: flex-start;
+    padding: 0.6rem 0.75rem;
+  }
+
+  .tavernary-companion-shell__utilities {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    font-size: 0.78rem;
+  }
+
+  .tavernary-companion-shell__tabs {
+    padding: 0.35rem 0.5rem;
+  }
+
+  .tavernary-companion-shell__tabs > div {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .tavernary-companion-shell__tabs button {
+    min-inline-size: 0;
+    padding-inline: 0.35rem;
+    overflow-wrap: anywhere;
+    font-size: 0.82rem;
+  }
+
+  .tavernary-companion-catalog-state > header {
+    padding-inline: 0.75rem;
+  }
+
+  .tavernary-companion-projects-route,
+  .tavernary-companion-installed-route,
+  .tavernary-companion-project-detail {
+    padding-inline: 0.75rem;
+  }
+
+  .tavernary-companion-search-toolbar {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .tavernary-companion-search-toolbar output {
+    grid-column: auto;
+  }
+
+  .tavernary-companion-project-card footer,
+  .tavernary-companion-installed-section li {
+    flex-wrap: wrap;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tavernary-companion-root *,
+  .tavernary-companion-root *::before,
+  .tavernary-companion-root *::after {
+    scroll-behavior: auto !important;
+    transition-duration: 0.01ms !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transform: none !important;
+  }
+}

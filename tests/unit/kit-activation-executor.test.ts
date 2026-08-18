@@ -1,0 +1,79 @@
+import { expect, it } from "vitest";
+
+import { reconcileInventory } from "../../src/inventory/inventory-reconciler";
+import type { ManagedExtensionMap } from "../../src/inventory/inventory-types";
+import { planKitOperation } from "../../src/kits/kit-planner";
+import { catalogFixture, catalogProjectFixture } from "../helpers/catalog-fixtures";
+import { approve, executorFixture, extension } from "../helpers/kit-executor-fixture";
+
+it("installs behind an activation barrier, commits identity, and reloads once", async () => {
+  const alpha = catalogProjectFixture({ id: "alpha", folderName: "Alpha" });
+  const old = catalogProjectFixture({ id: "old", folderName: "Old" });
+  const catalog = { ...catalogFixture(), projects: [alpha, old] };
+  const app = await executorFixture(catalog, {
+    extensions: [extension("Old")],
+    installResults: { [alpha.install!.repositoryUrl]: extension("Alpha", false) },
+  });
+  const managed: ManagedExtensionMap = {
+    old: {
+      projectId: "old",
+      internalName: "third-party/Old",
+      folderName: "Old",
+      installedAt: "2026-08-18T00:00:00.000Z",
+      installedBy: "kit",
+    },
+  };
+  await app.profile.update((draft) => {
+    draft.managedExtensions = managed;
+  });
+  await app.recordInstalled("old-kit", ["old"]);
+  await app.kits.setActive("old-kit");
+  const inventory = reconcileInventory({
+    projects: catalog.projects,
+    hostExtensions: await app.host.discover(),
+    managed,
+  });
+  const plan = planKitOperation({
+    operation: "activate",
+    kit: { id: "new-kit", projectIds: ["alpha"], origin: "personal" },
+    catalog,
+    inventory,
+    managed,
+    installedKits: app.kits.readInstalledStates(),
+    activeKitId: "old-kit",
+    catalogCanMutate: true,
+  });
+  app.setFingerprint(plan.inventoryFingerprint);
+  const receipt = await app.executor.execute(plan, approve(plan));
+  expect(receipt.outcome).toBe("completed");
+  expect(app.kits.readActiveId()).toBe("new-kit");
+  expect(app.host.reloadCount).toBe(1);
+  expect(app.host.calls.map(({ operation }) => operation)).toEqual(
+    expect.arrayContaining(["install", "enable", "disable", "reload"]),
+  );
+});
+
+it("preserves the prior active identity when a required install fails", async () => {
+  const alpha = catalogProjectFixture({ id: "alpha", folderName: "Alpha" });
+  const catalog = { ...catalogFixture(), projects: [alpha] };
+  const app = await executorFixture(catalog);
+  await app.recordInstalled("old-kit", []);
+  await app.kits.setActive("old-kit");
+  const plan = planKitOperation({
+    operation: "activate",
+    kit: { id: "new-kit", projectIds: ["alpha"], origin: "personal" },
+    catalog,
+    inventory: await app.inventory(),
+    managed: {},
+    installedKits: app.kits.readInstalledStates(),
+    activeKitId: "old-kit",
+    catalogCanMutate: true,
+  });
+  app.setFingerprint(plan.inventoryFingerprint);
+  const receipt = await app.executor.execute(plan, approve(plan));
+  expect(receipt.outcome).toBe("partial");
+  expect(app.kits.readActiveId()).toBe("old-kit");
+  expect(
+    app.host.calls.some(({ operation }) => operation === "enable" || operation === "disable"),
+  ).toBe(false);
+});

@@ -156,9 +156,9 @@ Every installation of a project whose latest available TavernKeeper assessment i
 
 The approved base copy is:
 
-> TavernKeeper's latest assessment identified potential security concerns in this project. Extensions can run code inside SillyTavern. You are responsible for deciding whether to trust and install this project. Review the TavernKeeper assessment and the project before continuing.
+> TavernKeeper’s latest assessment identified potential security concerns in this project. Extensions can run code inside SillyTavern. Responsibility for safety falls upon you. Review the scan and project before continuing.
 
-The primary evidence action is **Review assessment**, followed by **Cancel** and **Install anyway**. Immediate-danger presentation uses Tavernary's exact risk label and stronger visual emphasis. If the assessment is stale, “latest assessment” becomes “latest available assessment” and the dialog adds: “This assessment covers an older version of the project.”
+The primary evidence action is **Scan Review**, followed by **Cancel** and **Install anyway**. Immediate-danger presentation uses Tavernary's exact risk label and stronger visual emphasis. If the assessment is stale, “latest assessment” becomes “latest available assessment” and the dialog adds: “This assessment covers an older version of the project.”
 
 Warnings do not claim that low concern means safe, that a finding proves exploitation, or that scanning guarantees safety.
 
