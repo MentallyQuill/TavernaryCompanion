@@ -4,7 +4,8 @@ export type LifecycleReceiptStatus =
   | "rejected"
   | "failed"
   | "verification-failed"
-  | "installed-unrecorded";
+  | "installed-unrecorded"
+  | "removed-unrecorded";
 
 export interface LifecycleReceiptStep {
   id: "requested" | "host-accepted" | "verified" | "recorded";

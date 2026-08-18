@@ -10,11 +10,18 @@ import type { TrustPrompt } from "../trust/trust-types";
 import { evaluateLifecycle } from "./lifecycle-policy";
 import { OperationLock } from "./operation-lock";
 import { createReceipt, type LifecycleReceipt } from "./operation-receipt";
+import {
+  markInstalledKitsIncomplete,
+  previewRemovalImpact,
+  type RemovalImpact,
+} from "./removal-impact";
 import { COMPANION_PROJECT_ID } from "./self-protection";
 
 export interface LifecycleCoordinator {
   readonly lock: OperationLock;
   install(projectId: string): Promise<LifecycleReceipt>;
+  previewRemoval(projectId: string): Promise<RemovalImpact>;
+  remove(projectId: string): Promise<LifecycleReceipt>;
 }
 
 interface LifecycleCoordinatorOptions {
@@ -210,6 +217,179 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
     });
   }
 
+  async previewRemoval(projectId: string): Promise<RemovalImpact> {
+    const snapshot = this.#getSnapshot();
+    const catalog = "catalog" in snapshot ? snapshot.catalog : null;
+    const project = catalog?.projects.find((candidate) => candidate.id === projectId) ?? null;
+    if (projectId === COMPANION_PROJECT_ID || !project) {
+      return previewRemovalImpact({
+        projectId,
+        projectName: project?.name ?? projectId,
+        ownership: "absent",
+        installedKits: this.#store.read().installedKits,
+        activeKitId: this.#store.read().activeKitId,
+        removable: false,
+      });
+    }
+    const hostExtensions = await this.#host.discover();
+    const inventory = reconcileInventory({
+      projects: catalog?.projects ?? [],
+      hostExtensions,
+      managed: managedMap(this.#store.read().managedExtensions),
+    });
+    const decision = evaluateLifecycle({
+      operation: "remove",
+      project,
+      context: { snapshot, inventory },
+    });
+    const state = this.#store.read();
+    const discoveredOwnership = inventory.managed.some(
+      ({ project: candidate }) => candidate.id === projectId,
+    )
+      ? "managed"
+      : inventory.external.some(({ project: candidate }) => candidate.id === projectId)
+        ? "external"
+        : "absent";
+    return previewRemovalImpact({
+      projectId,
+      projectName: project.name,
+      ownership:
+        decision.kind === "allowed" && decision.operation === "remove"
+          ? decision.ownership
+          : discoveredOwnership,
+      installedKits: state.installedKits,
+      activeKitId: state.activeKitId,
+      removable: decision.kind === "allowed" && decision.operation === "remove",
+    });
+  }
+
+  remove(projectId: string): Promise<LifecycleReceipt> {
+    return this.lock.runExclusive(`remove:${projectId}`, async ({ setPhase }) => {
+      const startedAt = this.#now();
+      const id = this.#createId();
+      const snapshot = this.#getSnapshot();
+      const catalog = "catalog" in snapshot ? snapshot.catalog : null;
+      const project = catalog?.projects.find((candidate) => candidate.id === projectId) ?? null;
+      if (projectId === COMPANION_PROJECT_ID) {
+        return this.#rejectedRemoval({
+          id,
+          projectId,
+          projectName: project?.name ?? projectId,
+          startedAt,
+        });
+      }
+
+      setPhase("discovering");
+      const before = await this.#host.discover();
+      const registry = new ManagedRegistry(managedMap(this.#store.read().managedExtensions));
+      const inventory = reconcileInventory({
+        projects: catalog?.projects ?? [],
+        hostExtensions: before,
+        managed: registry.read(),
+      });
+      const decision = evaluateLifecycle({
+        operation: "remove",
+        project,
+        context: { snapshot, inventory },
+      });
+      if (decision.kind !== "allowed" || decision.operation !== "remove" || !project) {
+        return this.#rejectedRemoval({
+          id,
+          projectId,
+          projectName: project?.name ?? projectId,
+          startedAt,
+        });
+      }
+
+      setPhase("host-request");
+      try {
+        await this.#host.remove({
+          internalName: decision.extension.internalName,
+          type: decision.extension.type,
+        });
+      } catch {
+        const receipt = createReceipt({
+          id,
+          kind: "remove",
+          projectId,
+          projectName: project.name,
+          startedAt,
+          finishedAt: this.#now(),
+          status: "failed",
+          completedThrough: "requested",
+          failedAt: "host-accepted",
+          safeError: "SillyTavern did not complete the uninstall request.",
+          reloadRequired: false,
+        });
+        await this.#persistNonMutation(receipt, null);
+        return receipt;
+      }
+
+      setPhase("verifying");
+      const after = await this.#host.discover();
+      const stillPresent = after.some(
+        (extension) =>
+          extension.internalName === decision.extension.internalName &&
+          extension.type === decision.extension.type,
+      );
+      if (stillPresent) {
+        const receipt = createReceipt({
+          id,
+          kind: "remove",
+          projectId,
+          projectName: project.name,
+          startedAt,
+          finishedAt: this.#now(),
+          status: "verification-failed",
+          completedThrough: "host-accepted",
+          failedAt: "verified",
+          safeError: "SillyTavern still reports the extension as installed.",
+          reloadRequired: false,
+        });
+        await this.#persistNonMutation(receipt, null);
+        return receipt;
+      }
+
+      registry.remove(projectId);
+      const receipt = createReceipt({
+        id,
+        kind: "remove",
+        projectId,
+        projectName: project.name,
+        startedAt,
+        finishedAt: this.#now(),
+        status: "succeeded",
+        completedThrough: "recorded",
+        safeError: null,
+        reloadRequired: true,
+      });
+      setPhase("recording");
+      try {
+        await this.#store.update((draft) => {
+          draft.managedExtensions = registry.read();
+          draft.installedKits = markInstalledKitsIncomplete(draft.installedKits, projectId);
+          draft.operationReceipt = structuredClone(receipt);
+        });
+        return receipt;
+      } catch {
+        return createReceipt({
+          id,
+          kind: "remove",
+          projectId,
+          projectName: project.name,
+          startedAt,
+          finishedAt: this.#now(),
+          status: "removed-unrecorded",
+          completedThrough: "verified",
+          failedAt: "recorded",
+          safeError:
+            "The extension was removed, but Companion could not update its records. Reopen Companion to reconcile it.",
+          reloadRequired: true,
+        });
+      }
+    });
+  }
+
   #rejected(input: {
     id: string;
     projectId: string;
@@ -222,6 +402,22 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
       finishedAt: this.#now(),
       status: "rejected",
       safeError: "This project is not eligible for installation.",
+      reloadRequired: false,
+    });
+  }
+
+  #rejectedRemoval(input: {
+    id: string;
+    projectId: string;
+    projectName: string;
+    startedAt: string;
+  }): LifecycleReceipt {
+    return createReceipt({
+      ...input,
+      kind: "remove",
+      finishedAt: this.#now(),
+      status: "rejected",
+      safeError: "This installed project is not eligible for direct removal.",
       reloadRequired: false,
     });
   }
