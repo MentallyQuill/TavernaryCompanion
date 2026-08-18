@@ -25,8 +25,8 @@ This roadmap coordinates Tavernary's catalog foundation with Tavernary Companion
 |---:|---|---|---|---|
 | 1 | [Tavernary foundation](01-tavernary-foundation.md) | Approved designs | Schema 7, install contracts, shared CatalogCore, living Pages asset | Verified |
 | 2 | [Companion foundation](02-companion-foundation.md) | Phase 1 interfaces; fixtures may unblock work | Installable extension scaffold, host boundary, settings, build | In progress |
-| 3 | [Catalog sync and discovery](03-catalog-sync-and-discovery.md) | Phases 1–2 | Validated cache, shared search/filter behavior, inventory reconciliation | Pending |
-| 4 | [Responsive shell and catalog UI](04-responsive-shell-and-catalog-ui.md) | Phase 3 view models | Desktop/mobile shell and complete browse experience | Pending |
+| 3 | [Catalog sync and discovery](03-catalog-sync-and-discovery.md) | Phases 1–2 | Validated cache, shared search/filter behavior, inventory reconciliation | Verified |
+| 4 | [Responsive shell and catalog UI](04-responsive-shell-and-catalog-ui.md) | Phase 3 view models | Desktop/mobile shell and complete browse experience | In progress |
 | 5 | [Project lifecycle and trust](05-project-lifecycle-and-trust.md) | Phases 2–4 | Verified install/remove flow, warnings, receipts, self-protection | Pending |
 | 6 | [Kit domain and operations](06-kit-domain-and-operations.md) | Phase 5 lifecycle services | Stored Kits, planning, staged activation, reference-safe removal | Pending |
 | 7 | [Kit experience and portability](07-kit-experience-and-portability.md) | Phase 6 | Kit browsing/editor, import/export, published-copy workflow | Pending |
@@ -51,6 +51,16 @@ This roadmap coordinates Tavernary's catalog foundation with Tavernary Companion
 - Built CSS SHA-256: `B37348130A3C1A9FCA3A7DB6CE1353C9F5FBA0D0AD06D24B2D2CB3017A724437`.
 - Source gate: formatting, lint, typecheck, 25 tests, deterministic build, vendor-lock verification, and shared CatalogCore fixtures passed.
 - Status remains in progress until the isolated SillyTavern install/launcher lifecycle proof is completed.
+
+### Phase 3 — Catalog sync and discovery
+
+- Companion source commit: `5fa82b5c94cb4408d53dffce842173530ee0dd20`.
+- Cache format: IndexedDB `tavernary-companion` version 1 with atomically activated current and previous slots.
+- Contract gate: 12 shared behavior fixture cases represented by 3 fixture-contract tests; 39 focused catalog, cache, inventory, and discovery tests passed.
+- Full canonical catalog: 5,506,526 bytes, 437 projects, and 11 published Kits parsed in 40.031 ms; the search index built in 56.286 ms.
+- Default Companion query selected 351 SillyTavern extensions and presets in 3.049 ms.
+- Production bundle sizes: 30,441-byte JavaScript and 1,488-byte CSS.
+- Phase gate: formatting, lint, typecheck, focused tests, and production build passed.
 
 ## Critical path
 
