@@ -125,3 +125,18 @@ test("full-catalog query update stays within the rendering budget", async ({ pag
   expect(elapsed).toBeLessThan(150);
   await expect(page.getByRole("button", { name: "Install Alpha" })).toBeVisible();
 });
+
+test("project detail back restores an expanded result and its focus", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openHarness(page);
+  await page.getByRole("button", { name: "Show more projects" }).click();
+  await expect(page.locator(".tavernary-companion-project-card")).toHaveCount(60);
+
+  const originatingCard = page.locator(".tavernary-companion-project-card").nth(35);
+  const originatingDetails = originatingCard.getByRole("button", { name: /^View / });
+  await originatingDetails.click();
+  await page.getByRole("button", { name: "Back" }).click();
+
+  await expect(page.locator(".tavernary-companion-project-card")).toHaveCount(60);
+  await expect(originatingDetails).toBeFocused();
+});

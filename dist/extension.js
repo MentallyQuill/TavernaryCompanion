@@ -15457,10 +15457,20 @@ function ProjectGrid({
   lifecycleDisabled,
   kitSelectionActive = false,
   selectedKitProjectIds = [],
-  onToggleKitSelection
+  onToggleKitSelection,
+  visibleCount: controlledVisibleCount,
+  onVisibleCountChange
 }) {
-  const [visibleCount, setVisibleCount] = d2(PROJECT_BATCH_SIZE);
-  h2(() => setVisibleCount(PROJECT_BATCH_SIZE), [projects]);
+  const [internalVisibleCount, setInternalVisibleCount] = d2(PROJECT_BATCH_SIZE);
+  const visibleCount = controlledVisibleCount ?? internalVisibleCount;
+  h2(() => {
+    if (controlledVisibleCount === void 0) setInternalVisibleCount(PROJECT_BATCH_SIZE);
+  }, [projects, controlledVisibleCount]);
+  const showMore = () => {
+    const next = visibleCount + PROJECT_BATCH_SIZE;
+    if (onVisibleCountChange) onVisibleCountChange(next);
+    else setInternalVisibleCount(next);
+  };
   if (projects.length === 0) {
     return /* @__PURE__ */ u3("p", { children: "No projects match the current filters." });
   }
@@ -15485,7 +15495,7 @@ function ProjectGrid({
         type: "button",
         class: "tavernary-companion-project-results__more tavernary-companion-button tavernary-companion-button--secondary",
         "aria-label": "Show more projects",
-        onClick: () => setVisibleCount((current) => current + PROJECT_BATCH_SIZE),
+        onClick: showMore,
         children: "Show more"
       }
     ) : null
@@ -15572,7 +15582,9 @@ function ProjectsRoute({
   onBeginKitSelection,
   onToggleKitSelection,
   onReviewKitSelection,
-  onCancelKitSelection
+  onCancelKitSelection,
+  visibleProjectCount,
+  onVisibleProjectCountChange
 }) {
   const [filtersOpen, setFiltersOpen] = d2(false);
   const filterTrigger = A2(null);
@@ -15662,7 +15674,9 @@ function ProjectsRoute({
           lifecycleDisabled,
           kitSelectionActive,
           selectedKitProjectIds,
-          onToggleKitSelection
+          onToggleKitSelection,
+          visibleCount: visibleProjectCount,
+          onVisibleCountChange: onVisibleProjectCountChange
         }
       )
     ] }),
@@ -15746,6 +15760,7 @@ function RouteTabs({ route, onNavigate }) {
 // src/ui/shell/companion-shell.tsx
 var noRefresh = () => void 0;
 var noAction = () => void 0;
+var INITIAL_PROJECT_COUNT = 30;
 function CompanionShell({
   controller,
   projects = [],
@@ -15780,6 +15795,7 @@ function CompanionShell({
   const [state, setState] = d2(controller.read());
   const [discoveryState, setDiscoveryState] = d2(discovery?.read() ?? null);
   const [kitSelection, setKitSelection] = d2(null);
+  const [visibleProjectCount, setVisibleProjectCount] = d2(INITIAL_PROJECT_COUNT);
   h2(() => controller.subscribe(setState), [controller]);
   h2(() => {
     if (!discovery) return;
@@ -15823,7 +15839,10 @@ function CompanionShell({
                 {
                   state: discoveryState,
                   facets: facets ?? discoveryState.facets,
-                  onQueryChange: (query) => discovery.setQuery(query),
+                  onQueryChange: (query) => {
+                    setVisibleProjectCount(INITIAL_PROJECT_COUNT);
+                    discovery.setQuery(query);
+                  },
                   onOpenProject: (id) => controller.openDetail({ kind: "project", id, focusKey: `project-${id}` }),
                   onProjectAction: (id, action) => {
                     if (action.kind === "view-project") {
@@ -15846,7 +15865,9 @@ function CompanionShell({
                     onCreateKitFromSelection?.(kitSelection);
                     setKitSelection(null);
                   },
-                  onCancelKitSelection: () => setKitSelection(null)
+                  onCancelKitSelection: () => setKitSelection(null),
+                  visibleProjectCount,
+                  onVisibleProjectCountChange: setVisibleProjectCount
                 }
               ) : /* @__PURE__ */ u3(S, { children: [
                 /* @__PURE__ */ u3("h2", { id: "tavernary-companion-projects-heading", children: "Projects" }),

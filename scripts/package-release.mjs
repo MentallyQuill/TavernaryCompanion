@@ -5,6 +5,7 @@ import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
 export const RELEASE_FILES = [
+  "LICENSES/Inter-OFL-1.1.txt",
   "dist/assets/inter-latin-ext-wght-normal.woff2",
   "dist/assets/inter-latin-wght-normal.woff2",
   "dist/assets/tavernary-trihex.png",

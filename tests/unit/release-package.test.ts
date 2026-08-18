@@ -16,6 +16,7 @@ it("packages the deterministic installable files and Tavernary brand assets", ()
   expect(readFileSync(one.archivePath)).toEqual(readFileSync(two.archivePath));
   expect(verifyRelease(one)).toMatchObject({
     entries: [
+      "LICENSES/Inter-OFL-1.1.txt",
       "dist/assets/inter-latin-ext-wght-normal.woff2",
       "dist/assets/inter-latin-wght-normal.woff2",
       "dist/assets/tavernary-trihex.png",

@@ -23,6 +23,8 @@ interface ProjectsRouteProps {
   onToggleKitSelection?(projectId: string): void;
   onReviewKitSelection?(): void;
   onCancelKitSelection?(): void;
+  visibleProjectCount?: number;
+  onVisibleProjectCountChange?(count: number): void;
 }
 
 const defaultFacets: ProjectFacets = {
@@ -44,6 +46,8 @@ export function ProjectsRoute({
   onToggleKitSelection,
   onReviewKitSelection,
   onCancelKitSelection,
+  visibleProjectCount,
+  onVisibleProjectCountChange,
 }: ProjectsRouteProps): preact.JSX.Element {
   const [filtersOpen, setFiltersOpen] = useState(false);
   const filterTrigger = useRef<HTMLButtonElement>(null);
@@ -138,6 +142,8 @@ export function ProjectsRoute({
           kitSelectionActive={kitSelectionActive}
           selectedKitProjectIds={selectedKitProjectIds}
           onToggleKitSelection={onToggleKitSelection}
+          visibleCount={visibleProjectCount}
+          onVisibleCountChange={onVisibleProjectCountChange}
         />
       </div>
       {kitSelectionActive ? (

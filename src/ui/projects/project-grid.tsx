@@ -13,6 +13,8 @@ interface ProjectGridProps {
   kitSelectionActive?: boolean;
   selectedKitProjectIds?: readonly string[];
   onToggleKitSelection?(projectId: string): void;
+  visibleCount?: number;
+  onVisibleCountChange?(count: number): void;
 }
 
 export function ProjectGrid({
@@ -24,9 +26,19 @@ export function ProjectGrid({
   kitSelectionActive = false,
   selectedKitProjectIds = [],
   onToggleKitSelection,
+  visibleCount: controlledVisibleCount,
+  onVisibleCountChange,
 }: ProjectGridProps): preact.JSX.Element {
-  const [visibleCount, setVisibleCount] = useState(PROJECT_BATCH_SIZE);
-  useEffect(() => setVisibleCount(PROJECT_BATCH_SIZE), [projects]);
+  const [internalVisibleCount, setInternalVisibleCount] = useState(PROJECT_BATCH_SIZE);
+  const visibleCount = controlledVisibleCount ?? internalVisibleCount;
+  useEffect(() => {
+    if (controlledVisibleCount === undefined) setInternalVisibleCount(PROJECT_BATCH_SIZE);
+  }, [projects, controlledVisibleCount]);
+  const showMore = () => {
+    const next = visibleCount + PROJECT_BATCH_SIZE;
+    if (onVisibleCountChange) onVisibleCountChange(next);
+    else setInternalVisibleCount(next);
+  };
   if (projects.length === 0) {
     return <p>No projects match the current filters.</p>;
   }
@@ -52,7 +64,7 @@ export function ProjectGrid({
           type="button"
           class="tavernary-companion-project-results__more tavernary-companion-button tavernary-companion-button--secondary"
           aria-label="Show more projects"
-          onClick={() => setVisibleCount((current) => current + PROJECT_BATCH_SIZE)}
+          onClick={showMore}
         >
           Show more
         </button>

@@ -56,6 +56,7 @@ interface CompanionShellProps {
 
 const noRefresh = () => undefined;
 const noAction = () => undefined;
+const INITIAL_PROJECT_COUNT = 30;
 
 export function CompanionShell({
   controller,
@@ -91,6 +92,7 @@ export function CompanionShell({
   const [state, setState] = useState(controller.read());
   const [discoveryState, setDiscoveryState] = useState(discovery?.read() ?? null);
   const [kitSelection, setKitSelection] = useState<string[] | null>(null);
+  const [visibleProjectCount, setVisibleProjectCount] = useState(INITIAL_PROJECT_COUNT);
 
   useEffect(() => controller.subscribe(setState), [controller]);
   useEffect(() => {
@@ -132,7 +134,10 @@ export function CompanionShell({
                 <ProjectsRoute
                   state={discoveryState}
                   facets={facets ?? discoveryState.facets}
-                  onQueryChange={(query) => discovery.setQuery(query)}
+                  onQueryChange={(query) => {
+                    setVisibleProjectCount(INITIAL_PROJECT_COUNT);
+                    discovery.setQuery(query);
+                  }}
                   onOpenProject={(id) =>
                     controller.openDetail({ kind: "project", id, focusKey: `project-${id}` })
                   }
@@ -162,6 +167,8 @@ export function CompanionShell({
                     setKitSelection(null);
                   }}
                   onCancelKitSelection={() => setKitSelection(null)}
+                  visibleProjectCount={visibleProjectCount}
+                  onVisibleProjectCountChange={setVisibleProjectCount}
                 />
               ) : (
                 <>
