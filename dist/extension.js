@@ -13558,10 +13558,17 @@ var KitStore = class {
     if (!installed || installed.definitionProjectIds !== null || installed.definitionFingerprint !== definitionFingerprint) {
       return installed;
     }
-    return this.recordInstalledState({
-      ...installed,
-      definitionProjectIds: [...definitionProjectIds]
+    let resolved = installed;
+    await this.#profile.update((draft) => {
+      const latest = safeParse(parseInstalledKitState, draft.installedKits[id])[0] ?? null;
+      resolved = latest;
+      if (!latest || latest.definitionProjectIds !== null || latest.definitionFingerprint !== definitionFingerprint) {
+        return;
+      }
+      resolved = { ...latest, definitionProjectIds: [...definitionProjectIds] };
+      draft.installedKits[id] = resolved;
     });
+    return resolved ? structuredClone(resolved) : null;
   }
   async create(input) {
     const now = this.#now();

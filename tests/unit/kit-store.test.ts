@@ -45,4 +45,45 @@ describe("KitStore", () => {
       "Uninstall the Kit before removing its definition.",
     );
   });
+
+  it("hydrates legacy topology without overwriting an earlier queued removal update", async () => {
+    const extensionSettings: Record<string, unknown> = {};
+    const profile = new ProfileStore({
+      extensionSettings,
+      saveSettingsDebounced: () => undefined,
+    });
+    const store = new KitStore(profile);
+    await profile.update((draft) => {
+      draft.installedKits.writers = {
+        kitId: "writers",
+        definitionFingerprint: "a".repeat(64),
+        installedProjectIds: ["alpha"],
+        missingProjectIds: [],
+        status: "installed",
+        installedAt: "2026-08-18T00:00:00.000Z",
+        lastVerifiedAt: "2026-08-18T00:00:00.000Z",
+      };
+    });
+
+    const removal = profile.update((draft) => {
+      draft.installedKits.writers = {
+        kitId: "writers",
+        definitionFingerprint: "a".repeat(64),
+        installedProjectIds: [],
+        missingProjectIds: ["alpha"],
+        status: "incomplete",
+        installedAt: "2026-08-18T00:00:00.000Z",
+        lastVerifiedAt: "2026-08-18T00:01:00.000Z",
+      };
+    });
+    const hydration = store.hydrateDefinitionTopology("writers", ["alpha"], "a".repeat(64));
+    await Promise.all([removal, hydration]);
+
+    expect(store.readInstalled("writers")).toMatchObject({
+      definitionProjectIds: ["alpha"],
+      installedProjectIds: [],
+      missingProjectIds: ["alpha"],
+      status: "incomplete",
+    });
+  });
 });

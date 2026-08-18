@@ -51,10 +51,21 @@ export class KitStore {
     ) {
       return installed;
     }
-    return this.recordInstalledState({
-      ...installed,
-      definitionProjectIds: [...definitionProjectIds],
+    let resolved: InstalledKitStateV1 | null = installed;
+    await this.#profile.update((draft) => {
+      const latest = safeParse(parseInstalledKitState, draft.installedKits[id])[0] ?? null;
+      resolved = latest;
+      if (
+        !latest ||
+        latest.definitionProjectIds !== null ||
+        latest.definitionFingerprint !== definitionFingerprint
+      ) {
+        return;
+      }
+      resolved = { ...latest, definitionProjectIds: [...definitionProjectIds] };
+      draft.installedKits[id] = resolved;
     });
+    return resolved ? structuredClone(resolved) : null;
   }
   async create(input: CreatePersonalKitInput): Promise<PersonalKitV1> {
     const now = this.#now();
