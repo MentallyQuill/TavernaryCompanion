@@ -42,6 +42,7 @@ export function migrateProfileState(value: unknown): ProfileStateV1 {
     installedKits: cloneRecord(value.installedKits),
     activeKitId: typeof value.activeKitId === "string" ? value.activeKitId : null,
     operationReceipt: cloneNullableRecord(value.operationReceipt),
+    kitOperationJournal: cloneNullableRecord(value.kitOperationJournal),
   };
 }
 

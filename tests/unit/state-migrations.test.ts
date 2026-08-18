@@ -16,6 +16,7 @@ it("creates the complete V1 profile default", () => {
     installedKits: {},
     activeKitId: null,
     operationReceipt: null,
+    kitOperationJournal: null,
   });
 });
 
@@ -48,6 +49,7 @@ it("repairs corrupt V1 fields independently and discards unknown keys", () => {
     installedKits: {},
     activeKitId: kit.id,
     operationReceipt: { operationId: "operation-1" },
+    kitOperationJournal: null,
   });
 });
 

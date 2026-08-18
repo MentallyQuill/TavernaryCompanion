@@ -12,6 +12,7 @@ export interface ProfileStateV1 {
   installedKits: Record<string, unknown>;
   activeKitId: string | null;
   operationReceipt: Record<string, unknown> | null;
+  kitOperationJournal: Record<string, unknown> | null;
 }
 
 export function createDefaultProfileState(): ProfileStateV1 {
@@ -24,5 +25,6 @@ export function createDefaultProfileState(): ProfileStateV1 {
     installedKits: {},
     activeKitId: null,
     operationReceipt: null,
+    kitOperationJournal: null,
   };
 }
