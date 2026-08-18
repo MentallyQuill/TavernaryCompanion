@@ -96,7 +96,7 @@ export function planKitOperation(input: PlanKitOperationInput): Readonly<KitPlan
     }
     if (input.operation === "install" || input.operation === "activate") {
       if (!managedEntry) plan.install.push(stepFor(project, null));
-      if (input.operation === "activate")
+      if (input.operation === "activate" && (!managedEntry || !managedEntry.extension.enabled))
         plan.enable.push(stepFor(project, managedEntry?.extension.internalName ?? null));
     } else if (input.operation === "deactivate") {
       if (managedEntry?.extension.enabled)

@@ -1,6 +1,6 @@
 import type { HostExtensionAdapter } from "../host/host-types";
 import type { ProfileStore } from "../state/profile-store";
-import { renderCompanionPopup } from "./popup-host";
+import { createPopupRuntime, renderCompanionPopup } from "./popup-host";
 
 export interface CompanionLauncher {
   button: HTMLButtonElement;
@@ -22,6 +22,7 @@ export function mountCompanionLauncher(input: {
   let disposed = false;
   let popupContent: HTMLDivElement | null = null;
   let unmountPopup: (() => void) | null = null;
+  const runtime = createPopupRuntime(input.store, input.host);
 
   const openPopup = () => {
     if (popupContent) {
@@ -34,7 +35,7 @@ export function mountCompanionLauncher(input: {
     content.dataset.tavernaryCompanionPopup = "";
     content.tabIndex = -1;
     popupContent = content;
-    unmountPopup = renderCompanionPopup(content, { store: input.store, host: input.host });
+    unmountPopup = renderCompanionPopup(content, { store: input.store, host: input.host, runtime });
 
     void input.host
       .showPopup(content, {

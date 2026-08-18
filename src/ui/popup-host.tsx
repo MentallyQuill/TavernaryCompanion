@@ -50,9 +50,10 @@ import { createShellController } from "./shell/shell-controller";
 interface CompanionPopupHostProps {
   store?: ProfileStore;
   host?: HostExtensionAdapter;
+  runtime?: PopupRuntime | null;
 }
 
-interface PopupRuntime {
+export interface PopupRuntime {
   catalog: ReturnType<typeof createCatalogClient>;
   discovery: ReturnType<typeof createDiscoveryController>;
   lifecycle: LifecycleCoordinator;
@@ -65,7 +66,11 @@ interface PopupRuntime {
 
 const emptyInventory = { managed: [], external: [], unknown: [], missingManaged: [] };
 
-export function CompanionPopupHost({ store, host }: CompanionPopupHostProps): preact.JSX.Element {
+export function CompanionPopupHost({
+  store,
+  host,
+  runtime: suppliedRuntime,
+}: CompanionPopupHostProps): preact.JSX.Element {
   const shell = useMemo(
     () =>
       createShellController({
@@ -80,7 +85,10 @@ export function CompanionPopupHost({ store, host }: CompanionPopupHostProps): pr
       }),
     [store],
   );
-  const runtime = useMemo(() => createPopupRuntime(store, host), [host, store]);
+  const runtime = useMemo(
+    () => suppliedRuntime ?? createPopupRuntime(store, host),
+    [host, store, suppliedRuntime],
+  );
   const [catalogSnapshot, setCatalogSnapshot] = useState<CatalogSnapshot | undefined>(
     runtime?.catalog.read(),
   );
@@ -171,7 +179,7 @@ export function CompanionPopupHost({ store, host }: CompanionPopupHostProps): pr
     setCatalogRefreshing(true);
     void runtime.catalog.open().finally(async () => {
       setCatalogRefreshing(false);
-      if (runtime.kitExecutor.journal.read()) {
+      if (runtime.kitExecutor.journal.read() && runtime.lifecycle.lock.read() === null) {
         await refreshInventory();
         setKitReceipt(await runtime.kitExecutor.recoverInterrupted());
         syncKits();
@@ -412,7 +420,7 @@ export function CompanionPopupHost({ store, host }: CompanionPopupHostProps): pr
   );
 }
 
-function createPopupRuntime(
+export function createPopupRuntime(
   store: ProfileStore | undefined,
   host: HostExtensionAdapter | undefined,
 ): PopupRuntime | null {

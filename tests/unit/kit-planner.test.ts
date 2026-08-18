@@ -49,7 +49,7 @@ describe("Kit planner", () => {
       install: [{ projectId: "beta" }],
       alreadyManaged: [{ projectId: "alpha" }],
       externalContext: [{ projectId: "gamma" }],
-      enable: [{ projectId: "alpha" }, { projectId: "beta" }],
+      enable: [{ projectId: "beta" }],
       disable: [{ projectId: "old-only" }],
       reloadRequired: true,
     });
@@ -94,6 +94,25 @@ describe("Kit planner", () => {
       "catalog-incompatible",
       "project-unavailable",
     ]);
+  });
+
+  it("produces a no-op when activating the already-active healthy Kit", () => {
+    const alpha = catalogProjectFixture({ id: "alpha", folderName: "Alpha" });
+    const managed = { alpha: record("alpha", "Alpha") };
+    const plan = planKitOperation({
+      operation: "activate",
+      kit: { id: "kit", projectIds: ["alpha"], origin: "personal" },
+      catalog: { ...catalogFixture(), projects: [alpha] },
+      inventory: { ...emptyInventory, managed: [managedEntry(alpha, managed.alpha, true)] },
+      managed,
+      installedKits: [installed("kit", ["alpha"])],
+      activeKitId: "kit",
+      catalogCanMutate: true,
+    });
+    expect(plan.install).toEqual([]);
+    expect(plan.enable).toEqual([]);
+    expect(plan.disable).toEqual([]);
+    expect(plan.reloadRequired).toBe(false);
   });
 });
 

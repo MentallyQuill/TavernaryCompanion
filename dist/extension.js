@@ -5812,7 +5812,7 @@ function planKitOperation(input) {
     }
     if (input.operation === "install" || input.operation === "activate") {
       if (!managedEntry) plan.install.push(stepFor(project, null));
-      if (input.operation === "activate")
+      if (input.operation === "activate" && (!managedEntry || !managedEntry.extension.enabled))
         plan.enable.push(stepFor(project, managedEntry?.extension.internalName ?? null));
     } else if (input.operation === "deactivate") {
       if (managedEntry?.extension.enabled)
@@ -8232,7 +8232,11 @@ function createShellController(options) {
 
 // src/ui/popup-host.tsx
 var emptyInventory = { managed: [], external: [], unknown: [], missingManaged: [] };
-function CompanionPopupHost({ store, host }) {
+function CompanionPopupHost({
+  store,
+  host,
+  runtime: suppliedRuntime
+}) {
   const shell = T2(
     () => createShellController({
       initialRoute: store?.read().preferences.route ?? "projects",
@@ -8244,7 +8248,10 @@ function CompanionPopupHost({ store, host }) {
     }),
     [store]
   );
-  const runtime = T2(() => createPopupRuntime(store, host), [host, store]);
+  const runtime = T2(
+    () => suppliedRuntime ?? createPopupRuntime(store, host),
+    [host, store, suppliedRuntime]
+  );
   const [catalogSnapshot, setCatalogSnapshot] = d2(
     runtime?.catalog.read()
   );
@@ -8331,7 +8338,7 @@ function CompanionPopupHost({ store, host }) {
     setCatalogRefreshing(true);
     void runtime.catalog.open().finally(async () => {
       setCatalogRefreshing(false);
-      if (runtime.kitExecutor.journal.read()) {
+      if (runtime.kitExecutor.journal.read() && runtime.lifecycle.lock.read() === null) {
         await refreshInventory();
         setKitReceipt(await runtime.kitExecutor.recoverInterrupted());
         syncKits();
@@ -8669,6 +8676,7 @@ function mountCompanionLauncher(input) {
   let disposed = false;
   let popupContent = null;
   let unmountPopup = null;
+  const runtime = createPopupRuntime(input.store, input.host);
   const openPopup = () => {
     if (popupContent) {
       popupContent.focus();
@@ -8679,7 +8687,7 @@ function mountCompanionLauncher(input) {
     content.dataset.tavernaryCompanionPopup = "";
     content.tabIndex = -1;
     popupContent = content;
-    unmountPopup = renderCompanionPopup(content, { store: input.store, host: input.host });
+    unmountPopup = renderCompanionPopup(content, { store: input.store, host: input.host, runtime });
     void input.host.showPopup(content, {
       id: "tavernary-companion",
       wide: true,
