@@ -26,8 +26,8 @@ This roadmap coordinates Tavernary's catalog foundation with Tavernary Companion
 | 1 | [Tavernary foundation](01-tavernary-foundation.md) | Approved designs | Schema 7, install contracts, shared CatalogCore, living Pages asset | Verified |
 | 2 | [Companion foundation](02-companion-foundation.md) | Phase 1 interfaces; fixtures may unblock work | Installable extension scaffold, host boundary, settings, build | In progress |
 | 3 | [Catalog sync and discovery](03-catalog-sync-and-discovery.md) | Phases 1–2 | Validated cache, shared search/filter behavior, inventory reconciliation | Verified |
-| 4 | [Responsive shell and catalog UI](04-responsive-shell-and-catalog-ui.md) | Phase 3 view models | Desktop/mobile shell and complete browse experience | In progress |
-| 5 | [Project lifecycle and trust](05-project-lifecycle-and-trust.md) | Phases 2–4 | Verified install/remove flow, warnings, receipts, self-protection | Pending |
+| 4 | [Responsive shell and catalog UI](04-responsive-shell-and-catalog-ui.md) | Phase 3 view models | Desktop/mobile shell and complete browse experience | Verified |
+| 5 | [Project lifecycle and trust](05-project-lifecycle-and-trust.md) | Phases 2–4 | Verified install/remove flow, warnings, receipts, self-protection | In progress |
 | 6 | [Kit domain and operations](06-kit-domain-and-operations.md) | Phase 5 lifecycle services | Stored Kits, planning, staged activation, reference-safe removal | Pending |
 | 7 | [Kit experience and portability](07-kit-experience-and-portability.md) | Phase 6 | Kit browsing/editor, import/export, published-copy workflow | Pending |
 | 8 | [Integration, release, and live proof](08-integration-release-and-live-proof.md) | Phases 1–7 | Full gates, installed artifact, responsive acceptance, Pages proof | Pending |
@@ -61,6 +61,16 @@ This roadmap coordinates Tavernary's catalog foundation with Tavernary Companion
 - Default Companion query selected 351 SillyTavern extensions and presets in 3.049 ms.
 - Production bundle sizes: 30,441-byte JavaScript and 1,488-byte CSS.
 - Phase gate: formatting, lint, typecheck, focused tests, and production build passed.
+
+### Phase 4 — Responsive shell and catalog UI
+
+- Companion source commit: `e753a45d5de952653ee5228b591696e00cd2901d`.
+- Responsive geometry passed at 1440x960 (1325x864), 1366x768 (1257x691), 1024x768 (942x691), 800x600 (736x540), 412x915 (412x915), and 390x844 (390x844).
+- Every target reported zero document and shell horizontal overflow with the Alpha lifecycle action visible; the 390x844 route also passed at 200% root text size.
+- Accessibility gate: zero serious or critical axe violations, compact filter focus trap/Escape restoration passed, and reduced motion produced no transform with at most 0.01 ms transition duration.
+- A 437-card default result set did not mount detail content eagerly and completed a query/render update within the 150 ms budget, so virtualization was not introduced.
+- Phase gate: formatting, lint, typecheck, 87 unit/contract tests, production build, and 11 Chromium responsive/accessibility tests passed.
+- Production bundles at this phase: 82,394-byte JavaScript and 13,910-byte CSS.
 
 ## Critical path
 
