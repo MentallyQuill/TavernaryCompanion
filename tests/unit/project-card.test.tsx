@@ -17,6 +17,7 @@ function project(overrides: Partial<ProjectCardViewModel> = {}): ProjectCardView
     primaryFunction: "Interface & Workflow",
     tags: ["Workflow", "Utility"],
     licenseLabel: "MIT",
+    attributionLabel: null,
     activity: {
       latestSourceActivityAt: "2026-08-17T00:00:00.000Z",
       activeWeeks12: 5,
@@ -86,6 +87,26 @@ describe("ProjectCard", () => {
 
     expect(screen.getByText("Preset installation is not available in V1")).toBeVisible();
     expect(screen.queryByRole("button", { name: /Install Alpha/ })).not.toBeInTheDocument();
+    expect(screen.getByTestId("project-primary-action")).toHaveClass(
+      "tavernary-companion-button--secondary",
+    );
+    expect(screen.getByTestId("project-primary-action")).not.toHaveClass(
+      "tavernary-companion-button--primary",
+    );
+  });
+
+  it("renders compact attribution only when Tavernary provides it", () => {
+    const view = render(
+      <ProjectCard
+        project={project({ attributionLabel: "By tavernary-author" })}
+        onOpen={vi.fn()}
+        onAction={vi.fn()}
+      />,
+    );
+    expect(screen.getByText("By tavernary-author")).toBeVisible();
+
+    view.rerender(<ProjectCard project={project()} onOpen={vi.fn()} onAction={vi.fn()} />);
+    expect(screen.queryByText("By tavernary-author")).not.toBeInTheDocument();
   });
 
   it("never renders a lifecycle action for Companion even with a malformed model", () => {
@@ -115,6 +136,9 @@ describe("ProjectCard", () => {
     );
     fireEvent.click(screen.getByRole("button", { name: "Add to Kit" }));
     expect(toggle).toHaveBeenCalledWith("alpha");
+    expect(screen.getByRole("button", { name: "Add to Kit" })).toHaveClass(
+      "tavernary-companion-button--primary",
+    );
 
     rerender(
       <ProjectCard

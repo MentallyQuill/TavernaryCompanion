@@ -38,6 +38,7 @@ export interface ProjectCardViewModel {
   frontends: string[];
   tags: string[];
   licenseLabel: string;
+  attributionLabel: string | null;
   primaryFunction: string;
   activity: {
     latestSourceActivityAt: string | null;
@@ -152,6 +153,7 @@ export function toProjectCardViewModel(
     frontends: project.frontends.map(({ label }) => label),
     tags: project.tags.map(({ label }) => label),
     licenseLabel: project.license.label,
+    attributionLabel: project.attribution ? `By ${project.attribution.owner.login}` : null,
     primaryFunction: primaryFunctionLabel(project.primaryFunction),
     activity: {
       latestSourceActivityAt: project.activity.latestSourceActivityAt,

@@ -637,6 +637,12 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   color: var(--tavernary-color-text-muted);
   font-size: 0.84rem;
 }
+.tavernary-companion-project-card__attribution {
+  margin: -0.2rem 0 0;
+  color: var(--tavernary-color-text-muted);
+  font-size: 0.72rem;
+  font-weight: 600;
+}
 .tavernary-companion-project-card__summary {
   display: -webkit-box;
   overflow: hidden;

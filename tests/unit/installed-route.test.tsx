@@ -69,4 +69,15 @@ describe("InstalledRoute", () => {
     expect(screen.getByText("Updating installed extensions…")).toBeVisible();
     expect(screen.getAllByText("Alpha")[0]).toBeVisible();
   });
+
+  it("explains an inventory with no installed extensions", () => {
+    render(
+      <InstalledRoute
+        sections={sections.map((section) => ({ ...section, rows: [] }))}
+        onRefresh={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("No installed extensions were found in this profile.")).toBeVisible();
+  });
 });

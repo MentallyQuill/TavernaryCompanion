@@ -11441,6 +11441,7 @@ function toProjectCardViewModel(project2, context) {
     frontends: project2.frontends.map(({ label: label2 }) => label2),
     tags: project2.tags.map(({ label: label2 }) => label2),
     licenseLabel: project2.license.label,
+    attributionLabel: project2.attribution ? `By ${project2.attribution.owner.login}` : null,
     primaryFunction: primaryFunctionLabel(project2.primaryFunction),
     activity: {
       latestSourceActivityAt: project2.activity.latestSourceActivityAt,
@@ -14446,12 +14447,13 @@ function InstalledRoute({
   h2(() => {
     void onRefresh();
   }, [onRefresh]);
+  const populatedSections = sections.filter((section) => section.rows.length > 0);
   return /* @__PURE__ */ u3("section", { class: "tavernary-companion-installed-route", "aria-labelledby": "installed-heading", children: [
     /* @__PURE__ */ u3("header", { children: [
       /* @__PURE__ */ u3("h2", { id: "installed-heading", children: "Installed extensions" }),
       refreshing ? /* @__PURE__ */ u3("p", { role: "status", children: "Updating installed extensions\u2026" }) : null
     ] }),
-    sections.filter((section) => section.rows.length > 0).map((section) => /* @__PURE__ */ u3(
+    populatedSections.length ? populatedSections.map((section) => /* @__PURE__ */ u3(
       InstalledSection,
       {
         section,
@@ -14461,7 +14463,7 @@ function InstalledRoute({
         lifecycleDisabled
       },
       section.id
-    ))
+    )) : /* @__PURE__ */ u3("p", { children: "No installed extensions were found in this profile." })
   ] });
 }
 
@@ -15404,6 +15406,7 @@ function ProjectCard({
       /* @__PURE__ */ u3("h3", { children: project2.name }),
       /* @__PURE__ */ u3(AssessmentBadge, { status: project2.tavernKeeper })
     ] }),
+    project2.attributionLabel ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__attribution", children: project2.attributionLabel }) : null,
     /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__summary", children: project2.summary }),
     /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__chips", children: [
       (project2.frontends.length ? project2.frontends : ["Frontend-neutral"]).map((frontend) => /* @__PURE__ */ u3("span", { class: "tavernary-companion-chip tavernary-companion-chip--frontend", children: frontend })),
@@ -15416,7 +15419,15 @@ function ProjectCard({
     ] }),
     project2.action.reason ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__reason", children: project2.action.reason }) : null,
     /* @__PURE__ */ u3("footer", { children: [
-      kitSelectionActive && !selfProtected && project2.kitSelectable ? /* @__PURE__ */ u3("button", { type: "button", onClick: () => onToggleKitSelection?.(project2.id), children: selectedForKit ? "Remove from Kit" : "Add to Kit" }) : null,
+      kitSelectionActive && !selfProtected && project2.kitSelectable ? /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          class: "tavernary-companion-button tavernary-companion-button--primary",
+          onClick: () => onToggleKitSelection?.(project2.id),
+          children: selectedForKit ? "Remove from Kit" : "Add to Kit"
+        }
+      ) : null,
       /* @__PURE__ */ u3(
         "button",
         {
@@ -15432,7 +15443,7 @@ function ProjectCard({
         "button",
         {
           type: "button",
-          class: "tavernary-companion-project-card__primary tavernary-companion-button tavernary-companion-button--primary",
+          class: `tavernary-companion-project-card__primary tavernary-companion-button ${project2.action.kind === "view-project" ? "tavernary-companion-button--secondary" : "tavernary-companion-button--primary"}`,
           "data-testid": "project-primary-action",
           "aria-label": `${project2.action.label} ${project2.name}`,
           onClick: () => onAction(project2.action),
@@ -15808,6 +15819,7 @@ function CompanionShell({
     return () => window.removeEventListener("popstate", onPopState);
   }, [controller]);
   const detail = state.detailStack.at(-1);
+  const headerCatalogSnapshot = catalogSnapshot?.state.startsWith("ready-") ? catalogSnapshot : void 0;
   return /* @__PURE__ */ u3(
     "section",
     {
@@ -15819,9 +15831,9 @@ function CompanionShell({
           ShellHeader,
           {
             onRequestClose,
-            catalogSnapshot,
+            catalogSnapshot: headerCatalogSnapshot,
             catalogRefreshing,
-            onRefreshCatalog: catalogSnapshot ? () => void onRefreshCatalog() : void 0
+            onRefreshCatalog: headerCatalogSnapshot ? () => void onRefreshCatalog() : void 0
           }
         ),
         /* @__PURE__ */ u3(RouteTabs, { route: state.route, onNavigate: (route) => controller.navigate(route) }),

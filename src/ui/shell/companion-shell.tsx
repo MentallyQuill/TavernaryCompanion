@@ -107,6 +107,9 @@ export function CompanionShell({
   }, [controller]);
 
   const detail = state.detailStack.at(-1);
+  const headerCatalogSnapshot = catalogSnapshot?.state.startsWith("ready-")
+    ? catalogSnapshot
+    : undefined;
   return (
     <section
       class="tavernary-companion-shell"
@@ -115,9 +118,9 @@ export function CompanionShell({
     >
       <ShellHeader
         onRequestClose={onRequestClose}
-        catalogSnapshot={catalogSnapshot}
+        catalogSnapshot={headerCatalogSnapshot}
         catalogRefreshing={catalogRefreshing}
-        onRefreshCatalog={catalogSnapshot ? () => void onRefreshCatalog() : undefined}
+        onRefreshCatalog={headerCatalogSnapshot ? () => void onRefreshCatalog() : undefined}
       />
       <RouteTabs route={state.route} onNavigate={(route) => controller.navigate(route)} />
       <main class="tavernary-companion-shell__content">

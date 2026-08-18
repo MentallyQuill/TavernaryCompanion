@@ -5,6 +5,7 @@ import { CompanionShell } from "../../src/ui/shell/companion-shell";
 import { createShellController } from "../../src/ui/shell/shell-controller";
 import { createKitDiscoveryController } from "../../src/kits/kit-discovery-controller";
 import { catalogFixture, catalogProjectFixture } from "../helpers/catalog-fixtures";
+import type { CatalogSnapshot } from "../../src/catalog/catalog-client";
 
 afterEach(() => {
   document.body.replaceChildren();
@@ -55,6 +56,33 @@ describe("CompanionShell", () => {
 
     expect(onRequestClose).toHaveBeenCalledOnce();
   });
+
+  it.each([
+    [{ state: "error-empty", canMutate: false, checkedAt: null, error: "offline" }, "Try again"],
+    [
+      {
+        state: "incompatible-empty",
+        canMutate: false,
+        checkedAt: null,
+        remoteSchemaVersion: 8,
+      },
+      "Update Companion",
+    ],
+  ] as Array<[CatalogSnapshot, string]>)(
+    "keeps header refresh out of the %s catalog boundary",
+    (catalogSnapshot, boundaryAction) => {
+      render(
+        <CompanionShell
+          controller={createShellController({ initialRoute: "projects" })}
+          catalogSnapshot={catalogSnapshot}
+          onRefreshCatalog={vi.fn()}
+        />,
+      );
+
+      expect(screen.getAllByRole("button", { name: boundaryAction })).toHaveLength(1);
+      expect(screen.queryByRole("button", { name: "Refresh catalog" })).not.toBeInTheDocument();
+    },
+  );
 
   it("opens the Kit inspector for Review and View Kit card actions", () => {
     const controller = createShellController({ initialRoute: "kits" });

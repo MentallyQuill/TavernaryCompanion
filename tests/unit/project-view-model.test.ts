@@ -44,6 +44,12 @@ describe("project view models", () => {
       false,
       true,
     ];
+    project.attribution = {
+      owner: { provider: "github", login: "tavernary-author" },
+      contributors: [],
+      humanContributorCount: 1,
+      status: "current",
+    };
     const view = toProjectCardViewModel(project, {
       snapshot: readySnapshot(),
       inventory: emptyInventory,
@@ -51,6 +57,7 @@ describe("project view models", () => {
 
     expect(view.tags).toEqual(["Memory"]);
     expect(view.licenseLabel).toBe("MIT");
+    expect(view.attributionLabel).toBe("By tavernary-author");
     expect(view.activity.weeklyActivity).toEqual(project.activity.weeklyActivity);
   });
 

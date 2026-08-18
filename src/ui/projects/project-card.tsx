@@ -40,6 +40,9 @@ export function ProjectCard({
         <h3>{project.name}</h3>
         <AssessmentBadge status={project.tavernKeeper} />
       </div>
+      {project.attributionLabel ? (
+        <p class="tavernary-companion-project-card__attribution">{project.attributionLabel}</p>
+      ) : null}
       <p class="tavernary-companion-project-card__summary">{project.summary}</p>
       <div class="tavernary-companion-project-card__chips">
         {(project.frontends.length ? project.frontends : ["Frontend-neutral"]).map((frontend) => (
@@ -63,7 +66,11 @@ export function ProjectCard({
       ) : null}
       <footer>
         {kitSelectionActive && !selfProtected && project.kitSelectable ? (
-          <button type="button" onClick={() => onToggleKitSelection?.(project.id)}>
+          <button
+            type="button"
+            class="tavernary-companion-button tavernary-companion-button--primary"
+            onClick={() => onToggleKitSelection?.(project.id)}
+          >
             {selectedForKit ? "Remove from Kit" : "Add to Kit"}
           </button>
         ) : null}
@@ -83,7 +90,11 @@ export function ProjectCard({
         ) : (
           <button
             type="button"
-            class="tavernary-companion-project-card__primary tavernary-companion-button tavernary-companion-button--primary"
+            class={`tavernary-companion-project-card__primary tavernary-companion-button ${
+              project.action.kind === "view-project"
+                ? "tavernary-companion-button--secondary"
+                : "tavernary-companion-button--primary"
+            }`}
             data-testid="project-primary-action"
             aria-label={`${project.action.label} ${project.name}`}
             onClick={() => onAction(project.action)}
