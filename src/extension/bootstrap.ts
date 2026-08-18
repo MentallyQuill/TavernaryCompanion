@@ -68,7 +68,7 @@ async function performBootstrap(
     extensionSettings: context.extensionSettings,
     saveSettingsDebounced: context.saveSettingsDebounced,
   });
-  const launcher = mountCompanionLauncher({ container: menu, host });
+  const launcher = mountCompanionLauncher({ container: menu, host, store });
   activeCompanion = { launcher, store };
   return { ok: true };
 }

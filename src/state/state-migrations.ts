@@ -31,7 +31,10 @@ export function migrateProfileState(value: unknown): ProfileStateV1 {
     trustAcknowledgedAt:
       typeof value.trustAcknowledgedAt === "string" ? value.trustAcknowledgedAt : null,
     preferences: {
-      route: preferences.route === "kits" ? "kits" : defaults.preferences.route,
+      route:
+        preferences.route === "kits" || preferences.route === "installed"
+          ? preferences.route
+          : defaults.preferences.route,
       density: preferences.density === "compact" ? "compact" : defaults.preferences.density,
     },
     managedExtensions: cloneRecord(value.managedExtensions),

@@ -1,5 +1,5 @@
 export interface ProfilePreferencesV1 {
-  route: "projects" | "kits";
+  route: "projects" | "kits" | "installed";
   density: "standard" | "compact";
 }
 

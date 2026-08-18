@@ -1,22 +1,30 @@
 import { render } from "preact";
+import type { ProfileStore } from "../state/profile-store";
+import { CompanionShell } from "./shell/companion-shell";
+import { createShellController } from "./shell/shell-controller";
 
-export function CompanionPopupHost(): preact.JSX.Element {
-  return (
-    <main class="tavernary-companion-shell" aria-label="Tavernary Companion">
-      <header class="tavernary-companion-shell__header">
-        <div>
-          <span class="tavernary-companion-shell__eyebrow">Tavernary</span>
-          <h1>Tavernary Companion</h1>
-        </div>
-      </header>
-      <section class="tavernary-companion-shell__content" aria-live="polite">
-        Loading catalog…
-      </section>
-    </main>
-  );
+interface CompanionPopupHostProps {
+  store?: ProfileStore;
 }
 
-export function renderCompanionPopup(container: HTMLElement): () => void {
-  render(<CompanionPopupHost />, container);
+export function CompanionPopupHost({ store }: CompanionPopupHostProps): preact.JSX.Element {
+  const controller = createShellController({
+    initialRoute: store?.read().preferences.route ?? "projects",
+    persistRoute: store
+      ? async (route) => {
+          await store.update((draft) => {
+            draft.preferences.route = route;
+          });
+        }
+      : undefined,
+  });
+  return <CompanionShell controller={controller} />;
+}
+
+export function renderCompanionPopup(
+  container: HTMLElement,
+  options: CompanionPopupHostProps = {},
+): () => void {
+  render(<CompanionPopupHost {...options} />, container);
   return () => render(null, container);
 }

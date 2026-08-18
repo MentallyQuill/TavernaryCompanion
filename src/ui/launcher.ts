@@ -1,4 +1,5 @@
 import type { HostExtensionAdapter } from "../host/host-types";
+import type { ProfileStore } from "../state/profile-store";
 import { renderCompanionPopup } from "./popup-host";
 
 export interface CompanionLauncher {
@@ -9,6 +10,7 @@ export interface CompanionLauncher {
 export function mountCompanionLauncher(input: {
   container: Element;
   host: HostExtensionAdapter;
+  store?: ProfileStore;
 }): CompanionLauncher {
   const button = document.createElement("button");
   button.type = "button";
@@ -32,7 +34,7 @@ export function mountCompanionLauncher(input: {
     content.dataset.tavernaryCompanionPopup = "";
     content.tabIndex = -1;
     popupContent = content;
-    unmountPopup = renderCompanionPopup(content);
+    unmountPopup = renderCompanionPopup(content, { store: input.store });
 
     void input.host
       .showPopup(content, {
@@ -49,6 +51,7 @@ export function mountCompanionLauncher(input: {
         unmountPopup = null;
         content.remove();
         popupContent = null;
+        if (!disposed && button.isConnected) button.focus();
       });
   };
   button.addEventListener("click", openPopup);
