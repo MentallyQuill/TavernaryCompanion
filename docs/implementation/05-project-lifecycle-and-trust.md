@@ -126,10 +126,10 @@ Expected: FAIL.
 
 ```ts
 export const CURRENT_ASSESSMENT_WARNING =
-  "TavernKeeper's latest assessment identified potential security concerns in this project. Extensions can run code inside SillyTavern. You are responsible for deciding whether to trust and install this project. Review the TavernKeeper assessment and the project before continuing.";
+  "TavernKeeper’s latest assessment identified potential security concerns in this project. Extensions can run code inside SillyTavern. Responsibility for safety falls upon you. Review the scan and project before continuing.";
 
 export const STALE_ASSESSMENT_WARNING =
-  "TavernKeeper's latest available assessment identified potential security concerns in this project. Extensions can run code inside SillyTavern. You are responsible for deciding whether to trust and install this project. Review the TavernKeeper assessment and the project before continuing. This assessment covers an older version of the project.";
+  "TavernKeeper’s latest available assessment identified potential security concerns in this project. Extensions can run code inside SillyTavern. Responsibility for safety falls upon you. Review the scan and project before continuing. This assessment covers an older version of the project.";
 ```
 
 - [ ] **Step 4: Implement the one-time disclosure model**
@@ -271,7 +271,7 @@ git commit -m "feat(lifecycle): remove exact projects"
 
 ```tsx
 expect(screen.getByText(CURRENT_ASSESSMENT_WARNING)).toBeVisible();
-expect(screen.getByRole("button", { name: "Review assessment" })).toBeVisible();
+expect(screen.getByRole("button", { name: "Scan Review" })).toBeVisible();
 expect(screen.getByRole("button", { name: "Cancel" })).toBeVisible();
 expect(screen.getByRole("button", { name: "Install anyway" })).toBeVisible();
 ```
