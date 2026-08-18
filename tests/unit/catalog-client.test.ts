@@ -52,6 +52,22 @@ describe("CatalogClient", () => {
     });
   });
 
+  it("rejects a cached body whose stored digest does not match", async () => {
+    const cache = createMemoryCatalogCache();
+    const record = cachedCatalogRecord({ bodySha256: "0".repeat(64) });
+    await cache.stage(record);
+    await cache.activate(record.id);
+    const client = createCatalogClient({
+      cache,
+      fetch: vi.fn().mockRejectedValue(new Error("offline")),
+      now: () => now,
+    });
+
+    await client.open();
+
+    expect(client.read()).toMatchObject({ state: "error-empty", canMutate: false });
+  });
+
   it("stages and activates a changed valid response", async () => {
     const cache = await seededCache();
     const body = catalogBody();

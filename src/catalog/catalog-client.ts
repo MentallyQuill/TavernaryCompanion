@@ -114,6 +114,10 @@ class DefaultCatalogClient implements CatalogClient {
     this.#lastCheckedAt = metadata.lastCheckedAt;
     if (activeRecord) {
       try {
+        const bodySha256 = await this.#sha256(activeRecord.body);
+        if (bodySha256 !== activeRecord.bodySha256) {
+          throw new Error("Cached catalog digest does not match its body.");
+        }
         this.#catalog = parseCatalogV7(JSON.parse(activeRecord.body));
         this.#activeRecord = activeRecord;
         this.#publish({

@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/MentallyQuill/Tavernary.git",
-  "commit": "714143a630387a68a6d2f6ea86efa56c58c5cc81",
+  "commit": "7c3393ebbf3b97e144b4d1772bc5367e28439302",
   "sourcePath": "packages/catalog-core",
   "files": [
     {
@@ -10,11 +10,11 @@
     },
     {
       "path": "fixtures/catalog-v7-invalid-install-url.json",
-      "sha256": "56cd753017d1356ef085ed2487b8278b17627858c73d31a902884160ed482f03"
+      "sha256": "a8ab4325bb2d0c0d85b1877837cd49433eb4d1ea10623b1bbc5b84c71286e4ef"
     },
     {
       "path": "fixtures/catalog-v7-valid.json",
-      "sha256": "e7cae24ab38e37e31b27b86ceb374172003fa27f20c54cc74bcb6a7851f04317"
+      "sha256": "c8de19f217a21f91f05e04675c67b51edafc954099777aee19e85a089f8bdcdf"
     },
     {
       "path": "package.json",
@@ -30,7 +30,7 @@
     },
     {
       "path": "src/catalog-schema.ts",
-      "sha256": "f5af6cea1764cbcd6b38337433185570a6a393503b6c658d4f261af310b97a26"
+      "sha256": "dabc2604412e3cde4261a76ef8f06cdcc833de9b3ea031a850337769296adb5a"
     },
     {
       "path": "src/catalog-tag-filter.ts",
@@ -39,6 +39,10 @@
     {
       "path": "src/catalog-types.ts",
       "sha256": "92e3b61f4c819245f27dc0296713187536b08d19a74bb0073c3492af381258a0"
+    },
+    {
+      "path": "src/catalog-v7-schema.ts",
+      "sha256": "54366f09c18918bc7dfda3935d900bd430e56173209258ec1f34a88ff9493b70"
     },
     {
       "path": "src/frontends.json",
@@ -50,7 +54,7 @@
     },
     {
       "path": "src/install-contract.ts",
-      "sha256": "929c3cadeb042095c4a2a269ef02afd927fbcfad5aeed5a0d963586299542c8e"
+      "sha256": "0a28ec22f8b5fc5a1c36ae08a0551594ca465b5d9278fbf9ef151cbf88c494e4"
     },
     {
       "path": "src/kit-query.ts",
@@ -98,7 +102,7 @@
     },
     {
       "path": "tests/catalog-schema.test.ts",
-      "sha256": "78a6d1fb6053f94d936b521bca525d5029bf512e026aaa52c3a9996902ad3e68"
+      "sha256": "d19f70fd41d4a4101eaa388b56fd8b5d8ced341249e73dc3f7bcab44f373c328"
     },
     {
       "path": "tests/contract-fixtures.test.ts",

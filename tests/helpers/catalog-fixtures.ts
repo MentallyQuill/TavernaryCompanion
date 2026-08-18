@@ -27,7 +27,7 @@ export function cachedCatalogRecord(
     generatedAt: "2026-08-18T00:00:00.000Z",
     etag: '"cached"',
     fetchedAt: "2026-08-18T00:05:00.000Z",
-    bodySha256: "a".repeat(64),
+    bodySha256: "7f11a8ac09212a0fbaa34c667d9778e76dc03799855499f131f424eefcbf72ec",
     body: catalogBody(),
     ...overrides,
   };
