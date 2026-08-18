@@ -16,6 +16,7 @@ export function previewRemovalImpact({
   installedKits,
   activeKitId,
   removable,
+  kitTitles = {},
 }: {
   projectId: string;
   projectName: string;
@@ -23,8 +24,9 @@ export function previewRemovalImpact({
   installedKits: Record<string, unknown>;
   activeKitId: string | null;
   removable: boolean;
+  kitTitles?: Readonly<Record<string, string>>;
 }): RemovalImpact {
-  const references = kitReferences(projectId, installedKits);
+  const references = kitReferences(projectId, installedKits, kitTitles);
   const activeKitAffected = references.some(({ id }) => id === activeKitId);
   const kitNames = references.map(({ title }) => title).join(", ");
   const consequence =
@@ -66,23 +68,23 @@ export function markInstalledKitsIncomplete(
   return next;
 }
 
-function kitReferences(projectId: string, installedKits: Record<string, unknown>) {
+function kitReferences(
+  projectId: string,
+  installedKits: Record<string, unknown>,
+  kitTitles: Readonly<Record<string, string>>,
+) {
   return Object.entries(installedKits)
     .filter(([, candidate]) => kitProjectIds(candidate).includes(projectId))
-    .map(([id, candidate]) => ({
+    .map(([id]) => ({
       id,
-      title: isRecord(candidate) && typeof candidate.title === "string" ? candidate.title : id,
+      title: kitTitles[id] ?? id,
     }))
     .sort((left, right) => left.title.localeCompare(right.title));
 }
 
 function kitProjectIds(value: unknown): string[] {
   if (!isRecord(value)) return [];
-  const ids = Array.isArray(value.projectIds)
-    ? value.projectIds
-    : Array.isArray(value.members)
-      ? value.members
-      : [];
+  const ids = Array.isArray(value.installedProjectIds) ? value.installedProjectIds : [];
   return ids.filter((candidate): candidate is string => typeof candidate === "string");
 }
 

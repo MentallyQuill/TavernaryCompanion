@@ -6880,8 +6880,8 @@ var require_dist = __commonJS({
         return ajv2;
       }
       const [formats, exportName] = opts.mode === "fast" ? [formats_1.fastFormats, fastName] : [formats_1.fullFormats, fullName];
-      const list = opts.formats || formats_1.formatNames;
-      addFormats2(ajv2, list, formats, exportName);
+      const list2 = opts.formats || formats_1.formatNames;
+      addFormats2(ajv2, list2, formats, exportName);
       if (opts.keywords)
         (0, limit_1.default)(ajv2);
       return ajv2;
@@ -6893,11 +6893,11 @@ var require_dist = __commonJS({
         throw new Error(`Unknown format "${name}"`);
       return f4;
     };
-    function addFormats2(ajv2, list, fs, exportName) {
+    function addFormats2(ajv2, list2, fs, exportName) {
       var _a;
       var _b;
       (_a = (_b = ajv2.opts.code).formats) !== null && _a !== void 0 ? _a : _b.formats = (0, codegen_1._)`require("ajv-formats/dist/formats").${exportName}`;
-      for (const f4 of list)
+      for (const f4 of list2)
         ajv2.addFormat(f4, fs[f4]);
     }
     module.exports = exports = formatsPlugin;
@@ -8312,7 +8312,7 @@ ajv.addFormat("safe-http-url", {
 });
 ajv.addFormat("safe-navigation-url", {
   type: "string",
-  validate: (value) => isSafeHttpUrl(value) || value.startsWith("/") && !value.startsWith("//") && !hasControl(value)
+  validate: (value) => isSafeNavigationUrl(value)
 });
 var validateCatalog = ajv.compile(catalogV7Schema);
 var CatalogValidationError = class extends Error {
@@ -8401,6 +8401,18 @@ function isSafeHttpUrl(value) {
   try {
     const url = new URL(value);
     return (url.protocol === "https:" || url.protocol === "http:") && url.username.length === 0 && url.password.length === 0 && url.hostname.length > 0;
+  } catch {
+    return false;
+  }
+}
+function isSafeNavigationUrl(value) {
+  if (isSafeHttpUrl(value)) return true;
+  if (!value.startsWith("/") || value.startsWith("//") || value.includes("\\") || hasControl(value)) {
+    return false;
+  }
+  try {
+    const base = new URL("https://tavernary.invalid/");
+    return new URL(value, base).origin === base.origin;
   } catch {
     return false;
   }
@@ -10701,187 +10713,6 @@ function selectKits(kits, query, search = "", searchResults) {
   ).sort(kitComparator(query.sort, effectiveSearchResults));
 }
 
-// vendor/tavernary-core/src/frontends.json
-var frontends_default = {
-  frontends: [
-    {
-      id: "agnai",
-      label: "agnai",
-      description: "Works with the agnai roleplay frontend."
-    },
-    {
-      id: "ai-rpg",
-      label: "AI RPG",
-      description: "Works with the AI RPG roleplay frontend."
-    },
-    {
-      id: "aikobots",
-      label: "Aikobots",
-      description: "Works with the Aikobots roleplay frontend."
-    },
-    {
-      id: "alex-tavern",
-      label: "alex-tavern",
-      description: "Works with the alex-tavern roleplay frontend."
-    },
-    {
-      id: "arousal-pub",
-      label: "Arousal Pub",
-      description: "Works with the Arousal Pub roleplay frontend."
-    },
-    {
-      id: "aventuras",
-      label: "Aventuras",
-      description: "Works with the Aventuras roleplay frontend."
-    },
-    {
-      id: "charon",
-      label: "charon",
-      description: "Works with the charon roleplay frontend."
-    },
-    {
-      id: "focus",
-      label: "Focus",
-      description: "Works with the Focus roleplay frontend."
-    },
-    {
-      id: "front-porch-ai",
-      label: "front-porch-AI",
-      description: "Works with the front-porch-AI roleplay frontend."
-    },
-    {
-      id: "glaze",
-      label: "Glaze",
-      description: "Works with the Glaze roleplay frontend."
-    },
-    {
-      id: "hordestudio",
-      label: "hordestudio",
-      description: "Works with the hordestudio roleplay frontend."
-    },
-    {
-      id: "lumiverse",
-      label: "Lumiverse",
-      description: "Works with the Lumiverse roleplay frontend."
-    },
-    {
-      id: "marinara-engine",
-      label: "Marinara Engine",
-      description: "Works with the Marinara Engine roleplay frontend."
-    },
-    {
-      id: "mignon-ui",
-      label: "Mignon-UI",
-      description: "Works with the Mignon-UI roleplay frontend."
-    },
-    {
-      id: "narrative-engine",
-      label: "Narrative Engine",
-      description: "Works with the Narrative Engine roleplay frontend."
-    },
-    {
-      id: "neotavern-frontend",
-      label: "NeoTavern-Frontend",
-      description: "Works with the NeoTavern-Frontend roleplay frontend."
-    },
-    {
-      id: "pocketrisu",
-      label: "PocketRisu",
-      description: "Works with the PocketRisu roleplay frontend."
-    },
-    {
-      id: "pyre",
-      label: "Pyre",
-      description: "Works with the Pyre roleplay frontend."
-    },
-    {
-      id: "quest-keeper",
-      label: "Quest Keeper",
-      description: "Works with the Quest Keeper roleplay frontend."
-    },
-    {
-      id: "risuai",
-      label: "RisuAI",
-      description: "Works with the RisuAI roleplay frontend."
-    },
-    {
-      id: "rpgraph",
-      label: "RPGraph",
-      description: "Works with the RPGraph roleplay frontend."
-    },
-    {
-      id: "serene-pub",
-      label: "serene-pub",
-      description: "Works with the serene-pub roleplay frontend."
-    },
-    {
-      id: "sillybunny-sillybunnyteam",
-      label: "SillyBunny",
-      description: "Works with the SillyBunny roleplay frontend."
-    },
-    {
-      id: "sillytavern",
-      label: "SillyTavern",
-      description: "Works with the SillyTavern roleplay frontend."
-    },
-    {
-      id: "simulith",
-      label: "Simulith",
-      description: "Works with the Simulith roleplay frontend."
-    },
-    {
-      id: "sonder-engine",
-      label: "Sonder Engine",
-      description: "Works with the Sonder Engine roleplay frontend."
-    },
-    {
-      id: "sweetrolllm",
-      label: "SweetrollLM",
-      description: "Works with the SweetrollLM roleplay frontend."
-    },
-    {
-      id: "talemate",
-      label: "talemate",
-      description: "Works with the talemate roleplay frontend."
-    },
-    {
-      id: "taleweaver",
-      label: "TaleWeaver",
-      description: "Works with the TaleWeaver roleplay frontend."
-    },
-    {
-      id: "tauritavern",
-      label: "TauriTavern",
-      description: "Works with the TauriTavern roleplay frontend."
-    },
-    {
-      id: "tavernai",
-      label: "TavernAI",
-      description: "Works with the TavernAI roleplay frontend."
-    },
-    {
-      id: "tipsytavern",
-      label: "TipsyTavern",
-      description: "Works with the TipsyTavern roleplay frontend."
-    },
-    {
-      id: "universal-immersion-engine-fugue",
-      label: "Universal-Immersion-Engine-Fugue",
-      description: "Works with the Universal-Immersion-Engine-Fugue roleplay frontend."
-    },
-    {
-      id: "vibe-tavern",
-      label: "vibe_tavern",
-      description: "Works with the vibe_tavern roleplay frontend."
-    },
-    {
-      id: "writers-guild",
-      label: "writers-guild",
-      description: "Works with the writers-guild roleplay frontend."
-    }
-  ]
-};
-
 // vendor/tavernary-core/src/catalog-tag-filter.ts
 function matchesSelectedTags(selectedIds, projectTagIds, vocabulary) {
   if (selectedIds.length === 0) return true;
@@ -10967,9 +10798,6 @@ var CATEGORY_OPTIONS = [
     shortLabel: "Developer Infrastructure"
   }
 ];
-var validFrontends = new Set(
-  frontends_default.frontends.map(({ id }) => id)
-);
 
 // vendor/tavernary-core/src/activity.ts
 var DAY_MS = 24 * 60 * 60 * 1e3;
@@ -12117,9 +11945,10 @@ function previewRemovalImpact({
   ownership,
   installedKits,
   activeKitId,
-  removable
+  removable,
+  kitTitles = {}
 }) {
-  const references = kitReferences(projectId, installedKits);
+  const references = kitReferences(projectId, installedKits, kitTitles);
   const activeKitAffected = references.some(({ id }) => id === activeKitId);
   const kitNames = references.map(({ title }) => title).join(", ");
   const consequence = references.length === 0 ? "" : ` ${kitNames} will become incomplete${activeKitAffected ? ", and the active Kit will show drift" : ""}.`;
@@ -12151,15 +11980,15 @@ function markInstalledKitsIncomplete(installedKits, projectId) {
   }
   return next;
 }
-function kitReferences(projectId, installedKits) {
-  return Object.entries(installedKits).filter(([, candidate]) => kitProjectIds(candidate).includes(projectId)).map(([id, candidate]) => ({
+function kitReferences(projectId, installedKits, kitTitles) {
+  return Object.entries(installedKits).filter(([, candidate]) => kitProjectIds(candidate).includes(projectId)).map(([id]) => ({
     id,
-    title: isRecord3(candidate) && typeof candidate.title === "string" ? candidate.title : id
+    title: kitTitles[id] ?? id
   })).sort((left, right) => left.title.localeCompare(right.title));
 }
 function kitProjectIds(value) {
   if (!isRecord3(value)) return [];
-  const ids = Array.isArray(value.projectIds) ? value.projectIds : Array.isArray(value.members) ? value.members : [];
+  const ids = Array.isArray(value.installedProjectIds) ? value.installedProjectIds : [];
   return ids.filter((candidate) => typeof candidate === "string");
 }
 function isRecord3(value) {
@@ -12345,14 +12174,17 @@ var DefaultLifecycleCoordinator = class {
     const snapshot = this.#getSnapshot();
     const catalog = "catalog" in snapshot ? snapshot.catalog : null;
     const project2 = catalog?.projects.find((candidate) => candidate.id === projectId) ?? null;
+    const initialState = this.#store.read();
+    const kitTitles = removalKitTitles(initialState.personalKits, catalog?.kits ?? []);
     if (projectId === COMPANION_PROJECT_ID || !project2) {
       return previewRemovalImpact({
         projectId,
         projectName: project2?.name ?? projectId,
         ownership: "absent",
-        installedKits: this.#store.read().installedKits,
-        activeKitId: this.#store.read().activeKitId,
-        removable: false
+        installedKits: initialState.installedKits,
+        activeKitId: initialState.activeKitId,
+        removable: false,
+        kitTitles
       });
     }
     const hostExtensions = await this.#host.discover();
@@ -12376,7 +12208,8 @@ var DefaultLifecycleCoordinator = class {
       ownership: decision.kind === "allowed" && decision.operation === "remove" ? decision.ownership : discoveredOwnership,
       installedKits: state.installedKits,
       activeKitId: state.activeKitId,
-      removable: decision.kind === "allowed" && decision.operation === "remove"
+      removable: decision.kind === "allowed" && decision.operation === "remove",
+      kitTitles
     });
   }
   remove(projectId) {
@@ -12529,6 +12362,15 @@ var DefaultLifecycleCoordinator = class {
     }).catch(() => void 0);
   }
 };
+function removalKitTitles(personalKits, publishedKits) {
+  const titles = Object.fromEntries(publishedKits.map(({ id, title }) => [id, title]));
+  for (const [id, value] of Object.entries(personalKits)) {
+    if (typeof value === "object" && value !== null && "title" in value && typeof value.title === "string") {
+      titles[id] = value.title;
+    }
+  }
+  return titles;
+}
 function exactFolder(extensions, folder) {
   const identity = folder.normalize("NFKC").toLocaleLowerCase("en-US");
   const matches = extensions.filter(
@@ -12601,18 +12443,19 @@ function toPublishedKitCardViewModel(kit2, status) {
     componentCount: kit2.components.length,
     flaggedCount: kit2.flaggedProjectCount,
     operationalStatus: statusLabel(status),
-    primaryAction: actionFor2(status)
+    primaryAction: kit2.components.some(({ availability }) => availability === "available") ? actionFor2(status) : { kind: "view", label: "View Kit" }
   };
 }
-function toPersonalKitInspector(kit2, projects, status) {
+function toPersonalKitInspector(kit2, projects, status, installed) {
   const byId = new Map(projects.map((project2) => [project2.id, project2]));
   return {
     ...toPersonalKitCardViewModel(kit2, status),
     editable: true,
-    components: kit2.projectIds.map((projectId) => component(byId.get(projectId), projectId))
+    components: kit2.projectIds.map((projectId) => component(byId.get(projectId), projectId)),
+    topologyChange: topologyChange(status, installed, kit2.projectIds)
   };
 }
-function toPublishedKitInspector(kit2, status) {
+function toPublishedKitInspector(kit2, status, installed) {
   return {
     ...toPublishedKitCardViewModel(kit2, status),
     editable: false,
@@ -12623,7 +12466,12 @@ function toPublishedKitInspector(kit2, status) {
       available: availability === "available",
       assessment: project2?.tavernKeeper?.riskLevel ?? null,
       canonicalUrl
-    }))
+    })),
+    topologyChange: topologyChange(
+      status,
+      installed,
+      kit2.components.map(({ projectId }) => projectId)
+    )
   };
 }
 function component(project2, id) {
@@ -12656,6 +12504,20 @@ function actionFor2(status) {
   if (status === "active") return { kind: "deactivate", label: "Deactivate" };
   if (status === "incomplete") return { kind: "retry", label: "Retry" };
   return { kind: "review", label: "Review" };
+}
+function topologyChange(status, installed, currentProjectIds) {
+  if (status !== "changedOnTavernary" || !installed) return void 0;
+  const previousProjectIds = [
+    .../* @__PURE__ */ new Set([...installed.installedProjectIds, ...installed.missingProjectIds])
+  ];
+  const previous = new Set(previousProjectIds);
+  const current = new Set(currentProjectIds);
+  return {
+    previousProjectIds,
+    currentProjectIds: [...currentProjectIds],
+    addedProjectIds: currentProjectIds.filter((projectId) => !previous.has(projectId)),
+    removedProjectIds: previousProjectIds.filter((projectId) => !current.has(projectId))
+  };
 }
 
 // src/kits/kit-discovery-controller.ts
@@ -12939,9 +12801,9 @@ var KitExecutor = class {
   async execute(plan, approval) {
     validateApproval(plan, approval);
     if (plan.blockingIssues.length) throw new Error("Kit plan has blocking issues.");
-    if (await this.#getInventoryFingerprint() !== plan.inventoryFingerprint)
-      throw new Error("Kit plan is stale. Review it again.");
     return this.#lock.runExclusive(`kit:${plan.id}`, async ({ setPhase }) => {
+      if (await this.#getInventoryFingerprint() !== plan.inventoryFingerprint)
+        throw new Error("Kit plan is stale. Review it again.");
       const startedAt = this.#now();
       const previousActiveKitId = this.#kits.readActiveId();
       const journal = {
@@ -12960,12 +12822,19 @@ var KitExecutor = class {
       await this.journal.write(journal);
       let receipt;
       try {
-        if (plan.operation === "install" || plan.operation === "activate") {
-          receipt = await this.#installOrActivate(plan, journal, previousActiveKitId, setPhase);
-        } else if (plan.operation === "deactivate") {
-          receipt = await this.#deactivate(plan, journal, previousActiveKitId, setPhase);
-        } else {
-          receipt = await this.#uninstall(plan, journal, previousActiveKitId, setPhase);
+        switch (plan.operation) {
+          case "install":
+          case "activate":
+            receipt = await this.#installOrActivate(plan, journal, previousActiveKitId, setPhase);
+            break;
+          case "deactivate":
+            receipt = await this.#deactivate(plan, journal, previousActiveKitId, setPhase);
+            break;
+          case "uninstall":
+            receipt = await this.#uninstall(plan, journal, previousActiveKitId, setPhase);
+            break;
+          default:
+            throw new Error("Unsupported Kit operation.");
         }
       } catch (error) {
         receipt = this.#receipt(plan, journal, previousActiveKitId, "failed", [
@@ -12986,16 +12855,36 @@ var KitExecutor = class {
   async recoverInterrupted() {
     const journal = this.journal.read();
     if (!journal) return null;
+    return this.#lock.runExclusive(`kit:recovery:${journal.operationId}`, async () => {
+      const current = this.journal.read();
+      return current ? this.#recoverInterrupted(current) : null;
+    });
+  }
+  async #recoverInterrupted(journal) {
     const extensions = await this.#host.discover();
     const catalog = this.#getCatalog();
     const present = presentProjectIds(catalog.projects, extensions);
-    const results = journal.requiredProjectIds.map((projectId) => ({
-      projectId,
-      action: "context",
-      status: present.has(projectId) ? "verified" : "failed",
-      message: present.has(projectId) ? "Present after interruption." : "Missing after interruption.",
-      retryable: !present.has(projectId)
-    }));
+    const byId = new Map(catalog.projects.map((project2) => [project2.id, project2]));
+    const results = journal.requiredProjectIds.map((projectId) => {
+      const project2 = byId.get(projectId);
+      if (project2 && !project2.install) {
+        return {
+          projectId,
+          action: "context",
+          status: "external",
+          message: "Context-only member required no recovery action.",
+          retryable: false
+        };
+      }
+      return {
+        projectId,
+        action: "context",
+        status: present.has(projectId) ? "verified" : "failed",
+        message: present.has(projectId) ? "Present after interruption." : "Missing after interruption.",
+        retryable: !present.has(projectId)
+      };
+    });
+    await this.#reconcileInterruptedState(journal, catalog, present);
     const receipt = {
       formatVersion: 1,
       kind: "kit-operation",
@@ -13014,6 +12903,36 @@ var KitExecutor = class {
     await this.#persistReceipt(receipt);
     await this.journal.clear();
     return receipt;
+  }
+  async #reconcileInterruptedState(journal, catalog, present) {
+    const actionableIds = journal.requiredProjectIds.filter(
+      (projectId) => catalog.projects.some((project2) => project2.id === projectId && Boolean(project2.install))
+    );
+    const installedProjectIds = actionableIds.filter((projectId) => present.has(projectId));
+    const missingProjectIds = actionableIds.filter((projectId) => !present.has(projectId));
+    const current = this.#kits.readInstalled(journal.kitId);
+    const activeKitId = this.#kits.readActiveId();
+    if (journal.operation === "uninstall" && installedProjectIds.length === 0) {
+      await this.#kits.removeInstalledState(journal.kitId);
+      return;
+    }
+    let status = missingProjectIds.length ? "incomplete" : "installed";
+    if ((journal.operation === "deactivate" || journal.operation === "uninstall") && activeKitId === journal.kitId) {
+      status = "drifted";
+    }
+    if (journal.operation === "activate" && journal.phase === "activating" && activeKitId !== journal.kitId && missingProjectIds.length === 0) {
+      status = "drifted";
+      if (journal.preOperationActiveKitId) await this.#markDrifted(journal.preOperationActiveKitId);
+    }
+    await this.#kits.recordInstalledState({
+      kitId: journal.kitId,
+      definitionFingerprint: await fingerprintKitTopology(journal.requiredProjectIds),
+      installedProjectIds,
+      missingProjectIds,
+      status,
+      installedAt: current?.installedAt ?? journal.startedAt,
+      lastVerifiedAt: this.#now()
+    });
   }
   async #installOrActivate(plan, journal, previousActiveKitId, setPhase) {
     const catalog = this.#getCatalog();
@@ -13369,6 +13288,7 @@ function buildKitReferenceIndex(installed) {
 
 // src/kits/kit-planner.ts
 function planKitOperation(input) {
+  if (!isKitOperation(input.operation)) throw new Error("Unsupported Kit operation.");
   const projectById = new Map(input.catalog.projects.map((project2) => [project2.id, project2]));
   const managedById = new Map(input.inventory.managed.map((entry) => [entry.project.id, entry]));
   const externalById = new Map(input.inventory.external.map((entry) => [entry.project.id, entry]));
@@ -13439,22 +13359,30 @@ function planKitOperation(input) {
     if (managedEntry) {
       plan.alreadyManaged.push(stepFor(project2, managedEntry.extension.internalName));
     }
-    if (input.operation === "install" || input.operation === "activate") {
-      if (!managedEntry) {
-        plan.install.push(stepFor(project2, null));
-        addWarning(plan, project2);
+    switch (input.operation) {
+      case "install":
+      case "activate":
+        if (!managedEntry) {
+          plan.install.push(stepFor(project2, null));
+          addWarning(plan, project2);
+        }
+        if (input.operation === "activate" && (!managedEntry || !managedEntry.extension.enabled))
+          plan.enable.push(stepFor(project2, managedEntry?.extension.internalName ?? null));
+        break;
+      case "deactivate":
+        if (managedEntry?.extension.enabled)
+          plan.disable.push(stepFor(project2, managedEntry.extension.internalName));
+        break;
+      case "uninstall": {
+        if (!managedEntry) break;
+        const otherReferences = (references.get(projectId) ?? []).filter(
+          (id) => id !== input.kit.id
+        );
+        if (otherReferences.length)
+          plan.keptForOtherKits.push(stepFor(project2, managedEntry.extension.internalName));
+        else plan.remove.push(stepFor(project2, managedEntry.extension.internalName));
+        break;
       }
-      if (input.operation === "activate" && (!managedEntry || !managedEntry.extension.enabled))
-        plan.enable.push(stepFor(project2, managedEntry?.extension.internalName ?? null));
-    } else if (input.operation === "deactivate") {
-      if (managedEntry?.extension.enabled)
-        plan.disable.push(stepFor(project2, managedEntry.extension.internalName));
-    } else {
-      if (!managedEntry) continue;
-      const otherReferences = (references.get(projectId) ?? []).filter((id) => id !== input.kit.id);
-      if (otherReferences.length)
-        plan.keptForOtherKits.push(stepFor(project2, managedEntry.extension.internalName));
-      else plan.remove.push(stepFor(project2, managedEntry.extension.internalName));
     }
   }
   if (input.operation === "activate" && input.activeKitId && input.activeKitId !== input.kit.id) {
@@ -13477,6 +13405,9 @@ function planKitOperation(input) {
     plan.install.length || plan.enable.length || plan.disable.length || plan.remove.length
   );
   return freezeKitPlan(plan);
+}
+function isKitOperation(value) {
+  return value === "install" || value === "activate" || value === "deactivate" || value === "uninstall";
 }
 function inventoryFingerprint(input) {
   const payload = JSON.stringify({
@@ -14519,8 +14450,27 @@ function KitInspector({
       /* @__PURE__ */ u3("h2", { children: kit2.title }),
       /* @__PURE__ */ u3("p", { children: kit2.description })
     ] }),
+    kit2.topologyChange ? /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-inspector__topology", children: [
+      /* @__PURE__ */ u3("h3", { children: "Membership changes" }),
+      /* @__PURE__ */ u3("p", { children: [
+        "Previously installed: ",
+        list(kit2.topologyChange.previousProjectIds)
+      ] }),
+      /* @__PURE__ */ u3("p", { children: [
+        "Current Tavernary Kit: ",
+        list(kit2.topologyChange.currentProjectIds)
+      ] }),
+      /* @__PURE__ */ u3("p", { children: [
+        "Added: ",
+        list(kit2.topologyChange.addedProjectIds)
+      ] }),
+      /* @__PURE__ */ u3("p", { children: [
+        "Removed: ",
+        list(kit2.topologyChange.removedProjectIds)
+      ] })
+    ] }) : null,
     /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-inspector__actions", children: [
-      /* @__PURE__ */ u3("button", { type: "button", disabled, onClick: () => onAction(kit2.primaryAction), children: kit2.primaryAction.label }),
+      kit2.primaryAction.kind !== "review" && kit2.primaryAction.kind !== "view" ? /* @__PURE__ */ u3("button", { type: "button", disabled, onClick: () => onAction(kit2.primaryAction), children: kit2.primaryAction.label }) : null,
       kit2.editable ? /* @__PURE__ */ u3("button", { type: "button", onClick: onEdit, children: "Edit" }) : /* @__PURE__ */ u3("button", { type: "button", onClick: onCopy, children: "Copy to Personal Kits" }),
       kit2.editable ? /* @__PURE__ */ u3("button", { type: "button", onClick: onExport, children: "Export" }) : null,
       kit2.editable ? /* @__PURE__ */ u3("button", { type: "button", onClick: onDuplicate, children: "Duplicate" }) : null,
@@ -14545,6 +14495,9 @@ function KitInspector({
       id
     ))
   ] });
+}
+function list(projectIds) {
+  return projectIds.length ? projectIds.join(", ") : "None";
 }
 
 // src/ui/kits/kit-card.tsx
@@ -14711,7 +14664,8 @@ function KitSwitcher({
   kits,
   activeKitId,
   disabled,
-  onActivate
+  onActivate,
+  onDeactivate
 }) {
   const installed = kits.filter(
     ({ operationalStatus }) => operationalStatus === "Installed" || operationalStatus === "Active"
@@ -14724,8 +14678,9 @@ function KitSwitcher({
         value: activeKitId ?? "",
         disabled,
         onChange: (event) => {
-          if (event.currentTarget.value && event.currentTarget.value !== activeKitId)
-            onActivate(event.currentTarget.value);
+          const next = event.currentTarget.value;
+          if (!next && activeKitId) onDeactivate?.();
+          else if (next !== activeKitId) onActivate(next);
         },
         children: [
           /* @__PURE__ */ u3("option", { value: "", children: "None" }),
@@ -14749,7 +14704,8 @@ function KitsRoute({
   onImport,
   switcherKits = [],
   activeKitId = null,
-  onActivate
+  onActivate,
+  onDeactivate
 }) {
   const [state, setState] = d2(controller.read());
   h2(() => controller.subscribe(setState), [controller]);
@@ -14772,7 +14728,8 @@ function KitsRoute({
         kits: switcherKits,
         activeKitId,
         disabled: lifecycleDisabled,
-        onActivate: (id) => onActivate?.(id)
+        onActivate: (id) => onActivate?.(id),
+        onDeactivate
       }
     ) : null,
     /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-segments", role: "tablist", "aria-label": "Kit sources", children: [
@@ -15768,12 +15725,22 @@ function CompanionShell({
                       controller: kitDiscovery,
                       lifecycleDisabled,
                       onOpenKit: (id) => controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` }),
-                      onAction: (id, action) => onKitAction?.(id, action),
+                      onAction: (id, action) => {
+                        if (action.kind === "review" || action.kind === "view") {
+                          controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` });
+                        } else {
+                          onKitAction?.(id, action);
+                        }
+                      },
                       onNewKit,
                       onImport: onImportKit,
                       switcherKits: Object.values(kitInspectors),
                       activeKitId,
-                      onActivate: (id) => onKitAction?.(id, { kind: "activate", label: "Activate" })
+                      onActivate: (id) => onKitAction?.(id, { kind: "activate", label: "Activate" }),
+                      onDeactivate: () => {
+                        if (activeKitId)
+                          onKitAction?.(activeKitId, { kind: "deactivate", label: "Deactivate" });
+                      }
                     }
                   ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-kits-heading", children: "Kits" })
                 }
@@ -16369,12 +16336,23 @@ function createPopupRuntime(store, host) {
       if (!("catalog" in snapshot)) throw new Error("A compatible catalog is required.");
       return snapshot.catalog;
     },
-    getInventoryFingerprint: () => inventoryFingerprint({
-      inventory: kitContext.inventory,
-      managed: normalizeManagedExtensionMap(store.read().managedExtensions),
-      installedKits: kits.readInstalledStates(),
-      activeKitId: kits.readActiveId()
-    })
+    getInventoryFingerprint: async () => {
+      const snapshot = catalog.read();
+      if (!("catalog" in snapshot)) throw new Error("A compatible catalog is required.");
+      const inventory = reconcileInventory({
+        projects: snapshot.catalog.projects,
+        hostExtensions: await host.discover(),
+        managed: normalizeManagedExtensionMap(store.read().managedExtensions)
+      });
+      kitContext.inventory = inventory;
+      discovery.setInventory(inventory);
+      return inventoryFingerprint({
+        inventory,
+        managed: normalizeManagedExtensionMap(store.read().managedExtensions),
+        installedKits: kits.readInstalledStates(),
+        activeKitId: kits.readActiveId()
+      });
+    }
   });
   return { catalog, discovery, lifecycle, prompts, kits, kitDiscovery, kitExecutor, kitContext };
 }
@@ -16385,10 +16363,24 @@ function parseReceipt(value) {
   return structuredClone(value);
 }
 function parseKitReceipt(value) {
-  if (!value || value.kind !== "kit-operation" || value.formatVersion !== 1 || typeof value.id !== "string" || typeof value.planId !== "string" || typeof value.kitId !== "string" || !Array.isArray(value.projects)) {
+  if (!value || value.kind !== "kit-operation" || value.formatVersion !== 1 || typeof value.id !== "string" || typeof value.planId !== "string" || !isKitOperation2(value.operation) || typeof value.kitId !== "string" || typeof value.startedAt !== "string" || typeof value.completedAt !== "string" || !isKitOutcome(value.outcome) || !isNullableString(value.previousActiveKitId) || !isNullableString(value.activeKitId) || !Array.isArray(value.projects) || !value.projects.every(isKitProjectResult) || !Array.isArray(value.keptForOtherKits) || !value.keptForOtherKits.every((item) => typeof item === "string")) {
     return null;
   }
   return structuredClone(value);
+}
+function isKitOperation2(value) {
+  return value === "install" || value === "activate" || value === "deactivate" || value === "uninstall";
+}
+function isKitOutcome(value) {
+  return value === "completed" || value === "partial" || value === "failed" || value === "interrupted";
+}
+function isNullableString(value) {
+  return value === null || typeof value === "string";
+}
+function isKitProjectResult(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const result2 = value;
+  return typeof result2.projectId === "string" && (result2.action === "install" || result2.action === "enable" || result2.action === "disable" || result2.action === "remove" || result2.action === "keep" || result2.action === "context") && (result2.status === "verified" || result2.status === "failed" || result2.status === "kept" || result2.status === "external") && typeof result2.message === "string" && typeof result2.retryable === "boolean";
 }
 function resolveKit(runtime, catalog, kitId) {
   const personal = runtime.kits.readDefinition(kitId);
@@ -16414,7 +16406,12 @@ async function buildKitPresentation(catalog, kits, inventory) {
       activeKitId: activeId
     });
     statuses.set(kit2.id, status);
-    inspectors[kit2.id] = toPersonalKitInspector(kit2, catalog.projects, status);
+    inspectors[kit2.id] = toPersonalKitInspector(
+      kit2,
+      catalog.projects,
+      status,
+      kits.readInstalled(kit2.id)
+    );
   }
   for (const kit2 of catalog.kits) {
     const status = reconcileKitStatus({
@@ -16428,7 +16425,7 @@ async function buildKitPresentation(catalog, kits, inventory) {
       activeKitId: activeId
     });
     statuses.set(kit2.id, status);
-    inspectors[kit2.id] = toPublishedKitInspector(kit2, status);
+    inspectors[kit2.id] = toPublishedKitInspector(kit2, status, kits.readInstalled(kit2.id));
   }
   return { statuses, inspectors };
 }

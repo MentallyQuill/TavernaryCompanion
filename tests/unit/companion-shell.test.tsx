@@ -3,6 +3,8 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CompanionShell } from "../../src/ui/shell/companion-shell";
 import { createShellController } from "../../src/ui/shell/shell-controller";
+import { createKitDiscoveryController } from "../../src/kits/kit-discovery-controller";
+import { catalogFixture, catalogProjectFixture } from "../helpers/catalog-fixtures";
 
 afterEach(() => {
   document.body.replaceChildren();
@@ -49,5 +51,87 @@ describe("CompanionShell", () => {
     fireEvent.click(screen.getByRole("button", { name: "Close Tavernary Companion" }));
 
     expect(onRequestClose).toHaveBeenCalledOnce();
+  });
+
+  it("opens the Kit inspector for Review and View Kit card actions", () => {
+    const controller = createShellController({ initialRoute: "kits" });
+    const project = catalogProjectFixture();
+    const inspector = {
+      id: "changed",
+      title: "Changed Kit",
+      description: "Review changes",
+      origin: "published" as const,
+      originLabel: "Published Kit" as const,
+      componentCount: 1,
+      flaggedCount: 0,
+      operationalStatus: "Changed on Tavernary",
+      primaryAction: { kind: "review" as const, label: "Review" as const },
+      editable: false,
+      components: [],
+    };
+    const kitDiscovery = createKitDiscoveryController({
+      catalog: {
+        ...catalogFixture(),
+        kits: [
+          {
+            id: "changed",
+            title: "Changed Kit",
+            description: "Review changes",
+            author: { githubUserId: 1, login: "author" },
+            sourceIssueNumber: 1,
+            sourceIssueUrl: "https://example.com/issues/1",
+            publishedAt: "2026-08-18T00:00:00.000Z",
+            updatedAt: "2026-08-18T00:00:00.000Z",
+            frontends: [{ id: "sillytavern", label: "SillyTavern", description: "SillyTavern" }],
+            purposes: [],
+            modelFamilies: [],
+            components: [
+              {
+                projectId: project.id,
+                name: project.name,
+                kind: project.kind,
+                primaryFunction: project.primaryFunction,
+                availability: "available",
+                unavailableReason: null,
+                canonicalUrl: project.canonicalUrl,
+                project,
+              },
+            ],
+            supporterCount: null,
+            trendingScore: null,
+            supportRefreshedAt: null,
+            supportStale: false,
+            flaggedProjectCount: 0,
+            search: {
+              title: ["changed"],
+              aliases: [],
+              source: [],
+              summary: [],
+              kind: [],
+              primaryFunction: [],
+              tags: [],
+              frontends: [],
+              compatibility: [],
+              maintainers: [],
+              relationships: [],
+            },
+          },
+        ],
+      },
+      personal: [],
+      statuses: new Map([["changed", "changedOnTavernary"]]),
+    });
+    kitDiscovery.setQuery({ ...kitDiscovery.read().query, minProjects: 0 });
+    render(
+      <CompanionShell
+        controller={controller}
+        kitDiscovery={kitDiscovery}
+        kitInspectors={{ changed: inspector }}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Review" }));
+    expect(screen.getByRole("heading", { name: "Changed Kit" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Back" })).toBeVisible();
   });
 });

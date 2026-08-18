@@ -27,13 +27,18 @@ export async function executorFixture(catalog: CatalogV7, hostOptions: FakeHostO
   const kits = new KitStore(profile, { now: () => "2026-08-18T12:00:00.000Z" });
   const host = createFakeHost(hostOptions);
   let currentFingerprint = "fixture-fingerprint";
+  const fingerprintCheckOperations: Array<string | null> = [];
+  const lock = new OperationLock();
   const executor = createKitExecutor({
     host,
     profile,
     kits,
-    lock: new OperationLock(),
+    lock,
     getCatalog: () => catalog,
-    getInventoryFingerprint: () => currentFingerprint,
+    getInventoryFingerprint: () => {
+      fingerprintCheckOperations.push(lock.read()?.operationId ?? null);
+      return currentFingerprint;
+    },
     now: () => "2026-08-18T12:00:00.000Z",
     operationId: () => "operation-1",
   });
@@ -42,6 +47,8 @@ export async function executorFixture(catalog: CatalogV7, hostOptions: FakeHostO
     host,
     profile,
     kits,
+    lock,
+    fingerprintCheckOperations,
     setFingerprint(value: string) {
       currentFingerprint = value;
     },

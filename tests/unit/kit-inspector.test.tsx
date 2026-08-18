@@ -74,3 +74,35 @@ it("offers duplicate and safe removal for saved personal Kits", () => {
   expect(duplicate).toHaveBeenCalledOnce();
   expect(remove).toHaveBeenCalledOnce();
 });
+
+it("shows old and current membership while reviewing a published topology change", () => {
+  render(
+    <KitInspector
+      kit={{
+        id: "kit",
+        title: "Writer",
+        description: "Tools",
+        origin: "published",
+        originLabel: "Published Kit",
+        componentCount: 1,
+        flaggedCount: 0,
+        operationalStatus: "Changed on Tavernary",
+        primaryAction: { kind: "review", label: "Review" },
+        editable: false,
+        components: [],
+        topologyChange: {
+          previousProjectIds: ["alpha", "removed"],
+          currentProjectIds: ["alpha", "added"],
+          addedProjectIds: ["added"],
+          removedProjectIds: ["removed"],
+        },
+      }}
+      onAction={() => undefined}
+    />,
+  );
+
+  expect(screen.getByRole("heading", { name: "Membership changes" })).toBeVisible();
+  expect(screen.getByText("Previously installed: alpha, removed")).toBeVisible();
+  expect(screen.getByText("Current Tavernary Kit: alpha, added")).toBeVisible();
+  expect(screen.queryByRole("button", { name: "Review" })).not.toBeInTheDocument();
+});

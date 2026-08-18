@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/MentallyQuill/Tavernary.git",
-  "commit": "7c3393ebbf3b97e144b4d1772bc5367e28439302",
+  "commit": "17a6188d2a765bc6ce91a9ab8e643d3e1f4585b4",
   "sourcePath": "packages/catalog-core",
   "files": [
     {
@@ -30,7 +30,7 @@
     },
     {
       "path": "src/catalog-schema.ts",
-      "sha256": "dabc2604412e3cde4261a76ef8f06cdcc833de9b3ea031a850337769296adb5a"
+      "sha256": "98afedf54682bb67862b818b73fb8a9d5d16be31333687238897545fc21e825d"
     },
     {
       "path": "src/catalog-tag-filter.ts",
@@ -43,10 +43,6 @@
     {
       "path": "src/catalog-v7-schema.ts",
       "sha256": "54366f09c18918bc7dfda3935d900bd430e56173209258ec1f34a88ff9493b70"
-    },
-    {
-      "path": "src/frontends.json",
-      "sha256": "09afc1d3cad8b00efa781920c4d4731f5fea3681481f70a55cf978cce637592d"
     },
     {
       "path": "src/index.ts",
@@ -74,7 +70,7 @@
     },
     {
       "path": "src/project-query.ts",
-      "sha256": "4192b33abb43d39d50d48545e50cd1c884f32def4873463352078265268b574d"
+      "sha256": "b0c0dad82d0a2451bd75bdac1bf7372e7c5e3a614a7d058a09e2adb2f46e96d4"
     },
     {
       "path": "src/project-search.ts",
@@ -102,7 +98,7 @@
     },
     {
       "path": "tests/catalog-schema.test.ts",
-      "sha256": "d19f70fd41d4a4101eaa388b56fd8b5d8ced341249e73dc3f7bcab44f373c328"
+      "sha256": "6b12fe633652cec518a8167b0a99a9a031d23d09f3f2513d2c0392d978842104"
     },
     {
       "path": "tests/contract-fixtures.test.ts",

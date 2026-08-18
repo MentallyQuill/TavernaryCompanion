@@ -8,9 +8,10 @@ it("describes ownership and installed or active Kit drift", () => {
     projectName: "Alpha",
     ownership: "managed",
     installedKits: {
-      daily: { title: "Daily", projectIds: ["alpha", "beta"], status: "complete" },
-      spare: { title: "Spare", projectIds: ["gamma"], status: "complete" },
+      daily: { installedProjectIds: ["alpha", "beta"], status: "installed" },
+      spare: { installedProjectIds: ["gamma"], status: "installed" },
     },
+    kitTitles: { daily: "Daily", spare: "Spare" },
     activeKitId: "daily",
     removable: true,
   });

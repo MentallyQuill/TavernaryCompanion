@@ -197,12 +197,22 @@ export function CompanionShell({
                 onOpenKit={(id) =>
                   controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` })
                 }
-                onAction={(id, action) => onKitAction?.(id, action)}
+                onAction={(id, action) => {
+                  if (action.kind === "review" || action.kind === "view") {
+                    controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` });
+                  } else {
+                    onKitAction?.(id, action);
+                  }
+                }}
                 onNewKit={onNewKit}
                 onImport={onImportKit}
                 switcherKits={Object.values(kitInspectors)}
                 activeKitId={activeKitId}
                 onActivate={(id) => onKitAction?.(id, { kind: "activate", label: "Activate" })}
+                onDeactivate={() => {
+                  if (activeKitId)
+                    onKitAction?.(activeKitId, { kind: "deactivate", label: "Deactivate" });
+                }}
               />
             ) : (
               <h2 id="tavernary-companion-kits-heading">Kits</h2>

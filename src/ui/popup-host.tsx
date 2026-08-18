@@ -504,13 +504,23 @@ export function createPopupRuntime(
       if (!("catalog" in snapshot)) throw new Error("A compatible catalog is required.");
       return snapshot.catalog;
     },
-    getInventoryFingerprint: () =>
-      inventoryFingerprint({
-        inventory: kitContext.inventory,
+    getInventoryFingerprint: async () => {
+      const snapshot = catalog.read();
+      if (!("catalog" in snapshot)) throw new Error("A compatible catalog is required.");
+      const inventory = reconcileInventory({
+        projects: snapshot.catalog.projects,
+        hostExtensions: await host.discover(),
+        managed: normalizeManagedExtensionMap(store.read().managedExtensions),
+      });
+      kitContext.inventory = inventory;
+      discovery.setInventory(inventory);
+      return inventoryFingerprint({
+        inventory,
         managed: normalizeManagedExtensionMap(store.read().managedExtensions),
         installedKits: kits.readInstalledStates(),
         activeKitId: kits.readActiveId(),
-      }),
+      });
+    },
   });
   return { catalog, discovery, lifecycle, prompts, kits, kitDiscovery, kitExecutor, kitContext };
 }
@@ -529,19 +539,66 @@ function parseReceipt(value: Record<string, unknown> | null | undefined): Lifecy
   return structuredClone(value) as LifecycleReceipt;
 }
 
-function parseKitReceipt(value: Record<string, unknown> | null | undefined): KitReceipt | null {
+export function parseKitReceipt(
+  value: Record<string, unknown> | null | undefined,
+): KitReceipt | null {
   if (
     !value ||
     value.kind !== "kit-operation" ||
     value.formatVersion !== 1 ||
     typeof value.id !== "string" ||
     typeof value.planId !== "string" ||
+    !isKitOperation(value.operation) ||
     typeof value.kitId !== "string" ||
-    !Array.isArray(value.projects)
+    typeof value.startedAt !== "string" ||
+    typeof value.completedAt !== "string" ||
+    !isKitOutcome(value.outcome) ||
+    !isNullableString(value.previousActiveKitId) ||
+    !isNullableString(value.activeKitId) ||
+    !Array.isArray(value.projects) ||
+    !value.projects.every(isKitProjectResult) ||
+    !Array.isArray(value.keptForOtherKits) ||
+    !value.keptForOtherKits.every((item) => typeof item === "string")
   ) {
     return null;
   }
   return structuredClone(value) as unknown as KitReceipt;
+}
+
+function isKitOperation(value: unknown): value is KitOperation {
+  return (
+    value === "install" || value === "activate" || value === "deactivate" || value === "uninstall"
+  );
+}
+
+function isKitOutcome(value: unknown): value is KitReceipt["outcome"] {
+  return (
+    value === "completed" || value === "partial" || value === "failed" || value === "interrupted"
+  );
+}
+
+function isNullableString(value: unknown): value is string | null {
+  return value === null || typeof value === "string";
+}
+
+function isKitProjectResult(value: unknown): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const result = value as Record<string, unknown>;
+  return (
+    typeof result.projectId === "string" &&
+    (result.action === "install" ||
+      result.action === "enable" ||
+      result.action === "disable" ||
+      result.action === "remove" ||
+      result.action === "keep" ||
+      result.action === "context") &&
+    (result.status === "verified" ||
+      result.status === "failed" ||
+      result.status === "kept" ||
+      result.status === "external") &&
+    typeof result.message === "string" &&
+    typeof result.retryable === "boolean"
+  );
 }
 
 function resolveKit(
@@ -582,7 +639,12 @@ export async function buildKitPresentation(
       activeKitId: activeId,
     });
     statuses.set(kit.id, status);
-    inspectors[kit.id] = toPersonalKitInspector(kit, catalog.projects, status);
+    inspectors[kit.id] = toPersonalKitInspector(
+      kit,
+      catalog.projects,
+      status,
+      kits.readInstalled(kit.id),
+    );
   }
   for (const kit of catalog.kits) {
     const status = reconcileKitStatus({
@@ -596,7 +658,7 @@ export async function buildKitPresentation(
       activeKitId: activeId,
     });
     statuses.set(kit.id, status);
-    inspectors[kit.id] = toPublishedKitInspector(kit, status);
+    inspectors[kit.id] = toPublishedKitInspector(kit, status, kits.readInstalled(kit.id));
   }
   return { statuses, inspectors };
 }

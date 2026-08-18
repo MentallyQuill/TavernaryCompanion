@@ -55,3 +55,22 @@ it("rejects stale plans before mutating the host", async () => {
   app.setFingerprint("changed");
   await expect(app.executor.execute(plan, approve(plan))).rejects.toThrow("stale");
 });
+
+it("checks the approved inventory after acquiring the operation lock", async () => {
+  const catalog = catalogFixture();
+  const app = await executorFixture(catalog);
+  const plan = planKitOperation({
+    operation: "install",
+    kit: { id: "empty", projectIds: [], origin: "personal" },
+    catalog,
+    inventory: await app.inventory(),
+    managed: {},
+    installedKits: [],
+    activeKitId: null,
+    catalogCanMutate: true,
+  });
+  app.setFingerprint(plan.inventoryFingerprint);
+  await app.executor.execute(plan, approve(plan));
+
+  expect(app.fingerprintCheckOperations).toEqual([`kit:${plan.id}`]);
+});

@@ -5,11 +5,13 @@ export function KitSwitcher({
   activeKitId,
   disabled,
   onActivate,
+  onDeactivate,
 }: {
   kits: readonly KitCardViewModel[];
   activeKitId: string | null;
   disabled?: boolean;
   onActivate(id: string): void;
+  onDeactivate?(): void;
 }): preact.JSX.Element {
   const installed = kits.filter(
     ({ operationalStatus }) => operationalStatus === "Installed" || operationalStatus === "Active",
@@ -21,8 +23,9 @@ export function KitSwitcher({
         value={activeKitId ?? ""}
         disabled={disabled}
         onChange={(event) => {
-          if (event.currentTarget.value && event.currentTarget.value !== activeKitId)
-            onActivate(event.currentTarget.value);
+          const next = event.currentTarget.value;
+          if (!next && activeKitId) onDeactivate?.();
+          else if (next !== activeKitId) onActivate(next);
         }}
       >
         <option value="">None</option>

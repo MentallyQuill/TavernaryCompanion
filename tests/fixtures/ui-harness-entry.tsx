@@ -19,6 +19,7 @@ import { createFakeHost } from "../helpers/fake-host";
 import { extension } from "../helpers/kit-executor-fixture";
 
 async function main() {
+  const scenario = new URL(window.location.href).searchParams.get("scenario");
   const catalog = catalogFixture("2026-08-18T10:00:00.000Z");
   catalog.tagVocabulary = [
     {
@@ -62,6 +63,14 @@ async function main() {
     description: "A compact set of writing extensions.",
     projectIds: ["writer-tool"],
   });
+  const sharedKit =
+    scenario === "shared"
+      ? await kits.create({
+          title: "Shared Writer Kit",
+          description: "A second Kit sharing the same managed extension.",
+          projectIds: ["writer-tool"],
+        })
+      : null;
   await profile.update((draft) => {
     draft.managedExtensions["writer-tool"] = {
       projectId: "writer-tool",
@@ -80,7 +89,21 @@ async function main() {
     installedAt: "2026-08-18T00:00:00.000Z",
     lastVerifiedAt: "2026-08-18T00:00:00.000Z",
   });
-  const host = createFakeHost({ extensions: [extension("WriterTool", false)] });
+  if (sharedKit) {
+    await kits.recordInstalledState({
+      kitId: sharedKit.id,
+      definitionFingerprint: await fingerprintKitTopology(sharedKit.projectIds),
+      installedProjectIds: ["writer-tool"],
+      missingProjectIds: [],
+      status: "installed",
+      installedAt: "2026-08-18T00:00:00.000Z",
+      lastVerifiedAt: "2026-08-18T00:00:00.000Z",
+    });
+  }
+  const host = createFakeHost({
+    extensions: [extension("WriterTool", false)],
+    failures: scenario === "failure" ? { enable: new Error("Enable failed") } : undefined,
+  });
   const inventory = reconcileInventory({
     projects: catalog.projects,
     hostExtensions: await host.discover(),
@@ -94,7 +117,10 @@ async function main() {
   const kitDiscovery = createKitDiscoveryController({
     catalog,
     personal: kits.readDefinitions(),
-    statuses: new Map([[personalKit.id, "installed"]]),
+    statuses: new Map([
+      [personalKit.id, "installed"],
+      ...(sharedKit ? ([[sharedKit.id, "installed"]] as const) : []),
+    ]),
   });
   const prompts = new TrustPromptBroker();
   const lifecycle = createLifecycleCoordinator({
@@ -104,6 +130,23 @@ async function main() {
     confirm: (prompt, project) => prompts.request(prompt, project),
   });
   const kitContext = { inventory };
+  if (scenario === "interrupted") {
+    await profile.update((draft) => {
+      draft.kitOperationJournal = {
+        formatVersion: 1,
+        operationId: "interrupted-browser-operation",
+        planId: "interrupted-plan",
+        operation: "activate",
+        kitId: personalKit.id,
+        phase: "activating",
+        startedAt: "2026-08-18T00:00:00.000Z",
+        currentProjectId: "writer-tool",
+        completedProjects: [],
+        preOperationActiveKitId: null,
+        requiredProjectIds: ["writer-tool"],
+      };
+    });
+  }
   const kitExecutor = createKitExecutor({
     host,
     profile,
@@ -111,13 +154,21 @@ async function main() {
     lock: lifecycle.lock,
     getCatalog: () => catalog,
     operationId: () => `browser-operation-${Date.now()}`,
-    getInventoryFingerprint: () =>
-      inventoryFingerprint({
-        inventory: kitContext.inventory,
+    getInventoryFingerprint: async () => {
+      const freshInventory = reconcileInventory({
+        projects: catalog.projects,
+        hostExtensions: await host.discover(),
+        managed: normalizeManagedExtensionMap(profile.read().managedExtensions),
+      });
+      kitContext.inventory = freshInventory;
+      discovery.setInventory(freshInventory);
+      return inventoryFingerprint({
+        inventory: freshInventory,
         managed: normalizeManagedExtensionMap(profile.read().managedExtensions),
         installedKits: kits.readInstalledStates(),
         activeKitId: kits.readActiveId(),
-      }),
+      });
+    },
   });
   const runtime: PopupRuntime = {
     catalog: catalogClient,

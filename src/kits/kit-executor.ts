@@ -47,9 +47,9 @@ export class KitExecutor {
   async execute(plan: Readonly<KitPlan>, approval: KitApproval): Promise<KitReceipt> {
     validateApproval(plan, approval);
     if (plan.blockingIssues.length) throw new Error("Kit plan has blocking issues.");
-    if ((await this.#getInventoryFingerprint()) !== plan.inventoryFingerprint)
-      throw new Error("Kit plan is stale. Review it again.");
     return this.#lock.runExclusive(`kit:${plan.id}`, async ({ setPhase }) => {
+      if ((await this.#getInventoryFingerprint()) !== plan.inventoryFingerprint)
+        throw new Error("Kit plan is stale. Review it again.");
       const startedAt = this.#now();
       const previousActiveKitId = this.#kits.readActiveId();
       const journal: KitOperationJournalV1 = {
@@ -68,12 +68,19 @@ export class KitExecutor {
       await this.journal.write(journal);
       let receipt: KitReceipt;
       try {
-        if (plan.operation === "install" || plan.operation === "activate") {
-          receipt = await this.#installOrActivate(plan, journal, previousActiveKitId, setPhase);
-        } else if (plan.operation === "deactivate") {
-          receipt = await this.#deactivate(plan, journal, previousActiveKitId, setPhase);
-        } else {
-          receipt = await this.#uninstall(plan, journal, previousActiveKitId, setPhase);
+        switch (plan.operation) {
+          case "install":
+          case "activate":
+            receipt = await this.#installOrActivate(plan, journal, previousActiveKitId, setPhase);
+            break;
+          case "deactivate":
+            receipt = await this.#deactivate(plan, journal, previousActiveKitId, setPhase);
+            break;
+          case "uninstall":
+            receipt = await this.#uninstall(plan, journal, previousActiveKitId, setPhase);
+            break;
+          default:
+            throw new Error("Unsupported Kit operation.");
         }
       } catch (error) {
         receipt = this.#receipt(plan, journal, previousActiveKitId, "failed", [
@@ -95,18 +102,39 @@ export class KitExecutor {
   async recoverInterrupted(): Promise<KitReceipt | null> {
     const journal = this.journal.read();
     if (!journal) return null;
+    return this.#lock.runExclusive(`kit:recovery:${journal.operationId}`, async () => {
+      const current = this.journal.read();
+      return current ? this.#recoverInterrupted(current) : null;
+    });
+  }
+
+  async #recoverInterrupted(journal: KitOperationJournalV1): Promise<KitReceipt> {
     const extensions = await this.#host.discover();
     const catalog = this.#getCatalog();
     const present = presentProjectIds(catalog.projects, extensions);
-    const results = journal.requiredProjectIds.map<KitProjectResult>((projectId) => ({
-      projectId,
-      action: "context",
-      status: present.has(projectId) ? "verified" : "failed",
-      message: present.has(projectId)
-        ? "Present after interruption."
-        : "Missing after interruption.",
-      retryable: !present.has(projectId),
-    }));
+    const byId = new Map(catalog.projects.map((project) => [project.id, project]));
+    const results = journal.requiredProjectIds.map<KitProjectResult>((projectId) => {
+      const project = byId.get(projectId);
+      if (project && !project.install) {
+        return {
+          projectId,
+          action: "context",
+          status: "external",
+          message: "Context-only member required no recovery action.",
+          retryable: false,
+        };
+      }
+      return {
+        projectId,
+        action: "context",
+        status: present.has(projectId) ? "verified" : "failed",
+        message: present.has(projectId)
+          ? "Present after interruption."
+          : "Missing after interruption.",
+        retryable: !present.has(projectId),
+      };
+    });
+    await this.#reconcileInterruptedState(journal, catalog, present);
     const receipt: KitReceipt = {
       formatVersion: 1,
       kind: "kit-operation",
@@ -125,6 +153,54 @@ export class KitExecutor {
     await this.#persistReceipt(receipt);
     await this.journal.clear();
     return receipt;
+  }
+
+  async #reconcileInterruptedState(
+    journal: KitOperationJournalV1,
+    catalog: CatalogV7,
+    present: ReadonlySet<string>,
+  ): Promise<void> {
+    const actionableIds = journal.requiredProjectIds.filter((projectId) =>
+      catalog.projects.some((project) => project.id === projectId && Boolean(project.install)),
+    );
+    const installedProjectIds = actionableIds.filter((projectId) => present.has(projectId));
+    const missingProjectIds = actionableIds.filter((projectId) => !present.has(projectId));
+    const current = this.#kits.readInstalled(journal.kitId);
+    const activeKitId = this.#kits.readActiveId();
+
+    if (journal.operation === "uninstall" && installedProjectIds.length === 0) {
+      await this.#kits.removeInstalledState(journal.kitId);
+      return;
+    }
+
+    let status: "installed" | "incomplete" | "drifted" = missingProjectIds.length
+      ? "incomplete"
+      : "installed";
+    if (
+      (journal.operation === "deactivate" || journal.operation === "uninstall") &&
+      activeKitId === journal.kitId
+    ) {
+      status = "drifted";
+    }
+    if (
+      journal.operation === "activate" &&
+      journal.phase === "activating" &&
+      activeKitId !== journal.kitId &&
+      missingProjectIds.length === 0
+    ) {
+      status = "drifted";
+      if (journal.preOperationActiveKitId) await this.#markDrifted(journal.preOperationActiveKitId);
+    }
+
+    await this.#kits.recordInstalledState({
+      kitId: journal.kitId,
+      definitionFingerprint: await fingerprintKitTopology(journal.requiredProjectIds),
+      installedProjectIds,
+      missingProjectIds,
+      status,
+      installedAt: current?.installedAt ?? journal.startedAt,
+      lastVerifiedAt: this.#now(),
+    });
   }
 
   async #installOrActivate(

@@ -67,3 +67,38 @@ it("activates an installed Kit from the fast switcher", () => {
   });
   expect(activate).toHaveBeenCalledWith("writer");
 });
+
+it("deactivates the active Kit when None is selected", () => {
+  const deactivate = vi.fn();
+  const controller = createKitDiscoveryController({
+    catalog: catalogFixture(),
+    personal: [],
+    statuses: new Map(),
+  });
+  render(
+    <KitsRoute
+      controller={controller}
+      onOpenKit={() => undefined}
+      onAction={() => undefined}
+      switcherKits={[
+        {
+          id: "writer",
+          title: "Writer",
+          description: "",
+          origin: "personal",
+          originLabel: "Personal Kit",
+          componentCount: 1,
+          flaggedCount: 0,
+          operationalStatus: "Active",
+          primaryAction: { kind: "deactivate", label: "Deactivate" },
+        },
+      ]}
+      activeKitId="writer"
+      onActivate={() => undefined}
+      onDeactivate={deactivate}
+    />,
+  );
+
+  fireEvent.change(screen.getByLabelText("Active managed Kit"), { target: { value: "" } });
+  expect(deactivate).toHaveBeenCalledOnce();
+});

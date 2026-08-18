@@ -1,6 +1,7 @@
 import type { CatalogKit, CatalogProject } from "../catalog/catalog-core";
 import type { ReconciledKitStatus } from "./kit-reconciler";
 import type { PersonalKitV1 } from "./kit-types";
+import type { InstalledKitStateV1 } from "./kit-types";
 
 export type KitPrimaryAction =
   | { kind: "install"; label: "Install Kit" }
@@ -34,6 +35,14 @@ export interface KitComponentViewModel {
 export interface KitInspectorViewModel extends KitCardViewModel {
   components: KitComponentViewModel[];
   editable: boolean;
+  topologyChange?: KitTopologyChange;
+}
+
+export interface KitTopologyChange {
+  previousProjectIds: string[];
+  currentProjectIds: string[];
+  addedProjectIds: string[];
+  removedProjectIds: string[];
 }
 
 export function toPersonalKitCardViewModel(
@@ -66,7 +75,9 @@ export function toPublishedKitCardViewModel(
     componentCount: kit.components.length,
     flaggedCount: kit.flaggedProjectCount,
     operationalStatus: statusLabel(status),
-    primaryAction: actionFor(status),
+    primaryAction: kit.components.some(({ availability }) => availability === "available")
+      ? actionFor(status)
+      : { kind: "view", label: "View Kit" },
   };
 }
 
@@ -74,18 +85,21 @@ export function toPersonalKitInspector(
   kit: PersonalKitV1,
   projects: readonly CatalogProject[],
   status: ReconciledKitStatus,
+  installed?: InstalledKitStateV1 | null,
 ): KitInspectorViewModel {
   const byId = new Map(projects.map((project) => [project.id, project]));
   return {
     ...toPersonalKitCardViewModel(kit, status),
     editable: true,
     components: kit.projectIds.map((projectId) => component(byId.get(projectId), projectId)),
+    topologyChange: topologyChange(status, installed, kit.projectIds),
   };
 }
 
 export function toPublishedKitInspector(
   kit: CatalogKit,
   status: ReconciledKitStatus,
+  installed?: InstalledKitStateV1 | null,
 ): KitInspectorViewModel {
   return {
     ...toPublishedKitCardViewModel(kit, status),
@@ -98,6 +112,11 @@ export function toPublishedKitInspector(
       assessment: project?.tavernKeeper?.riskLevel ?? null,
       canonicalUrl,
     })),
+    topologyChange: topologyChange(
+      status,
+      installed,
+      kit.components.map(({ projectId }) => projectId),
+    ),
   };
 }
 
@@ -131,4 +150,23 @@ function actionFor(status: ReconciledKitStatus): KitPrimaryAction {
   if (status === "active") return { kind: "deactivate", label: "Deactivate" };
   if (status === "incomplete") return { kind: "retry", label: "Retry" };
   return { kind: "review", label: "Review" };
+}
+
+function topologyChange(
+  status: ReconciledKitStatus,
+  installed: InstalledKitStateV1 | null | undefined,
+  currentProjectIds: readonly string[],
+): KitTopologyChange | undefined {
+  if (status !== "changedOnTavernary" || !installed) return undefined;
+  const previousProjectIds = [
+    ...new Set([...installed.installedProjectIds, ...installed.missingProjectIds]),
+  ];
+  const previous = new Set(previousProjectIds);
+  const current = new Set(currentProjectIds);
+  return {
+    previousProjectIds,
+    currentProjectIds: [...currentProjectIds],
+    addedProjectIds: currentProjectIds.filter((projectId) => !previous.has(projectId)),
+    removedProjectIds: previousProjectIds.filter((projectId) => !current.has(projectId)),
+  };
 }

@@ -38,10 +38,21 @@ export function KitInspector({
         <h2>{kit.title}</h2>
         <p>{kit.description}</p>
       </header>
+      {kit.topologyChange ? (
+        <section class="tavernary-companion-kit-inspector__topology">
+          <h3>Membership changes</h3>
+          <p>Previously installed: {list(kit.topologyChange.previousProjectIds)}</p>
+          <p>Current Tavernary Kit: {list(kit.topologyChange.currentProjectIds)}</p>
+          <p>Added: {list(kit.topologyChange.addedProjectIds)}</p>
+          <p>Removed: {list(kit.topologyChange.removedProjectIds)}</p>
+        </section>
+      ) : null}
       <div class="tavernary-companion-kit-inspector__actions">
-        <button type="button" disabled={disabled} onClick={() => onAction(kit.primaryAction)}>
-          {kit.primaryAction.label}
-        </button>
+        {kit.primaryAction.kind !== "review" && kit.primaryAction.kind !== "view" ? (
+          <button type="button" disabled={disabled} onClick={() => onAction(kit.primaryAction)}>
+            {kit.primaryAction.label}
+          </button>
+        ) : null}
         {kit.editable ? (
           <button type="button" onClick={onEdit}>
             Edit
@@ -90,4 +101,8 @@ export function KitInspector({
       ))}
     </article>
   );
+}
+
+function list(projectIds: readonly string[]): string {
+  return projectIds.length ? projectIds.join(", ") : "None";
 }

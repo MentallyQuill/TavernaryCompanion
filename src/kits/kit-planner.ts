@@ -23,6 +23,7 @@ export interface PlanKitOperationInput {
 }
 
 export function planKitOperation(input: PlanKitOperationInput): Readonly<KitPlan> {
+  if (!isKitOperation(input.operation)) throw new Error("Unsupported Kit operation.");
   const projectById = new Map(input.catalog.projects.map((project) => [project.id, project]));
   const managedById = new Map(input.inventory.managed.map((entry) => [entry.project.id, entry]));
   const externalById = new Map(input.inventory.external.map((entry) => [entry.project.id, entry]));
@@ -93,22 +94,30 @@ export function planKitOperation(input: PlanKitOperationInput): Readonly<KitPlan
     if (managedEntry) {
       plan.alreadyManaged.push(stepFor(project, managedEntry.extension.internalName));
     }
-    if (input.operation === "install" || input.operation === "activate") {
-      if (!managedEntry) {
-        plan.install.push(stepFor(project, null));
-        addWarning(plan, project);
+    switch (input.operation) {
+      case "install":
+      case "activate":
+        if (!managedEntry) {
+          plan.install.push(stepFor(project, null));
+          addWarning(plan, project);
+        }
+        if (input.operation === "activate" && (!managedEntry || !managedEntry.extension.enabled))
+          plan.enable.push(stepFor(project, managedEntry?.extension.internalName ?? null));
+        break;
+      case "deactivate":
+        if (managedEntry?.extension.enabled)
+          plan.disable.push(stepFor(project, managedEntry.extension.internalName));
+        break;
+      case "uninstall": {
+        if (!managedEntry) break;
+        const otherReferences = (references.get(projectId) ?? []).filter(
+          (id) => id !== input.kit.id,
+        );
+        if (otherReferences.length)
+          plan.keptForOtherKits.push(stepFor(project, managedEntry.extension.internalName));
+        else plan.remove.push(stepFor(project, managedEntry.extension.internalName));
+        break;
       }
-      if (input.operation === "activate" && (!managedEntry || !managedEntry.extension.enabled))
-        plan.enable.push(stepFor(project, managedEntry?.extension.internalName ?? null));
-    } else if (input.operation === "deactivate") {
-      if (managedEntry?.extension.enabled)
-        plan.disable.push(stepFor(project, managedEntry.extension.internalName));
-    } else {
-      if (!managedEntry) continue;
-      const otherReferences = (references.get(projectId) ?? []).filter((id) => id !== input.kit.id);
-      if (otherReferences.length)
-        plan.keptForOtherKits.push(stepFor(project, managedEntry.extension.internalName));
-      else plan.remove.push(stepFor(project, managedEntry.extension.internalName));
     }
   }
   if (input.operation === "activate" && input.activeKitId && input.activeKitId !== input.kit.id) {
@@ -131,6 +140,12 @@ export function planKitOperation(input: PlanKitOperationInput): Readonly<KitPlan
     plan.install.length || plan.enable.length || plan.disable.length || plan.remove.length,
   );
   return freezeKitPlan(plan);
+}
+
+function isKitOperation(value: unknown): value is KitOperation {
+  return (
+    value === "install" || value === "activate" || value === "deactivate" || value === "uninstall"
+  );
 }
 
 export function inventoryFingerprint(

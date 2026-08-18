@@ -2,7 +2,7 @@ import { resolve, sep } from "node:path";
 
 import type { Page } from "@playwright/test";
 
-export async function openHarness(page: Page): Promise<void> {
+export async function openHarness(page: Page, scenario?: string): Promise<void> {
   const root = resolve(import.meta.dirname, "../..");
   const startupErrors: string[] = [];
   page.on("pageerror", (error) => startupErrors.push(error.message));
@@ -18,7 +18,8 @@ export async function openHarness(page: Page): Promise<void> {
     }
     await route.fulfill({ path: target });
   });
-  await page.goto("http://localhost/tests/fixtures/ui-harness.html");
+  const query = scenario ? `?scenario=${encodeURIComponent(scenario)}` : "";
+  await page.goto(`http://localhost/tests/fixtures/ui-harness.html${query}`);
   try {
     await page.getByTestId("companion-shell").waitFor({ timeout: 10_000 });
   } catch (error) {

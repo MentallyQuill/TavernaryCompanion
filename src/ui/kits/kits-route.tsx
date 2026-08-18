@@ -16,6 +16,7 @@ export function KitsRoute({
   switcherKits = [],
   activeKitId = null,
   onActivate,
+  onDeactivate,
 }: {
   controller: KitDiscoveryController;
   lifecycleDisabled?: boolean;
@@ -26,6 +27,7 @@ export function KitsRoute({
   switcherKits?: readonly KitCardViewModel[];
   activeKitId?: string | null;
   onActivate?(id: string): void;
+  onDeactivate?(): void;
 }): preact.JSX.Element {
   const [state, setState] = useState(controller.read());
   useEffect(() => controller.subscribe(setState), [controller]);
@@ -54,6 +56,7 @@ export function KitsRoute({
           activeKitId={activeKitId}
           disabled={lifecycleDisabled}
           onActivate={(id) => onActivate?.(id)}
+          onDeactivate={onDeactivate}
         />
       ) : null}
       <div class="tavernary-companion-kit-segments" role="tablist" aria-label="Kit sources">

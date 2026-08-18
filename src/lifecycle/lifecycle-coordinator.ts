@@ -222,14 +222,17 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
     const snapshot = this.#getSnapshot();
     const catalog = "catalog" in snapshot ? snapshot.catalog : null;
     const project = catalog?.projects.find((candidate) => candidate.id === projectId) ?? null;
+    const initialState = this.#store.read();
+    const kitTitles = removalKitTitles(initialState.personalKits, catalog?.kits ?? []);
     if (projectId === COMPANION_PROJECT_ID || !project) {
       return previewRemovalImpact({
         projectId,
         projectName: project?.name ?? projectId,
         ownership: "absent",
-        installedKits: this.#store.read().installedKits,
-        activeKitId: this.#store.read().activeKitId,
+        installedKits: initialState.installedKits,
+        activeKitId: initialState.activeKitId,
         removable: false,
+        kitTitles,
       });
     }
     const hostExtensions = await this.#host.discover();
@@ -261,6 +264,7 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
       installedKits: state.installedKits,
       activeKitId: state.activeKitId,
       removable: decision.kind === "allowed" && decision.operation === "remove",
+      kitTitles,
     });
   }
 
@@ -435,6 +439,24 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
       })
       .catch(() => undefined);
   }
+}
+
+function removalKitTitles(
+  personalKits: Readonly<Record<string, unknown>>,
+  publishedKits: readonly { id: string; title: string }[],
+): Record<string, string> {
+  const titles = Object.fromEntries(publishedKits.map(({ id, title }) => [id, title]));
+  for (const [id, value] of Object.entries(personalKits)) {
+    if (
+      typeof value === "object" &&
+      value !== null &&
+      "title" in value &&
+      typeof value.title === "string"
+    ) {
+      titles[id] = value.title;
+    }
+  }
+  return titles;
 }
 
 function exactFolder(

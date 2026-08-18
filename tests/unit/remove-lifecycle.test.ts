@@ -43,9 +43,13 @@ function setup({
     };
   }
   state.installedKits.daily = {
-    title: "Daily",
-    projectIds: ["alpha"],
-    status: "complete",
+    kitId: "daily",
+    definitionFingerprint: "a".repeat(64),
+    installedProjectIds: ["alpha"],
+    missingProjectIds: [],
+    status: "installed",
+    installedAt: "2026-08-18T00:00:00.000Z",
+    lastVerifiedAt: "2026-08-18T00:00:00.000Z",
   };
   state.activeKitId = "daily";
   const extensionSettings = { tavernaryCompanion: state };
@@ -115,6 +119,6 @@ describe("remove lifecycle", () => {
 
     expect(receipt.status).toBe("verification-failed");
     expect(fixture.store.read().managedExtensions).toHaveProperty("alpha");
-    expect(fixture.store.read().installedKits.daily).toMatchObject({ status: "complete" });
+    expect(fixture.store.read().installedKits.daily).toMatchObject({ status: "installed" });
   });
 });

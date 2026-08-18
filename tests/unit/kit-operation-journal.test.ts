@@ -24,6 +24,43 @@ it("recovers an interrupted journal without replaying mutations", async () => {
   });
   const receipt = await app.executor.recoverInterrupted();
   expect(receipt).toMatchObject({ outcome: "interrupted", previousActiveKitId: "old-kit" });
+  expect(app.kits.readInstalled("writers")).toMatchObject({
+    installedProjectIds: ["alpha"],
+    missingProjectIds: [],
+    status: "installed",
+  });
   expect(app.host.calls.some(({ operation }) => operation === "install")).toBe(false);
+  expect(app.executor.journal.read()).toBeNull();
+});
+
+it("records partial uninstall recovery as incomplete before clearing its journal", async () => {
+  const alpha = catalogProjectFixture({ id: "alpha", folderName: "Alpha" });
+  const beta = catalogProjectFixture({ id: "beta", folderName: "Beta" });
+  const app = await executorFixture(
+    { ...catalogFixture(), projects: [alpha, beta] },
+    { extensions: [extension("Alpha")] },
+  );
+  await app.recordInstalled("writers", ["alpha", "beta"]);
+  await app.executor.journal.write({
+    formatVersion: 1,
+    operationId: "old-op",
+    planId: "plan",
+    operation: "uninstall",
+    kitId: "writers",
+    phase: "removing",
+    startedAt: "2026-08-18T00:00:00.000Z",
+    currentProjectId: "beta",
+    completedProjects: [],
+    preOperationActiveKitId: null,
+    requiredProjectIds: ["alpha", "beta"],
+  });
+
+  await app.executor.recoverInterrupted();
+
+  expect(app.kits.readInstalled("writers")).toMatchObject({
+    installedProjectIds: ["alpha"],
+    missingProjectIds: ["beta"],
+    status: "incomplete",
+  });
   expect(app.executor.journal.read()).toBeNull();
 });
