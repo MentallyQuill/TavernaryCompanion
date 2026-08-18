@@ -33,6 +33,7 @@ export class FakeHost implements HostExtensionAdapter {
   }
 
   async discover(): Promise<HostExtension[]> {
+    this.calls.push({ operation: "discover" });
     return structuredClone(this.#extensions);
   }
 

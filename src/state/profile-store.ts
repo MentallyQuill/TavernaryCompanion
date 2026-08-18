@@ -34,10 +34,20 @@ export class ProfileStore {
       const draft = structuredClone(this.#state);
       const result = await mutator(draft);
       const next = migrateProfileState(result ?? draft);
-
-      this.#state = structuredClone(next);
+      const hadPrevious = Object.hasOwn(this.#dependencies.extensionSettings, PROFILE_NAMESPACE);
+      const previous = this.#dependencies.extensionSettings[PROFILE_NAMESPACE];
       this.#dependencies.extensionSettings[PROFILE_NAMESPACE] = structuredClone(next);
-      await this.#dependencies.saveSettingsDebounced();
+      try {
+        await this.#dependencies.saveSettingsDebounced();
+      } catch (error) {
+        if (hadPrevious) {
+          this.#dependencies.extensionSettings[PROFILE_NAMESPACE] = previous;
+        } else {
+          delete this.#dependencies.extensionSettings[PROFILE_NAMESPACE];
+        }
+        throw error;
+      }
+      this.#state = structuredClone(next);
 
       for (const subscriber of this.#subscribers) {
         subscriber(structuredClone(next));

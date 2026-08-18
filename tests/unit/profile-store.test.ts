@@ -56,3 +56,20 @@ it("serializes concurrent updates in invocation order and notifies once per comm
   expect(snapshots).toEqual(["kits:standard", "kits:compact"]);
   expect(saveSettingsDebounced).toHaveBeenCalledTimes(2);
 });
+
+it("rolls back memory and host settings when persistence fails", async () => {
+  const extensionSettings: Record<string, unknown> = {};
+  const store = new ProfileStore({
+    extensionSettings,
+    saveSettingsDebounced: vi.fn().mockRejectedValue(new Error("storage unavailable")),
+  });
+
+  await expect(
+    store.update((draft) => {
+      draft.preferences.route = "installed";
+    }),
+  ).rejects.toThrow("storage unavailable");
+
+  expect(store.read().preferences.route).toBe("projects");
+  expect(extensionSettings).not.toHaveProperty("tavernaryCompanion");
+});
