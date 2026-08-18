@@ -19,7 +19,7 @@ describe("CompanionShell", () => {
     fireEvent.click(card);
     fireEvent.click(screen.getByRole("button", { name: "Back" }));
 
-    await waitFor(() => expect(card).toHaveFocus());
+    await waitFor(() => expect(screen.getByRole("button", { name: "View Alpha" })).toHaveFocus());
   });
 
   it("renders semantic routes and restores the active route from state", () => {
@@ -27,6 +27,9 @@ describe("CompanionShell", () => {
     render(<CompanionShell controller={controller} />);
 
     expect(screen.getByRole("heading", { name: "Tavernary Companion" })).toBeVisible();
+    expect(screen.getByRole("img", { name: "Tavernary" })).toBeVisible();
+    expect(screen.getByText("Where AI roleplay tools gather")).toBeVisible();
+    expect(screen.getByText("Companion", { selector: "span" })).toBeVisible();
     expect(screen.getByRole("navigation", { name: "Companion sections" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "Installed" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("main")).toHaveTextContent("Installed extensions");

@@ -5,7 +5,7 @@ import { expect, it } from "vitest";
 import { createReleasePackage } from "../../scripts/package-release.mjs";
 import { verifyRelease } from "../../scripts/verify-release.mjs";
 
-it("packages exactly three deterministic installable files", () => {
+it("packages the deterministic installable files and Tavernary brand assets", () => {
   const root = resolve(import.meta.dirname, "../..");
   const first = mkdtempSync(resolve(tmpdir(), "companion-release-a-"));
   const second = mkdtempSync(resolve(tmpdir(), "companion-release-b-"));
@@ -15,7 +15,14 @@ it("packages exactly three deterministic installable files", () => {
   expect(one.hashManifest.archiveSha256).toBe(two.hashManifest.archiveSha256);
   expect(readFileSync(one.archivePath)).toEqual(readFileSync(two.archivePath));
   expect(verifyRelease(one)).toMatchObject({
-    entries: ["dist/companion.css", "dist/extension.js", "manifest.json"],
+    entries: [
+      "dist/assets/inter-latin-ext-wght-normal.woff2",
+      "dist/assets/inter-latin-wght-normal.woff2",
+      "dist/assets/tavernary-trihex.png",
+      "dist/companion.css",
+      "dist/extension.js",
+      "manifest.json",
+    ],
     sourceCommit,
   });
 });

@@ -13,6 +13,7 @@ The master design is normative for product scope, security, ownership, and accep
 5. [Kits](05-kits.md) — personal and published Kits, creation, switching, installation state, import/export, and partial failure.
 6. [Catalog Refresh and Recovery](06-catalog-refresh-and-recovery.md) — automatic/manual refresh, cache, offline use, schema changes, and Companion update handoff.
 7. [V2 Kit Submission](07-v2-kit-submission.md) — planned submission-readiness model and future GitHub review journey without adding V2 code to V1.
+8. [Tavernary Brand Alignment](08-tavernary-brand-alignment.md) — exact Tavernary brand authority, tokens, component grammar, and installed-host visual acceptance.
 
 ## Shared vocabulary
 
@@ -41,3 +42,4 @@ The master design is normative for product scope, security, ownership, and accep
 - An incompatible schema preserves the last compatible catalog as browse-only and requires a Companion update.
 - Desktop feels spacious but remains an overlay; mobile becomes a purpose-built full-height sheet.
 - UI state never claims an operation succeeded until installed state has been rediscovered and verified.
+- Companion must read as the same brand and web software as Tavernary; Directive affects containment, not Tavernary's visual identity.

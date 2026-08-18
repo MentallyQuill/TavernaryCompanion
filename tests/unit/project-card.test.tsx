@@ -15,9 +15,25 @@ function project(overrides: Partial<ProjectCardViewModel> = {}): ProjectCardView
     kind: "extension",
     frontends: ["SillyTavern"],
     primaryFunction: "Interface & Workflow",
+    tags: ["Workflow", "Utility"],
+    licenseLabel: "MIT",
     activity: {
       latestSourceActivityAt: "2026-08-17T00:00:00.000Z",
       activeWeeks12: 5,
+      weeklyActivity: [
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+      ],
       dormant: false,
     },
     tavernKeeper: null,
@@ -36,9 +52,14 @@ describe("ProjectCard", () => {
     render(<ProjectCard project={project()} onOpen={onOpen} onAction={onAction} />);
 
     expect(screen.getByRole("heading", { name: "Alpha" })).toBeVisible();
-    expect(screen.getByText("Extension · Interface & Workflow")).toBeVisible();
+    expect(screen.getByText("Extension")).toBeVisible();
+    expect(screen.getByText("Interface & Workflow")).toBeVisible();
     expect(screen.getByText("5 of 12 active weeks")).toBeVisible();
     expect(screen.getByText("Not assessed")).toBeVisible();
+    expect(screen.getByText("SillyTavern")).toBeVisible();
+    expect(screen.getByText("Workflow")).toBeVisible();
+    expect(screen.getByText("MIT")).toBeVisible();
+    expect(document.querySelectorAll(".tavernary-companion-activity-strip i")).toHaveLength(12);
     expect(screen.getAllByTestId("project-primary-action")).toHaveLength(1);
 
     fireEvent.click(screen.getByRole("button", { name: "Install Alpha" }));

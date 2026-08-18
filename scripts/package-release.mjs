@@ -4,7 +4,14 @@ import { mkdirSync, readFileSync, renameSync, rmSync, writeFileSync } from "node
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
 
-export const RELEASE_FILES = ["dist/companion.css", "dist/extension.js", "manifest.json"];
+export const RELEASE_FILES = [
+  "dist/assets/inter-latin-ext-wght-normal.woff2",
+  "dist/assets/inter-latin-wght-normal.woff2",
+  "dist/assets/tavernary-trihex.png",
+  "dist/companion.css",
+  "dist/extension.js",
+  "manifest.json",
+];
 
 export function createReleasePackage({
   root,

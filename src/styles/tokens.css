@@ -1,24 +1,141 @@
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("./assets/inter-latin-wght-normal.woff2") format("woff2-variations");
+  unicode-range:
+    U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329,
+    U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+@font-face {
+  font-family: "Inter Variable";
+  font-style: normal;
+  font-display: swap;
+  font-weight: 100 900;
+  src: url("./assets/inter-latin-ext-wght-normal.woff2") format("woff2-variations");
+  unicode-range:
+    U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329,
+    U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C0, U+2113, U+2C60-2C7F,
+    U+A720-A7FF;
+}
+
 :root {
-  --tavernary-companion-surface: var(--SmartThemeBlurTintColor, #171a1f);
-  --tavernary-companion-raised: color-mix(
-    in srgb,
-    var(--tavernary-companion-surface) 82%,
-    #fff 18%
-  );
-  --tavernary-companion-inset: color-mix(in srgb, var(--tavernary-companion-surface) 84%, #000 16%);
-  --tavernary-companion-text: var(--SmartThemeBodyColor, #f5f7fa);
-  --tavernary-companion-muted: color-mix(in srgb, var(--tavernary-companion-text) 68%, transparent);
-  --tavernary-companion-border: color-mix(
-    in srgb,
-    var(--tavernary-companion-text) 22%,
-    transparent
-  );
-  --tavernary-companion-accent: var(--SmartThemeEmColor, #f2a126);
-  --tavernary-companion-focus: #7dd9ff;
-  --tavernary-companion-low: #48c7bd;
-  --tavernary-companion-material: #f2a126;
-  --tavernary-companion-high: #ef6666;
-  --tavernary-companion-radius: 4px;
+  --tavernary-color-bg-canvas: #0d1117;
+  --tavernary-color-bg-header: #101820;
+  --tavernary-color-bg-sidebar: #121a1f;
+  --tavernary-color-bg-surface: #182228;
+  --tavernary-color-bg-surface-raised: #1c282e;
+  --tavernary-color-bg-surface-hover: #223138;
+  --tavernary-color-bg-surface-active: #153b39;
+  --tavernary-color-bg-input: #10191e;
+  --tavernary-color-bg-overlay: #202c32;
+  --tavernary-color-bg-disabled: #171f23;
+  --tavernary-color-border-subtle: #223038;
+  --tavernary-color-border-default: #2b3a40;
+  --tavernary-color-border-strong: #3e535b;
+  --tavernary-color-border-hover: #506870;
+  --tavernary-color-divider: #26363d;
+  --tavernary-color-text-primary: #e6edf3;
+  --tavernary-color-text-secondary: #a8b3ba;
+  --tavernary-color-text-muted: #829099;
+  --tavernary-color-text-disabled: #5f6b72;
+  --tavernary-color-text-inverse: #0d1117;
+  --tavernary-color-heading: #f0f5f7;
+  --tavernary-color-link: #6ee7d8;
+  --tavernary-color-link-hover: #99f6e4;
+  --tavernary-color-accent-teal: #2dd4bf;
+  --tavernary-color-accent-teal-hover: #5eead4;
+  --tavernary-color-accent-teal-pressed: #14b8a6;
+  --tavernary-color-accent-teal-muted: #238f85;
+  --tavernary-color-accent-teal-bg: #153b39;
+  --tavernary-color-accent-teal-bg-hover: #1b4a46;
+  --tavernary-color-accent-teal-border: #28635e;
+  --tavernary-color-accent-teal-text: #8ce9de;
+  --tavernary-color-focus-ring: #5eead4;
+  --tavernary-color-frontend: #d62839;
+  --tavernary-color-frontend-hover: #e33b4c;
+  --tavernary-color-frontend-pressed: #b71f30;
+  --tavernary-color-frontend-bg: #35181f;
+  --tavernary-color-frontend-bg-hover: #431d25;
+  --tavernary-color-frontend-border: #7c2936;
+  --tavernary-color-frontend-text: #ff8b95;
+  --tavernary-color-preset: #57c5a3;
+  --tavernary-color-preset-hover: #72d4b6;
+  --tavernary-color-preset-pressed: #3eac8c;
+  --tavernary-color-preset-bg: #15352e;
+  --tavernary-color-preset-bg-hover: #1b443a;
+  --tavernary-color-preset-border: #347a67;
+  --tavernary-color-preset-text: #8be0c5;
+  --tavernary-color-functional: #e18a24;
+  --tavernary-color-functional-hover: #f0a145;
+  --tavernary-color-functional-pressed: #c87416;
+  --tavernary-color-functional-bg: #3b2814;
+  --tavernary-color-functional-bg-hover: #4a3217;
+  --tavernary-color-functional-border: #8a5720;
+  --tavernary-color-functional-text: #ffc171;
+  --tavernary-color-action-primary-bg: #e18a24;
+  --tavernary-color-action-primary-hover: #f0a145;
+  --tavernary-color-action-primary-pressed: #c87416;
+  --tavernary-color-action-primary-text: #161008;
+  --tavernary-color-action-secondary-bg: #1c282e;
+  --tavernary-color-action-secondary-hover: #26363d;
+  --tavernary-color-action-secondary-border: #3e535b;
+  --tavernary-color-action-secondary-text: #e6edf3;
+  --tavernary-color-control-bg: #10191e;
+  --tavernary-color-control-bg-hover: #172329;
+  --tavernary-color-control-border: #304249;
+  --tavernary-color-control-border-hover: #486068;
+  --tavernary-color-control-border-focus: #2dd4bf;
+  --tavernary-color-control-text: #e6edf3;
+  --tavernary-color-control-placeholder: #718087;
+  --tavernary-color-checkbox-bg: #121a1f;
+  --tavernary-color-checkbox-border: #506168;
+  --tavernary-color-checkbox-checked: #2dd4bf;
+  --tavernary-color-checkbox-checkmark: #071413;
+  --tavernary-color-success: #3fb950;
+  --tavernary-color-success-bg: #16351f;
+  --tavernary-color-success-border: #2e6b3d;
+  --tavernary-color-success-text: #7ee787;
+  --tavernary-color-warning: #d29922;
+  --tavernary-color-warning-bg: #3a2d12;
+  --tavernary-color-warning-border: #7a5b18;
+  --tavernary-color-warning-text: #e3b341;
+  --tavernary-color-danger: #f85149;
+  --tavernary-color-danger-bg: #3d1b1f;
+  --tavernary-color-danger-border: #8c2f35;
+  --tavernary-color-danger-text: #ff7b72;
+  --tavernary-color-info: #58a6ff;
+  --tavernary-color-info-bg: #162b45;
+  --tavernary-color-info-border: #315f91;
+  --tavernary-color-info-text: #79c0ff;
+  --tavernary-color-activity-current: #2dd4bf;
+  --tavernary-color-activity-recent: #829099;
+  --tavernary-color-activity-dormant: #5f6b72;
+  --tavernary-color-progress-track: #26363d;
+  --tavernary-color-progress-fill: #57c5a3;
+  --tavernary-color-license-open: #57c5a3;
+  --tavernary-color-license-proprietary: #a8b3ba;
+  --tavernary-color-license-missing: #829099;
+  --tavernary-shadow-card: 0 1px 2px rgb(0 0 0 / 24%), 0 4px 12px rgb(0 0 0 / 12%);
+  --tavernary-shadow-overlay: 0 12px 32px rgb(0 0 0 / 40%);
+  --tavernary-radius: 8px;
+  --tavernary-brand-mark: url("./assets/tavernary-trihex.png");
+
+  /* Transitional aliases retained while the branded components are migrated. */
+  --tavernary-companion-surface: var(--tavernary-color-bg-canvas);
+  --tavernary-companion-raised: var(--tavernary-color-bg-surface);
+  --tavernary-companion-inset: var(--tavernary-color-bg-input);
+  --tavernary-companion-text: var(--tavernary-color-text-primary);
+  --tavernary-companion-muted: var(--tavernary-color-text-muted);
+  --tavernary-companion-border: var(--tavernary-color-border-default);
+  --tavernary-companion-accent: var(--tavernary-color-functional);
+  --tavernary-companion-focus: var(--tavernary-color-focus-ring);
+  --tavernary-companion-low: var(--tavernary-color-accent-teal);
+  --tavernary-companion-material: var(--tavernary-color-functional);
+  --tavernary-companion-high: var(--tavernary-color-danger);
+  --tavernary-companion-radius: var(--tavernary-radius);
   --tavernary-companion-space-1: 0.35rem;
   --tavernary-companion-space-2: 0.65rem;
   --tavernary-companion-space-3: 1rem;
@@ -30,14 +147,19 @@
   box-sizing: border-box;
 }
 
+.tavernary-companion-root {
+  color: var(--tavernary-color-text-primary);
+  font-family: "Inter Variable", Inter, system-ui, sans-serif;
+}
+
 .tavernary-companion-root button,
 .tavernary-companion-root input,
 .tavernary-companion-root select {
   color: inherit;
   font: inherit;
-  border: 1px solid var(--tavernary-companion-border);
-  border-radius: var(--tavernary-companion-radius);
-  background: var(--tavernary-companion-inset);
+  border: 1px solid var(--tavernary-color-control-border);
+  border-radius: var(--tavernary-radius);
+  background: var(--tavernary-color-control-bg);
 }
 
 .tavernary-companion-root button {
@@ -47,7 +169,7 @@
 }
 
 .tavernary-companion-root button:hover:not(:disabled) {
-  border-color: var(--tavernary-companion-accent);
+  border-color: var(--tavernary-color-control-border-hover);
 }
 
 .tavernary-companion-root button:disabled {
@@ -56,7 +178,7 @@
 }
 
 .tavernary-companion-root :focus-visible {
-  outline: 3px solid var(--tavernary-companion-focus);
+  outline: 3px solid var(--tavernary-color-focus-ring);
   outline-offset: 2px;
 }
 

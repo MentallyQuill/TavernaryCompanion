@@ -42,12 +42,14 @@ const sections: InstalledSectionViewModel[] = [
 ];
 
 describe("InstalledRoute", () => {
-  it("renders all inventory sections and refreshes host inventory on entry", async () => {
+  it("collapses empty inventory sections and refreshes host inventory on entry", async () => {
     const onRefresh = vi.fn();
     render(<InstalledRoute sections={sections} onRefresh={onRefresh} />);
 
     expect(screen.getByRole("heading", { name: "Managed by Companion" })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Installed outside Companion" })).toBeVisible();
+    expect(
+      screen.queryByRole("heading", { name: "Installed outside Companion" }),
+    ).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Not found in current catalog" })).toBeVisible();
     await waitFor(() => expect(onRefresh).toHaveBeenCalledOnce());
   });

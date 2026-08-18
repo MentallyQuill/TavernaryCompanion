@@ -13,10 +13,10 @@
   max-block-size: 90%;
   overflow: auto;
   padding: var(--tavernary-companion-space-4);
-  border: 1px solid var(--tavernary-companion-material);
-  border-inline-start-width: 4px;
-  background: var(--tavernary-companion-raised);
-  box-shadow: 0 1rem 3rem rgb(0 0 0 / 55%);
+  border: 1px solid var(--tavernary-color-functional-border);
+  border-radius: var(--tavernary-radius);
+  background: var(--tavernary-color-bg-overlay);
+  box-shadow: var(--tavernary-shadow-overlay);
 }
 
 .tavernary-companion-dialog.is-high {

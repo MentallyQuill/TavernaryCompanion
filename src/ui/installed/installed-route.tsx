@@ -32,16 +32,18 @@ export function InstalledRoute({
         <h2 id="installed-heading">Installed extensions</h2>
         {refreshing ? <p role="status">Updating installed extensions…</p> : null}
       </header>
-      {sections.map((section) => (
-        <InstalledSection
-          key={section.id}
-          section={section}
-          onOpenProject={onOpenProject}
-          onAction={onAction}
-          onManage={onManage}
-          lifecycleDisabled={lifecycleDisabled}
-        />
-      ))}
+      {sections
+        .filter((section) => section.rows.length > 0)
+        .map((section) => (
+          <InstalledSection
+            key={section.id}
+            section={section}
+            onOpenProject={onOpenProject}
+            onAction={onAction}
+            onManage={onManage}
+            lifecycleDisabled={lifecycleDisabled}
+          />
+        ))}
     </section>
   );
 }

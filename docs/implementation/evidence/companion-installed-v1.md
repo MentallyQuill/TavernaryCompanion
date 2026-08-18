@@ -1,52 +1,52 @@
 # Companion Installed Artifact Evidence
 
-Observed: 2026-08-18T15:22:42-06:00
+Observed: 2026-08-18T16:39:00-06:00
 
-## Artifact identity
+## Installed artifact
 
 - Version: `0.1.0-pre-alpha.1`
-- Source commit: `fcf15366ded8715b492e024ebe555a049d185369`
-- Archive: `artifacts/tavernary-companion-0.1.0-pre-alpha.1.zip`
-- Archive SHA-256: `56c4e3621fcdee498e84c7e0104f010a77656f43002e4d8c0e1fad5f9ea57f04`
-- Verified entries: `dist/companion.css`, `dist/extension.js`, and `manifest.json`; no other archive entries exist.
+- Source branch: `codex/tavernary-visual-alignment`
+- Host: SillyTavern `1.18.0` (`61ad2189f`)
+- Isolated profile: `companion-acceptance-v1`
+- Install path: `data/companion-acceptance-v1/extensions/TavernaryCompanion`
+- Previous acceptance artifact backup: `extension-backups/TavernaryCompanion-before-brand-alignment-20260818-1629`
 
-## Isolated host
+The installed `dist/extension.js` and `dist/companion.css` were hash-compared with the verified
+workspace build after installation. The release now includes the Tavernary trihex PNG and the
+Latin and Latin Extended Inter Variable font files under `dist/assets/`.
 
-The archive was extracted into the acceptance-only SillyTavern profile `companion-acceptance-v1` at:
+## Live Playwright proof
 
-`F:\SillyTavern\SillyTavern\data\companion-acceptance-v1\extensions\TavernaryCompanion`
+The installed launcher was opened through SillyTavern and exercised at `1440x960` and `390x844`.
+The pass captured Projects, project detail, Kits, Installed, mobile Projects, the mobile filter
+sheet, and mobile Kits.
 
-The profile was created and authenticated through SillyTavern's own account/API flow. No existing user profile was used or modified.
+| Context | Host dialog | Companion shell | Horizontal overflow | Mounted route content |
+|---|---:|---:|---:|---|
+| Desktop Projects | `1324.8 x 864` | `1276.8 x 842` | `0` | 30 project cards, 0 Kit cards |
+| Desktop Kits | `1324.8 x 864` | `1276.8 x 842` | `0` | 0 project cards, 11 Kit cards |
+| Desktop Installed | `1324.8 x 864` | `1276.8 x 842` | `0` | Installed route only |
+| Mobile Projects | `358 x 812` | `310 x 790` | `0` | 30 project cards, 0 Kit cards |
+| Mobile Kits | `358 x 812` | `310 x 790` | `0` | 0 project cards, 11 Kit cards |
 
-The prior acceptance install was moved intact to `acceptance-backups/TavernaryCompanion-20260818-152221` before this archive was extracted.
+Computed installed values matched Tavernary production:
 
-`/api/extensions/discover` returned the installed extension as `third-party/TavernaryCompanion` with type `local` and the expected manifest path. The authenticated profile served all three production paths with HTTP 200:
+- canvas: `rgb(13, 17, 23)`;
+- font: `"Inter Variable", Inter, system-ui, sans-serif`;
+- accent teal: `#2dd4bf`;
+- functional orange: `#e18a24`.
 
-- `/scripts/extensions/third-party/TavernaryCompanion/manifest.json`
-- `/scripts/extensions/third-party/TavernaryCompanion/dist/extension.js`
-- `/scripts/extensions/third-party/TavernaryCompanion/dist/companion.css`
+The final pass recorded zero console errors, zero page errors, and zero failed requests. Evidence is
+stored locally under `artifacts/brand-alignment-review/`, including `installed-evidence.json` and
+the seven PNG captures.
 
-Response bytes matched the installed files.
+## Automated gates
 
-## Installed hash parity
+- `npm.cmd run check`: 61 test files and 195 tests passed, followed by a production build.
+- `npm.cmd run test:e2e`: 22 Chromium tests passed before the final host-wrapper additions.
+- Host-wrapper checks cover a large `1440x960` dialog and a bounded `390x844` dialog.
+- The browser suite covers axe, reduced motion, 200% text, filter focus return, lifecycle journeys,
+  Kit switching, bounded initial project rendering, and the Tavernary computed-style contract.
 
-| File | Bytes | Release and installed SHA-256 |
-|---|---:|---|
-| `dist/companion.css` | 22,321 | `58abcee8b667743516ed25763c9f14f7734eb1080c7649851c5b60cf3c8411a0` |
-| `dist/extension.js` | 615,486 | `a7e8893b889a145069239acc2e6dbbe7e57ceab5dc6af641bdebef6af97713aa` |
-| `manifest.json` | 684 | `caf9d09c29aa66e4f852d38bf84fc44be73fa3d8c76d3c02ae30c754fed16084` |
-
-Hashes were checked again after the source and browser gates; all remained identical.
-
-## Behavior evidence and limit
-
-Production coordinators passed integrated lifecycle and Kit scenarios in the simulated SillyTavern host. The production UI passed 17 Chromium tests at all required responsive sizes, including Kit activation/deactivation/reactivation, shared-member preservation, failure and interruption recovery, personal Kit editing/import, focus/Escape behavior, axe, reduced motion, 200% text, and the catalog performance budget.
-
-These are separate from installed-runtime interaction. The in-app browser controller could not start because its trusted RPC dependency did not resolve within the configured trusted code path. Consequently, this record proves installation, discovery, serving, and byte parity, but does **not** claim:
-
-- clicking the installed launcher;
-- installed overlay geometry or focus behavior;
-- installed console-error count;
-- installed runtime catalog/lifecycle/Kit network journeys.
-
-Those items remain explicit release-readiness gaps rather than being inferred from the fixture browser suite.
+The exact merged artifact must be rebuilt and hash-compared after merge; source-branch installed
+proof is not a substitute for that final parity check.
