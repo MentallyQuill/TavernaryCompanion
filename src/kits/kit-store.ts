@@ -99,6 +99,9 @@ export class KitStore {
   }
   async removeDefinition(id: string): Promise<boolean> {
     if (!this.readDefinition(id)) return false;
+    if (this.readInstalled(id)) {
+      throw new Error("Uninstall the Kit before removing its definition.");
+    }
     await this.#profile.update((draft) => {
       delete draft.personalKits[id];
     });

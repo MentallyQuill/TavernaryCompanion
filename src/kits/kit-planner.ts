@@ -84,7 +84,6 @@ export function planKitOperation(input: PlanKitOperationInput): Readonly<KitPlan
         });
       continue;
     }
-    addWarning(plan, project);
     const managedEntry = managedById.get(projectId);
     const externalEntry = externalById.get(projectId);
     if (externalEntry) {
@@ -95,7 +94,10 @@ export function planKitOperation(input: PlanKitOperationInput): Readonly<KitPlan
       plan.alreadyManaged.push(stepFor(project, managedEntry.extension.internalName));
     }
     if (input.operation === "install" || input.operation === "activate") {
-      if (!managedEntry) plan.install.push(stepFor(project, null));
+      if (!managedEntry) {
+        plan.install.push(stepFor(project, null));
+        addWarning(plan, project);
+      }
       if (input.operation === "activate" && (!managedEntry || !managedEntry.extension.enabled))
         plan.enable.push(stepFor(project, managedEntry?.extension.internalName ?? null));
     } else if (input.operation === "deactivate") {

@@ -40,5 +40,8 @@ describe("KitStore", () => {
     await store.setActive(kit.id);
     expect(store.readActiveId()).toBe(kit.id);
     expect(store.readInstalled(kit.id)?.installedProjectIds).toEqual(["alpha"]);
+    await expect(store.removeDefinition(kit.id)).rejects.toThrow(
+      "Uninstall the Kit before removing its definition.",
+    );
   });
 });

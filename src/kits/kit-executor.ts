@@ -8,6 +8,7 @@ import { KitOperationJournal, type KitOperationJournalV1 } from "./kit-operation
 import type { KitPlan } from "./kit-plan";
 import type { KitApproval, KitProjectResult, KitReceipt } from "./kit-receipt";
 import type { KitStore } from "./kit-store";
+import { fingerprintKitTopology } from "./kit-validation";
 
 interface KitExecutorDependencies {
   host: HostExtensionAdapter;
@@ -236,24 +237,42 @@ export class KitExecutor {
       disable: plan.disable,
       resolveInternalName: (_id, planned) => planned,
     });
+    let discovered: HostExtension[] | null = null;
+    let discoveryError: string | null = null;
+    try {
+      discovered = await this.#host.discover();
+    } catch (error) {
+      discoveryError = message(error);
+    }
     const results = plan.disable.map((step) => {
-      const failure = mutations.failures.find(({ projectId }) => projectId === step.projectId);
+      const mutationFailure = mutations.failures.find(
+        ({ projectId }) => projectId === step.projectId,
+      );
+      const extension = discovered?.find(({ internalName }) => internalName === step.internalName);
+      const verificationFailure = !mutationFailure && (!extension || extension.enabled);
       return result(
         step.projectId,
         "disable",
-        failure ? "failed" : "verified",
-        failure?.error ?? "Disabled and verified.",
-        Boolean(failure),
+        mutationFailure || verificationFailure ? "failed" : "verified",
+        mutationFailure?.error ??
+          (discoveryError
+            ? `Disabled state could not be verified: ${discoveryError}`
+            : null) ??
+          (verificationFailure
+            ? "Extension remained enabled after the disable request."
+            : "Disabled and verified."),
+        Boolean(mutationFailure || verificationFailure),
       );
     });
-    if (mutations.failures.length) await this.#markDrifted(plan.kitId);
+    const failed = results.some(({ status }) => status === "failed");
+    if (failed) await this.#markDrifted(plan.kitId);
     else await this.#kits.setActive(null);
     if (mutations.changed) this.#host.reload();
     return this.#receipt(
       plan,
       journal,
       previousActiveKitId,
-      mutations.failures.length ? "partial" : "completed",
+      failed ? "partial" : "completed",
       results,
     );
   }
@@ -278,6 +297,34 @@ export class KitExecutor {
         await this.#markDrifted(plan.kitId);
         for (const failure of mutations.failures)
           results.push(result(failure.projectId, "disable", "failed", failure.error, true));
+        if (changed) this.#host.reload();
+        return this.#receipt(plan, journal, previousActiveKitId, "failed", results);
+      }
+      let disabledVerified = false;
+      try {
+        const discovered = await this.#host.discover();
+        disabledVerified = plan.disable.every((step) => {
+          const extension = discovered.find(
+            ({ internalName }) => internalName === step.internalName,
+          );
+          return Boolean(extension && !extension.enabled);
+        });
+      } catch {
+        disabledVerified = false;
+      }
+      if (!disabledVerified) {
+        await this.#markDrifted(plan.kitId);
+        for (const step of plan.disable) {
+          results.push(
+            result(
+              step.projectId,
+              "disable",
+              "failed",
+              "Disabled state could not be verified.",
+              true,
+            ),
+          );
+        }
         if (changed) this.#host.reload();
         return this.#receipt(plan, journal, previousActiveKitId, "failed", results);
       }
@@ -354,7 +401,7 @@ export class KitExecutor {
   ): Promise<void> {
     await this.#kits.recordInstalledState({
       kitId: plan.kitId,
-      definitionFingerprint: await topologyHash(plan.requiredProjectIds),
+      definitionFingerprint: await fingerprintKitTopology(plan.requiredProjectIds),
       installedProjectIds: installed,
       missingProjectIds: missing,
       status,
@@ -375,21 +422,25 @@ export class KitExecutor {
     plan: Readonly<KitPlan>,
     records: ReturnType<typeof normalizeManagedExtensionMap>,
   ): Promise<boolean> {
-    const extensions = await this.#host.discover();
-    return (
-      plan.enable.every((step) => {
-        const name = step.internalName ?? records[step.projectId]?.internalName;
-        return Boolean(
-          name && extensions.find((extension) => extension.internalName === name)?.enabled,
-        );
-      }) &&
-      plan.disable.every((step) =>
-        Boolean(
-          extensions.find((extension) => extension.internalName === step.internalName) &&
-          !extensions.find((extension) => extension.internalName === step.internalName)?.enabled,
-        ),
-      )
-    );
+    try {
+      const extensions = await this.#host.discover();
+      return (
+        plan.enable.every((step) => {
+          const name = step.internalName ?? records[step.projectId]?.internalName;
+          return Boolean(
+            name && extensions.find((extension) => extension.internalName === name)?.enabled,
+          );
+        }) &&
+        plan.disable.every((step) =>
+          Boolean(
+            extensions.find((extension) => extension.internalName === step.internalName) &&
+            !extensions.find((extension) => extension.internalName === step.internalName)?.enabled,
+          ),
+        )
+      );
+    } catch {
+      return false;
+    }
   }
   #receipt(
     plan: Readonly<KitPlan>,
@@ -468,11 +519,4 @@ function result(
 }
 function message(error: unknown): string {
   return error instanceof Error ? error.message : "Host operation failed.";
-}
-async function topologyHash(projectIds: readonly string[]): Promise<string> {
-  const digest = await crypto.subtle.digest(
-    "SHA-256",
-    new TextEncoder().encode(JSON.stringify(projectIds)),
-  );
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }

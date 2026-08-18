@@ -114,7 +114,71 @@ describe("Kit planner", () => {
     expect(plan.disable).toEqual([]);
     expect(plan.reloadRequired).toBe(false);
   });
+
+  it("warns only for projects that the plan will install", () => {
+    const installedProject = flaggedProject("installed", "Installed");
+    const newProject = flaggedProject("new", "New");
+    const managed = { installed: record("installed", "Installed") };
+    const input = {
+      kit: {
+        id: "kit",
+        projectIds: ["installed", "new"],
+        origin: "personal" as const,
+      },
+      catalog: { ...catalogFixture(), projects: [installedProject, newProject] },
+      inventory: {
+        ...emptyInventory,
+        managed: [managedEntry(installedProject, managed.installed, true)],
+      },
+      managed,
+      installedKits: [installed("kit", ["installed"])],
+      activeKitId: null,
+      catalogCanMutate: true,
+    };
+
+    expect(planKitOperation({ ...input, operation: "install" }).warnings).toMatchObject([
+      { projectId: "new", severity: "material" },
+    ]);
+    expect(planKitOperation({ ...input, operation: "deactivate" }).warnings).toEqual([]);
+    expect(planKitOperation({ ...input, operation: "uninstall" }).warnings).toEqual([]);
+  });
 });
+
+function flaggedProject(id: string, folderName: string) {
+  const project = catalogProjectFixture({ id, folderName });
+  project.tavernKeeper = {
+    state: "orange",
+    freshness: "current",
+    riskLevel: "material",
+    currentSha: "a".repeat(40),
+    history: [],
+    historyUrl: null,
+    report: {
+      reportId: `report-${id}`,
+      riskLevel: "material",
+      headline: "Review this project",
+      summary: "Potential concerns.",
+      minorCautions: 0,
+      materialConcerns: 1,
+      highDanger: 0,
+      maliciousEvidence: "",
+      citedFindingIds: ["finding-1"],
+      scannedSha: "a".repeat(40),
+      treeUrl: `https://example.com/${id}/tree`,
+      scannedAt: "2026-08-18T00:00:00.000Z",
+      assessedAt: "2026-08-18T00:01:00.000Z",
+      scannerPolicyVersion: "5",
+      contextualReviewPolicyVersion: "1",
+      synthesisPolicyVersion: "1",
+      synthesisModel: "fixture",
+      dangerBasis: "none",
+      assessmentSource: "model",
+      reportUrl: `https://example.com/${id}/scan`,
+      technicalHistoryUrl: null,
+    },
+  };
+  return project;
+}
 
 function extension(folderName: string, enabled: boolean) {
   return {

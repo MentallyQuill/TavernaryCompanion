@@ -80,11 +80,11 @@ export function parseInstalledKitState(value: unknown): InstalledKitStateV1 {
 }
 
 export async function fingerprintKit(kit: PersonalKitV1): Promise<string> {
-  const body = JSON.stringify({
-    formatVersion: kit.formatVersion,
-    targetFrontend: kit.targetFrontend,
-    projectIds: kit.projectIds,
-  });
+  return fingerprintKitTopology(kit.projectIds);
+}
+
+export async function fingerprintKitTopology(projectIds: readonly string[]): Promise<string> {
+  const body = JSON.stringify(projectIds);
   const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
   return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
 }
