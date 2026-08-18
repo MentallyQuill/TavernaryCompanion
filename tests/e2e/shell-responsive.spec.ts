@@ -45,6 +45,18 @@ test("200 percent text does not create horizontal overflow", async ({ page }) =>
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     ),
   ).toBe(0);
+  expect(
+    await page.getByRole("tab").evaluateAll((tabs) =>
+      tabs.map((tab) => ({
+        label: tab.textContent?.trim(),
+        fits: tab.scrollWidth <= tab.clientWidth,
+      })),
+    ),
+  ).toEqual([
+    { label: "Projects", fits: true },
+    { label: "Kits", fits: true },
+    { label: "Installed", fits: true },
+  ]);
   await expect(page.getByRole("button", { name: "Install Alpha" })).toBeVisible();
 });
 

@@ -154,14 +154,19 @@
 
   .tavernary-companion-shell__tabs {
     padding: 0.35rem 0.5rem;
+    overflow-x: auto;
+    overscroll-behavior-inline: contain;
+    scrollbar-width: thin;
   }
 
   .tavernary-companion-shell__tabs > div {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
+    display: flex;
+    inline-size: max-content;
+    min-inline-size: 100%;
   }
 
   .tavernary-companion-shell__tabs button {
+    flex: 1 0 auto;
     min-inline-size: 0;
     padding-inline: 0.35rem;
     overflow-wrap: normal;
