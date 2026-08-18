@@ -1,6 +1,6 @@
 # Tavernary Companion V1 Release Readiness
 
-Decision recorded: 2026-08-18T14:51:30-06:00
+Decision recorded: 2026-08-18T15:22:42-06:00
 
 Status: **source-complete and packaged; not yet live-proven**.
 
@@ -9,7 +9,7 @@ Status: **source-complete and packaged; not yet live-proven**.
 | Requirement | Evidence | Result |
 |---|---|---|
 | Tavernary source gate | 2,541 tests, production build, 403 static pages, export verification | Pass |
-| Companion source gate | 61 test files, 183 tests, formatting, lint, typecheck, build | Pass |
+| Companion source gate | 61 test files, 194 tests, formatting, lint, typecheck, build | Pass |
 | Shared CatalogCore behavior | Locked vendor files and shared fixtures in both repositories | Pass |
 | Responsive browser gate | 17 Chromium tests across six required viewports, accessibility, Kit recovery/switching, motion, 200% text, performance | Pass |
 | Release package | Exact three-entry ZIP; archive and file hashes verified | Pass |

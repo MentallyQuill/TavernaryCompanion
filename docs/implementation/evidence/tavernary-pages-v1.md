@@ -1,6 +1,6 @@
 # Tavernary Pages Catalog Evidence
 
-Observed: 2026-08-18T14:51:30-06:00
+Observed: 2026-08-18T15:22:42-06:00
 
 ## Intended publication
 
@@ -24,8 +24,10 @@ The feature branch was merged locally with the then-current `origin/main`. Curre
 - production build with 403 static pages;
 - static-export verification.
 
+GitHub's exact-head `verify` and `visual` jobs also completed successfully for `17a6188d2a765bc6ce91a9ab8e643d3e1f4585b4`.
+
 ## Pending live proof
 
-At observation time GitHub verification for the exact branch head was in progress and the PR still required review. Therefore the intended commit is not yet the deployed Pages authority, and no live-URL parity claim is made.
+At observation time the hosted branch checks had passed, but the PR still required review and had not merged. Therefore the intended commit is not yet the deployed Pages authority, and no live-URL parity claim is made.
 
 After merge and Pages deployment, this evidence must be extended with the exact merge/deployment SHA, workflow URL, response status and headers, conditional request result, live body SHA-256, CatalogCore validation counts, and equality with the catalog at the deployed commit.

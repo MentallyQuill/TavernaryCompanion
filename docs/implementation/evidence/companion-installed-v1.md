@@ -1,13 +1,13 @@
 # Companion Installed Artifact Evidence
 
-Observed: 2026-08-18T14:51:30-06:00
+Observed: 2026-08-18T15:22:42-06:00
 
 ## Artifact identity
 
 - Version: `0.1.0-pre-alpha.1`
-- Source commit: `23b59754811bc6e0017a974b3888896ed814741d`
+- Source commit: `fcf15366ded8715b492e024ebe555a049d185369`
 - Archive: `artifacts/tavernary-companion-0.1.0-pre-alpha.1.zip`
-- Archive SHA-256: `461227d62b4e02f614607400859eb1dfd636e4ef528b1baab36a3edefa8ef714`
+- Archive SHA-256: `56c4e3621fcdee498e84c7e0104f010a77656f43002e4d8c0e1fad5f9ea57f04`
 - Verified entries: `dist/companion.css`, `dist/extension.js`, and `manifest.json`; no other archive entries exist.
 
 ## Isolated host
@@ -18,7 +18,7 @@ The archive was extracted into the acceptance-only SillyTavern profile `companio
 
 The profile was created and authenticated through SillyTavern's own account/API flow. No existing user profile was used or modified.
 
-The prior acceptance install was moved intact to `acceptance-backups/TavernaryCompanion-20260818-144945` before this archive was extracted.
+The prior acceptance install was moved intact to `acceptance-backups/TavernaryCompanion-20260818-152221` before this archive was extracted.
 
 `/api/extensions/discover` returned the installed extension as `third-party/TavernaryCompanion` with type `local` and the expected manifest path. The authenticated profile served all three production paths with HTTP 200:
 
@@ -33,7 +33,7 @@ Response bytes matched the installed files.
 | File | Bytes | Release and installed SHA-256 |
 |---|---:|---|
 | `dist/companion.css` | 22,321 | `58abcee8b667743516ed25763c9f14f7734eb1080c7649851c5b60cf3c8411a0` |
-| `dist/extension.js` | 611,802 | `857c79c645d0aeee7d5b3895e213f4b10b14cce86ac472afc4b2d70d566da93d` |
+| `dist/extension.js` | 615,486 | `a7e8893b889a145069239acc2e6dbbe7e57ceab5dc6af641bdebef6af97713aa` |
 | `manifest.json` | 684 | `caf9d09c29aa66e4f852d38bf84fc44be73fa3d8c76d3c02ae30c754fed16084` |
 
 Hashes were checked again after the source and browser gates; all remained identical.
