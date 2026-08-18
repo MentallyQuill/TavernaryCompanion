@@ -20,6 +20,7 @@ it("derives personal Kit status from current inventory instead of stored labels"
   await kits.recordInstalledState({
     kitId: kit.id,
     definitionFingerprint: await fingerprintKitTopology(kit.projectIds),
+    definitionProjectIds: kit.projectIds,
     installedProjectIds: ["alpha"],
     missingProjectIds: [],
     status: "installed",

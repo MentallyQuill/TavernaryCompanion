@@ -158,9 +158,7 @@ function topologyChange(
   currentProjectIds: readonly string[],
 ): KitTopologyChange | undefined {
   if (status !== "changedOnTavernary" || !installed) return undefined;
-  const previousProjectIds = [
-    ...new Set([...installed.installedProjectIds, ...installed.missingProjectIds]),
-  ];
+  const previousProjectIds = [...installed.definitionProjectIds];
   const previous = new Set(previousProjectIds);
   const current = new Set(currentProjectIds);
   return {

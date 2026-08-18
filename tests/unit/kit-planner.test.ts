@@ -209,6 +209,7 @@ function installed(kitId: string, installedProjectIds: string[]) {
   return {
     kitId,
     definitionFingerprint: "a".repeat(64),
+    definitionProjectIds: installedProjectIds,
     installedProjectIds,
     missingProjectIds: [],
     status: "installed" as const,

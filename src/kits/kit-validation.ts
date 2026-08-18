@@ -47,11 +47,13 @@ export function parsePersonalKit(value: unknown): PersonalKitV1 {
 
 export function parseInstalledKitState(value: unknown): InstalledKitStateV1 {
   const input = record(value, "Installed Kit state must be an object.");
+  const hasDefinitionProjectIds = Object.hasOwn(input, "definitionProjectIds");
   exactKeys(
     input,
     [
       "kitId",
       "definitionFingerprint",
+      ...(hasDefinitionProjectIds ? ["definitionProjectIds"] : []),
       "installedProjectIds",
       "missingProjectIds",
       "status",
@@ -65,12 +67,25 @@ export function parseInstalledKitState(value: unknown): InstalledKitStateV1 {
   if (!SHA256.test(definitionFingerprint)) throw new Error("Invalid Kit fingerprint.");
   const installedProjectIds = uniqueStrings(input.installedProjectIds, "installedProjectIds");
   const missingProjectIds = uniqueStrings(input.missingProjectIds, "missingProjectIds");
+  const definitionProjectIds = hasDefinitionProjectIds
+    ? uniqueStrings(input.definitionProjectIds, "definitionProjectIds")
+    : [...new Set([...installedProjectIds, ...missingProjectIds])];
+  if (installedProjectIds.some((projectId) => missingProjectIds.includes(projectId))) {
+    throw new Error("A Kit project cannot be both installed and missing.");
+  }
+  const definition = new Set(definitionProjectIds);
+  if (
+    [...installedProjectIds, ...missingProjectIds].some((projectId) => !definition.has(projectId))
+  ) {
+    throw new Error("Installed Kit presence must belong to its definition topology.");
+  }
   if (input.status !== "installed" && input.status !== "incomplete" && input.status !== "drifted") {
     throw new Error("Invalid installed Kit status.");
   }
   return {
     kitId,
     definitionFingerprint,
+    definitionProjectIds,
     installedProjectIds,
     missingProjectIds,
     status: input.status,

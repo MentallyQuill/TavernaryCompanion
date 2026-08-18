@@ -31,6 +31,7 @@ describe("KitStore", () => {
     await store.recordInstalledState({
       kitId: kit.id,
       definitionFingerprint: "a".repeat(64),
+      definitionProjectIds: ["alpha"],
       installedProjectIds: ["alpha"],
       missingProjectIds: [],
       status: "installed",

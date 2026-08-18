@@ -4,6 +4,7 @@ import type { CatalogKit } from "../../src/catalog/catalog-core";
 import {
   toPersonalKitCardViewModel,
   toPublishedKitCardViewModel,
+  toPublishedKitInspector,
 } from "../../src/kits/kit-view-model";
 import type { PersonalKitV1 } from "../../src/kits/kit-types";
 
@@ -32,6 +33,81 @@ it("maps Kit status to the primary action", () => {
   expect(toPersonalKitCardViewModel(kit, "incomplete").primaryAction).toEqual({
     kind: "retry",
     label: "Retry",
+  });
+});
+
+it("uses the stored full definition topology for published Kit membership changes", () => {
+  const published = {
+    id: "changed",
+    title: "Changed",
+    description: "Changed membership",
+    author: { githubUserId: 1, login: "author" },
+    sourceIssueNumber: 1,
+    sourceIssueUrl: "https://example.com/issues/1",
+    publishedAt: "2026-08-18T00:00:00.000Z",
+    updatedAt: "2026-08-18T00:00:00.000Z",
+    frontends: [],
+    purposes: [],
+    modelFamilies: [],
+    components: [
+      {
+        projectId: "alpha",
+        name: "Alpha",
+        kind: "extension",
+        primaryFunction: "interface-workflow",
+        availability: "available",
+        unavailableReason: null,
+        canonicalUrl: "https://example.com/alpha",
+        project: null,
+      },
+      {
+        projectId: "beta",
+        name: "Beta",
+        kind: "extension",
+        primaryFunction: "interface-workflow",
+        availability: "available",
+        unavailableReason: null,
+        canonicalUrl: "https://example.com/beta",
+        project: null,
+      },
+    ],
+    supporterCount: null,
+    trendingScore: null,
+    supportRefreshedAt: null,
+    supportStale: false,
+    flaggedProjectCount: 0,
+    search: {
+      title: ["changed"],
+      aliases: [],
+      source: [],
+      summary: [],
+      kind: [],
+      primaryFunction: [],
+      tags: [],
+      frontends: [],
+      compatibility: [],
+      maintainers: [],
+      relationships: [],
+    },
+  } satisfies CatalogKit;
+  const installed = {
+    kitId: "changed",
+    definitionFingerprint: "a".repeat(64),
+    definitionProjectIds: ["frontend", "alpha"],
+    installedProjectIds: ["alpha"],
+    missingProjectIds: [],
+    status: "installed" as const,
+    installedAt: "2026-08-18T00:00:00.000Z",
+    lastVerifiedAt: "2026-08-18T00:00:00.000Z",
+  };
+
+  expect(
+    toPublishedKitInspector(published, "changedOnTavernary", installed).topologyChange,
+  ).toEqual({
+    previousProjectIds: ["frontend", "alpha"],
+    currentProjectIds: ["alpha", "beta"],
+    addedProjectIds: ["beta"],
+    removedProjectIds: ["frontend"],
   });
 });
 

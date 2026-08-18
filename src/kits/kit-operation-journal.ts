@@ -14,6 +14,8 @@ export interface KitOperationJournalV1 {
   completedProjects: KitProjectResult[];
   preOperationActiveKitId: string | null;
   requiredProjectIds: string[];
+  /** Absent only in a legacy interrupted V1 journal; recovery treats every required ID as actionable. */
+  actionableProjectIds?: string[];
 }
 
 export class KitOperationJournal {
@@ -55,6 +57,9 @@ function isJournal(value: unknown): value is KitOperationJournalV1 {
     (journal.currentProjectId === null || typeof journal.currentProjectId === "string") &&
     Array.isArray(journal.completedProjects) &&
     Array.isArray(journal.requiredProjectIds) &&
+    (!Object.hasOwn(journal, "actionableProjectIds") ||
+      (Array.isArray(journal.actionableProjectIds) &&
+        journal.actionableProjectIds.every((value) => typeof value === "string"))) &&
     (journal.preOperationActiveKitId === null ||
       typeof journal.preOperationActiveKitId === "string")
   );

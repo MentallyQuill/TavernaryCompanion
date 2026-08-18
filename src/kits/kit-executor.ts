@@ -6,6 +6,7 @@ import type { ProfileStore } from "../state/profile-store";
 import { applyActivationMutations } from "./kit-activation-commit";
 import { KitOperationJournal, type KitOperationJournalV1 } from "./kit-operation-journal";
 import type { KitPlan } from "./kit-plan";
+import { catalogMutationBinding } from "./kit-planner";
 import type { KitApproval, KitProjectResult, KitReceipt } from "./kit-receipt";
 import type { KitStore } from "./kit-store";
 import { fingerprintKitTopology } from "./kit-validation";
@@ -50,6 +51,9 @@ export class KitExecutor {
     return this.#lock.runExclusive(`kit:${plan.id}`, async ({ setPhase }) => {
       if ((await this.#getInventoryFingerprint()) !== plan.inventoryFingerprint)
         throw new Error("Kit plan is stale. Review it again.");
+      const catalog = structuredClone(this.#getCatalog());
+      if (catalogMutationBinding(catalog, plan.requiredProjectIds) !== plan.catalogBinding)
+        throw new Error("Kit catalog changed. Review the plan again.");
       const startedAt = this.#now();
       const previousActiveKitId = this.#kits.readActiveId();
       const journal: KitOperationJournalV1 = {
@@ -64,6 +68,7 @@ export class KitExecutor {
         completedProjects: [],
         preOperationActiveKitId: previousActiveKitId,
         requiredProjectIds: [...plan.requiredProjectIds],
+        actionableProjectIds: [...plan.actionableProjectIds],
       };
       await this.journal.write(journal);
       let receipt: KitReceipt;
@@ -71,7 +76,13 @@ export class KitExecutor {
         switch (plan.operation) {
           case "install":
           case "activate":
-            receipt = await this.#installOrActivate(plan, journal, previousActiveKitId, setPhase);
+            receipt = await this.#installOrActivate(
+              plan,
+              journal,
+              previousActiveKitId,
+              setPhase,
+              catalog,
+            );
             break;
           case "deactivate":
             receipt = await this.#deactivate(plan, journal, previousActiveKitId, setPhase);
@@ -112,10 +123,9 @@ export class KitExecutor {
     const extensions = await this.#host.discover();
     const catalog = this.#getCatalog();
     const present = presentProjectIds(catalog.projects, extensions);
-    const byId = new Map(catalog.projects.map((project) => [project.id, project]));
+    const actionableIds = new Set(journal.actionableProjectIds ?? journal.requiredProjectIds);
     const results = journal.requiredProjectIds.map<KitProjectResult>((projectId) => {
-      const project = byId.get(projectId);
-      if (project && !project.install) {
+      if (!actionableIds.has(projectId)) {
         return {
           projectId,
           action: "context",
@@ -134,7 +144,7 @@ export class KitExecutor {
         retryable: !present.has(projectId),
       };
     });
-    await this.#reconcileInterruptedState(journal, catalog, present);
+    await this.#reconcileInterruptedState(journal, present);
     const receipt: KitReceipt = {
       formatVersion: 1,
       kind: "kit-operation",
@@ -157,12 +167,9 @@ export class KitExecutor {
 
   async #reconcileInterruptedState(
     journal: KitOperationJournalV1,
-    catalog: CatalogV7,
     present: ReadonlySet<string>,
   ): Promise<void> {
-    const actionableIds = journal.requiredProjectIds.filter((projectId) =>
-      catalog.projects.some((project) => project.id === projectId && Boolean(project.install)),
-    );
+    const actionableIds = journal.actionableProjectIds ?? journal.requiredProjectIds;
     const installedProjectIds = actionableIds.filter((projectId) => present.has(projectId));
     const missingProjectIds = actionableIds.filter((projectId) => !present.has(projectId));
     const current = this.#kits.readInstalled(journal.kitId);
@@ -195,6 +202,7 @@ export class KitExecutor {
     await this.#kits.recordInstalledState({
       kitId: journal.kitId,
       definitionFingerprint: await fingerprintKitTopology(journal.requiredProjectIds),
+      definitionProjectIds: [...journal.requiredProjectIds],
       installedProjectIds,
       missingProjectIds,
       status,
@@ -208,8 +216,8 @@ export class KitExecutor {
     journal: KitOperationJournalV1,
     previousActiveKitId: string | null,
     setPhase: (phase: string) => void,
+    catalog: CatalogV7,
   ): Promise<KitReceipt> {
-    const catalog = this.#getCatalog();
     const byId = new Map(catalog.projects.map((project) => [project.id, project]));
     const results: KitProjectResult[] = [];
     let changed = false;
@@ -242,10 +250,7 @@ export class KitExecutor {
     }
     const discovered = await this.#host.discover();
     const present = presentProjectIds(catalog.projects, discovered);
-    const requiredActionable = plan.requiredProjectIds.filter((id) => {
-      const project = byId.get(id);
-      return project?.kind === "extension" && Boolean(project.install);
-    });
+    const requiredActionable = plan.actionableProjectIds;
     const missing = requiredActionable.filter((id) => !present.has(id));
     await this.#recordKitState(
       plan,
@@ -476,6 +481,7 @@ export class KitExecutor {
     await this.#kits.recordInstalledState({
       kitId: plan.kitId,
       definitionFingerprint: await fingerprintKitTopology(plan.requiredProjectIds),
+      definitionProjectIds: [...plan.requiredProjectIds],
       installedProjectIds: installed,
       missingProjectIds: missing,
       status,
@@ -554,7 +560,8 @@ function validateApproval(plan: Readonly<KitPlan>, approval: KitApproval): void 
   if (
     approval.planId !== plan.id ||
     approval.inventoryFingerprint !== plan.inventoryFingerprint ||
-    approval.catalogGeneratedAt !== plan.catalogGeneratedAt
+    approval.catalogGeneratedAt !== plan.catalogGeneratedAt ||
+    approval.catalogBinding !== plan.catalogBinding
   )
     throw new Error("Kit approval does not match this plan.");
   const accepted = new Set(approval.acceptedWarningProjectIds);

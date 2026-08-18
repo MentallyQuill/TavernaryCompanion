@@ -64,3 +64,28 @@ it("records partial uninstall recovery as incomplete before clearing its journal
   });
   expect(app.executor.journal.read()).toBeNull();
 });
+
+it("recovers a journal-required extension removed from the current catalog as missing", async () => {
+  const app = await executorFixture({ ...catalogFixture(), projects: [] });
+  await app.executor.journal.write({
+    formatVersion: 1,
+    operationId: "old-op",
+    planId: "plan",
+    operation: "install",
+    kitId: "writers",
+    phase: "installing",
+    startedAt: "2026-08-18T00:00:00.000Z",
+    currentProjectId: "alpha",
+    completedProjects: [],
+    preOperationActiveKitId: null,
+    requiredProjectIds: ["alpha"],
+  });
+
+  await app.executor.recoverInterrupted();
+
+  expect(app.kits.readInstalled("writers")).toMatchObject({
+    installedProjectIds: [],
+    missingProjectIds: ["alpha"],
+    status: "incomplete",
+  });
+});

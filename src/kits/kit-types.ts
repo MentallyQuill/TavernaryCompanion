@@ -18,6 +18,7 @@ export interface PersonalKitV1 {
 export interface InstalledKitStateV1 {
   kitId: string;
   definitionFingerprint: string;
+  definitionProjectIds: string[];
   installedProjectIds: string[];
   missingProjectIds: string[];
   status: "installed" | "incomplete" | "drifted";

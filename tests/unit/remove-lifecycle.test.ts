@@ -45,6 +45,7 @@ function setup({
   state.installedKits.daily = {
     kitId: "daily",
     definitionFingerprint: "a".repeat(64),
+    definitionProjectIds: ["alpha"],
     installedProjectIds: ["alpha"],
     missingProjectIds: [],
     status: "installed",
@@ -84,6 +85,7 @@ describe("remove lifecycle", () => {
     expect(store.read().managedExtensions).toEqual({});
     expect(store.read().installedKits.daily).toMatchObject({
       status: "incomplete",
+      installedProjectIds: [],
       missingProjectIds: ["alpha"],
     });
     expect(store.read().activeKitId).toBe("daily");

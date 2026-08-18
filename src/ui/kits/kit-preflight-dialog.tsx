@@ -43,6 +43,7 @@ export function KitPreflightDialog({
               planId: plan.id,
               inventoryFingerprint: plan.inventoryFingerprint,
               catalogGeneratedAt: plan.catalogGeneratedAt,
+              catalogBinding: plan.catalogBinding,
               acceptedWarningProjectIds: plan.warnings.map(({ projectId }) => projectId),
             })
           }

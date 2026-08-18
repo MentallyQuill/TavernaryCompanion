@@ -1,6 +1,9 @@
 import { expect, it } from "vitest";
 
-import { previewRemovalImpact } from "../../src/lifecycle/removal-impact";
+import {
+  markInstalledKitsIncomplete,
+  previewRemovalImpact,
+} from "../../src/lifecycle/removal-impact";
 
 it("describes ownership and installed or active Kit drift", () => {
   const impact = previewRemovalImpact({
@@ -26,5 +29,24 @@ it("describes ownership and installed or active Kit drift", () => {
     removable: true,
     confirmation:
       "Uninstall Alpha? Daily will become incomplete, and the active Kit will show drift.",
+  });
+});
+
+it("moves a directly removed project from installed to missing Kit membership", () => {
+  const next = markInstalledKitsIncomplete(
+    {
+      daily: {
+        installedProjectIds: ["alpha", "beta"],
+        missingProjectIds: [],
+        status: "installed",
+      },
+    },
+    "alpha",
+  );
+
+  expect(next.daily).toMatchObject({
+    installedProjectIds: ["beta"],
+    missingProjectIds: ["alpha"],
+    status: "incomplete",
   });
 });

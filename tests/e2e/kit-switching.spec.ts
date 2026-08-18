@@ -89,6 +89,8 @@ test("preserves a shared extension while uninstalling one Kit", async ({ page })
   await page.getByRole("button", { name: "Dismiss" }).click();
   await page.getByRole("button", { name: "Back" }).click();
 
+  await expect(writer).toContainText("Saved");
+  await expect(writer.getByRole("button", { name: "Install Kit" })).toBeVisible();
   const shared = page.locator("[data-kit-id]").filter({ hasText: "Shared Writer Kit" });
   await expect(shared).toContainText("Installed");
   await expect(shared.getByRole("button", { name: "Activate" })).toBeVisible();

@@ -30,5 +30,6 @@ export interface KitApproval {
   planId: string;
   inventoryFingerprint: string;
   catalogGeneratedAt: string;
+  catalogBinding: string;
   acceptedWarningProjectIds: string[];
 }

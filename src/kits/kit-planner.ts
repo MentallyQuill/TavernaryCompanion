@@ -28,13 +28,16 @@ export function planKitOperation(input: PlanKitOperationInput): Readonly<KitPlan
   const managedById = new Map(input.inventory.managed.map((entry) => [entry.project.id, entry]));
   const externalById = new Map(input.inventory.external.map((entry) => [entry.project.id, entry]));
   const references = buildKitReferenceIndex(input.installedKits);
+  const catalogBinding = catalogMutationBinding(input.catalog, input.kit.projectIds);
   const plan: KitPlan = {
-    id: planId(input),
+    id: planId(input, catalogBinding),
     operation: input.operation,
     kitId: input.kit.id,
     catalogGeneratedAt: input.catalog.generatedAt,
+    catalogBinding,
     inventoryFingerprint: inventoryFingerprint(input),
     requiredProjectIds: [...input.kit.projectIds],
+    actionableProjectIds: [],
     install: [],
     enable: [],
     disable: [],
@@ -85,6 +88,7 @@ export function planKitOperation(input: PlanKitOperationInput): Readonly<KitPlan
         });
       continue;
     }
+    plan.actionableProjectIds.push(projectId);
     const managedEntry = managedById.get(projectId);
     const externalEntry = externalById.get(projectId);
     if (externalEntry) {
@@ -164,14 +168,26 @@ export function inventoryFingerprint(
       .sort(),
     activeKitId: input.activeKitId,
   });
-  let hash = 2166136261;
-  for (let index = 0; index < payload.length; index += 1)
-    hash = Math.imul(hash ^ payload.charCodeAt(index), 16777619);
-  return (hash >>> 0).toString(16).padStart(8, "0");
+  return textFingerprint(payload);
 }
 
-function planId(input: PlanKitOperationInput): string {
-  return `${input.operation}:${input.kit.id}:${input.catalog.generatedAt}:${inventoryFingerprint(input)}`;
+export function catalogMutationBinding(catalog: CatalogV7, projectIds: readonly string[]): string {
+  const byId = new Map(catalog.projects.map((project) => [project.id, project]));
+  return JSON.stringify({
+    generatedAt: catalog.generatedAt,
+    projects: projectIds.map((projectId) => byId.get(projectId) ?? null),
+  });
+}
+
+function planId(input: PlanKitOperationInput, catalogBinding: string): string {
+  return `${input.operation}:${input.kit.id}:${input.catalog.generatedAt}:${textFingerprint(catalogBinding)}:${inventoryFingerprint(input)}`;
+}
+
+function textFingerprint(value: string): string {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1)
+    hash = Math.imul(hash ^ value.charCodeAt(index), 16777619);
+  return (hash >>> 0).toString(16).padStart(8, "0");
 }
 function isActionable(project: CatalogProject): boolean {
   return (

@@ -74,3 +74,34 @@ it("checks the approved inventory after acquiring the operation lock", async () 
 
   expect(app.fingerprintCheckOperations).toEqual([`kit:${plan.id}`]);
 });
+
+it("rejects a catalog-content change after approval before installing", async () => {
+  const alpha = catalogProjectFixture({ id: "alpha", folderName: "Alpha" });
+  const catalog = { ...catalogFixture(), projects: [alpha] };
+  const app = await executorFixture(catalog, {
+    installResults: { [alpha.install!.repositoryUrl]: extension("Alpha") },
+  });
+  const plan = planKitOperation({
+    operation: "install",
+    kit: { id: "writers", projectIds: ["alpha"], origin: "personal" },
+    catalog,
+    inventory: await app.inventory(),
+    managed: {},
+    installedKits: [],
+    activeKitId: null,
+    catalogCanMutate: true,
+  });
+  app.setFingerprint(plan.inventoryFingerprint);
+  app.setCatalog({
+    ...catalog,
+    projects: [
+      {
+        ...alpha,
+        install: { ...alpha.install!, repositoryUrl: "https://github.com/example/replaced.git" },
+      },
+    ],
+  });
+
+  await expect(app.executor.execute(plan, approve(plan))).rejects.toThrow("catalog");
+  expect(app.host.calls.some(({ operation }) => operation === "install")).toBe(false);
+});

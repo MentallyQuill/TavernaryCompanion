@@ -16,6 +16,7 @@ const record = {
 const installed = {
   kitId: "kit",
   definitionFingerprint: "a".repeat(64),
+  definitionProjectIds: ["alpha"],
   installedProjectIds: ["alpha"],
   missingProjectIds: [],
   status: "installed" as const,

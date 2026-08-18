@@ -11,8 +11,10 @@ it("consolidates warnings, preserves review, and binds approval to the plan", ()
     operation: "activate",
     kitId: "kit",
     catalogGeneratedAt: "2026-08-18T00:00:00.000Z",
+    catalogBinding: "catalog-binding",
     inventoryFingerprint: "fp",
     requiredProjectIds: ["alpha"],
+    actionableProjectIds: ["alpha"],
     install: [{ projectId: "alpha", projectName: "Alpha", internalName: null }],
     enable: [],
     disable: [],
@@ -46,6 +48,10 @@ it("consolidates warnings, preserves review, and binds approval to the plan", ()
   expect(screen.getByRole("button", { name: "Install anyway" })).toBeVisible();
   fireEvent.click(screen.getByRole("button", { name: "Install anyway" }));
   expect(confirm).toHaveBeenCalledWith(
-    expect.objectContaining({ planId: "plan", acceptedWarningProjectIds: ["alpha"] }),
+    expect.objectContaining({
+      planId: "plan",
+      catalogBinding: "catalog-binding",
+      acceptedWarningProjectIds: ["alpha"],
+    }),
   );
 });

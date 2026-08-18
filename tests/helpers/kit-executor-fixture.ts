@@ -27,6 +27,7 @@ export async function executorFixture(catalog: CatalogV7, hostOptions: FakeHostO
   const kits = new KitStore(profile, { now: () => "2026-08-18T12:00:00.000Z" });
   const host = createFakeHost(hostOptions);
   let currentFingerprint = "fixture-fingerprint";
+  let currentCatalog = catalog;
   const fingerprintCheckOperations: Array<string | null> = [];
   const lock = new OperationLock();
   const executor = createKitExecutor({
@@ -34,7 +35,7 @@ export async function executorFixture(catalog: CatalogV7, hostOptions: FakeHostO
     profile,
     kits,
     lock,
-    getCatalog: () => catalog,
+    getCatalog: () => currentCatalog,
     getInventoryFingerprint: () => {
       fingerprintCheckOperations.push(lock.read()?.operationId ?? null);
       return currentFingerprint;
@@ -52,9 +53,12 @@ export async function executorFixture(catalog: CatalogV7, hostOptions: FakeHostO
     setFingerprint(value: string) {
       currentFingerprint = value;
     },
+    setCatalog(value: CatalogV7) {
+      currentCatalog = value;
+    },
     async inventory() {
       return reconcileInventory({
-        projects: catalog.projects,
+        projects: currentCatalog.projects,
         hostExtensions: await host.discover(),
         managed: normalizeManagedExtensionMap(profile.read().managedExtensions),
       });
@@ -67,6 +71,7 @@ export async function executorFixture(catalog: CatalogV7, hostOptions: FakeHostO
       await kits.recordInstalledState({
         kitId,
         definitionFingerprint: "a".repeat(64),
+        definitionProjectIds: projectIds,
         installedProjectIds: projectIds,
         missingProjectIds: [],
         status,
@@ -82,6 +87,7 @@ export function approve(plan: Readonly<KitPlan>): KitApproval {
     planId: plan.id,
     inventoryFingerprint: plan.inventoryFingerprint,
     catalogGeneratedAt: plan.catalogGeneratedAt,
+    catalogBinding: plan.catalogBinding,
     acceptedWarningProjectIds: plan.warnings.map(({ projectId }) => projectId),
   };
 }

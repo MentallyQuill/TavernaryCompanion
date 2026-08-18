@@ -11972,9 +11972,13 @@ function markInstalledKitsIncomplete(installedKits, projectId) {
   for (const [kitId, candidate] of Object.entries(next)) {
     if (!kitProjectIds(candidate).includes(projectId) || !isRecord3(candidate)) continue;
     const missing = Array.isArray(candidate.missingProjectIds) ? candidate.missingProjectIds.filter((value) => typeof value === "string") : [];
+    const installed = Array.isArray(candidate.installedProjectIds) ? candidate.installedProjectIds.filter(
+      (value) => typeof value === "string" && value !== projectId
+    ) : [];
     next[kitId] = {
       ...candidate,
       status: "incomplete",
+      installedProjectIds: installed,
       missingProjectIds: [.../* @__PURE__ */ new Set([...missing, projectId])].sort()
     };
   }
@@ -12507,9 +12511,7 @@ function actionFor2(status) {
 }
 function topologyChange(status, installed, currentProjectIds) {
   if (status !== "changedOnTavernary" || !installed) return void 0;
-  const previousProjectIds = [
-    .../* @__PURE__ */ new Set([...installed.installedProjectIds, ...installed.missingProjectIds])
-  ];
+  const previousProjectIds = [...installed.definitionProjectIds];
   const previous = new Set(previousProjectIds);
   const current = new Set(currentProjectIds);
   return {
@@ -12645,7 +12647,207 @@ var KitOperationJournal = class {
 function isJournal(value) {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const journal = value;
-  return journal.formatVersion === 1 && typeof journal.operationId === "string" && typeof journal.planId === "string" && typeof journal.kitId === "string" && (journal.operation === "install" || journal.operation === "activate" || journal.operation === "deactivate" || journal.operation === "uninstall") && typeof journal.phase === "string" && typeof journal.startedAt === "string" && (journal.currentProjectId === null || typeof journal.currentProjectId === "string") && Array.isArray(journal.completedProjects) && Array.isArray(journal.requiredProjectIds) && (journal.preOperationActiveKitId === null || typeof journal.preOperationActiveKitId === "string");
+  return journal.formatVersion === 1 && typeof journal.operationId === "string" && typeof journal.planId === "string" && typeof journal.kitId === "string" && (journal.operation === "install" || journal.operation === "activate" || journal.operation === "deactivate" || journal.operation === "uninstall") && typeof journal.phase === "string" && typeof journal.startedAt === "string" && (journal.currentProjectId === null || typeof journal.currentProjectId === "string") && Array.isArray(journal.completedProjects) && Array.isArray(journal.requiredProjectIds) && (!Object.hasOwn(journal, "actionableProjectIds") || Array.isArray(journal.actionableProjectIds) && journal.actionableProjectIds.every((value2) => typeof value2 === "string")) && (journal.preOperationActiveKitId === null || typeof journal.preOperationActiveKitId === "string");
+}
+
+// src/kits/kit-plan.ts
+function freezeKitPlan(plan) {
+  for (const value of Object.values(plan)) {
+    if (Array.isArray(value)) {
+      for (const item of value) if (typeof item === "object" && item) Object.freeze(item);
+      Object.freeze(value);
+    }
+  }
+  return Object.freeze(plan);
+}
+
+// src/kits/kit-reference-index.ts
+function buildKitReferenceIndex(installed) {
+  const mutable = /* @__PURE__ */ new Map();
+  for (const kit2 of installed) {
+    for (const projectId of new Set(kit2.installedProjectIds)) {
+      const kitIds = mutable.get(projectId) ?? [];
+      kitIds.push(kit2.kitId);
+      mutable.set(projectId, kitIds);
+    }
+  }
+  return new Map(
+    [...mutable].map(([projectId, kitIds]) => [projectId, Object.freeze(kitIds.sort())])
+  );
+}
+
+// src/kits/kit-planner.ts
+function planKitOperation(input) {
+  if (!isKitOperation(input.operation)) throw new Error("Unsupported Kit operation.");
+  const projectById = new Map(input.catalog.projects.map((project2) => [project2.id, project2]));
+  const managedById = new Map(input.inventory.managed.map((entry) => [entry.project.id, entry]));
+  const externalById = new Map(input.inventory.external.map((entry) => [entry.project.id, entry]));
+  const references = buildKitReferenceIndex(input.installedKits);
+  const catalogBinding = catalogMutationBinding(input.catalog, input.kit.projectIds);
+  const plan = {
+    id: planId(input, catalogBinding),
+    operation: input.operation,
+    kitId: input.kit.id,
+    catalogGeneratedAt: input.catalog.generatedAt,
+    catalogBinding,
+    inventoryFingerprint: inventoryFingerprint(input),
+    requiredProjectIds: [...input.kit.projectIds],
+    actionableProjectIds: [],
+    install: [],
+    enable: [],
+    disable: [],
+    remove: [],
+    alreadyManaged: [],
+    externalContext: [],
+    contextOnly: [],
+    keptForOtherKits: [],
+    warnings: [],
+    blockingIssues: [],
+    reloadRequired: false
+  };
+  if (!input.catalogCanMutate) {
+    plan.blockingIssues.push({
+      code: "catalog-incompatible",
+      projectId: null,
+      message: "Update Companion before changing Kits."
+    });
+  }
+  for (const projectId of input.kit.projectIds) {
+    const project2 = projectById.get(projectId);
+    if (projectId === COMPANION_PROJECT_ID) {
+      if (input.kit.origin === "published")
+        plan.contextOnly.push(step(projectId, "Tavernary Companion", null));
+      else
+        plan.blockingIssues.push({
+          code: "companion-member",
+          projectId,
+          message: "Companion cannot belong to a personal Kit."
+        });
+      continue;
+    }
+    if (!project2) {
+      plan.blockingIssues.push({
+        code: "project-unavailable",
+        projectId,
+        message: `${projectId} is unavailable.`
+      });
+      continue;
+    }
+    if (!isActionable(project2)) {
+      plan.contextOnly.push(stepFor(project2, null));
+      if (project2.kind === "extension")
+        plan.blockingIssues.push({
+          code: "invalid-install-contract",
+          projectId,
+          message: `${project2.name} cannot be installed by Companion.`
+        });
+      continue;
+    }
+    plan.actionableProjectIds.push(projectId);
+    const managedEntry = managedById.get(projectId);
+    const externalEntry = externalById.get(projectId);
+    if (externalEntry) {
+      plan.externalContext.push(stepFor(project2, externalEntry.extension.internalName));
+      continue;
+    }
+    if (managedEntry) {
+      plan.alreadyManaged.push(stepFor(project2, managedEntry.extension.internalName));
+    }
+    switch (input.operation) {
+      case "install":
+      case "activate":
+        if (!managedEntry) {
+          plan.install.push(stepFor(project2, null));
+          addWarning(plan, project2);
+        }
+        if (input.operation === "activate" && (!managedEntry || !managedEntry.extension.enabled))
+          plan.enable.push(stepFor(project2, managedEntry?.extension.internalName ?? null));
+        break;
+      case "deactivate":
+        if (managedEntry?.extension.enabled)
+          plan.disable.push(stepFor(project2, managedEntry.extension.internalName));
+        break;
+      case "uninstall": {
+        if (!managedEntry) break;
+        const otherReferences = (references.get(projectId) ?? []).filter(
+          (id) => id !== input.kit.id
+        );
+        if (otherReferences.length)
+          plan.keptForOtherKits.push(stepFor(project2, managedEntry.extension.internalName));
+        else plan.remove.push(stepFor(project2, managedEntry.extension.internalName));
+        break;
+      }
+    }
+  }
+  if (input.operation === "activate" && input.activeKitId && input.activeKitId !== input.kit.id) {
+    const previous = input.installedKits.find(({ kitId }) => kitId === input.activeKitId);
+    for (const projectId of previous?.installedProjectIds ?? []) {
+      if (input.kit.projectIds.includes(projectId)) continue;
+      const entry = managedById.get(projectId);
+      if (entry?.extension.enabled)
+        plan.disable.push(stepFor(entry.project, entry.extension.internalName));
+    }
+  }
+  if (input.operation === "uninstall" && input.activeKitId === input.kit.id) {
+    for (const entry of input.inventory.managed) {
+      if (input.kit.projectIds.includes(entry.project.id) && entry.extension.enabled) {
+        plan.disable.push(stepFor(entry.project, entry.extension.internalName));
+      }
+    }
+  }
+  plan.reloadRequired = Boolean(
+    plan.install.length || plan.enable.length || plan.disable.length || plan.remove.length
+  );
+  return freezeKitPlan(plan);
+}
+function isKitOperation(value) {
+  return value === "install" || value === "activate" || value === "deactivate" || value === "uninstall";
+}
+function inventoryFingerprint(input) {
+  const payload = JSON.stringify({
+    managed: input.inventory.managed.map(({ project: project2, extension }) => [project2.id, extension.internalName, extension.enabled]).sort(),
+    external: input.inventory.external.map(({ project: project2, extension }) => [project2.id, extension.internalName, extension.enabled]).sort(),
+    records: Object.keys(input.managed).sort(),
+    installedKits: input.installedKits.map(({ kitId, installedProjectIds }) => [kitId, [...installedProjectIds].sort()]).sort(),
+    activeKitId: input.activeKitId
+  });
+  return textFingerprint(payload);
+}
+function catalogMutationBinding(catalog, projectIds) {
+  const byId = new Map(catalog.projects.map((project2) => [project2.id, project2]));
+  return JSON.stringify({
+    generatedAt: catalog.generatedAt,
+    projects: projectIds.map((projectId) => byId.get(projectId) ?? null)
+  });
+}
+function planId(input, catalogBinding) {
+  return `${input.operation}:${input.kit.id}:${input.catalog.generatedAt}:${textFingerprint(catalogBinding)}:${inventoryFingerprint(input)}`;
+}
+function textFingerprint(value) {
+  let hash = 2166136261;
+  for (let index = 0; index < value.length; index += 1)
+    hash = Math.imul(hash ^ value.charCodeAt(index), 16777619);
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+function isActionable(project2) {
+  return project2.kind === "extension" && project2.frontends.some(({ id }) => id === "sillytavern") && project2.install?.kind === "sillytavern-extension-git";
+}
+function step(projectId, projectName2, internalName) {
+  return { projectId, projectName: projectName2, internalName };
+}
+function stepFor(project2, internalName) {
+  return step(project2.id, project2.name, internalName);
+}
+function addWarning(plan, project2) {
+  const assessment = project2.tavernKeeper;
+  if (assessment?.riskLevel !== "material" && assessment?.riskLevel !== "high") return;
+  plan.warnings.push({
+    projectId: project2.id,
+    projectName: project2.name,
+    severity: assessment.riskLevel,
+    freshness: assessment.freshness,
+    reportUrl: assessment.report?.reportUrl ?? null
+  });
 }
 
 // src/kits/kit-validation.ts
@@ -12693,11 +12895,13 @@ function parsePersonalKit(value) {
 }
 function parseInstalledKitState(value) {
   const input = record(value, "Installed Kit state must be an object.");
+  const hasDefinitionProjectIds = Object.hasOwn(input, "definitionProjectIds");
   exactKeys(
     input,
     [
       "kitId",
       "definitionFingerprint",
+      ...hasDefinitionProjectIds ? ["definitionProjectIds"] : [],
       "installedProjectIds",
       "missingProjectIds",
       "status",
@@ -12711,12 +12915,21 @@ function parseInstalledKitState(value) {
   if (!SHA256.test(definitionFingerprint)) throw new Error("Invalid Kit fingerprint.");
   const installedProjectIds = uniqueStrings(input.installedProjectIds, "installedProjectIds");
   const missingProjectIds = uniqueStrings(input.missingProjectIds, "missingProjectIds");
+  const definitionProjectIds = hasDefinitionProjectIds ? uniqueStrings(input.definitionProjectIds, "definitionProjectIds") : [.../* @__PURE__ */ new Set([...installedProjectIds, ...missingProjectIds])];
+  if (installedProjectIds.some((projectId) => missingProjectIds.includes(projectId))) {
+    throw new Error("A Kit project cannot be both installed and missing.");
+  }
+  const definition = new Set(definitionProjectIds);
+  if ([...installedProjectIds, ...missingProjectIds].some((projectId) => !definition.has(projectId))) {
+    throw new Error("Installed Kit presence must belong to its definition topology.");
+  }
   if (input.status !== "installed" && input.status !== "incomplete" && input.status !== "drifted") {
     throw new Error("Invalid installed Kit status.");
   }
   return {
     kitId,
     definitionFingerprint,
+    definitionProjectIds,
     installedProjectIds,
     missingProjectIds,
     status: input.status,
@@ -12804,6 +13017,9 @@ var KitExecutor = class {
     return this.#lock.runExclusive(`kit:${plan.id}`, async ({ setPhase }) => {
       if (await this.#getInventoryFingerprint() !== plan.inventoryFingerprint)
         throw new Error("Kit plan is stale. Review it again.");
+      const catalog = structuredClone(this.#getCatalog());
+      if (catalogMutationBinding(catalog, plan.requiredProjectIds) !== plan.catalogBinding)
+        throw new Error("Kit catalog changed. Review the plan again.");
       const startedAt = this.#now();
       const previousActiveKitId = this.#kits.readActiveId();
       const journal = {
@@ -12817,7 +13033,8 @@ var KitExecutor = class {
         currentProjectId: null,
         completedProjects: [],
         preOperationActiveKitId: previousActiveKitId,
-        requiredProjectIds: [...plan.requiredProjectIds]
+        requiredProjectIds: [...plan.requiredProjectIds],
+        actionableProjectIds: [...plan.actionableProjectIds]
       };
       await this.journal.write(journal);
       let receipt;
@@ -12825,7 +13042,13 @@ var KitExecutor = class {
         switch (plan.operation) {
           case "install":
           case "activate":
-            receipt = await this.#installOrActivate(plan, journal, previousActiveKitId, setPhase);
+            receipt = await this.#installOrActivate(
+              plan,
+              journal,
+              previousActiveKitId,
+              setPhase,
+              catalog
+            );
             break;
           case "deactivate":
             receipt = await this.#deactivate(plan, journal, previousActiveKitId, setPhase);
@@ -12864,10 +13087,9 @@ var KitExecutor = class {
     const extensions = await this.#host.discover();
     const catalog = this.#getCatalog();
     const present = presentProjectIds(catalog.projects, extensions);
-    const byId = new Map(catalog.projects.map((project2) => [project2.id, project2]));
+    const actionableIds = new Set(journal.actionableProjectIds ?? journal.requiredProjectIds);
     const results = journal.requiredProjectIds.map((projectId) => {
-      const project2 = byId.get(projectId);
-      if (project2 && !project2.install) {
+      if (!actionableIds.has(projectId)) {
         return {
           projectId,
           action: "context",
@@ -12884,7 +13106,7 @@ var KitExecutor = class {
         retryable: !present.has(projectId)
       };
     });
-    await this.#reconcileInterruptedState(journal, catalog, present);
+    await this.#reconcileInterruptedState(journal, present);
     const receipt = {
       formatVersion: 1,
       kind: "kit-operation",
@@ -12904,10 +13126,8 @@ var KitExecutor = class {
     await this.journal.clear();
     return receipt;
   }
-  async #reconcileInterruptedState(journal, catalog, present) {
-    const actionableIds = journal.requiredProjectIds.filter(
-      (projectId) => catalog.projects.some((project2) => project2.id === projectId && Boolean(project2.install))
-    );
+  async #reconcileInterruptedState(journal, present) {
+    const actionableIds = journal.actionableProjectIds ?? journal.requiredProjectIds;
     const installedProjectIds = actionableIds.filter((projectId) => present.has(projectId));
     const missingProjectIds = actionableIds.filter((projectId) => !present.has(projectId));
     const current = this.#kits.readInstalled(journal.kitId);
@@ -12927,6 +13147,7 @@ var KitExecutor = class {
     await this.#kits.recordInstalledState({
       kitId: journal.kitId,
       definitionFingerprint: await fingerprintKitTopology(journal.requiredProjectIds),
+      definitionProjectIds: [...journal.requiredProjectIds],
       installedProjectIds,
       missingProjectIds,
       status,
@@ -12934,8 +13155,7 @@ var KitExecutor = class {
       lastVerifiedAt: this.#now()
     });
   }
-  async #installOrActivate(plan, journal, previousActiveKitId, setPhase) {
-    const catalog = this.#getCatalog();
+  async #installOrActivate(plan, journal, previousActiveKitId, setPhase, catalog) {
     const byId = new Map(catalog.projects.map((project2) => [project2.id, project2]));
     const results = [];
     let changed = false;
@@ -12968,10 +13188,7 @@ var KitExecutor = class {
     }
     const discovered = await this.#host.discover();
     const present = presentProjectIds(catalog.projects, discovered);
-    const requiredActionable = plan.requiredProjectIds.filter((id) => {
-      const project2 = byId.get(id);
-      return project2?.kind === "extension" && Boolean(project2.install);
-    });
+    const requiredActionable = plan.actionableProjectIds;
     const missing = requiredActionable.filter((id) => !present.has(id));
     await this.#recordKitState(
       plan,
@@ -13176,6 +13393,7 @@ var KitExecutor = class {
     await this.#kits.recordInstalledState({
       kitId: plan.kitId,
       definitionFingerprint: await fingerprintKitTopology(plan.requiredProjectIds),
+      definitionProjectIds: [...plan.requiredProjectIds],
       installedProjectIds: installed,
       missingProjectIds: missing,
       status,
@@ -13236,7 +13454,7 @@ function createKitExecutor(deps) {
   return new KitExecutor(deps);
 }
 function validateApproval(plan, approval) {
-  if (approval.planId !== plan.id || approval.inventoryFingerprint !== plan.inventoryFingerprint || approval.catalogGeneratedAt !== plan.catalogGeneratedAt)
+  if (approval.planId !== plan.id || approval.inventoryFingerprint !== plan.inventoryFingerprint || approval.catalogGeneratedAt !== plan.catalogGeneratedAt || approval.catalogBinding !== plan.catalogBinding)
     throw new Error("Kit approval does not match this plan.");
   const accepted = new Set(approval.acceptedWarningProjectIds);
   if (plan.warnings.some(({ projectId }) => !accepted.has(projectId)))
@@ -13258,192 +13476,6 @@ function result(projectId, action, status, messageText, retryable) {
 }
 function message(error) {
   return error instanceof Error ? error.message : "Host operation failed.";
-}
-
-// src/kits/kit-plan.ts
-function freezeKitPlan(plan) {
-  for (const value of Object.values(plan)) {
-    if (Array.isArray(value)) {
-      for (const item of value) if (typeof item === "object" && item) Object.freeze(item);
-      Object.freeze(value);
-    }
-  }
-  return Object.freeze(plan);
-}
-
-// src/kits/kit-reference-index.ts
-function buildKitReferenceIndex(installed) {
-  const mutable = /* @__PURE__ */ new Map();
-  for (const kit2 of installed) {
-    for (const projectId of new Set(kit2.installedProjectIds)) {
-      const kitIds = mutable.get(projectId) ?? [];
-      kitIds.push(kit2.kitId);
-      mutable.set(projectId, kitIds);
-    }
-  }
-  return new Map(
-    [...mutable].map(([projectId, kitIds]) => [projectId, Object.freeze(kitIds.sort())])
-  );
-}
-
-// src/kits/kit-planner.ts
-function planKitOperation(input) {
-  if (!isKitOperation(input.operation)) throw new Error("Unsupported Kit operation.");
-  const projectById = new Map(input.catalog.projects.map((project2) => [project2.id, project2]));
-  const managedById = new Map(input.inventory.managed.map((entry) => [entry.project.id, entry]));
-  const externalById = new Map(input.inventory.external.map((entry) => [entry.project.id, entry]));
-  const references = buildKitReferenceIndex(input.installedKits);
-  const plan = {
-    id: planId(input),
-    operation: input.operation,
-    kitId: input.kit.id,
-    catalogGeneratedAt: input.catalog.generatedAt,
-    inventoryFingerprint: inventoryFingerprint(input),
-    requiredProjectIds: [...input.kit.projectIds],
-    install: [],
-    enable: [],
-    disable: [],
-    remove: [],
-    alreadyManaged: [],
-    externalContext: [],
-    contextOnly: [],
-    keptForOtherKits: [],
-    warnings: [],
-    blockingIssues: [],
-    reloadRequired: false
-  };
-  if (!input.catalogCanMutate) {
-    plan.blockingIssues.push({
-      code: "catalog-incompatible",
-      projectId: null,
-      message: "Update Companion before changing Kits."
-    });
-  }
-  for (const projectId of input.kit.projectIds) {
-    const project2 = projectById.get(projectId);
-    if (projectId === COMPANION_PROJECT_ID) {
-      if (input.kit.origin === "published")
-        plan.contextOnly.push(step(projectId, "Tavernary Companion", null));
-      else
-        plan.blockingIssues.push({
-          code: "companion-member",
-          projectId,
-          message: "Companion cannot belong to a personal Kit."
-        });
-      continue;
-    }
-    if (!project2) {
-      plan.blockingIssues.push({
-        code: "project-unavailable",
-        projectId,
-        message: `${projectId} is unavailable.`
-      });
-      continue;
-    }
-    if (!isActionable(project2)) {
-      plan.contextOnly.push(stepFor(project2, null));
-      if (project2.kind === "extension")
-        plan.blockingIssues.push({
-          code: "invalid-install-contract",
-          projectId,
-          message: `${project2.name} cannot be installed by Companion.`
-        });
-      continue;
-    }
-    const managedEntry = managedById.get(projectId);
-    const externalEntry = externalById.get(projectId);
-    if (externalEntry) {
-      plan.externalContext.push(stepFor(project2, externalEntry.extension.internalName));
-      continue;
-    }
-    if (managedEntry) {
-      plan.alreadyManaged.push(stepFor(project2, managedEntry.extension.internalName));
-    }
-    switch (input.operation) {
-      case "install":
-      case "activate":
-        if (!managedEntry) {
-          plan.install.push(stepFor(project2, null));
-          addWarning(plan, project2);
-        }
-        if (input.operation === "activate" && (!managedEntry || !managedEntry.extension.enabled))
-          plan.enable.push(stepFor(project2, managedEntry?.extension.internalName ?? null));
-        break;
-      case "deactivate":
-        if (managedEntry?.extension.enabled)
-          plan.disable.push(stepFor(project2, managedEntry.extension.internalName));
-        break;
-      case "uninstall": {
-        if (!managedEntry) break;
-        const otherReferences = (references.get(projectId) ?? []).filter(
-          (id) => id !== input.kit.id
-        );
-        if (otherReferences.length)
-          plan.keptForOtherKits.push(stepFor(project2, managedEntry.extension.internalName));
-        else plan.remove.push(stepFor(project2, managedEntry.extension.internalName));
-        break;
-      }
-    }
-  }
-  if (input.operation === "activate" && input.activeKitId && input.activeKitId !== input.kit.id) {
-    const previous = input.installedKits.find(({ kitId }) => kitId === input.activeKitId);
-    for (const projectId of previous?.installedProjectIds ?? []) {
-      if (input.kit.projectIds.includes(projectId)) continue;
-      const entry = managedById.get(projectId);
-      if (entry?.extension.enabled)
-        plan.disable.push(stepFor(entry.project, entry.extension.internalName));
-    }
-  }
-  if (input.operation === "uninstall" && input.activeKitId === input.kit.id) {
-    for (const entry of input.inventory.managed) {
-      if (input.kit.projectIds.includes(entry.project.id) && entry.extension.enabled) {
-        plan.disable.push(stepFor(entry.project, entry.extension.internalName));
-      }
-    }
-  }
-  plan.reloadRequired = Boolean(
-    plan.install.length || plan.enable.length || plan.disable.length || plan.remove.length
-  );
-  return freezeKitPlan(plan);
-}
-function isKitOperation(value) {
-  return value === "install" || value === "activate" || value === "deactivate" || value === "uninstall";
-}
-function inventoryFingerprint(input) {
-  const payload = JSON.stringify({
-    managed: input.inventory.managed.map(({ project: project2, extension }) => [project2.id, extension.internalName, extension.enabled]).sort(),
-    external: input.inventory.external.map(({ project: project2, extension }) => [project2.id, extension.internalName, extension.enabled]).sort(),
-    records: Object.keys(input.managed).sort(),
-    installedKits: input.installedKits.map(({ kitId, installedProjectIds }) => [kitId, [...installedProjectIds].sort()]).sort(),
-    activeKitId: input.activeKitId
-  });
-  let hash = 2166136261;
-  for (let index = 0; index < payload.length; index += 1)
-    hash = Math.imul(hash ^ payload.charCodeAt(index), 16777619);
-  return (hash >>> 0).toString(16).padStart(8, "0");
-}
-function planId(input) {
-  return `${input.operation}:${input.kit.id}:${input.catalog.generatedAt}:${inventoryFingerprint(input)}`;
-}
-function isActionable(project2) {
-  return project2.kind === "extension" && project2.frontends.some(({ id }) => id === "sillytavern") && project2.install?.kind === "sillytavern-extension-git";
-}
-function step(projectId, projectName2, internalName) {
-  return { projectId, projectName: projectName2, internalName };
-}
-function stepFor(project2, internalName) {
-  return step(project2.id, project2.name, internalName);
-}
-function addWarning(plan, project2) {
-  const assessment = project2.tavernKeeper;
-  if (assessment?.riskLevel !== "material" && assessment?.riskLevel !== "high") return;
-  plan.warnings.push({
-    projectId: project2.id,
-    projectName: project2.name,
-    severity: assessment.riskLevel,
-    freshness: assessment.freshness,
-    reportUrl: assessment.report?.reportUrl ?? null
-  });
 }
 
 // src/kits/kit-portability.ts
@@ -14130,6 +14162,7 @@ function KitPreflightDialog({
             planId: plan.id,
             inventoryFingerprint: plan.inventoryFingerprint,
             catalogGeneratedAt: plan.catalogGeneratedAt,
+            catalogBinding: plan.catalogBinding,
             acceptedWarningProjectIds: plan.warnings.map(({ projectId }) => projectId)
           }),
           children: confirm

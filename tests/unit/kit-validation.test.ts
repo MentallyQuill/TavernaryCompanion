@@ -1,6 +1,10 @@
 import { describe, expect, it } from "vitest";
 
-import { fingerprintKit, parsePersonalKit } from "../../src/kits/kit-validation";
+import {
+  fingerprintKit,
+  parseInstalledKitState,
+  parsePersonalKit,
+} from "../../src/kits/kit-validation";
 import type { PersonalKitV1 } from "../../src/kits/kit-types";
 
 const valid: PersonalKitV1 = {
@@ -42,5 +46,31 @@ describe("personal Kit validation", () => {
     });
     expect(first).toBe(renamed);
     expect(first).not.toBe(reordered);
+  });
+});
+
+describe("installed Kit state validation", () => {
+  const legacy = {
+    kitId: "writers",
+    definitionFingerprint: "a".repeat(64),
+    installedProjectIds: ["alpha"],
+    missingProjectIds: ["beta"],
+    status: "incomplete",
+    installedAt: "2026-08-18T00:00:00.000Z",
+    lastVerifiedAt: "2026-08-18T00:00:00.000Z",
+  };
+
+  it("migrates legacy state to an explicit definition topology", () => {
+    expect(parseInstalledKitState(legacy).definitionProjectIds).toEqual(["alpha", "beta"]);
+  });
+
+  it("rejects a project recorded as both installed and missing", () => {
+    expect(() =>
+      parseInstalledKitState({
+        ...legacy,
+        definitionProjectIds: ["alpha"],
+        missingProjectIds: ["alpha"],
+      }),
+    ).toThrow("both installed and missing");
   });
 });

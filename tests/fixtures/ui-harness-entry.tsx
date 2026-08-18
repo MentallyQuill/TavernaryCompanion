@@ -83,6 +83,7 @@ async function main() {
   await kits.recordInstalledState({
     kitId: personalKit.id,
     definitionFingerprint: await fingerprintKitTopology(personalKit.projectIds),
+    definitionProjectIds: personalKit.projectIds,
     installedProjectIds: ["writer-tool"],
     missingProjectIds: [],
     status: "installed",
@@ -93,6 +94,7 @@ async function main() {
     await kits.recordInstalledState({
       kitId: sharedKit.id,
       definitionFingerprint: await fingerprintKitTopology(sharedKit.projectIds),
+      definitionProjectIds: sharedKit.projectIds,
       installedProjectIds: ["writer-tool"],
       missingProjectIds: [],
       status: "installed",

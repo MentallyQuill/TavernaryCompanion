@@ -59,9 +59,15 @@ export function markInstalledKitsIncomplete(
     const missing = Array.isArray(candidate.missingProjectIds)
       ? candidate.missingProjectIds.filter((value): value is string => typeof value === "string")
       : [];
+    const installed = Array.isArray(candidate.installedProjectIds)
+      ? candidate.installedProjectIds.filter(
+          (value): value is string => typeof value === "string" && value !== projectId,
+        )
+      : [];
     next[kitId] = {
       ...candidate,
       status: "incomplete",
+      installedProjectIds: installed,
       missingProjectIds: [...new Set([...missing, projectId])].sort(),
     };
   }
