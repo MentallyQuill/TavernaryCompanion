@@ -14,6 +14,10 @@
     "allowImportingTsExtensions": true,
     "verbatimModuleSyntax": true,
     "skipLibCheck": true,
+    "paths": {
+      "@tavernary/catalog-core": ["./vendor/tavernary-core/src/index.ts"],
+      "@tavernary/catalog-core/*": ["./vendor/tavernary-core/src/*"]
+    },
     "types": ["node", "vitest/globals", "@testing-library/jest-dom"]
   },
   "include": ["src", "scripts", "tests", "vitest.config.ts", "playwright.config.ts"]
