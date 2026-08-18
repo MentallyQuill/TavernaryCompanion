@@ -1,11 +1,12 @@
 import type { HostExtension } from "../host/host-types";
+import { assertNotCompanionProject, COMPANION_PROJECT_ID } from "../lifecycle/self-protection";
 import type {
   ManagedExtensionMap,
   ManagedExtensionRecord,
   ManagedInstallOrigin,
 } from "./inventory-types";
 
-export const COMPANION_PROJECT_ID = "mentallyquill-tavernary-companion" as const;
+export { COMPANION_PROJECT_ID } from "../lifecycle/self-protection";
 
 function folderIdentity(value: string) {
   return value.normalize("NFKC").toLocaleLowerCase("en-US");
@@ -36,9 +37,7 @@ export class ManagedRegistry {
     installedAt: string;
     installedBy: ManagedInstallOrigin;
   }): ManagedExtensionRecord {
-    if (projectId === COMPANION_PROJECT_ID) {
-      throw new Error("Tavernary Companion cannot manage itself.");
-    }
+    assertNotCompanionProject(projectId);
     if (folderIdentity(extension.folderName) !== folderIdentity(expectedFolderName)) {
       throw new Error("Installed extension does not match the rediscovered folder.");
     }
