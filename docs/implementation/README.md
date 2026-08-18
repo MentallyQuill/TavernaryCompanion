@@ -23,14 +23,34 @@ This roadmap coordinates Tavernary's catalog foundation with Tavernary Companion
 
 | Phase | Plan | Depends on | Deliverable | Status |
 |---:|---|---|---|---|
-| 1 | [Tavernary foundation](01-tavernary-foundation.md) | Approved designs | Schema 7, install contracts, shared CatalogCore, living Pages asset | Pending |
-| 2 | [Companion foundation](02-companion-foundation.md) | Phase 1 interfaces; fixtures may unblock work | Installable extension scaffold, host boundary, settings, build | Pending |
+| 1 | [Tavernary foundation](01-tavernary-foundation.md) | Approved designs | Schema 7, install contracts, shared CatalogCore, living Pages asset | Verified |
+| 2 | [Companion foundation](02-companion-foundation.md) | Phase 1 interfaces; fixtures may unblock work | Installable extension scaffold, host boundary, settings, build | In progress |
 | 3 | [Catalog sync and discovery](03-catalog-sync-and-discovery.md) | Phases 1–2 | Validated cache, shared search/filter behavior, inventory reconciliation | Pending |
 | 4 | [Responsive shell and catalog UI](04-responsive-shell-and-catalog-ui.md) | Phase 3 view models | Desktop/mobile shell and complete browse experience | Pending |
 | 5 | [Project lifecycle and trust](05-project-lifecycle-and-trust.md) | Phases 2–4 | Verified install/remove flow, warnings, receipts, self-protection | Pending |
 | 6 | [Kit domain and operations](06-kit-domain-and-operations.md) | Phase 5 lifecycle services | Stored Kits, planning, staged activation, reference-safe removal | Pending |
 | 7 | [Kit experience and portability](07-kit-experience-and-portability.md) | Phase 6 | Kit browsing/editor, import/export, published-copy workflow | Pending |
 | 8 | [Integration, release, and live proof](08-integration-release-and-live-proof.md) | Phases 1–7 | Full gates, installed artifact, responsive acceptance, Pages proof | Pending |
+
+## Recorded execution evidence
+
+### Phase 1 — Tavernary foundation
+
+- Tavernary source commit: `714143a630387a68a6d2f6ea86efa56c58c5cc81`.
+- Canonical catalog SHA-256: `D7138A693EF3F56141F2F5D8985FF0B39F51ABAE19969384C58ED8BB8DCEDFD1`.
+- Catalog result: schema 7, 437 projects, 303 installable SillyTavern extensions, and 11 published Kits.
+- Evidence bootstrap: 306 verified repository-root manifests and 24 unavailable results at recorded immutable heads.
+- CatalogCore vendor lock: Companion commit `1ce0c84921fbe2c466b72ad833456824089a1818`, covering 26 files from the Tavernary commit above.
+- Tavernary gate: formatting, lint, palette audit, catalog validation, 512 TavernKeeper summaries, 2,528 tests, production build, 403 static pages, and export verification passed.
+- Deployment and live Pages response proof remain explicitly assigned to Phase 8.
+
+### Phase 2 — Companion foundation
+
+- Companion source commit: `1ce0c84921fbe2c466b72ad833456824089a1818`.
+- Built JS SHA-256: `38012763BBF8BC9D761AD2C0FD1C0A4A311F5263C602482EA190D9FC47036820`.
+- Built CSS SHA-256: `B37348130A3C1A9FCA3A7DB6CE1353C9F5FBA0D0AD06D24B2D2CB3017A724437`.
+- Source gate: formatting, lint, typecheck, 25 tests, deterministic build, vendor-lock verification, and shared CatalogCore fixtures passed.
+- Status remains in progress until the isolated SillyTavern install/launcher lifecycle proof is completed.
 
 ## Critical path
 
