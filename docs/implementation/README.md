@@ -24,13 +24,13 @@ This roadmap coordinates Tavernary's catalog foundation with Tavernary Companion
 | Phase | Plan | Depends on | Deliverable | Status |
 |---:|---|---|---|---|
 | 1 | [Tavernary foundation](01-tavernary-foundation.md) | Approved designs | Schema 7, install contracts, shared CatalogCore, living Pages asset | Verified |
-| 2 | [Companion foundation](02-companion-foundation.md) | Phase 1 interfaces; fixtures may unblock work | Installable extension scaffold, host boundary, settings, build | In progress |
+| 2 | [Companion foundation](02-companion-foundation.md) | Phase 1 interfaces; fixtures may unblock work | Installable extension scaffold, host boundary, settings, build | Verified |
 | 3 | [Catalog sync and discovery](03-catalog-sync-and-discovery.md) | Phases 1–2 | Validated cache, shared search/filter behavior, inventory reconciliation | Verified |
 | 4 | [Responsive shell and catalog UI](04-responsive-shell-and-catalog-ui.md) | Phase 3 view models | Desktop/mobile shell and complete browse experience | Verified |
-| 5 | [Project lifecycle and trust](05-project-lifecycle-and-trust.md) | Phases 2–4 | Verified install/remove flow, warnings, receipts, self-protection | In progress |
-| 6 | [Kit domain and operations](06-kit-domain-and-operations.md) | Phase 5 lifecycle services | Stored Kits, planning, staged activation, reference-safe removal | Pending |
-| 7 | [Kit experience and portability](07-kit-experience-and-portability.md) | Phase 6 | Kit browsing/editor, import/export, published-copy workflow | Pending |
-| 8 | [Integration, release, and live proof](08-integration-release-and-live-proof.md) | Phases 1–7 | Full gates, installed artifact, responsive acceptance, Pages proof | Pending |
+| 5 | [Project lifecycle and trust](05-project-lifecycle-and-trust.md) | Phases 2–4 | Verified install/remove flow, warnings, receipts, self-protection | Verified |
+| 6 | [Kit domain and operations](06-kit-domain-and-operations.md) | Phase 5 lifecycle services | Stored Kits, planning, staged activation, reference-safe removal | Verified |
+| 7 | [Kit experience and portability](07-kit-experience-and-portability.md) | Phase 6 | Kit browsing/editor, import/export, published-copy workflow | Verified |
+| 8 | [Integration, release, and live proof](08-integration-release-and-live-proof.md) | Phases 1–7 | Full gates, installed artifact, responsive acceptance, Pages proof | In progress |
 
 ## Recorded execution evidence
 
@@ -50,7 +50,7 @@ This roadmap coordinates Tavernary's catalog foundation with Tavernary Companion
 - Built JS SHA-256: `38012763BBF8BC9D761AD2C0FD1C0A4A311F5263C602482EA190D9FC47036820`.
 - Built CSS SHA-256: `B37348130A3C1A9FCA3A7DB6CE1353C9F5FBA0D0AD06D24B2D2CB3017A724437`.
 - Source gate: formatting, lint, typecheck, 25 tests, deterministic build, vendor-lock verification, and shared CatalogCore fixtures passed.
-- Status remains in progress until the isolated SillyTavern install/launcher lifecycle proof is completed.
+- The exact release artifact was discovered and served by an isolated SillyTavern profile with matching installed hashes. Interactive launcher proof remains a Phase 8 item because the available browser controller could not start.
 
 ### Phase 3 — Catalog sync and discovery
 
@@ -71,6 +71,36 @@ This roadmap coordinates Tavernary's catalog foundation with Tavernary Companion
 - A 437-card default result set did not mount detail content eagerly and completed a query/render update within the 150 ms budget, so virtualization was not introduced.
 - Phase gate: formatting, lint, typecheck, 87 unit/contract tests, production build, and 11 Chromium responsive/accessibility tests passed.
 - Production bundles at this phase: 82,394-byte JavaScript and 13,910-byte CSS.
+
+### Phase 5 — Project lifecycle and trust
+
+- Companion source commit: `f4ce09dc5c0f83b2d0d3ae7c55b43b298eb24854`.
+- Lifecycle policy allows mutations only for validated SillyTavern extension contracts, prevents Companion self-lifecycle, serializes operations, and records verified receipts.
+- First-install unsandboxed disclosure and every-install material/high concern confirmation are covered with exact warning-copy tests and a Scan Review route.
+- Managed removal, external-install protection, install verification mismatch, host rejection, and self-protection passed focused and integrated scenarios.
+
+### Phase 6 — Kit domain and operations
+
+- Companion source commit: `7e59cad`.
+- Strict versioned Kit persistence, reference counts, deterministic planning, stale-plan detection, activation barriers, durable journals, one-reload execution, interruption recovery, and drift reconciliation are implemented.
+- Shared, externally installed, and manually managed extensions are preserved. Activating the already-active healthy Kit produces no mutation plan.
+
+### Phase 7 — Kit experience and portability
+
+- Companion source commit: `433bc60`.
+- Published and personal Kit browsing, compact filters, inspectors, personal editing, preflight review, progress, receipts, strict JSON import/export, and copy-to-personal behavior are implemented.
+- Tavernary Companion is excluded from Kit membership. The local schema retains V2 publication provenance fields without exposing submission UI or transport.
+- Desktop and mobile Kit actions passed at 1024x768 and 390x844 as part of the 13-test browser gate.
+
+### Phase 8 — Integration, release, and live proof
+
+- Companion release source commit: `b4e330debcab8f508c0deaa4366f49101ff6861f`.
+- Release: `tavernary-companion-0.1.0-pre-alpha.1.zip`, SHA-256 `a7657ee6ad4dd4d2412659f60564f322aa4e0db9a3022d65ec1eb59aa64d817b`, containing exactly three installable files.
+- Fresh Companion gate: formatting, lint, typecheck, 58 test files/159 tests, production build, 13 Chromium responsive/accessibility tests, and release verification passed.
+- Exact release files were installed into the isolated `companion-acceptance-v1` profile; SillyTavern discovered the extension and served all three files with byte-identical hashes.
+- Companion CI passed on [PR #1](https://github.com/MentallyQuill/TavernaryCompanion/pull/1).
+- Tavernary [PR #564](https://github.com/MentallyQuill/Tavernary/pull/564) contains the schema-7 publication. Its current branch passed the full local Tavernary gate after refreshing eight install-evidence records; GitHub verification and merge/deployment remain pending.
+- Installed interactive launcher/console/network journeys remain unproven because the in-app browser controller failed during trusted-runtime startup. See the [installed evidence](evidence/companion-installed-v1.md) and [readiness reconciliation](evidence/v1-release-readiness.md).
 
 ## Critical path
 
