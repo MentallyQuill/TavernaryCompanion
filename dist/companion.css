@@ -1524,7 +1524,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   letter-spacing: 0.09em;
   text-transform: uppercase;
 }
-.tavernary-companion-filter-disclosure {
+.tavernary-companion-root .tavernary-companion-filter-disclosure {
   inline-size: 100%;
   min-block-size: 0 !important;
   margin-block-start: 8px;
@@ -1537,7 +1537,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   font-size: 10px;
   text-align: start;
 }
-.tavernary-companion-filter-disclosure:hover {
+.tavernary-companion-root .tavernary-companion-filter-disclosure:hover {
   color: var(--tavernary-color-text-secondary) !important;
 }
 .tavernary-companion-project-results {

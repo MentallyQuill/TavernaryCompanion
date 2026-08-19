@@ -1075,7 +1075,7 @@
   text-transform: uppercase;
 }
 
-.tavernary-companion-filter-disclosure {
+.tavernary-companion-root .tavernary-companion-filter-disclosure {
   inline-size: 100%;
   min-block-size: 0 !important;
   margin-block-start: 8px;
@@ -1089,7 +1089,7 @@
   text-align: start;
 }
 
-.tavernary-companion-filter-disclosure:hover {
+.tavernary-companion-root .tavernary-companion-filter-disclosure:hover {
   color: var(--tavernary-color-text-secondary) !important;
 }
 

@@ -294,6 +294,19 @@ test("desktop filters use Tavernary's persistent flush rail", async ({ page }) =
   ]);
 });
 
+test("filter disclosures use Tavernary's compact text size", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openHarness(page, "filter-disclosure");
+
+  const disclosure = page.getByRole("button", { name: /Show \d+ more/u }).first();
+  await expect(disclosure).toBeVisible();
+  await expect(disclosure).toHaveCSS("font-size", "10px");
+  await disclosure.click();
+  const collapse = page.getByRole("button", { name: "Show fewer" }).first();
+  await expect(collapse).toBeVisible();
+  await expect(collapse).toHaveCSS("font-size", "10px");
+});
+
 test("compact desktop keeps Tavernary's 210px persistent rail", async ({ page }) => {
   await page.setViewportSize({ width: 1024, height: 768 });
   await openHarness(page);

@@ -64,6 +64,13 @@ async function main() {
       applicable_kinds: ["extension", "preset", "frontend"],
     },
   ];
+  const disclosureFrontends = [
+    { id: "sillytavern", label: "SillyTavern", description: "SillyTavern" },
+    { id: "risuai", label: "RisuAI", description: "RisuAI" },
+    { id: "agnai", label: "Agnai", description: "Agnai" },
+    { id: "koboldcpp", label: "KoboldCpp", description: "KoboldCpp" },
+    { id: "open-webui", label: "Open WebUI", description: "Open WebUI" },
+  ];
   catalog.projects = Array.from({ length: 438 }, (_, index) => {
     const kind = index === 2 ? "preset" : index === 3 ? "frontend" : "extension";
     const project = catalogProjectFixture({
@@ -99,7 +106,10 @@ async function main() {
               : `Project ${index + 1}`;
     project.summary =
       "A catalog extension with a concise, predictable summary for responsive testing.";
-    project.frontends = [{ id: "sillytavern", label: "SillyTavern", description: "SillyTavern" }];
+    project.frontends =
+      scenario === "filter-disclosure"
+        ? [disclosureFrontends[index % disclosureFrontends.length]!]
+        : [{ id: "sillytavern", label: "SillyTavern", description: "SillyTavern" }];
     project.search.kind = [kind];
     project.activity.weeklyActivity = [
       false,
