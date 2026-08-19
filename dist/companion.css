@@ -2587,6 +2587,108 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 .tavernary-companion-operation-receipt li[data-status=failed] {
   color: var(--tavernary-companion-high);
 }
+.tavernary-companion-operation-notification {
+  position: fixed;
+  z-index: 2147483000;
+  inline-size: max-content;
+  box-sizing: border-box;
+  color: var(--tavernary-color-text-primary);
+  font-family:
+    "Inter Variable",
+    Inter,
+    system-ui,
+    sans-serif;
+  line-height: 1.25;
+  pointer-events: none;
+  transform: translateX(-50%);
+  animation: tavernary-companion-notification-enter 140ms ease-out;
+}
+.tavernary-companion-operation-notification__button {
+  all: unset;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 10px;
+  inline-size: 100%;
+  min-block-size: 38px;
+  box-sizing: border-box;
+  padding: 6px 10px;
+  border: 1px solid var(--tavernary-color-border-strong);
+  border-inline-start: 3px solid var(--tavernary-color-accent-teal);
+  border-radius: var(--tavernary-radius);
+  color: var(--tavernary-color-text-primary);
+  background: var(--tavernary-color-bg-surface-raised);
+  box-shadow: var(--tavernary-shadow-overlay);
+  cursor: pointer;
+  pointer-events: auto;
+}
+.tavernary-companion-operation-notification__button:hover {
+  border-color: var(--tavernary-color-border-hover);
+  border-inline-start-color: var(--tavernary-color-accent-teal-hover);
+  background: var(--tavernary-color-bg-surface-hover);
+}
+.tavernary-companion-operation-notification__button:focus-visible {
+  outline: 2px solid var(--tavernary-color-focus-ring);
+  outline-offset: 2px;
+}
+.tavernary-companion-operation-notification__mark {
+  display: grid;
+  inline-size: 24px;
+  block-size: 24px;
+  border: 1px solid var(--tavernary-color-accent-teal-border);
+  border-radius: 50%;
+  color: var(--tavernary-color-accent-teal-text);
+  background: var(--tavernary-color-accent-teal-bg);
+  font-size: 14px;
+  font-weight: 700;
+  place-items: center;
+}
+.tavernary-companion-operation-notification__copy {
+  display: flex;
+  min-inline-size: 0;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px 6px;
+}
+.tavernary-companion-operation-notification__copy strong {
+  color: var(--tavernary-color-heading);
+  font-size: 13px;
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+.tavernary-companion-operation-notification__copy > span {
+  color: var(--tavernary-color-text-secondary);
+  font-size: 11px;
+  font-weight: 450;
+}
+.tavernary-companion-operation-notification__dismiss {
+  color: var(--tavernary-color-text-muted);
+  font-size: 18px;
+  font-weight: 400;
+  line-height: 1;
+}
+@keyframes tavernary-companion-notification-enter {
+  from {
+    opacity: 0;
+    transform: translate(-50%, -5px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .tavernary-companion-operation-notification {
+    animation: none;
+  }
+}
+@media (max-width: 719px) {
+  .tavernary-companion-root[data-operation-notification-active] {
+    block-size: calc(100% - 62px);
+    max-block-size: calc(100% - 62px);
+    margin-block-start: 62px;
+  }
+}
 .tavernary-companion-dialog-backdrop {
   padding: 16px;
   background: rgb(0 0 0 / 76%);

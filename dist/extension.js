@@ -14723,118 +14723,6 @@ function stepLabel(id) {
   }[id];
 }
 
-// src/ui/lifecycle/operation-tray.tsx
-function OperationTray({
-  active,
-  receipt,
-  error,
-  onDismissReceipt,
-  onDismissError,
-  onRetryError
-}) {
-  if (error) {
-    return /* @__PURE__ */ u3(
-      "aside",
-      {
-        class: "tavernary-companion-operation-tray tavernary-companion-operation-tray--error",
-        role: "alert",
-        children: [
-          /* @__PURE__ */ u3("p", { children: error }),
-          onRetryError ? /* @__PURE__ */ u3("button", { type: "button", onClick: onRetryError, children: "Retry" }) : null,
-          /* @__PURE__ */ u3("button", { type: "button", onClick: onDismissError, children: "Dismiss" })
-        ]
-      }
-    );
-  }
-  if (active) {
-    return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-operation-tray", role: "status", "aria-live": "polite", children: [
-      /* @__PURE__ */ u3("span", { class: "tavernary-companion-operation-tray__indicator", "aria-hidden": "true" }),
-      /* @__PURE__ */ u3("p", { children: phaseLabel(active.phase) })
-    ] });
-  }
-  if (receipt) {
-    return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-operation-tray", children: /* @__PURE__ */ u3(OperationReceipt, { receipt, onDismiss: onDismissReceipt }) });
-  }
-  return null;
-}
-function phaseLabel(phase2) {
-  return {
-    preflight: "Checking project eligibility\u2026",
-    discovering: "Reading installed extensions\u2026",
-    "awaiting-confirmation": "Waiting for confirmation\u2026",
-    "host-request": "SillyTavern is applying the change\u2026",
-    verifying: "Verifying installed state\u2026",
-    recording: "Recording verified state\u2026"
-  }[phase2] ?? "Working\u2026";
-}
-
-// src/ui/lifecycle/removal-dialog.tsx
-function RemovalDialog({
-  impact,
-  onCancel,
-  onConfirm
-}) {
-  return /* @__PURE__ */ u3(DialogFrame, { label: `Uninstall ${impact.projectName}`, onCancel, children: [
-    /* @__PURE__ */ u3("h2", { children: [
-      "Uninstall ",
-      impact.projectName,
-      "?"
-    ] }),
-    /* @__PURE__ */ u3("p", { children: impact.ownershipLabel }),
-    /* @__PURE__ */ u3("p", { children: impact.confirmation }),
-    /* @__PURE__ */ u3("div", { class: "tavernary-companion-dialog__actions", children: [
-      /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { type: "button", class: "is-danger", onClick: onConfirm, disabled: !impact.removable, children: "Uninstall" })
-    ] })
-  ] });
-}
-
-// src/ui/lifecycle/trust-disclosure-dialog.tsx
-function TrustDisclosureDialog({
-  prompt,
-  onCancel,
-  onConfirm
-}) {
-  return /* @__PURE__ */ u3(DialogFrame, { label: "Third-party extension disclosure", onCancel, children: [
-    /* @__PURE__ */ u3("h2", { children: "Before installing extensions" }),
-    /* @__PURE__ */ u3("p", { children: prompt.copy }),
-    /* @__PURE__ */ u3("div", { class: "tavernary-companion-dialog__actions", children: [
-      /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { type: "button", onClick: onConfirm, children: "I understand" })
-    ] })
-  ] });
-}
-
-// src/ui/shared/install-icon.tsx
-var INSTALL_PATH = "M9 2v2H5l-.001 10h14L19 4h-4V2h5a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h5zm9.999 14h-14L5 20h14l-.001-4zM17 17v2h-2v-2h2zM13 2v5h3l-4 4-4-4h3V2h2z";
-var UNINSTALL_PATH = "M8 2v2H5l-.001 10h14L19 4h-3V2h4a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h4zm10.999 14h-14L5 20h14l-.001-4zM17 17v2h-2v-2h2zM12 2l4 4h-3v5h-2V6H8l4-4z";
-function InstallIcon() {
-  return /* @__PURE__ */ u3(
-    "svg",
-    {
-      "aria-hidden": "true",
-      "data-icon": "install",
-      "data-testid": "install-icon",
-      fill: "currentColor",
-      viewBox: "0 0 24 24",
-      children: /* @__PURE__ */ u3("path", { d: INSTALL_PATH })
-    }
-  );
-}
-function UninstallIcon() {
-  return /* @__PURE__ */ u3(
-    "svg",
-    {
-      "aria-hidden": "true",
-      "data-icon": "uninstall",
-      "data-testid": "uninstall-icon",
-      fill: "currentColor",
-      viewBox: "0 0 24 24",
-      children: /* @__PURE__ */ u3("path", { d: UNINSTALL_PATH })
-    }
-  );
-}
-
 // node_modules/preact/compat/dist/compat.module.js
 function g3(n2, t3) {
   for (var e3 in t3) n2[e3] = t3[e3];
@@ -15031,13 +14919,295 @@ l.diffed = function(n2) {
   null != e3 && "textarea" === n2.type && "value" in t3 && t3.value !== e3.value && (e3.value = null == t3.value ? "" : t3.value), rn = null;
 };
 
+// src/ui/lifecycle/operation-success-notification.tsx
+var DISPLAY_DURATION_MS = 4500;
+var VIEWPORT_MARGIN = 8;
+var PANEL_GAP = 8;
+function OperationSuccessNotification({
+  receipt,
+  onDismiss
+}) {
+  const notificationRef = A2(null);
+  const dismissRef = A2(onDismiss);
+  const timerRef = A2(null);
+  const timerStartedAtRef = A2(0);
+  const remainingDurationRef = A2(DISPLAY_DURATION_MS);
+  const pointerInsideRef = A2(false);
+  const focusInsideRef = A2(false);
+  const [position, setPosition] = d2({
+    visibility: "hidden"
+  });
+  h2(() => {
+    dismissRef.current = onDismiss;
+  }, [onDismiss]);
+  const clearDismissTimer = q2(() => {
+    if (timerRef.current === null) return;
+    window.clearTimeout(timerRef.current);
+    timerRef.current = null;
+  }, []);
+  const startDismissTimer = q2(() => {
+    if (timerRef.current !== null || remainingDurationRef.current <= 0) return;
+    timerStartedAtRef.current = Date.now();
+    timerRef.current = window.setTimeout(() => {
+      timerRef.current = null;
+      remainingDurationRef.current = 0;
+      dismissRef.current?.();
+    }, remainingDurationRef.current);
+  }, []);
+  const pauseDismissTimer = q2(() => {
+    if (timerRef.current === null) return;
+    remainingDurationRef.current = Math.max(
+      0,
+      remainingDurationRef.current - (Date.now() - timerStartedAtRef.current)
+    );
+    clearDismissTimer();
+  }, [clearDismissTimer]);
+  const resumeDismissTimer = q2(() => {
+    if (pointerInsideRef.current || focusInsideRef.current) return;
+    startDismissTimer();
+  }, [startDismissTimer]);
+  h2(() => {
+    remainingDurationRef.current = DISPLAY_DURATION_MS;
+    pointerInsideRef.current = false;
+    focusInsideRef.current = false;
+    startDismissTimer();
+    return clearDismissTimer;
+  }, [clearDismissTimer, receipt.id, startDismissTimer]);
+  _2(() => {
+    const panel = document.querySelector(".tavernary-companion-root");
+    if (!panel) return;
+    panel.dataset.operationNotificationActive = "";
+    return () => {
+      delete panel.dataset.operationNotificationActive;
+    };
+  }, [receipt.id]);
+  _2(() => {
+    const notification = notificationRef.current;
+    const panel = document.querySelector(".tavernary-companion-root");
+    if (!notification || !panel) {
+      setPosition({
+        insetBlockStart: `${VIEWPORT_MARGIN}px`,
+        insetInlineStart: "50%",
+        maxInlineSize: `calc(100vw - ${VIEWPORT_MARGIN * 2}px)`,
+        visibility: "visible"
+      });
+      return;
+    }
+    const updatePosition = () => {
+      const panelRect = panel.getBoundingClientRect();
+      const notificationRect = notification.getBoundingClientRect();
+      const maxInlineSize = Math.max(
+        0,
+        Math.min(
+          520,
+          panelRect.width - VIEWPORT_MARGIN * 2,
+          window.innerWidth - VIEWPORT_MARGIN * 2
+        )
+      );
+      setPosition({
+        insetBlockStart: `${Math.max(
+          VIEWPORT_MARGIN,
+          panelRect.top - notificationRect.height - PANEL_GAP
+        )}px`,
+        insetInlineStart: `${panelRect.left + panelRect.width / 2}px`,
+        maxInlineSize: `${maxInlineSize}px`,
+        visibility: "visible"
+      });
+    };
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    const resizeObserver = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updatePosition);
+    resizeObserver?.observe(panel);
+    resizeObserver?.observe(notification);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+      resizeObserver?.disconnect();
+    };
+  }, [receipt.id]);
+  if (typeof document === "undefined") return null;
+  const title = `${receipt.projectName} ${receipt.kind === "install" ? "installed" : "removed"}`;
+  const detail = successDetail(receipt);
+  const statusLabel2 = receipt.kind === "install" ? "Installation complete" : "Removal complete";
+  return $2(
+    /* @__PURE__ */ u3(
+      "aside",
+      {
+        ref: notificationRef,
+        class: "tavernary-companion-operation-notification",
+        role: "status",
+        "aria-label": statusLabel2,
+        "aria-live": "polite",
+        "aria-atomic": "true",
+        style: position,
+        children: /* @__PURE__ */ u3(
+          "button",
+          {
+            class: "tavernary-companion-operation-notification__button",
+            type: "button",
+            "aria-label": `Dismiss notification: ${title}. ${detail}`,
+            onClick: onDismiss,
+            onPointerEnter: () => {
+              pointerInsideRef.current = true;
+              pauseDismissTimer();
+            },
+            onPointerLeave: () => {
+              pointerInsideRef.current = false;
+              resumeDismissTimer();
+            },
+            onFocus: () => {
+              focusInsideRef.current = true;
+              pauseDismissTimer();
+            },
+            onBlur: () => {
+              focusInsideRef.current = false;
+              resumeDismissTimer();
+            },
+            children: [
+              /* @__PURE__ */ u3("span", { class: "tavernary-companion-operation-notification__mark", "aria-hidden": "true", children: "\u2713" }),
+              /* @__PURE__ */ u3("span", { class: "tavernary-companion-operation-notification__copy", children: [
+                /* @__PURE__ */ u3("strong", { children: title }),
+                /* @__PURE__ */ u3("span", { children: detail })
+              ] }),
+              /* @__PURE__ */ u3("span", { class: "tavernary-companion-operation-notification__dismiss", "aria-hidden": "true", children: "\xD7" })
+            ]
+          }
+        )
+      }
+    ),
+    document.body
+  );
+}
+function successDetail(receipt) {
+  if (receipt.kind === "install") {
+    return receipt.reloadRequired ? "Verified in SillyTavern \xB7 Reload to finish installation" : "Verified in SillyTavern \xB7 Managed by Companion";
+  }
+  return receipt.reloadRequired ? "Verified removed \xB7 Reload to finish" : "Verified removed from SillyTavern";
+}
+
+// src/ui/lifecycle/operation-tray.tsx
+function OperationTray({
+  active,
+  receipt,
+  error,
+  onDismissReceipt,
+  onDismissError,
+  onRetryError
+}) {
+  if (error) {
+    return /* @__PURE__ */ u3(
+      "aside",
+      {
+        class: "tavernary-companion-operation-tray tavernary-companion-operation-tray--error",
+        role: "alert",
+        children: [
+          /* @__PURE__ */ u3("p", { children: error }),
+          onRetryError ? /* @__PURE__ */ u3("button", { type: "button", onClick: onRetryError, children: "Retry" }) : null,
+          /* @__PURE__ */ u3("button", { type: "button", onClick: onDismissError, children: "Dismiss" })
+        ]
+      }
+    );
+  }
+  if (active) {
+    return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-operation-tray", role: "status", "aria-live": "polite", children: [
+      /* @__PURE__ */ u3("span", { class: "tavernary-companion-operation-tray__indicator", "aria-hidden": "true" }),
+      /* @__PURE__ */ u3("p", { children: phaseLabel(active.phase) })
+    ] });
+  }
+  if (receipt) {
+    if (receipt.status === "succeeded") {
+      return /* @__PURE__ */ u3(OperationSuccessNotification, { receipt, onDismiss: onDismissReceipt });
+    }
+    return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-operation-tray", children: /* @__PURE__ */ u3(OperationReceipt, { receipt, onDismiss: onDismissReceipt }) });
+  }
+  return null;
+}
+function phaseLabel(phase2) {
+  return {
+    preflight: "Checking project eligibility\u2026",
+    discovering: "Reading installed extensions\u2026",
+    "awaiting-confirmation": "Waiting for confirmation\u2026",
+    "host-request": "SillyTavern is applying the change\u2026",
+    verifying: "Verifying installed state\u2026",
+    recording: "Recording verified state\u2026"
+  }[phase2] ?? "Working\u2026";
+}
+
+// src/ui/lifecycle/removal-dialog.tsx
+function RemovalDialog({
+  impact,
+  onCancel,
+  onConfirm
+}) {
+  return /* @__PURE__ */ u3(DialogFrame, { label: `Uninstall ${impact.projectName}`, onCancel, children: [
+    /* @__PURE__ */ u3("h2", { children: [
+      "Uninstall ",
+      impact.projectName,
+      "?"
+    ] }),
+    /* @__PURE__ */ u3("p", { children: impact.ownershipLabel }),
+    /* @__PURE__ */ u3("p", { children: impact.confirmation }),
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-dialog__actions", children: [
+      /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "is-danger", onClick: onConfirm, disabled: !impact.removable, children: "Uninstall" })
+    ] })
+  ] });
+}
+
+// src/ui/lifecycle/trust-disclosure-dialog.tsx
+function TrustDisclosureDialog({
+  prompt,
+  onCancel,
+  onConfirm
+}) {
+  return /* @__PURE__ */ u3(DialogFrame, { label: "Third-party extension disclosure", onCancel, children: [
+    /* @__PURE__ */ u3("h2", { children: "Before installing extensions" }),
+    /* @__PURE__ */ u3("p", { children: prompt.copy }),
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-dialog__actions", children: [
+      /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { type: "button", onClick: onConfirm, children: "I understand" })
+    ] })
+  ] });
+}
+
+// src/ui/shared/install-icon.tsx
+var INSTALL_PATH = "M9 2v2H5l-.001 10h14L19 4h-4V2h5a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h5zm9.999 14h-14L5 20h14l-.001-4zM17 17v2h-2v-2h2zM13 2v5h3l-4 4-4-4h3V2h2z";
+var UNINSTALL_PATH = "M8 2v2H5l-.001 10h14L19 4h-3V2h4a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h4zm10.999 14h-14L5 20h14l-.001-4zM17 17v2h-2v-2h2zM12 2l4 4h-3v5h-2V6H8l4-4z";
+function InstallIcon() {
+  return /* @__PURE__ */ u3(
+    "svg",
+    {
+      "aria-hidden": "true",
+      "data-icon": "install",
+      "data-testid": "install-icon",
+      fill: "currentColor",
+      viewBox: "0 0 24 24",
+      children: /* @__PURE__ */ u3("path", { d: INSTALL_PATH })
+    }
+  );
+}
+function UninstallIcon() {
+  return /* @__PURE__ */ u3(
+    "svg",
+    {
+      "aria-hidden": "true",
+      "data-icon": "uninstall",
+      "data-testid": "uninstall-icon",
+      fill: "currentColor",
+      viewBox: "0 0 24 24",
+      children: /* @__PURE__ */ u3("path", { d: UNINSTALL_PATH })
+    }
+  );
+}
+
 // src/ui/shared/overlay-portal.ts
 function resolveOverlayPortalTarget(source) {
   return source?.closest("dialog[open]") ?? document.body;
 }
 
 // src/ui/shared/tooltip.tsx
-var VIEWPORT_MARGIN = 8;
+var VIEWPORT_MARGIN2 = 8;
 var TOOLTIP_GAP = 8;
 function clamp(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
@@ -15045,16 +15215,16 @@ function clamp(value, minimum, maximum) {
 function tooltipPosition(trigger, tooltip) {
   const left = clamp(
     trigger.left + trigger.width / 2 - tooltip.width / 2,
-    VIEWPORT_MARGIN,
-    window.innerWidth - tooltip.width - VIEWPORT_MARGIN
+    VIEWPORT_MARGIN2,
+    window.innerWidth - tooltip.width - VIEWPORT_MARGIN2
   );
   const above = trigger.top - tooltip.height - TOOLTIP_GAP;
   const below = trigger.bottom + TOOLTIP_GAP;
-  const preferredTop = above >= VIEWPORT_MARGIN ? above : below;
+  const preferredTop = above >= VIEWPORT_MARGIN2 ? above : below;
   const top = clamp(
     preferredTop,
-    VIEWPORT_MARGIN,
-    window.innerHeight - tooltip.height - VIEWPORT_MARGIN
+    VIEWPORT_MARGIN2,
+    window.innerHeight - tooltip.height - VIEWPORT_MARGIN2
   );
   return { left, top };
 }
@@ -16981,7 +17151,7 @@ function accessibleStatus(status) {
   return `${riskGradeLabels[status.report.riskLevel]}; ${freshnessLabels[status.freshness]}.`;
 }
 var CLOSE_DELAY = 150;
-var VIEWPORT_MARGIN2 = 8;
+var VIEWPORT_MARGIN3 = 8;
 var POPOVER_GAP = 8;
 var activeDismiss = null;
 function clamp2(value, minimum, maximum) {
@@ -17000,15 +17170,15 @@ function popoverPosition(trigger, popover) {
   const viewport = viewportBounds();
   const left = clamp2(
     trigger.left + trigger.width / 2 - popover.width / 2,
-    viewport.left + VIEWPORT_MARGIN2,
-    viewport.left + viewport.width - popover.width - VIEWPORT_MARGIN2
+    viewport.left + VIEWPORT_MARGIN3,
+    viewport.left + viewport.width - popover.width - VIEWPORT_MARGIN3
   );
   const above = trigger.top - popover.height - POPOVER_GAP;
   const below = trigger.bottom + POPOVER_GAP;
   const top = clamp2(
-    above >= viewport.top + VIEWPORT_MARGIN2 ? above : below,
-    viewport.top + VIEWPORT_MARGIN2,
-    viewport.top + viewport.height - popover.height - VIEWPORT_MARGIN2
+    above >= viewport.top + VIEWPORT_MARGIN3 ? above : below,
+    viewport.top + VIEWPORT_MARGIN3,
+    viewport.top + viewport.height - popover.height - VIEWPORT_MARGIN3
   );
   return { left, top };
 }

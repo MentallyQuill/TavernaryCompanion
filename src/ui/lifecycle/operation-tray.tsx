@@ -1,6 +1,7 @@
 import type { ActiveOperation } from "../../lifecycle/operation-lock";
 import type { LifecycleReceipt } from "../../lifecycle/operation-receipt";
 import { OperationReceipt } from "./operation-receipt";
+import { OperationSuccessNotification } from "./operation-success-notification";
 
 interface OperationTrayProps {
   active: ActiveOperation | null;
@@ -46,6 +47,9 @@ export function OperationTray({
     );
   }
   if (receipt) {
+    if (receipt.status === "succeeded") {
+      return <OperationSuccessNotification receipt={receipt} onDismiss={onDismissReceipt} />;
+    }
     return (
       <aside class="tavernary-companion-operation-tray">
         <OperationReceipt receipt={receipt} onDismiss={onDismissReceipt} />

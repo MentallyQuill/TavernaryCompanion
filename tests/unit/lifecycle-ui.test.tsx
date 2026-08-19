@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/preact";
+import { act, fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ActiveOperation } from "../../src/lifecycle/operation-lock";
@@ -8,7 +8,10 @@ import type { TrustPrompt } from "../../src/trust/trust-types";
 import { AssessmentWarningDialog } from "../../src/ui/lifecycle/assessment-warning-dialog";
 import { OperationTray } from "../../src/ui/lifecycle/operation-tray";
 
-afterEach(() => document.body.replaceChildren());
+afterEach(() => {
+  vi.useRealTimers();
+  document.body.replaceChildren();
+});
 
 const warning: Extract<TrustPrompt, { kind: "assessment-warning" }> = {
   kind: "assessment-warning",
@@ -82,8 +85,14 @@ describe("lifecycle UI", () => {
     expect(screen.getByText("No TavernKeeper Scan Review link is available.")).toBeVisible();
   });
 
-  it("shows active progress and a durable verified receipt", () => {
+  it("shows active progress while SillyTavern verification is running", () => {
     const active: ActiveOperation = { operationId: "install:alpha", phase: "verifying" };
+    render(<OperationTray active={active} receipt={null} />);
+
+    expect(screen.getByText("Verifying installed state…")).toBeVisible();
+  });
+
+  it("shows successful installs as a useful body-level notification", () => {
     const receipt = createReceipt({
       id: "receipt-1",
       kind: "install",
@@ -96,12 +105,140 @@ describe("lifecycle UI", () => {
       safeError: null,
       reloadRequired: true,
     });
-    const { rerender } = render(<OperationTray active={active} receipt={null} />);
-    expect(screen.getByText("Verifying installed state…")).toBeVisible();
+    const panel = document.createElement("div");
+    panel.className = "tavernary-companion-root";
+    document.body.append(panel);
 
-    rerender(<OperationTray active={null} receipt={receipt} />);
-    expect(screen.getByText("Alpha installed and verified")).toBeVisible();
-    expect(screen.getByText("Reload required")).toBeVisible();
+    render(<OperationTray active={null} receipt={receipt} />, { container: panel });
+
+    const notification = screen.getByRole("status", { name: "Installation complete" });
+    expect(notification.parentElement).toBe(document.body);
+    expect(notification).toHaveTextContent("Alpha installed");
+    expect(notification).toHaveTextContent(
+      "Verified in SillyTavern · Reload to finish installation",
+    );
+    expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  it("dismisses a successful receipt when its notification is clicked", () => {
+    const onDismissReceipt = vi.fn();
+    const receipt = createReceipt({
+      id: "receipt-2",
+      kind: "remove",
+      projectId: "alpha",
+      projectName: "Alpha",
+      startedAt: "2026-08-18T10:00:00.000Z",
+      finishedAt: "2026-08-18T10:01:00.000Z",
+      status: "succeeded",
+      completedThrough: "recorded",
+      safeError: null,
+      reloadRequired: false,
+    });
+    render(<OperationTray active={null} receipt={receipt} onDismissReceipt={onDismissReceipt} />);
+
+    const dismiss = screen.getByRole("button", {
+      name: "Dismiss notification: Alpha removed. Verified removed from SillyTavern",
+    });
+    expect(dismiss).toHaveTextContent("Verified removed from SillyTavern");
+    fireEvent.click(dismiss);
+
+    expect(onDismissReceipt).toHaveBeenCalledOnce();
+  });
+
+  it("dismisses after 4.5 active seconds and pauses while hovered", () => {
+    vi.useFakeTimers();
+    const onDismissReceipt = vi.fn();
+    const receipt = createReceipt({
+      id: "receipt-3",
+      kind: "install",
+      projectId: "alpha",
+      projectName: "Alpha",
+      startedAt: "2026-08-18T10:00:00.000Z",
+      finishedAt: "2026-08-18T10:01:00.000Z",
+      status: "succeeded",
+      completedThrough: "recorded",
+      safeError: null,
+      reloadRequired: false,
+    });
+    render(<OperationTray active={null} receipt={receipt} onDismissReceipt={onDismissReceipt} />);
+    const dismiss = screen.getByRole("button", {
+      name: "Dismiss notification: Alpha installed. Verified in SillyTavern · Managed by Companion",
+    });
+
+    act(() => {
+      vi.advanceTimersByTime(3_000);
+    });
+    fireEvent.pointerEnter(dismiss);
+    act(() => {
+      vi.advanceTimersByTime(3_000);
+    });
+    expect(onDismissReceipt).not.toHaveBeenCalled();
+
+    fireEvent.pointerLeave(dismiss);
+    act(() => {
+      vi.advanceTimersByTime(1_499);
+    });
+    expect(onDismissReceipt).not.toHaveBeenCalled();
+    act(() => {
+      vi.advanceTimersByTime(1);
+    });
+    expect(onDismissReceipt).toHaveBeenCalledOnce();
+  });
+
+  it("pauses automatic dismissal while the notification has keyboard focus", () => {
+    vi.useFakeTimers();
+    const onDismissReceipt = vi.fn();
+    const receipt = createReceipt({
+      id: "receipt-keyboard",
+      kind: "install",
+      projectId: "alpha",
+      projectName: "Alpha",
+      startedAt: "2026-08-18T10:00:00.000Z",
+      finishedAt: "2026-08-18T10:01:00.000Z",
+      status: "succeeded",
+      completedThrough: "recorded",
+      safeError: null,
+      reloadRequired: false,
+    });
+    render(<OperationTray active={null} receipt={receipt} onDismissReceipt={onDismissReceipt} />);
+    const dismiss = screen.getByRole("button", {
+      name: "Dismiss notification: Alpha installed. Verified in SillyTavern · Managed by Companion",
+    });
+
+    dismiss.focus();
+    expect(dismiss).toHaveFocus();
+    act(() => {
+      vi.advanceTimersByTime(5_000);
+    });
+    expect(onDismissReceipt).not.toHaveBeenCalled();
+
+    dismiss.blur();
+    act(() => {
+      vi.advanceTimersByTime(4_500);
+    });
+    expect(onDismissReceipt).toHaveBeenCalledOnce();
+  });
+
+  it("keeps an incomplete receipt durable and detailed", () => {
+    const receipt = createReceipt({
+      id: "receipt-4",
+      kind: "install",
+      projectId: "alpha",
+      projectName: "Alpha",
+      startedAt: "2026-08-18T10:00:00.000Z",
+      finishedAt: "2026-08-18T10:01:00.000Z",
+      status: "verification-failed",
+      completedThrough: "host-accepted",
+      failedAt: "verified",
+      safeError: "SillyTavern could not verify the installed extension.",
+      reloadRequired: false,
+    });
+    render(<OperationTray active={null} receipt={receipt} />);
+
+    expect(screen.getByRole("region", { name: "Operation receipt" })).toHaveTextContent(
+      "Alpha install did not complete",
+    );
+    expect(screen.getByRole("list")).toHaveTextContent("Verified: failed");
   });
 
   it("offers retry when installed-extension discovery fails", () => {
