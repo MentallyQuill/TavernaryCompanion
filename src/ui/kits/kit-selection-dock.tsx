@@ -1,21 +1,32 @@
 export function KitSelectionDock({
   count,
-  onReview,
+  onAdd,
   onCancel,
 }: {
   count: number;
-  onReview(): void;
+  onAdd(): void;
   onCancel(): void;
 }): preact.JSX.Element {
+  const projectLabel = `${count} ${count === 1 ? "project" : "projects"}`;
   return (
-    <aside class="tavernary-companion-kit-selection-dock" role="status">
-      <span>{count} selected</span>
-      <button type="button" disabled={count === 0} onClick={onReview}>
-        Review Kit
-      </button>
-      <button type="button" onClick={onCancel}>
-        Cancel
-      </button>
-    </aside>
+    <section class="tavernary-companion-kit-selection-dock" aria-label={`${projectLabel} selected`}>
+      <div class="tavernary-companion-kit-selection-actions">
+        <button type="button" class="tavernary-companion-kit-selection-cancel" onClick={onCancel}>
+          Cancel
+        </button>
+        <button
+          type="button"
+          class="tavernary-companion-kit-selection-add"
+          aria-label={`Add ${projectLabel} to Kit`}
+          disabled={count === 0}
+          onClick={onAdd}
+        >
+          Add to Kit
+          <span class="selection-count" aria-hidden="true">
+            {count}
+          </span>
+        </button>
+      </div>
+    </section>
   );
 }

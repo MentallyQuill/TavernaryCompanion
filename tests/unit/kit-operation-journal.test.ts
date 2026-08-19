@@ -3,6 +3,36 @@ import { expect, it } from "vitest";
 import { catalogFixture, catalogProjectFixture } from "../helpers/catalog-fixtures";
 import { executorFixture, extension } from "../helpers/kit-executor-fixture";
 
+it("round-trips selected install targets for interrupted recovery", async () => {
+  const app = await executorFixture(catalogFixture());
+  const selectedInstallTargets = [
+    {
+      projectId: "alpha",
+      target: {
+        kind: "newest" as const,
+        requestedSha: "b".repeat(40),
+        resolvedAt: "2026-08-19T00:00:00.000Z",
+      },
+    },
+  ];
+  await app.executor.journal.write({
+    formatVersion: 1,
+    operationId: "target-op",
+    planId: "target-plan",
+    operation: "install",
+    kitId: "writers",
+    phase: "installing",
+    startedAt: "2026-08-19T00:00:00.000Z",
+    currentProjectId: "alpha",
+    completedProjects: [],
+    preOperationActiveKitId: null,
+    requiredProjectIds: ["alpha"],
+    selectedInstallTargets,
+  });
+
+  expect(app.executor.journal.read()?.selectedInstallTargets).toEqual(selectedInstallTargets);
+});
+
 it("recovers an interrupted journal without replaying mutations", async () => {
   const alpha = catalogProjectFixture({ id: "alpha", folderName: "Alpha" });
   const app = await executorFixture(

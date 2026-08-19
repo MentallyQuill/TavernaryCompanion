@@ -129,7 +129,7 @@ export function OperationSuccessNotification({
 
   if (typeof document === "undefined") return null;
 
-  const title = `${receipt.projectName} ${receipt.kind === "install" ? "installed" : "removed"}`;
+  const title = successTitle(receipt);
   const detail = successDetail(receipt);
   const statusLabel = receipt.kind === "install" ? "Installation complete" : "Removal complete";
 
@@ -179,6 +179,16 @@ export function OperationSuccessNotification({
     </aside>,
     document.body,
   );
+}
+
+function successTitle(receipt: LifecycleReceipt): string {
+  if (receipt.kind === "install" && receipt.installProvenance?.targetKind === "checked") {
+    return "Installed the checked version.";
+  }
+  if (receipt.kind === "install" && receipt.installProvenance?.targetKind === "newest") {
+    return "Installed the newest version.";
+  }
+  return `${receipt.projectName} ${receipt.kind === "install" ? "installed" : "removed"}`;
 }
 
 function successDetail(receipt: LifecycleReceipt): string {

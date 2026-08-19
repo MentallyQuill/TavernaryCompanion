@@ -9,7 +9,7 @@ interface InstalledSectionProps {
   section: InstalledSectionViewModel;
   memberships?: ReadonlyMap<string, readonly string[]>;
   togglingInternalName?: string | null;
-  onAction?(id: string, action: ProjectPrimaryAction): void;
+  onAction?(id: string, action: ProjectPrimaryAction, anchor: HTMLButtonElement): void;
   onManage?(): void;
   onToggleExtension?(projectId: string, internalName: string, enabled: boolean): void;
   lifecycleDisabled?: boolean;
@@ -67,7 +67,7 @@ function InstalledCard({
   sectionId: InstalledSectionViewModel["id"];
   kitTitles: readonly string[];
   toggling: boolean;
-  onAction?: (id: string, action: ProjectPrimaryAction) => void;
+  onAction?: (id: string, action: ProjectPrimaryAction, anchor: HTMLButtonElement) => void;
   onManage?: () => void;
   onToggleExtension?: (projectId: string, internalName: string, enabled: boolean) => void;
   lifecycleDisabled?: boolean;
@@ -123,7 +123,7 @@ function InstalledCard({
             projectName={row.name}
             action={row.action}
             disabled={lifecycleDisabled}
-            onAction={(action) => onAction?.(row.id, action)}
+            onAction={(action, anchor) => onAction?.(row.id, action, anchor)}
           />
         )}
       </footer>

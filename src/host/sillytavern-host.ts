@@ -105,7 +105,7 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
     repositoryUrl: string;
     branch: string | null;
   }): Promise<HostResolvedRevision> {
-    const repositoryUrl = parseRepositoryUrl(input.repositoryUrl);
+    const repositoryUrl = parseRepositoryUrl(input.repositoryUrl, "resolveRevision");
     let response: Response;
     try {
       response = await this.#dependencies.fetch("/api/extensions/resolve", {
@@ -136,7 +136,7 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
     branch: string | null;
     commitSha?: string | null;
   }): Promise<void> {
-    const repositoryUrl = parseRepositoryUrl(input.repositoryUrl);
+    const repositoryUrl = parseRepositoryUrl(input.repositoryUrl, "install");
     const commitSha =
       input.commitSha !== null && input.commitSha !== undefined
         ? parseCommitSha(input.commitSha, "install")
@@ -347,13 +347,13 @@ function isExplicitUnavailableCommitError(cause: unknown): boolean {
   );
 }
 
-function parseRepositoryUrl(input: string): string {
+function parseRepositoryUrl(input: string, operation: "resolveRevision" | "install"): string {
   let url: URL;
   try {
     url = new URL(input);
   } catch (cause) {
     throw new HostOperationError(
-      "install",
+      operation,
       "Extension repositories require an HTTP or HTTPS URL.",
       {
         cause,
@@ -362,7 +362,7 @@ function parseRepositoryUrl(input: string): string {
   }
 
   if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new HostOperationError("install", "Extension repositories require an HTTP or HTTPS URL.");
+    throw new HostOperationError(operation, "Extension repositories require an HTTP or HTTPS URL.");
   }
 
   return url.href;

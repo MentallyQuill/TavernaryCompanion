@@ -12,7 +12,7 @@ interface InstalledRouteProps {
   refreshing?: boolean;
   togglingInternalName?: string | null;
   onRefresh(): void | Promise<void>;
-  onAction?(id: string, action: ProjectPrimaryAction): void;
+  onAction?(id: string, action: ProjectPrimaryAction, anchor: HTMLButtonElement): void;
   onManage?(): void;
   onOpenKit?(id: string): void;
   onUninstallKit?(id: string): void;

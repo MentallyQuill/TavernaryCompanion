@@ -103,7 +103,7 @@ describe("CompanionShell", () => {
     expect(document.querySelectorAll(".tavernary-companion-project-card")).toHaveLength(120);
   });
 
-  it("starts Kit selection from the card plus and selects that project immediately", () => {
+  it("adds the selected project through Tavernary's Add to Kit dock", () => {
     const catalog = catalogFixture();
     const project = catalogProjectFixture();
     project.name = "SillyTavern Alpha";
@@ -117,10 +117,12 @@ describe("CompanionShell", () => {
       },
       inventory: emptyInventory,
     });
+    const addToKit = vi.fn();
     render(
       <CompanionShell
         controller={createShellController({ initialRoute: "projects" })}
         discovery={discovery}
+        onCreateKitFromSelection={addToKit}
       />,
     );
 
@@ -130,9 +132,24 @@ describe("CompanionShell", () => {
     expect(within(add).getByText("Kit")).toBeVisible();
     fireEvent.click(add);
 
-    expect(screen.getByText("1 selected")).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Remove Alpha from selection" }));
-    expect(screen.getByText("0 selected")).toBeVisible();
+    const addSelection = screen.getByRole("button", { name: "Add 1 project to Kit" });
+    expect(screen.queryByText("1 selected")).not.toBeInTheDocument();
+    fireEvent.click(addSelection);
+    expect(addToKit).toHaveBeenCalledWith([project.id]);
+    expect(screen.queryByRole("button", { name: "Add 1 project to Kit" })).not.toBeInTheDocument();
+  });
+
+  it("places the Kit Builder beside the scrolling catalog content", () => {
+    render(
+      <CompanionShell
+        controller={createShellController({ initialRoute: "projects" })}
+        kitBuilder={<aside data-testid="kit-builder-slot">Builder</aside>}
+      />,
+    );
+
+    const workspace = screen.getByTestId("companion-workspace");
+    expect(workspace).toContainElement(screen.getByRole("main"));
+    expect(workspace).toContainElement(screen.getByTestId("kit-builder-slot"));
   });
 
   it("navigates primary routes with the compact Browse menu", () => {

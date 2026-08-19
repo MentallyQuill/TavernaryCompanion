@@ -1,42 +1,48 @@
+import { CategoryIcon } from "../shared/category-icon";
+
 export function KitMemberRow({
   id,
   name,
-  first,
-  last,
+  kind = "extension",
+  onDragStart,
   onMove,
   onRemove,
 }: {
   id: string;
   name: string;
-  first: boolean;
-  last: boolean;
+  kind?: string;
+  onDragStart(event: preact.JSX.TargetedPointerEvent<HTMLButtonElement>): void;
   onMove(direction: -1 | 1): void;
   onRemove(): void;
 }): preact.JSX.Element {
   return (
-    <li data-project-id={id}>
-      <span>{name}</span>
-      <div>
-        <button
-          type="button"
-          disabled={first}
-          aria-label={`Move ${name} up`}
-          onClick={() => onMove(-1)}
-        >
-          ↑
-        </button>
-        <button
-          type="button"
-          disabled={last}
-          aria-label={`Move ${name} down`}
-          onClick={() => onMove(1)}
-        >
-          ↓
-        </button>
-        <button type="button" aria-label={`Remove ${name}`} onClick={onRemove}>
-          Remove
-        </button>
-      </div>
+    <li class="tavernary-companion-kit-builder-row" data-project-id={id} data-kind={kind}>
+      <button
+        type="button"
+        class="tavernary-companion-kit-drag-handle"
+        aria-label={`Drag ${name} to reorder`}
+        onPointerDown={onDragStart}
+        onKeyDown={(event) => {
+          if (!event.altKey || (event.key !== "ArrowUp" && event.key !== "ArrowDown")) return;
+          event.preventDefault();
+          onMove(event.key === "ArrowUp" ? -1 : 1);
+        }}
+      >
+        <CategoryIcon name="drag-handle" />
+      </button>
+      <span class="tavernary-companion-kit-builder-row__identity">
+        <strong>{name}</strong>
+        <small>{kind}</small>
+      </span>
+      <button
+        type="button"
+        class="tavernary-companion-kit-builder-remove"
+        aria-label={`Remove ${name} from Kit`}
+        aria-pressed="true"
+        onClick={onRemove}
+      >
+        <span aria-hidden="true">−</span>
+      </button>
     </li>
   );
 }

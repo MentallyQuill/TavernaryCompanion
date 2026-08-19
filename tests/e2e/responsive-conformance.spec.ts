@@ -83,7 +83,8 @@ test("mobile Kit selection keeps install and Kit meanings distinct", async ({ pa
   expect(kitFaceBox!.width).toBe(34);
   expect(kitFaceBox!.height).toBe(34);
   await page.getByRole("button", { name: "Add Alpha to Kit" }).click();
-  await expect(page.getByText("1 selected")).toBeVisible();
+  await expect(page.getByRole("region", { name: "1 project selected" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Add 1 project to Kit" })).toBeVisible();
   await expect(page).toHaveScreenshot("kit-selection-390x844.png");
 });
 

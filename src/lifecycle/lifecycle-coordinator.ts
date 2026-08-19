@@ -1,5 +1,6 @@
 import type { CatalogSnapshot } from "../catalog/catalog-client";
-import type { CatalogProject } from "../catalog/catalog-core";
+import { parseInstallContract, type CatalogProject } from "../catalog/catalog-core";
+import { HostRevisionUnavailableError } from "../host/host-errors";
 import type { HostExtensionAdapter } from "../host/host-types";
 import { reconcileInventory } from "../inventory/inventory-reconciler";
 import { ManagedRegistry, normalizeManagedExtensionMap } from "../inventory/managed-registry";
@@ -7,7 +8,13 @@ import type { ProfileStore } from "../state/profile-store";
 import { selectTrustPrompts } from "../trust/trust-policy";
 import type { TrustPrompt } from "../trust/trust-types";
 import { evaluateLifecycle } from "./lifecycle-policy";
-import { legacyInstallProvenance } from "./install-target";
+import type { InstallTarget, ManagedInstallProvenance } from "./install-target";
+import {
+  InstallTargetPreparationError,
+  prepareInstallTargetChoice,
+  prepareNewestInstallTarget,
+  type InstallTargetChoice,
+} from "./install-target-resolver";
 import { OperationLock } from "./operation-lock";
 import { createReceipt, type LifecycleReceipt } from "./operation-receipt";
 import {
@@ -16,12 +23,61 @@ import {
   type RemovalImpact,
 } from "./removal-impact";
 import { COMPANION_PROJECT_ID } from "./self-protection";
+import { executeVerifiedInstall, VerifiedInstallError } from "./verified-install";
 
 export interface LifecycleCoordinator {
   readonly lock: OperationLock;
-  install(projectId: string): Promise<LifecycleReceipt>;
+  prepareInstall(projectId: string): Promise<PreparedInstallTargetChoice>;
+  prepareNewestInstall(
+    projectId: string,
+  ): Promise<PreparedInstallSelection<Extract<InstallTarget, { kind: "newest" }>>>;
+  install(projectId: string, selection: PreparedInstallSelection): Promise<LifecycleReceipt>;
   previewRemoval(projectId: string): Promise<RemovalImpact>;
   remove(projectId: string): Promise<LifecycleReceipt>;
+}
+
+export interface InstallPreparationBinding {
+  projectId: string;
+  catalogGeneratedAt: string;
+  install: {
+    kind: "sillytavern-extension-git";
+    repositoryUrl: string;
+    branch: string | null;
+    manifestPath: string;
+    folderName: string;
+  };
+  report: { reportId: string; scannedSha: string } | null;
+  target: { kind: InstallTarget["kind"]; requestedSha: string | null };
+}
+
+export interface PreparedInstallSelection<TTarget extends InstallTarget = InstallTarget> {
+  target: TTarget;
+  binding: InstallPreparationBinding;
+}
+
+export type PreparedInstallTargetChoice =
+  | { kind: "single"; selection: PreparedInstallSelection }
+  | {
+      kind: "choose";
+      checked: {
+        selection: PreparedInstallSelection<Extract<InstallTarget, { kind: "checked" }>>;
+        disabledReason: string | null;
+      };
+      newest: {
+        selection: PreparedInstallSelection<Extract<InstallTarget, { kind: "newest" }>>;
+      };
+    };
+
+export const INSTALL_CHOICE_STALE_REASON =
+  "This install choice is out of date. Choose a version again.";
+
+export class InstallPreparationStaleError extends Error {
+  readonly reason = INSTALL_CHOICE_STALE_REASON;
+
+  constructor() {
+    super(INSTALL_CHOICE_STALE_REASON);
+    this.name = "InstallPreparationStaleError";
+  }
 }
 
 interface LifecycleCoordinatorOptions {
@@ -53,8 +109,46 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
     this.lock = options.lock ?? new OperationLock();
   }
 
-  install(projectId: string): Promise<LifecycleReceipt> {
+  async prepareInstall(projectId: string): Promise<PreparedInstallTargetChoice> {
+    const snapshot = this.#getSnapshot();
+    const project = eligibleProjectForPreparation(projectId, snapshot);
+    const catalog = "catalog" in snapshot ? snapshot.catalog : null;
+    if (!project || !catalog) {
+      throw new InstallTargetPreparationError("This project is not eligible for installation.");
+    }
+    const choice = await prepareInstallTargetChoice({
+      host: this.#host,
+      snapshot,
+      project,
+      now: this.#now,
+    });
+    return bindInstallTargetChoice(choice, project, catalog.generatedAt);
+  }
+
+  async prepareNewestInstall(
+    projectId: string,
+  ): Promise<PreparedInstallSelection<Extract<InstallTarget, { kind: "newest" }>>> {
+    const snapshot = this.#getSnapshot();
+    const project = eligibleProjectForPreparation(projectId, snapshot);
+    const catalog = "catalog" in snapshot ? snapshot.catalog : null;
+    if (!project || !catalog) {
+      throw new InstallTargetPreparationError("This project is not eligible for installation.");
+    }
+    const target = await prepareNewestInstallTarget({
+      host: this.#host,
+      snapshot,
+      project,
+      now: this.#now,
+    });
+    return {
+      target,
+      binding: createPreparationBinding(project, target, catalog.generatedAt),
+    };
+  }
+
+  install(projectId: string, selection: PreparedInstallSelection): Promise<LifecycleReceipt> {
     return this.lock.runExclusive(`install:${projectId}`, async ({ setPhase }) => {
+      const selectedTarget = selection.target;
       const startedAt = this.#now();
       const id = this.#createId();
       const snapshot = this.#getSnapshot();
@@ -67,6 +161,17 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
           projectName: project?.name ?? projectId,
           startedAt,
         });
+      }
+      if (
+        !project ||
+        !catalog ||
+        !matchesPreparationBinding(
+          selection,
+          eligibleProjectForPreparation(projectId, snapshot),
+          catalog.generatedAt,
+        )
+      ) {
+        throw new InstallPreparationStaleError();
       }
 
       setPhase("discovering");
@@ -84,7 +189,7 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
         project,
         context: { snapshot, inventory },
       });
-      if (decision.kind !== "allowed" || decision.operation !== "install" || !project) {
+      if (decision.kind !== "allowed" || decision.operation !== "install" || !project || !catalog) {
         return this.#rejected({
           id,
           projectId,
@@ -96,10 +201,11 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
       const state = this.#store.read();
       const prompts = selectTrustPrompts({
         trustAcknowledgedAt: state.trustAcknowledgedAt,
+        target: selectedTarget,
         assessment: project.tavernKeeper
           ? {
               riskLevel: project.tavernKeeper.riskLevel,
-              freshness: project.tavernKeeper.freshness,
+              scannedSha: project.tavernKeeper.report?.scannedSha ?? null,
               reportUrl: project.tavernKeeper.report?.reportUrl ?? null,
             }
           : null,
@@ -126,18 +232,94 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
         if (prompt.kind === "unsandboxed-disclosure") disclosureAccepted = true;
       }
 
+      const executionBefore = await this.#host.discover();
+      const executionSnapshot = this.#getSnapshot();
+      const executionCatalog = "catalog" in executionSnapshot ? executionSnapshot.catalog : null;
+      const executionProject =
+        executionCatalog?.projects.find((candidate) => candidate.id === projectId) ?? null;
+      if (
+        !executionProject ||
+        !executionCatalog ||
+        !matchesPreparationBinding(
+          selection,
+          eligibleProjectForPreparation(projectId, executionSnapshot),
+          executionCatalog.generatedAt,
+        )
+      ) {
+        throw new InstallPreparationStaleError();
+      }
+      const executionRegistry = new ManagedRegistry(
+        normalizeManagedExtensionMap(this.#store.read().managedExtensions),
+      );
+      const executionInventory = reconcileInventory({
+        projects: executionCatalog?.projects ?? [],
+        hostExtensions: executionBefore,
+        managed: executionRegistry.read(),
+      });
+      const executionDecision = evaluateLifecycle({
+        operation: "install",
+        project: executionProject,
+        context: { snapshot: executionSnapshot, inventory: executionInventory },
+      });
+      if (
+        executionDecision.kind !== "allowed" ||
+        executionDecision.operation !== "install" ||
+        !executionProject ||
+        !executionCatalog
+      ) {
+        throw new InstallPreparationStaleError();
+      }
+
       setPhase("host-request");
+      let verified: Awaited<ReturnType<typeof executeVerifiedInstall>>;
       try {
-        await this.#host.install({
-          repositoryUrl: decision.contract.repositoryUrl,
-          branch: decision.contract.branch,
+        verified = await executeVerifiedInstall({
+          host: this.#host,
+          project: executionProject,
+          target: selectedTarget,
         });
-      } catch {
+      } catch (error) {
+        if (error instanceof HostRevisionUnavailableError) {
+          if (disclosureAccepted) {
+            await this.#persistAcknowledgement().catch(() => undefined);
+          }
+          throw error;
+        }
+        if (error instanceof VerifiedInstallError) {
+          const failedBeforeMutation = error.stage === "preflight";
+          const receipt = createReceipt({
+            id,
+            kind: "install",
+            projectId,
+            projectName: executionProject.name,
+            startedAt,
+            finishedAt: this.#now(),
+            status: failedBeforeMutation ? "failed" : "verification-failed",
+            completedThrough: failedBeforeMutation ? "requested" : "host-accepted",
+            failedAt: failedBeforeMutation ? "host-accepted" : "verified",
+            safeError: verificationFailureCopy(error),
+            reloadRequired: false,
+            ...(failedBeforeMutation
+              ? {}
+              : {
+                  installProvenance: createInstallProvenance({
+                    target: selectedTarget,
+                    installedSha: error.installedSha,
+                    catalogGeneratedAt: executionCatalog.generatedAt,
+                  }),
+                }),
+            cleanupOutcome: error.cleanupOutcome,
+            tavernKeeperReportUrl:
+              selectedTarget.kind === "checked" ? selectedTarget.reportUrl : null,
+          });
+          await this.#persistNonMutation(receipt, disclosureAccepted ? this.#now() : null);
+          return receipt;
+        }
         const receipt = createReceipt({
           id,
           kind: "install",
           projectId,
-          projectName: project.name,
+          projectName: executionProject.name,
           startedAt,
           finishedAt: this.#now(),
           status: "failed",
@@ -151,50 +333,38 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
       }
 
       setPhase("verifying");
-      const after = await this.#host.discover();
-      const installed = exactFolder(after, decision.contract.folderName);
-      if (!installed) {
-        const receipt = createReceipt({
-          id,
-          kind: "install",
-          projectId,
-          projectName: project.name,
-          startedAt,
-          finishedAt: this.#now(),
-          status: "verification-failed",
-          completedThrough: "host-accepted",
-          failedAt: "verified",
-          safeError: "SillyTavern did not report the expected installed extension.",
-          reloadRequired: false,
-        });
-        await this.#persistNonMutation(receipt, disclosureAccepted ? this.#now() : null);
-        return receipt;
-      }
-
-      registry.recordInstalled({
+      const provenance = createInstallProvenance({
+        target: selectedTarget,
+        installedSha: verified.installedSha,
+        catalogGeneratedAt: executionCatalog.generatedAt,
+      });
+      executionRegistry.recordInstalled({
         projectId,
-        expectedFolderName: decision.contract.folderName,
-        extension: installed,
+        expectedFolderName: executionDecision.contract.folderName,
+        extension: verified.extension,
         installedAt: this.#now(),
         installedBy: "individual",
-        provenance: legacyInstallProvenance(),
+        provenance,
       });
       const receipt = createReceipt({
         id,
         kind: "install",
         projectId,
-        projectName: project.name,
+        projectName: executionProject.name,
         startedAt,
         finishedAt: this.#now(),
         status: "succeeded",
         completedThrough: "recorded",
         safeError: null,
         reloadRequired: true,
+        installProvenance: provenance,
+        cleanupOutcome: verified.cleanupOutcome,
+        tavernKeeperReportUrl: selectedTarget.kind === "checked" ? selectedTarget.reportUrl : null,
       });
       setPhase("recording");
       try {
         await this.#store.update((draft) => {
-          draft.managedExtensions = registry.read();
+          draft.managedExtensions = executionRegistry.read();
           if (disclosureAccepted && !draft.trustAcknowledgedAt) {
             draft.trustAcknowledgedAt = this.#now();
           }
@@ -206,7 +376,7 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
           id,
           kind: "install",
           projectId,
-          projectName: project.name,
+          projectName: executionProject.name,
           startedAt,
           finishedAt: this.#now(),
           status: "installed-unrecorded",
@@ -215,6 +385,10 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
           safeError:
             "The extension is installed, but Companion could not record ownership. Reopen Companion to reconcile it.",
           reloadRequired: true,
+          installProvenance: provenance,
+          cleanupOutcome: verified.cleanupOutcome,
+          tavernKeeperReportUrl:
+            selectedTarget.kind === "checked" ? selectedTarget.reportUrl : null,
         });
       }
     });
@@ -431,6 +605,12 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
     });
   }
 
+  async #persistAcknowledgement(): Promise<void> {
+    await this.#store.update((draft) => {
+      if (!draft.trustAcknowledgedAt) draft.trustAcknowledgedAt = this.#now();
+    });
+  }
+
   async #persistNonMutation(receipt: LifecycleReceipt, trustAcknowledgedAt: string | null) {
     await this.#store
       .update((draft) => {
@@ -440,6 +620,31 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
         draft.operationReceipt = structuredClone(receipt);
       })
       .catch(() => undefined);
+  }
+}
+
+function eligibleProjectForPreparation(
+  projectId: string,
+  snapshot: CatalogSnapshot,
+): CatalogProject | null {
+  const project =
+    ("catalog" in snapshot ? snapshot.catalog.projects.find(({ id }) => id === projectId) : null) ??
+    null;
+  if (
+    projectId === COMPANION_PROJECT_ID ||
+    !project ||
+    !snapshot.canMutate ||
+    project.kind !== "extension" ||
+    !project.frontends.some(({ id }) => id === "sillytavern")
+  ) {
+    return null;
+  }
+  try {
+    if (!project.install) throw new Error("Install contract is missing.");
+    const contract = parseInstallContract(project.install);
+    return contract.folderName === project.install.folderName ? project : null;
+  } catch {
+    return null;
   }
 }
 
@@ -461,15 +666,117 @@ function removalKitTitles(
   return titles;
 }
 
-function exactFolder(
-  extensions: Awaited<ReturnType<HostExtensionAdapter["discover"]>>,
-  folder: string,
-) {
-  const identity = folder.normalize("NFKC").toLocaleLowerCase("en-US");
-  const matches = extensions.filter(
-    (extension) => extension.folderName.normalize("NFKC").toLocaleLowerCase("en-US") === identity,
+function bindInstallTargetChoice(
+  choice: InstallTargetChoice,
+  project: CatalogProject,
+  catalogGeneratedAt: string,
+): PreparedInstallTargetChoice {
+  const bind = <TTarget extends InstallTarget>(
+    target: TTarget,
+  ): PreparedInstallSelection<TTarget> => ({
+    target,
+    binding: createPreparationBinding(project, target, catalogGeneratedAt),
+  });
+  if (choice.kind === "single") return { kind: "single", selection: bind(choice.target) };
+  return {
+    kind: "choose",
+    checked: {
+      selection: bind(choice.checked.target),
+      disabledReason: choice.checked.disabledReason,
+    },
+    newest: { selection: bind(choice.newest) },
+  };
+}
+
+function createPreparationBinding(
+  project: CatalogProject,
+  target: InstallTarget,
+  catalogGeneratedAt: string,
+): InstallPreparationBinding {
+  if (!project.install) throw new Error("Install contract is missing.");
+  const install = parseInstallContract(project.install);
+  const report = project.tavernKeeper?.report ?? null;
+  return {
+    projectId: project.id,
+    catalogGeneratedAt,
+    install: {
+      kind: install.kind,
+      repositoryUrl: install.repositoryUrl,
+      branch: install.branch,
+      manifestPath: install.manifestPath,
+      folderName: install.folderName,
+    },
+    report: report ? { reportId: report.reportId, scannedSha: report.scannedSha } : null,
+    target: { kind: target.kind, requestedSha: target.requestedSha },
+  };
+}
+
+function matchesPreparationBinding(
+  selection: PreparedInstallSelection,
+  project: CatalogProject | null,
+  catalogGeneratedAt: string,
+): boolean {
+  if (!project || !selection.target || !selection.binding) return false;
+  const report = project.tavernKeeper?.report ?? null;
+  if (
+    selection.target.kind === "checked" &&
+    (!report ||
+      selection.target.reportId !== report.reportId ||
+      selection.target.requestedSha.toLowerCase() !== report.scannedSha.toLowerCase())
+  ) {
+    return false;
+  }
+  const expected = createPreparationBinding(project, selection.target, catalogGeneratedAt);
+  const actual = selection.binding;
+  return (
+    actual.projectId === expected.projectId &&
+    actual.catalogGeneratedAt === expected.catalogGeneratedAt &&
+    actual.install.kind === expected.install.kind &&
+    actual.install.repositoryUrl === expected.install.repositoryUrl &&
+    actual.install.branch === expected.install.branch &&
+    actual.install.manifestPath === expected.install.manifestPath &&
+    actual.install.folderName === expected.install.folderName &&
+    actual.target.kind === expected.target.kind &&
+    actual.target.requestedSha === expected.target.requestedSha &&
+    sameReportIdentity(actual.report, expected.report)
   );
-  return matches.length === 1 ? matches[0] : null;
+}
+
+function sameReportIdentity(
+  left: InstallPreparationBinding["report"],
+  right: InstallPreparationBinding["report"],
+): boolean {
+  if (left === null || right === null) return left === right;
+  return left.reportId === right.reportId && left.scannedSha === right.scannedSha;
+}
+
+function createInstallProvenance(input: {
+  target: InstallTarget;
+  installedSha: string | null;
+  catalogGeneratedAt: string;
+}): ManagedInstallProvenance {
+  return {
+    targetKind: input.target.kind,
+    requestedSha: input.target.requestedSha,
+    installedSha: input.installedSha,
+    catalogGeneratedAt: input.catalogGeneratedAt,
+    tavernKeeperReportId: input.target.kind === "checked" ? input.target.reportId : null,
+  };
+}
+
+function verificationFailureCopy(error: VerifiedInstallError): string {
+  if (error.stage === "preflight") {
+    return error.subtype === "local-revision-lookup-unavailable"
+      ? "SillyTavern can't verify the selected version, so Companion did not install it."
+      : "Companion could not prepare this install request.";
+  }
+  if (error.cleanupOutcome === "succeeded") {
+    return "The install didn't finish correctly, so Companion cleaned it up.";
+  }
+  if (error.cleanupOutcome === "failed") {
+    return "The install didn't finish correctly, and cleanup needs attention in SillyTavern.";
+  }
+  return "SillyTavern did not report the expected installed extension.";
 }
 
 export function createLifecycleCoordinator(

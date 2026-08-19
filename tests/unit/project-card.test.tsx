@@ -112,7 +112,7 @@ describe("ProjectCard", () => {
     expect(screen.queryByRole("button", { name: /details/i })).not.toBeInTheDocument();
 
     fireEvent.click(install);
-    expect(onAction).toHaveBeenCalledWith(project().action);
+    expect(onAction).toHaveBeenCalledWith(project().action, install);
   });
 
   it("uses Tavernary's compact scan glyph when TavernKeeper status exists", () => {
@@ -342,6 +342,16 @@ describe("ProjectCard", () => {
     );
     expect(uninstall).toHaveClass("is-installed");
     expect(container.querySelector("article")).toHaveClass("is-installed");
+  });
+
+  it("passes the actual lifecycle button as the install anchor", () => {
+    const onAction = vi.fn();
+    render(<ProjectCard project={project()} onAction={onAction} />);
+
+    const install = screen.getByRole("button", { name: "Install Alpha" });
+    fireEvent.click(install);
+
+    expect(onAction).toHaveBeenCalledWith(project().action, install);
   });
 
   it("explains browse-only actions without presenting them as installable", () => {

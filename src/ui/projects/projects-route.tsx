@@ -14,13 +14,13 @@ interface ProjectsRouteProps {
   state: DiscoveryState;
   facets?: ProjectFacets;
   onQueryChange(query: CatalogQuery): void;
-  onProjectAction?(id: string, action: ProjectPrimaryAction): void;
+  onProjectAction?(id: string, action: ProjectPrimaryAction, anchor: HTMLButtonElement): void;
   onManageInSillyTavern?(): void;
   lifecycleDisabled?: boolean;
   kitSelectionActive?: boolean;
   selectedKitProjectIds?: readonly string[];
   onToggleKitSelection?(projectId: string): void;
-  onReviewKitSelection?(): void;
+  onAddKitSelection?(): void;
   onCancelKitSelection?(): void;
   visibleProjectCount?: number;
   onVisibleProjectCountChange?(count: number): void;
@@ -59,7 +59,7 @@ export function ProjectsRoute({
   kitSelectionActive = false,
   selectedKitProjectIds = [],
   onToggleKitSelection,
-  onReviewKitSelection,
+  onAddKitSelection,
   onCancelKitSelection,
   visibleProjectCount,
   onVisibleProjectCountChange,
@@ -277,7 +277,7 @@ export function ProjectsRoute({
       {kitSelectionActive ? (
         <KitSelectionDock
           count={selectedKitProjectIds.length}
-          onReview={() => onReviewKitSelection?.()}
+          onAdd={() => onAddKitSelection?.()}
           onCancel={() => onCancelKitSelection?.()}
         />
       ) : null}

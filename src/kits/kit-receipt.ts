@@ -1,6 +1,9 @@
 import type { KitOperation } from "./kit-plan";
+import type { ManagedInstallProvenance } from "../lifecycle/install-target";
+import type { KitInstallTargetSelection } from "./kit-install-targets";
 
-export type KitProjectResultStatus = "verified" | "failed" | "kept" | "external" | "context";
+export type KitProjectResultStatus =
+  "verified" | "failed" | "untouched" | "kept" | "external" | "context";
 
 export interface KitProjectResult {
   projectId: string;
@@ -8,6 +11,7 @@ export interface KitProjectResult {
   status: KitProjectResultStatus;
   message: string;
   retryable: boolean;
+  installProvenance?: ManagedInstallProvenance;
 }
 
 export interface KitReceipt {
@@ -32,4 +36,6 @@ export interface KitApproval {
   catalogGeneratedAt: string;
   catalogBinding: string;
   acceptedWarningProjectIds: string[];
+  selectedInstallTargets: KitInstallTargetSelection[];
+  installTargetBinding: string;
 }

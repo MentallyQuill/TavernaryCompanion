@@ -1,5 +1,5 @@
 import { render } from "preact";
-import { useCallback, useEffect, useMemo, useState } from "preact/hooks";
+import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 
 import { createCatalogClient, type CatalogSnapshot } from "../catalog/catalog-client";
 import { createDiscoveryController } from "../catalog/discovery-controller";
@@ -12,9 +12,21 @@ import { normalizeManagedExtensionMap } from "../inventory/managed-registry";
 import {
   createLifecycleCoordinator,
   type LifecycleCoordinator,
+  type PreparedInstallSelection,
+  type PreparedInstallTargetChoice,
 } from "../lifecycle/lifecycle-coordinator";
 import type { ActiveOperation } from "../lifecycle/operation-lock";
 import type { LifecycleReceipt } from "../lifecycle/operation-receipt";
+import {
+  InstallTargetPreparationError,
+  NEWEST_LOOKUP_FAILED_REASON,
+} from "../lifecycle/install-target-resolver";
+import {
+  CHECKED_VERSION_UNAVAILABLE_REASON,
+  InstallTargetFallbackBroker,
+  type InstallTargetFallbackRequest,
+} from "../lifecycle/install-target-fallback-broker";
+import { HostRevisionUnavailableError } from "../host/host-errors";
 import type { RemovalImpact } from "../lifecycle/removal-impact";
 import { assertNotCompanionProject } from "../lifecycle/self-protection";
 import { TrustPromptBroker, type PendingTrustPrompt } from "../lifecycle/trust-prompt-broker";
@@ -22,11 +34,11 @@ import type { ProfileStore } from "../state/profile-store";
 import { createKitDiscoveryController } from "../kits/kit-discovery-controller";
 import { createKitExecutor, type KitExecutor } from "../kits/kit-executor";
 import { planKitOperation, inventoryFingerprint, type PlannableKit } from "../kits/kit-planner";
+import { prepareKitInstallTargets } from "../kits/kit-install-targets";
 import type { KitPlan, KitOperation } from "../kits/kit-plan";
 import { prepareImportedKit } from "../kits/kit-portability";
 import type { KitReceipt } from "../kits/kit-receipt";
 import { KitStore } from "../kits/kit-store";
-import type { PersonalKitV1 } from "../kits/kit-types";
 import {
   toPersonalKitInspector,
   toPublishedKitInspector,
@@ -40,12 +52,16 @@ import { fingerprintKitTopology } from "../kits/kit-validation";
 import { UNSANDBOXED_CODE_DISCLOSURE } from "../trust/trust-copy";
 import { exportKitFile } from "./kits/kit-export-action";
 import { KitEditor } from "./kits/kit-editor";
-import type { KitDraftState } from "../kits/kit-draft";
+import { addDraftMember, createKitDraft, type KitDraftState } from "../kits/kit-draft";
 import { KitImportDialog } from "./kits/kit-import-dialog";
 import { KitOperationTray } from "./kits/kit-operation-tray";
 import { KitPreflightDialog } from "./kits/kit-preflight-dialog";
 import { AssessmentWarningDialog } from "./lifecycle/assessment-warning-dialog";
 import { OperationTray } from "./lifecycle/operation-tray";
+import {
+  dispatchPreparedInstallChoice,
+  InstallVersionChooser,
+} from "./lifecycle/install-version-chooser";
 import { RemovalDialog } from "./lifecycle/removal-dialog";
 import { TrustDisclosureDialog } from "./lifecycle/trust-disclosure-dialog";
 import { CompanionShell } from "./shell/companion-shell";
@@ -62,6 +78,7 @@ export interface PopupRuntime {
   discovery: ReturnType<typeof createDiscoveryController>;
   lifecycle: LifecycleCoordinator;
   prompts: TrustPromptBroker;
+  installFallbacks: InstallTargetFallbackBroker;
   kits: KitStore;
   kitDiscovery: ReturnType<typeof createKitDiscoveryController>;
   kitExecutor: KitExecutor;
@@ -114,12 +131,33 @@ export function CompanionPopupHost({
   );
   const [pendingKitPlan, setPendingKitPlan] = useState<Readonly<KitPlan> | null>(null);
   const [kitDisclosurePlan, setKitDisclosurePlan] = useState<Readonly<KitPlan> | null>(null);
-  const [kitEditorSource, setKitEditorSource] = useState<PersonalKitV1 | "new" | null>(null);
-  const [kitEditorSeed, setKitEditorSeed] = useState<string[]>([]);
+  const [kitDraft, setKitDraft] = useState<KitDraftState | null>(null);
+  const [kitBuilderCollapsed, setKitBuilderCollapsed] = useState(true);
   const [importingKit, setImportingKit] = useState(false);
   const [kitInspectors, setKitInspectors] = useState<Record<string, KitInspectorViewModel>>({});
   const [installedKitCards, setInstalledKitCards] = useState<InstalledKitViewModel[]>([]);
   const [operationError, setOperationError] = useState<string | null>(null);
+  const [preparingInstall, setPreparingInstall] = useState(false);
+  const [preparingKitPlan, setPreparingKitPlan] = useState(false);
+  const [pendingInstallChoice, setPendingInstallChoice] = useState<{
+    projectId: string;
+    projectName: string;
+    anchor: HTMLButtonElement;
+    choice: Extract<PreparedInstallTargetChoice, { kind: "choose" }>;
+  } | null>(null);
+  const localInstallFallbacks = useMemo(() => new InstallTargetFallbackBroker(), []);
+  const installFallbacks = runtime?.installFallbacks ?? localInstallFallbacks;
+  const [pendingInstallFallback, setPendingInstallFallback] =
+    useState<InstallTargetFallbackRequest | null>(installFallbacks.read());
+  const fallbackAnchor = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = installFallbacks.subscribe(setPendingInstallFallback);
+    return () => {
+      unsubscribe();
+      installFallbacks.cancel();
+    };
+  }, [installFallbacks]);
 
   const syncKits = useCallback(async () => {
     if (!runtime || !store) return;
@@ -206,22 +244,84 @@ export function CompanionPopupHost({
     };
   }, [refreshInventory, runtime, store, syncKits]);
 
-  const runAction = async (projectId: string, action: ProjectPrimaryAction) => {
+  const executeInstallSelection = async (
+    projectId: string,
+    projectName: string,
+    anchor: HTMLButtonElement,
+    selection: PreparedInstallSelection,
+    allowUnavailableFallback = true,
+  ): Promise<void> => {
+    if (!runtime) return;
+    try {
+      const result = await runtime.lifecycle.install(projectId, selection);
+      setReceipt(result);
+      await refreshInventory();
+    } catch (error) {
+      if (
+        allowUnavailableFallback &&
+        error instanceof HostRevisionUnavailableError &&
+        selection.target.kind === "checked"
+      ) {
+        const newest = await runtime.lifecycle.prepareNewestInstall(projectId);
+        fallbackAnchor.current = anchor;
+        const replacement = await installFallbacks.request({
+          projectId,
+          projectName,
+          checked: selection as InstallTargetFallbackRequest["checked"],
+          newest,
+        });
+        if (replacement) {
+          await executeInstallSelection(projectId, projectName, anchor, replacement, false);
+        }
+        fallbackAnchor.current = null;
+        return;
+      }
+      if (error instanceof HostRevisionUnavailableError && selection.target.kind === "newest") {
+        throw new InstallTargetPreparationError(NEWEST_LOOKUP_FAILED_REASON, { cause: error });
+      }
+      throw error;
+    }
+  };
+
+  const runAction = async (
+    projectId: string,
+    action: ProjectPrimaryAction,
+    anchor: HTMLButtonElement,
+  ) => {
     if (!runtime || !host) return;
     setOperationError(null);
     try {
       if (action.kind === "install") {
-        const result = await runtime.lifecycle.install(projectId);
-        setReceipt(result);
-        await refreshInventory();
+        setPreparingInstall(true);
+        const prepared = await runtime.lifecycle.prepareInstall(projectId);
+        const snapshot = runtime.catalog.read();
+        const projectName =
+          ("catalog" in snapshot
+            ? snapshot.catalog.projects.find(({ id }) => id === projectId)?.name
+            : null) ?? projectId;
+        dispatchPreparedInstallChoice(
+          prepared,
+          (selection) => {
+            void executeInstallSelection(projectId, projectName, anchor, selection).catch(
+              showOperationError,
+            );
+          },
+          (choice) => setPendingInstallChoice({ projectId, projectName, anchor, choice }),
+        );
       } else if (action.kind === "uninstall") {
         setRemovalImpact(await runtime.lifecycle.previewRemoval(projectId));
       } else if (action.kind === "update-required" || action.kind === "manage-in-sillytavern") {
         await host.openExtensionManager();
       }
     } catch (error) {
-      setOperationError(error instanceof Error ? error.message : "The operation could not finish.");
+      showOperationError(error);
+    } finally {
+      setPreparingInstall(false);
     }
+  };
+
+  const showOperationError = (error: unknown) => {
+    setOperationError(error instanceof Error ? error.message : "The operation could not finish.");
   };
 
   const toggleExtension = async (projectId: string, internalName: string, enabled: boolean) => {
@@ -242,29 +342,42 @@ export function CompanionPopupHost({
     }
   };
 
-  const requestKitOperation = (kitId: string, operation: KitOperation) => {
-    if (!runtime || !store) return;
-    const snapshot = runtime.catalog.read();
-    if (!("catalog" in snapshot)) return;
-    const kit = resolveKit(runtime, snapshot.catalog, kitId);
-    if (!kit) return;
-    const plan = planKitOperation({
-      operation,
-      kit,
-      catalog: snapshot.catalog,
-      inventory: runtime.kitContext.inventory,
-      managed: normalizeManagedExtensionMap(store.read().managedExtensions),
-      installedKits: runtime.kits.readInstalledStates(),
-      activeKitId: runtime.kits.readActiveId(),
-      catalogCanMutate: snapshot.canMutate,
-    });
-    if (!store.read().trustAcknowledgedAt && plan.install.length) setKitDisclosurePlan(plan);
-    else setPendingKitPlan(plan);
+  const requestKitOperation = async (kitId: string, operation: KitOperation) => {
+    if (!runtime || !store || !host) return;
+    setOperationError(null);
+    setPreparingKitPlan(true);
+    try {
+      const snapshot = runtime.catalog.read();
+      if (!("catalog" in snapshot)) return;
+      const kit = resolveKit(runtime, snapshot.catalog, kitId);
+      if (!kit) return;
+      const planned = planKitOperation({
+        operation,
+        kit,
+        catalog: snapshot.catalog,
+        inventory: runtime.kitContext.inventory,
+        managed: normalizeManagedExtensionMap(store.read().managedExtensions),
+        installedKits: runtime.kits.readInstalledStates(),
+        activeKitId: runtime.kits.readActiveId(),
+        catalogCanMutate: snapshot.canMutate,
+      });
+      const plan = await prepareKitInstallTargets({
+        plan: planned,
+        catalog: snapshot.catalog,
+        host,
+      });
+      if (!store.read().trustAcknowledgedAt && plan.install.length) setKitDisclosurePlan(plan);
+      else setPendingKitPlan(plan);
+    } catch (error) {
+      showOperationError(error);
+    } finally {
+      setPreparingKitPlan(false);
+    }
   };
 
   const requestKitAction = (kitId: string, action: KitPrimaryAction | "uninstall") => {
     if (action !== "uninstall" && (action.kind === "review" || action.kind === "view")) return;
-    requestKitOperation(
+    void requestKitOperation(
       kitId,
       action === "uninstall"
         ? "uninstall"
@@ -310,8 +423,8 @@ export function CompanionPopupHost({
         projectIds: draft.projectIds,
       });
     }
-    setKitEditorSource(null);
-    setKitEditorSeed([]);
+    setKitDraft(null);
+    setKitBuilderCollapsed(true);
     await syncKits();
   };
   const runtimeCatalog = runtime?.catalog.read();
@@ -332,29 +445,41 @@ export function CompanionPopupHost({
         onToggleExtension={(projectId, internalName, enabled) =>
           void toggleExtension(projectId, internalName, enabled)
         }
-        onProjectAction={(projectId, action) => void runAction(projectId, action)}
+        onProjectAction={(projectId, action, anchor) => void runAction(projectId, action, anchor)}
         onOpenExtensionManager={() => void host?.openExtensionManager()}
         onUpdateCompanion={() => void host?.openExtensionManager()}
         onOpenTavernary={() => host?.openExternal("https://tavernary.org/")}
-        lifecycleDisabled={activeOperation !== null || togglingInternalName !== null}
+        lifecycleDisabled={
+          activeOperation !== null ||
+          togglingInternalName !== null ||
+          preparingInstall ||
+          pendingInstallChoice !== null ||
+          pendingInstallFallback !== null ||
+          preparingKitPlan
+        }
         kitDiscovery={runtime?.kitDiscovery}
         kitInspectors={kitInspectors}
         installedKits={installedKitCards}
         onKitAction={requestKitAction}
         onNewKit={() => {
-          setKitEditorSeed([]);
-          setKitEditorSource("new");
+          setKitDraft((current) => current ?? createKitDraft());
+          setKitBuilderCollapsed(false);
         }}
         onCreateKitFromSelection={(projectIds) => {
-          setKitEditorSeed([...projectIds]);
-          setKitEditorSource("new");
+          setKitDraft((current) =>
+            projectIds.reduce(
+              (next, projectId) => addDraftMember(next, projectId),
+              current ?? createKitDraft(),
+            ),
+          );
+          if (!kitDraft) setKitBuilderCollapsed(true);
         }}
         onImportKit={() => setImportingKit(true)}
         onEditKit={(id) => {
           const kit = runtime?.kits.readDefinition(id);
           if (kit) {
-            setKitEditorSeed([]);
-            setKitEditorSource(kit);
+            setKitDraft(createKitDraft(kit));
+            setKitBuilderCollapsed(false);
           }
         }}
         onCopyKit={(id) => {
@@ -383,19 +508,27 @@ export function CompanionPopupHost({
             .catch(() => setOperationError("Uninstall the Kit before removing it."))
         }
         activeKitId={runtime?.kits.readActiveId() ?? null}
+        kitBuilder={
+          kitEditorProjects ? (
+            <KitEditor
+              draft={kitDraft}
+              projects={kitEditorProjects}
+              collapsed={kitBuilderCollapsed}
+              onStart={() => {
+                setKitDraft((current) => current ?? createKitDraft());
+                setKitBuilderCollapsed(false);
+              }}
+              onUpdate={setKitDraft}
+              onCollapse={() => setKitBuilderCollapsed(true)}
+              onDiscard={() => {
+                setKitDraft(null);
+                setKitBuilderCollapsed(true);
+              }}
+              onSave={(draft) => void saveKitDraft(draft)}
+            />
+          ) : null
+        }
       />
-      {kitEditorSource && kitEditorProjects ? (
-        <KitEditor
-          source={kitEditorSource === "new" ? undefined : kitEditorSource}
-          initialProjectIds={kitEditorSource === "new" ? kitEditorSeed : []}
-          projects={kitEditorProjects}
-          onCancel={() => {
-            setKitEditorSource(null);
-            setKitEditorSeed([]);
-          }}
-          onSave={(draft) => void saveKitDraft(draft)}
-        />
-      ) : null}
       {importingKit && runtime ? (
         <KitImportDialog
           projects={kitEditorProjects ?? []}
@@ -450,6 +583,46 @@ export function CompanionPopupHost({
           onConfirm={() => runtime?.prompts.respond(true)}
         />
       ) : null}
+      {pendingInstallChoice ? (
+        <InstallVersionChooser
+          projectId={pendingInstallChoice.projectId}
+          projectName={pendingInstallChoice.projectName}
+          anchor={pendingInstallChoice.anchor}
+          choice={pendingInstallChoice.choice}
+          onCancel={() => setPendingInstallChoice(null)}
+          onSelect={(selection) => {
+            const pending = pendingInstallChoice;
+            setPendingInstallChoice(null);
+            void executeInstallSelection(
+              pending.projectId,
+              pending.projectName,
+              pending.anchor,
+              selection,
+            ).catch(showOperationError);
+          }}
+        />
+      ) : null}
+      {pendingInstallFallback &&
+      (fallbackAnchor.current ?? document.querySelector(".tavernary-companion-root")) ? (
+        <InstallVersionChooser
+          projectId={pendingInstallFallback.projectId}
+          projectName={pendingInstallFallback.projectName}
+          anchor={
+            fallbackAnchor.current ??
+            document.querySelector<HTMLElement>(".tavernary-companion-root")!
+          }
+          choice={{
+            kind: "choose",
+            checked: {
+              selection: pendingInstallFallback.checked,
+              disabledReason: CHECKED_VERSION_UNAVAILABLE_REASON,
+            },
+            newest: { selection: pendingInstallFallback.newest },
+          }}
+          onCancel={() => installFallbacks.cancel()}
+          onSelect={(selection) => installFallbacks.respond(selection)}
+        />
+      ) : null}
       {removalImpact ? (
         <RemovalDialog
           impact={removalImpact}
@@ -484,7 +657,7 @@ export function CompanionPopupHost({
         }}
         onRetry={() => {
           if (!kitReceipt) return;
-          requestKitOperation(kitReceipt.kitId, retryKitOperation(kitReceipt));
+          void requestKitOperation(kitReceipt.kitId, retryKitOperation(kitReceipt));
         }}
       />
     </>
@@ -515,6 +688,7 @@ export function createPopupRuntime(
     statuses: new Map(),
   });
   const prompts = new TrustPromptBroker();
+  const installFallbacks = new InstallTargetFallbackBroker();
   const lifecycle = createLifecycleCoordinator({
     host,
     store,
@@ -549,8 +723,20 @@ export function createPopupRuntime(
         activeKitId: kits.readActiveId(),
       });
     },
+    fallbacks: installFallbacks,
+    confirm: (prompt, project) => prompts.request(prompt, project),
   });
-  return { catalog, discovery, lifecycle, prompts, kits, kitDiscovery, kitExecutor, kitContext };
+  return {
+    catalog,
+    discovery,
+    lifecycle,
+    prompts,
+    installFallbacks,
+    kits,
+    kitDiscovery,
+    kitExecutor,
+    kitContext,
+  };
 }
 
 function parseReceipt(value: Record<string, unknown> | null | undefined): LifecycleReceipt | null {
@@ -622,8 +808,10 @@ function isKitProjectResult(value: unknown): boolean {
       result.action === "context") &&
     (result.status === "verified" ||
       result.status === "failed" ||
+      result.status === "untouched" ||
       result.status === "kept" ||
-      result.status === "external") &&
+      result.status === "external" ||
+      result.status === "context") &&
     typeof result.message === "string" &&
     typeof result.retryable === "boolean"
   );

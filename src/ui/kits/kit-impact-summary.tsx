@@ -14,7 +14,6 @@ const groups: Array<{
   >;
   title: string;
 }> = [
-  { key: "install", title: "Install" },
   { key: "enable", title: "Enable" },
   { key: "disable", title: "Disable" },
   { key: "remove", title: "Remove" },

@@ -35,7 +35,9 @@ it("runs disclosure, verified install, and exact managed removal as one service 
     now: () => "2026-08-18T00:00:00.000Z",
     createId: () => "receipt",
   });
-  expect((await lifecycle.install("harmless")).status).toBe("succeeded");
+  const prepared = await lifecycle.prepareInstall("harmless");
+  if (prepared.kind !== "single") throw new Error("Expected one prepared install target.");
+  expect((await lifecycle.install("harmless", prepared.selection)).status).toBe("succeeded");
   expect(confirm).toHaveBeenCalledOnce();
   expect((await lifecycle.remove("harmless")).status).toBe("succeeded");
   expect(host.calls.filter(({ operation }) => operation === "remove")).toEqual([

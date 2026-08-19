@@ -10,13 +10,13 @@ It is built for players, so your current SillyTavern setup stays in your control
 - Install and remove extensions that Companion manages.
 - Save, switch, and track your extension sets with Kits.
 - Leave your manually installed or external extensions alone.
-- Show trust and safety warnings before risky installs.
+- Let you choose the TavernKeeper-checked version or the newest version when they differ.
 
 ## Start here
 
 1. Open SillyTavern and open the Companion tab.
 2. Pick a project in the catalog that looks useful.
-3. Click Install and follow the warning flow if shown.
+3. Click Install. If Checked and Newest differ, pick the version you want.
 4. Open your Kits view to switch between extension sets.
 
 ## Companion boundaries to know
@@ -27,11 +27,11 @@ It is built for players, so your current SillyTavern setup stays in your control
 - Companion only manages extensions it installed. It does not automatically manage manually added external extensions.
 - Extensions in Companion are powerful; if a project was flagged, Companion warns you before install.
 
-## Safety at a glance
+## Checks at a glance
 
-Extensions run inside SillyTavern without an extra sandbox layer. That is why warning screens are shown for projects with current, stale, or high-risk findings.
+TavernKeeper checks a specific project version. When the creator has published newer changes, Companion can show both that Checked version and the Newest version.
 
-If you see a warning, pause and review the project before continuing.
+Companion does not switch between them by itself. If there is only one meaningful choice, it skips the extra question.
 
 ## If something feels wrong
 
@@ -45,5 +45,5 @@ If you see a warning, pause and review the project before continuing.
 - [Getting started](docs/user/getting-started.md)
 - [Browsing and installing](docs/user/browsing-and-installing.md)
 - [Managing kits](docs/user/kits.md)
-- [Safety and trust](docs/user/safety-and-trust.md)
+- [Checks and choices](docs/user/safety-and-trust.md)
 - [Troubleshooting](docs/user/troubleshooting.md)

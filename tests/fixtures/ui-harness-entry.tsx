@@ -12,6 +12,7 @@ import { fingerprintKitTopology } from "../../src/kits/kit-validation";
 import { createLifecycleCoordinator } from "../../src/lifecycle/lifecycle-coordinator";
 import { createReceipt } from "../../src/lifecycle/operation-receipt";
 import { TrustPromptBroker } from "../../src/lifecycle/trust-prompt-broker";
+import { InstallTargetFallbackBroker } from "../../src/lifecycle/install-target-fallback-broker";
 import { ProfileStore } from "../../src/state/profile-store";
 import { mountCompanionLauncher } from "../../src/ui/launcher";
 import { CompanionPopupHost, type PopupRuntime } from "../../src/ui/popup-host";
@@ -22,6 +23,14 @@ import { extension } from "../helpers/kit-executor-fixture";
 
 async function main() {
   const scenario = new URL(window.location.href).searchParams.get("scenario");
+  const checkedSha = "a".repeat(40);
+  const newestSha = "b".repeat(40);
+  const individualVersionScenario =
+    scenario === "version-choice" ||
+    scenario === "version-matching" ||
+    scenario === "version-unscanned" ||
+    scenario === "version-legacy";
+  const kitVersionScenario = scenario === "kit-version-choice";
   if (scenario === "launcher") {
     const toolbar = document.createElement("div");
     toolbar.dataset.sillyTavernLauncherFixture = "";
@@ -147,6 +156,13 @@ async function main() {
         history: [],
         historyUrl: null,
       };
+      if (individualVersionScenario && scenario !== "version-unscanned") {
+        markChecked(project, checkedSha, scenario === "version-matching" ? checkedSha : newestSha);
+      }
+      if (kitVersionScenario) {
+        project.name = "Same Version";
+        markChecked(project, checkedSha, checkedSha);
+      }
     } else if (index === 2) {
       project.primaryFunction = "preset";
       project.search.primaryFunction = ["preset"];
@@ -176,6 +192,20 @@ async function main() {
         { id: "modular", label: "Modular", description: "Modular project", facet: "trait" },
       ];
       project.search.tags = ["modular"];
+    } else if (kitVersionScenario && index === 4) {
+      project.name = "Different Version";
+      markChecked(project, checkedSha, newestSha);
+    } else if (kitVersionScenario && index === 5) {
+      project.name = "No Check Yet";
+      project.tavernKeeper = {
+        state: "gray",
+        riskLevel: null,
+        freshness: "unassessed",
+        currentSha: newestSha,
+        report: null,
+        history: [],
+        historyUrl: null,
+      };
     }
     return project;
   });
@@ -207,15 +237,22 @@ async function main() {
       });
     });
   }
+  if (individualVersionScenario || kitVersionScenario) {
+    await profile.update((draft) => {
+      draft.trustAcknowledgedAt = "2026-08-18T00:00:00.000Z";
+    });
+  }
   let kitSequence = 1;
   const kits = new KitStore(profile, {
     uuid: () => `018f6f42-7142-7a1f-9b52-${String(kitSequence++).padStart(12, "0")}`,
     now: () => new Date().toISOString(),
   });
   const personalKit = await kits.create({
-    title: "Writer's Kit",
-    description: "A compact set of writing extensions.",
-    projectIds: ["writer-tool"],
+    title: kitVersionScenario ? "Version Mix" : "Writer's Kit",
+    description: kitVersionScenario
+      ? "Three projects with different version choices."
+      : "A compact set of writing extensions.",
+    projectIds: kitVersionScenario ? ["alpha", "project-5", "project-6"] : ["writer-tool"],
   });
   const sharedKit =
     scenario === "shared"
@@ -225,25 +262,27 @@ async function main() {
           projectIds: ["writer-tool"],
         })
       : null;
-  await profile.update((draft) => {
-    draft.managedExtensions["writer-tool"] = {
-      projectId: "writer-tool",
-      internalName: "third-party/WriterTool",
-      folderName: "WriterTool",
+  if (!kitVersionScenario) {
+    await profile.update((draft) => {
+      draft.managedExtensions["writer-tool"] = {
+        projectId: "writer-tool",
+        internalName: "third-party/WriterTool",
+        folderName: "WriterTool",
+        installedAt: "2026-08-18T00:00:00.000Z",
+        installedBy: "kit",
+      };
+    });
+    await kits.recordInstalledState({
+      kitId: personalKit.id,
+      definitionFingerprint: await fingerprintKitTopology(personalKit.projectIds),
+      definitionProjectIds: personalKit.projectIds,
+      installedProjectIds: ["writer-tool"],
+      missingProjectIds: [],
+      status: "installed",
       installedAt: "2026-08-18T00:00:00.000Z",
-      installedBy: "kit",
-    };
-  });
-  await kits.recordInstalledState({
-    kitId: personalKit.id,
-    definitionFingerprint: await fingerprintKitTopology(personalKit.projectIds),
-    definitionProjectIds: personalKit.projectIds,
-    installedProjectIds: ["writer-tool"],
-    missingProjectIds: [],
-    status: "installed",
-    installedAt: "2026-08-18T00:00:00.000Z",
-    lastVerifiedAt: "2026-08-18T00:00:00.000Z",
-  });
+      lastVerifiedAt: "2026-08-18T00:00:00.000Z",
+    });
+  }
   if (sharedKit) {
     await kits.recordInstalledState({
       kitId: sharedKit.id,
@@ -256,8 +295,38 @@ async function main() {
       lastVerifiedAt: "2026-08-18T00:00:00.000Z",
     });
   }
+  const versionProjects = kitVersionScenario
+    ? catalog.projects.filter(({ id }) => ["alpha", "project-5", "project-6"].includes(id))
+    : individualVersionScenario
+      ? catalog.projects.filter(({ id }) => id === "alpha")
+      : [];
+  const capableVersionHost =
+    (individualVersionScenario && scenario !== "version-legacy") || kitVersionScenario;
   const host = createFakeHost({
-    extensions: [extension("WriterTool", false)],
+    extensions: kitVersionScenario ? [] : [extension("WriterTool", false)],
+    ...(capableVersionHost
+      ? {
+          capabilities: {
+            pinnedCommitInstall: true,
+            remoteRevisionLookup: true,
+            localRevisionLookup: true,
+          },
+          remoteHeads: Object.fromEntries(
+            versionProjects.map((project) => [
+              `${project.install!.repositoryUrl}#${project.install!.branch ?? ""}`,
+              scenario === "version-matching" || (kitVersionScenario && project.id === "alpha")
+                ? checkedSha
+                : newestSha,
+            ]),
+          ),
+        }
+      : {}),
+    installResults: Object.fromEntries(
+      versionProjects.map((project) => [
+        project.install!.repositoryUrl,
+        extension(project.install!.folderName),
+      ]),
+    ),
     failures: scenario === "failure" ? { enable: new Error("Enable failed") } : undefined,
   });
   const inventory = reconcileInventory({
@@ -274,11 +343,12 @@ async function main() {
     catalog,
     personal: kits.readDefinitions(),
     statuses: new Map([
-      [personalKit.id, "installed"],
+      [personalKit.id, kitVersionScenario ? "saved" : "installed"],
       ...(sharedKit ? ([[sharedKit.id, "installed"]] as const) : []),
     ]),
   });
   const prompts = new TrustPromptBroker();
+  const installFallbacks = new InstallTargetFallbackBroker();
   const lifecycle = createLifecycleCoordinator({
     host,
     store: profile,
@@ -325,12 +395,15 @@ async function main() {
         activeKitId: kits.readActiveId(),
       });
     },
+    fallbacks: installFallbacks,
+    confirm: (prompt, project) => prompts.request(prompt, project),
   });
   const runtime: PopupRuntime = {
     catalog: catalogClient,
     discovery,
     lifecycle,
     prompts,
+    installFallbacks,
     kits,
     kitDiscovery,
     kitExecutor,
@@ -341,6 +414,44 @@ async function main() {
   root.className = "tavernary-companion-root";
   document.querySelector("#app")?.append(root);
   render(<CompanionPopupHost store={profile} host={host} runtime={runtime} />, root);
+}
+
+function markChecked(
+  project: ReturnType<typeof catalogProjectFixture>,
+  scannedSha: string,
+  currentSha: string,
+): void {
+  project.tavernKeeper = {
+    state: scannedSha === currentSha ? "teal" : "orange",
+    riskLevel: "low",
+    freshness: scannedSha === currentSha ? "current" : "stale",
+    currentSha,
+    history: [],
+    historyUrl: null,
+    report: {
+      reportId: `report-${project.id}`,
+      riskLevel: "low",
+      headline: "Checked",
+      summary: "Checked",
+      minorCautions: 0,
+      materialConcerns: 0,
+      highDanger: 0,
+      maliciousEvidence: "none",
+      citedFindingIds: [],
+      scannedSha,
+      treeUrl: `https://example.com/${project.id}/tree`,
+      scannedAt: "2026-08-17T00:00:00.000Z",
+      assessedAt: "2026-08-17T00:01:00.000Z",
+      scannerPolicyVersion: "5",
+      contextualReviewPolicyVersion: "1",
+      synthesisPolicyVersion: "1",
+      synthesisModel: "fixture",
+      dangerBasis: "none",
+      assessmentSource: "model",
+      reportUrl: `https://example.com/${project.id}/scan`,
+      technicalHistoryUrl: null,
+    },
+  };
 }
 
 function staticCatalogClient(snapshot: CatalogSnapshot): CatalogClient {

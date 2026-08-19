@@ -16,7 +16,7 @@ export function KitReceipt({
           <h3>
             {receipt.operation === "activate" && receipt.outcome === "completed"
               ? "Managed Kit activated"
-              : `Kit ${receipt.outcome}`}
+              : receiptHeading(receipt.outcome)}
           </h3>
           {receipt.previousActiveKitId &&
           receipt.activeKitId === receipt.previousActiveKitId &&
@@ -33,7 +33,7 @@ export function KitReceipt({
           <li key={`${project.projectId}-${project.action}-${index}`}>
             <strong>{project.projectId}</strong>
             <span>
-              {project.action} · {project.status}
+              {actionLabel(project.action)} · {statusLabel(project.status)}
             </span>
             <span>{project.message}</span>
           </li>
@@ -41,9 +41,40 @@ export function KitReceipt({
       </ul>
       {receipt.projects.some(({ retryable }) => retryable) ? (
         <button type="button" onClick={onRetry}>
-          Review retry
+          Try again
         </button>
       ) : null}
     </article>
   );
+}
+
+function receiptHeading(outcome: KitReceiptModel["outcome"]): string {
+  return {
+    completed: "Kit finished",
+    partial: "Kit partly finished",
+    failed: "Kit didn't finish",
+    interrupted: "Kit was interrupted",
+  }[outcome];
+}
+
+function actionLabel(action: KitReceiptModel["projects"][number]["action"]): string {
+  return {
+    install: "Install",
+    enable: "Enable",
+    disable: "Disable",
+    remove: "Remove",
+    keep: "Keep",
+    context: "Check",
+  }[action];
+}
+
+function statusLabel(status: KitReceiptModel["projects"][number]["status"]): string {
+  return {
+    verified: "Finished",
+    failed: "Needs attention",
+    untouched: "Not started",
+    kept: "Kept",
+    external: "Left as is",
+    context: "No change needed",
+  }[status];
 }
