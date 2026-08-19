@@ -8,6 +8,42 @@ afterEach(() => {
   document.body.replaceChildren();
 });
 
+it("mounts a branded launcher immediately before native extension management", () => {
+  document.body.innerHTML = `
+    <div id="extensions-toolbar">
+      <div id="extensions_details">Manage extensions</div>
+    </div>
+  `;
+  const manageExtensions = document.querySelector("#extensions_details");
+  if (!manageExtensions) throw new Error("Missing test fixture anchor.");
+
+  const launcher = mountCompanionLauncher({
+    anchor: manageExtensions,
+    host: createFakeHost(),
+  });
+
+  expect(launcher.button).toHaveTextContent("Tavernary Companion");
+  expect(launcher.button.nextElementSibling).toBe(manageExtensions);
+  expect(launcher.button.querySelector("[data-tavernary-companion-icon]")).toHaveAttribute(
+    "aria-hidden",
+    "true",
+  );
+});
+
+it("uses the bundled Tavernary trihex for the launcher icon", () => {
+  const manageExtensions = document.createElement("div");
+  document.body.append(manageExtensions);
+
+  const launcher = mountCompanionLauncher({
+    anchor: manageExtensions,
+    host: createFakeHost(),
+  });
+  const icon = launcher.button.querySelector("img[data-tavernary-companion-icon]");
+
+  expect(icon).toHaveAttribute("src", expect.stringMatching(/assets\/tavernary-trihex\.png$/));
+  expect(icon).toHaveAttribute("alt", "");
+});
+
 it("opens one native popup and focuses it when the launcher is clicked again", async () => {
   const menu = document.createElement("div");
   document.body.append(menu);
@@ -20,7 +56,7 @@ it("opens one native popup and focuses it when the launcher is clicked again", a
     document.body.append(content);
     await popupClosed;
   });
-  const launcher = mountCompanionLauncher({ container: menu, host });
+  const launcher = mountCompanionLauncher({ anchor: menu, host });
 
   fireEvent.click(launcher.button);
   await waitFor(() => expect(showPopup).toHaveBeenCalledTimes(1));

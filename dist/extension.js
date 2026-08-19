@@ -17045,8 +17045,13 @@ function mountCompanionLauncher(input) {
   button.type = "button";
   button.className = "menu_button menu_button_icon tavernary-companion-launcher";
   button.dataset.tavernaryCompanionLauncher = "";
-  button.textContent = "Tavernary Companion";
-  input.container.append(button);
+  const icon = document.createElement("img");
+  icon.dataset.tavernaryCompanionIcon = "";
+  icon.src = new URL("./assets/tavernary-trihex.png", import.meta.url).href;
+  icon.alt = "";
+  icon.setAttribute("aria-hidden", "true");
+  button.append(icon, document.createTextNode("Tavernary Companion"));
+  input.anchor.before(button);
   let disposed = false;
   let popupContent = null;
   let unmountPopup = null;
@@ -17131,15 +17136,15 @@ async function performBootstrap(suppliedContext) {
     return { ok: false, reason: "missing-host" };
   }
   await whenDocumentReady();
-  const menu = document.querySelector("#extensionsMenu");
-  if (!menu) {
+  const launcherAnchor = document.querySelector("#extensions_details");
+  if (!launcherAnchor) {
     return { ok: false, reason: "missing-menu" };
   }
   const store = new ProfileStore({
     extensionSettings: context.extensionSettings,
     saveSettingsDebounced: context.saveSettingsDebounced
   });
-  const launcher = mountCompanionLauncher({ container: menu, host, store });
+  const launcher = mountCompanionLauncher({ anchor: launcherAnchor, host, store });
   activeCompanion = { launcher, store };
   return { ok: true };
 }

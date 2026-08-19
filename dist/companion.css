@@ -255,10 +255,16 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   overflow: hidden;
 }
-.tavernary-companion-launcher::before {
-  content: "\f02d";
-  font-family: "Font Awesome 6 Free", sans-serif;
-  font-weight: 900;
+.tavernary-companion-launcher {
+  align-items: center;
+  gap: 0.4em;
+}
+.tavernary-companion-launcher > [data-tavernary-companion-icon] {
+  display: block;
+  flex: none;
+  inline-size: 1.1em;
+  block-size: 1.1em;
+  object-fit: contain;
 }
 .tavernary-companion-shell {
   display: flex;

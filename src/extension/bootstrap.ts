@@ -59,8 +59,8 @@ async function performBootstrap(
   }
 
   await whenDocumentReady();
-  const menu = document.querySelector("#extensionsMenu");
-  if (!menu) {
+  const launcherAnchor = document.querySelector("#extensions_details");
+  if (!launcherAnchor) {
     return { ok: false, reason: "missing-menu" };
   }
 
@@ -68,7 +68,7 @@ async function performBootstrap(
     extensionSettings: context.extensionSettings,
     saveSettingsDebounced: context.saveSettingsDebounced,
   });
-  const launcher = mountCompanionLauncher({ container: menu, host, store });
+  const launcher = mountCompanionLauncher({ anchor: launcherAnchor, host, store });
   activeCompanion = { launcher, store };
   return { ok: true };
 }

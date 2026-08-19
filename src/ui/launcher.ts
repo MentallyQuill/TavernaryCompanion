@@ -8,7 +8,7 @@ export interface CompanionLauncher {
 }
 
 export function mountCompanionLauncher(input: {
-  container: Element;
+  anchor: Element;
   host: HostExtensionAdapter;
   store?: ProfileStore;
 }): CompanionLauncher {
@@ -16,8 +16,13 @@ export function mountCompanionLauncher(input: {
   button.type = "button";
   button.className = "menu_button menu_button_icon tavernary-companion-launcher";
   button.dataset.tavernaryCompanionLauncher = "";
-  button.textContent = "Tavernary Companion";
-  input.container.append(button);
+  const icon = document.createElement("img");
+  icon.dataset.tavernaryCompanionIcon = "";
+  icon.src = new URL("./assets/tavernary-trihex.png", import.meta.url).href;
+  icon.alt = "";
+  icon.setAttribute("aria-hidden", "true");
+  button.append(icon, document.createTextNode("Tavernary Companion"));
+  input.anchor.before(button);
 
   let disposed = false;
   let popupContent: HTMLDivElement | null = null;
