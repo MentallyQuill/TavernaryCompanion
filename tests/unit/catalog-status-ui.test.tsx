@@ -12,12 +12,9 @@ const catalog = catalogFixture("2026-08-18T10:00:00.000Z");
 const cases: Array<[CatalogSnapshot, string]> = [
   [
     { state: "ready-current", canMutate: true, checkedAt: "2026-08-18T10:00:00.000Z", catalog },
-    "Updated 2 hours ago",
+    "Catalog up to date",
   ],
-  [
-    { state: "ready-stale", canMutate: true, checkedAt: null, catalog },
-    "Saved catalog may be outdated",
-  ],
+  [{ state: "ready-stale", canMutate: true, checkedAt: null, catalog }, "Catalog may be old"],
   [
     {
       state: "ready-offline",
@@ -26,7 +23,7 @@ const cases: Array<[CatalogSnapshot, string]> = [
       catalog,
       error: "offline",
     },
-    "Using saved catalog — offline",
+    "Cached · offline",
   ],
   [
     {
@@ -36,9 +33,27 @@ const cases: Array<[CatalogSnapshot, string]> = [
       catalog,
       remoteSchemaVersion: 8,
     },
-    "Companion update required",
+    "Update required",
   ],
-  [{ state: "empty-loading", canMutate: false, checkedAt: null }, "Checking for updates"],
+  [{ state: "empty-loading", canMutate: false, checkedAt: null }, "Checking catalog…"],
+  [
+    {
+      state: "incompatible-empty",
+      canMutate: false,
+      checkedAt: "2026-08-18T10:00:00.000Z",
+      remoteSchemaVersion: 8,
+    },
+    "Update required",
+  ],
+  [
+    {
+      state: "error-empty",
+      canMutate: false,
+      checkedAt: "2026-08-18T10:00:00.000Z",
+      error: "offline",
+    },
+    "Catalog unavailable",
+  ],
 ];
 
 describe("catalog status UI", () => {
@@ -51,6 +66,19 @@ describe("catalog status UI", () => {
       />,
     );
     expect(screen.getByText(expected)).toBeVisible();
+  });
+
+  it.each(cases)("keeps the $1 label within the header copy budget", (_snapshot, label) => {
+    expect(label.length).toBeLessThanOrEqual("Updated 8 hours ago".length);
+  });
+
+  it("keeps the catalog publication age in a tooltip", () => {
+    render(<CatalogFreshness snapshot={cases[0][0]} now="2026-08-18T12:00:00.000Z" />);
+
+    expect(screen.getByText("Catalog up to date")).toHaveAttribute(
+      "title",
+      "Catalog published 2 hours ago",
+    );
   });
 
   it("offers schema recovery choices while lifecycle actions stay disabled", () => {
@@ -88,7 +116,7 @@ describe("catalog status UI", () => {
     );
 
     expect(screen.getByText("Existing results")).toBeVisible();
-    expect(screen.queryByText("Updated 2 hours ago")).not.toBeInTheDocument();
+    expect(screen.queryByText("Catalog up to date")).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Refresh catalog" })).not.toBeInTheDocument();
   });
 

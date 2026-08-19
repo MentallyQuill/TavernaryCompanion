@@ -16184,22 +16184,23 @@ function CatalogFreshness({
   now = (/* @__PURE__ */ new Date()).toISOString(),
   refreshing = false
 }) {
-  const label2 = refreshing ? "Checking for updates" : freshnessLabel(snapshot, now);
-  return /* @__PURE__ */ u3("span", { class: "tavernary-companion-catalog-freshness", "data-state": snapshot.state, children: label2 });
+  const label2 = refreshing ? "Checking catalog\u2026" : freshnessLabel(snapshot);
+  const title = "catalog" in snapshot ? `Catalog published ${relativeAge(snapshot.catalog.generatedAt, now)}` : void 0;
+  return /* @__PURE__ */ u3("span", { class: "tavernary-companion-catalog-freshness", "data-state": snapshot.state, title, children: label2 });
 }
-function freshnessLabel(snapshot, now) {
+function freshnessLabel(snapshot) {
   switch (snapshot.state) {
     case "empty-loading":
-      return "Checking for updates";
+      return "Checking catalog\u2026";
     case "ready-current":
-      return `Updated ${relativeAge(snapshot.catalog.generatedAt, now)}`;
+      return "Catalog up to date";
     case "ready-stale":
-      return "Saved catalog may be outdated";
+      return "Catalog may be old";
     case "ready-offline":
-      return "Using saved catalog \u2014 offline";
+      return "Cached \xB7 offline";
     case "incompatible-with-cache":
     case "incompatible-empty":
-      return "Companion update required";
+      return "Update required";
     case "error-empty":
       return "Catalog unavailable";
   }

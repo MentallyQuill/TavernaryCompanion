@@ -11,27 +11,31 @@ export function CatalogFreshness({
   now = new Date().toISOString(),
   refreshing = false,
 }: CatalogFreshnessProps): preact.JSX.Element {
-  const label = refreshing ? "Checking for updates" : freshnessLabel(snapshot, now);
+  const label = refreshing ? "Checking catalog…" : freshnessLabel(snapshot);
+  const title =
+    "catalog" in snapshot
+      ? `Catalog published ${relativeAge(snapshot.catalog.generatedAt, now)}`
+      : undefined;
   return (
-    <span class="tavernary-companion-catalog-freshness" data-state={snapshot.state}>
+    <span class="tavernary-companion-catalog-freshness" data-state={snapshot.state} title={title}>
       {label}
     </span>
   );
 }
 
-function freshnessLabel(snapshot: CatalogSnapshot, now: string): string {
+function freshnessLabel(snapshot: CatalogSnapshot): string {
   switch (snapshot.state) {
     case "empty-loading":
-      return "Checking for updates";
+      return "Checking catalog…";
     case "ready-current":
-      return `Updated ${relativeAge(snapshot.catalog.generatedAt, now)}`;
+      return "Catalog up to date";
     case "ready-stale":
-      return "Saved catalog may be outdated";
+      return "Catalog may be old";
     case "ready-offline":
-      return "Using saved catalog — offline";
+      return "Cached · offline";
     case "incompatible-with-cache":
     case "incompatible-empty":
-      return "Companion update required";
+      return "Update required";
     case "error-empty":
       return "Catalog unavailable";
   }
