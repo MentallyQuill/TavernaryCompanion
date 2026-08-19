@@ -17192,6 +17192,7 @@ function sameValues(left, right) {
 }
 
 // src/ui/shell/catalog-navigation.tsx
+var NAVIGATION_CATEGORY_OPTIONS = CATEGORY_OPTIONS.filter(({ id }) => id !== "frontend");
 function CategoryMark({ id }) {
   if (!id) {
     return /* @__PURE__ */ u3("span", { class: "tavernary-companion-all-symbol", "aria-hidden": "true", children: [
@@ -17260,7 +17261,7 @@ function CatalogNavigation({
           ]
         }
       ),
-      CATEGORY_OPTIONS.map((category) => /* @__PURE__ */ u3(
+      NAVIGATION_CATEGORY_OPTIONS.map((category) => /* @__PURE__ */ u3(
         "button",
         {
           type: "button",
@@ -17332,7 +17333,7 @@ function CatalogNavigation({
                 ]
               }
             ),
-            CATEGORY_OPTIONS.map((category) => /* @__PURE__ */ u3(
+            NAVIGATION_CATEGORY_OPTIONS.map((category) => /* @__PURE__ */ u3(
               "button",
               {
                 type: "button",

@@ -8,6 +8,31 @@ import { CatalogNavigation } from "../../src/ui/shell/catalog-navigation";
 afterEach(() => document.body.replaceChildren());
 
 describe("CatalogNavigation", () => {
+  it("keeps non-installable frontends out of category navigation", async () => {
+    const user = userEvent.setup();
+    render(
+      <CatalogNavigation
+        route="projects"
+        query={structuredClone(DEFAULT_COMPANION_QUERY)}
+        onNavigate={vi.fn()}
+        onQueryChange={vi.fn()}
+      />,
+    );
+
+    expect(
+      within(screen.getByRole("navigation", { name: "Catalog categories" })).queryByRole("button", {
+        name: "Frontends",
+      }),
+    ).not.toBeInTheDocument();
+
+    await user.click(screen.getByRole("button", { name: "Browse categories" }));
+    expect(
+      within(screen.getByRole("group", { name: "Browse categories menu" })).queryByRole("button", {
+        name: "Frontends",
+      }),
+    ).not.toBeInTheDocument();
+  });
+
   it("selects a Tavernary project category with its canonical SVG", async () => {
     const user = userEvent.setup();
     const onNavigate = vi.fn();

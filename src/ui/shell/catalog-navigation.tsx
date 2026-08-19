@@ -11,6 +11,8 @@ interface CatalogNavigationProps {
   onQueryChange(query: CatalogQuery): void;
 }
 
+const NAVIGATION_CATEGORY_OPTIONS = CATEGORY_OPTIONS.filter(({ id }) => id !== "frontend");
+
 function CategoryMark({ id }: { id: string }): preact.JSX.Element {
   if (!id) {
     return (
@@ -88,7 +90,7 @@ export function CatalogNavigation({
           <CategoryIcon name="kit" />
           <span>Kits</span>
         </button>
-        {CATEGORY_OPTIONS.map((category) => (
+        {NAVIGATION_CATEGORY_OPTIONS.map((category) => (
           <button
             type="button"
             key={category.id || "all"}
@@ -146,7 +148,7 @@ export function CatalogNavigation({
               <CategoryIcon name="kit" />
               <span>Kits</span>
             </button>
-            {CATEGORY_OPTIONS.map((category) => (
+            {NAVIGATION_CATEGORY_OPTIONS.map((category) => (
               <button
                 type="button"
                 key={category.id || "all"}

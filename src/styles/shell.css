@@ -303,7 +303,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   position: relative;
   z-index: 15;
   display: grid;
-  grid-template-columns: repeat(11, minmax(0, 1fr));
+  grid-template-columns: repeat(10, minmax(0, 1fr));
   flex: none;
   align-items: center;
   gap: 6px;
@@ -322,13 +322,13 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   block-size: 34px;
   align-items: center;
   justify-content: center;
-  gap: 7px;
+  gap: 2px;
   padding: 5px 8px;
   border: 1px solid transparent;
   border-radius: 7px;
   color: var(--tavernary-color-text-primary);
   background: var(--tavernary-color-bg-sidebar);
-  font-size: 10px;
+  font-size: 8.5px;
   font-weight: 400;
   line-height: 1.15;
   text-align: center;
@@ -347,8 +347,8 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 
 .tavernary-companion-category-navigation svg,
 .tavernary-companion-category-navigation .tavernary-companion-all-symbol {
-  inline-size: 18px;
-  block-size: 18px;
+  inline-size: 16px;
+  block-size: 16px;
   flex: none;
 }
 
