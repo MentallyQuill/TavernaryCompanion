@@ -36,6 +36,13 @@ This can happen if another process changed files outside Companion.
 
 Use the refresh/discovery flow so Companion re-reads actual installed state.
 
+## An installed extension cannot be updated
+
+- Choose **Retry** if the card says **Could not check**.
+- Update SillyTavern if Companion says the host cannot check or apply an exact update safely.
+- Use SillyTavern's extension manager if the card says **Needs attention**. Companion will not overwrite local changes, switch branches, replace a different repository, or roll back diverged history.
+- Uncataloged, global, and Companion's own extension remain managed in SillyTavern.
+
 ## "Current/stale/high risk" warning appears too often
 
 Risk warnings are a safeguard. You can continue only by confirming.

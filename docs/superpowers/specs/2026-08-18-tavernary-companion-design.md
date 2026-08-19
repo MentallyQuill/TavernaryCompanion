@@ -19,6 +19,7 @@ V1 manages only verified SillyTavern extensions. Presets and projects for other 
 - Browse Tavernary from inside SillyTavern with full search, filtering, sorting, project, Kit, and assessment information.
 - Default discovery to the SillyTavern frontend and extension/preset kinds while allowing users to explore all frontends and project kinds.
 - Offer one-control installation and removal for eligible SillyTavern extensions after required trust and risk disclosures.
+- Offer explicit exact-version updates for catalog-matched local extensions without changing external ownership.
 - Save, import, export, install, activate, deactivate, uninstall, and switch personal or published Kits.
 - Protect extensions installed outside Companion from Kit-driven changes.
 - Refresh the living Tavernary catalog several times per day without releasing Companion.
@@ -29,7 +30,7 @@ V1 manages only verified SillyTavern extensions. Presets and projects for other 
 ## Non-goals for V1
 
 - Installing presets, frontends, or non-SillyTavern extensions.
-- Updating installed third-party extensions. SillyTavern's native extension manager retains update ownership.
+- Bulk updates, automatic update polling, and rollback or downgrade controls.
 - Accounts, cloud Kit synchronization, or a Companion backend.
 - Direct Kit submission to Tavernary.
 - Fork-specific compatibility logic or named-host allowlists.

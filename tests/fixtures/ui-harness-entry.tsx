@@ -14,6 +14,7 @@ import { createReceipt } from "../../src/lifecycle/operation-receipt";
 import { TrustPromptBroker } from "../../src/lifecycle/trust-prompt-broker";
 import { InstallTargetFallbackBroker } from "../../src/lifecycle/install-target-fallback-broker";
 import { ProfileStore } from "../../src/state/profile-store";
+import { createExtensionUpdateCoordinator } from "../../src/updates/update-coordinator";
 import { mountCompanionLauncher } from "../../src/ui/launcher";
 import { CompanionPopupHost, type PopupRuntime } from "../../src/ui/popup-host";
 import "../../src/styles/companion.css";
@@ -173,6 +174,8 @@ async function main() {
         project.name = "Same Version";
         markChecked(project, checkedSha, checkedSha);
       }
+    } else if (index === 1 && scenario === "installed-update") {
+      markChecked(project, "c".repeat(40), "d".repeat(40));
     } else if (index === 2) {
       project.primaryFunction = "preset";
       project.search.primaryFunction = ["preset"];
@@ -247,7 +250,7 @@ async function main() {
       });
     });
   }
-  if (individualVersionScenario || kitVersionScenario) {
+  if (individualVersionScenario || kitVersionScenario || scenario === "installed-update") {
     await profile.update((draft) => {
       draft.trustAcknowledgedAt = "2026-08-18T00:00:00.000Z";
     });
@@ -312,6 +315,9 @@ async function main() {
       : [];
   const capableVersionHost =
     (individualVersionScenario && scenario !== "version-legacy") || kitVersionScenario;
+  const writerProject = catalog.projects.find(({ id }) => id === "writer-tool")!;
+  const writerInstalledSha = "c".repeat(40);
+  const writerNewestSha = scenario === "installed-update" ? "d".repeat(40) : writerInstalledSha;
   const host = createFakeHost({
     extensions: kitVersionScenario ? [] : [extension("WriterTool", false)],
     ...(capableVersionHost
@@ -337,6 +343,21 @@ async function main() {
         extension(project.install!.folderName),
       ]),
     ),
+    installedRevisions: { "local:third-party/WriterTool": writerInstalledSha },
+    updateInspections: {
+      "local:third-party/WriterTool": {
+        installedSha: writerInstalledSha,
+        newestSha: writerNewestSha,
+        remoteUrl: writerProject.install!.repositoryUrl,
+        branch: writerProject.install!.branch ?? "main",
+        worktreeClean: true,
+        branchMatches: true,
+        exactUpdateSupported: true,
+        newestRelationship: scenario === "installed-update" ? "behind" : "equal",
+        candidateRelationships:
+          scenario === "installed-update" ? { [writerInstalledSha]: "equal" } : {},
+      },
+    },
     failures: scenario === "failure" ? { enable: new Error("Enable failed") } : undefined,
   });
   const inventory = reconcileInventory({
@@ -366,6 +387,14 @@ async function main() {
     confirm: (prompt, project) => prompts.request(prompt, project),
   });
   const kitContext = { inventory };
+  const updates = createExtensionUpdateCoordinator({
+    host,
+    store: profile,
+    lock: lifecycle.lock,
+    getSnapshot: () => catalogClient.read(),
+    getInventory: () => kitContext.inventory,
+    confirm: (prompt, project) => prompts.request(prompt, project),
+  });
   if (scenario === "interrupted") {
     await profile.update((draft) => {
       draft.kitOperationJournal = {
@@ -412,6 +441,7 @@ async function main() {
     catalog: catalogClient,
     discovery,
     lifecycle,
+    updates,
     prompts,
     installFallbacks,
     kits,

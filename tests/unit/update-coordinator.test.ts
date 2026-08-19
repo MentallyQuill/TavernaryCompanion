@@ -92,7 +92,10 @@ function setup(hostOverrides: FakeHostOptions = {}) {
     ...hostOverrides,
   });
   const store = new ProfileStore({ extensionSettings: {}, saveSettingsDebounced: vi.fn() });
-  const confirm = vi.fn(async (_prompt: TrustPrompt) => true);
+  const confirm = vi.fn(async (prompt: TrustPrompt) => {
+    void prompt;
+    return true;
+  });
   const coordinator = createExtensionUpdateCoordinator({
     host,
     store,

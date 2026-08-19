@@ -66,6 +66,14 @@ import { RemovalDialog } from "./lifecycle/removal-dialog";
 import { TrustDisclosureDialog } from "./lifecycle/trust-disclosure-dialog";
 import { CompanionShell } from "./shell/companion-shell";
 import { createShellController } from "./shell/shell-controller";
+import {
+  createExtensionUpdateCoordinator,
+  type ExtensionUpdateCoordinator,
+  type ExtensionUpdateSnapshot,
+  type PreparedUpdateChoice,
+} from "../updates/update-coordinator";
+import type { PreparedUpdateSelection } from "../updates/update-types";
+import { UpdateVersionChooser } from "./installed/update-version-chooser";
 
 interface CompanionPopupHostProps {
   store?: ProfileStore;
@@ -77,6 +85,7 @@ export interface PopupRuntime {
   catalog: ReturnType<typeof createCatalogClient>;
   discovery: ReturnType<typeof createDiscoveryController>;
   lifecycle: LifecycleCoordinator;
+  updates: ExtensionUpdateCoordinator;
   prompts: TrustPromptBroker;
   installFallbacks: InstallTargetFallbackBroker;
   kits: KitStore;
@@ -126,6 +135,9 @@ export function CompanionPopupHost({
   const [receipt, setReceipt] = useState<LifecycleReceipt | null>(
     parseReceipt(store?.read().operationReceipt),
   );
+  const [updateSnapshot, setUpdateSnapshot] = useState<ExtensionUpdateSnapshot>(
+    runtime?.updates.read() ?? { states: {} },
+  );
   const [kitReceipt, setKitReceipt] = useState<KitReceipt | null>(
     parseKitReceipt(store?.read().operationReceipt),
   );
@@ -144,6 +156,12 @@ export function CompanionPopupHost({
     projectName: string;
     anchor: HTMLButtonElement;
     choice: Extract<PreparedInstallTargetChoice, { kind: "choose" }>;
+  } | null>(null);
+  const [pendingUpdateChoice, setPendingUpdateChoice] = useState<{
+    projectId: string;
+    projectName: string;
+    anchor: HTMLButtonElement;
+    choice: PreparedUpdateChoice;
   } | null>(null);
   const localInstallFallbacks = useMemo(() => new InstallTargetFallbackBroker(), []);
   const installFallbacks = runtime?.installFallbacks ?? localInstallFallbacks;
@@ -177,8 +195,8 @@ export function CompanionPopupHost({
     setInstalledKitCards(presentation.installedKits);
   }, [runtime, store]);
 
-  const refreshInventory = useCallback(async () => {
-    if (!runtime || !host || !store) return;
+  const refreshInventory = useCallback(async (): Promise<boolean> => {
+    if (!runtime || !host || !store) return false;
     setOperationError(null);
     setInventoryRefreshing(true);
     try {
@@ -191,9 +209,12 @@ export function CompanionPopupHost({
       });
       runtime.kitContext.inventory = inventory;
       runtime.discovery.setInventory(inventory);
+      runtime.updates.invalidate();
       await syncKits();
+      return true;
     } catch {
       setOperationError("Could not refresh installed extensions. Try again.");
+      return false;
     } finally {
       setInventoryRefreshing(false);
     }
@@ -217,6 +238,7 @@ export function CompanionPopupHost({
       if ("catalog" in snapshot) void refreshInventory();
     });
     const unsubscribeLock = runtime.lifecycle.lock.subscribe(setActiveOperation);
+    const unsubscribeUpdates = runtime.updates.subscribe(setUpdateSnapshot);
     const unsubscribePrompts = runtime.prompts.subscribe(setPendingPrompt);
     const unsubscribeStore = store?.subscribe((state) => {
       setReceipt(parseReceipt(state.operationReceipt));
@@ -237,12 +259,25 @@ export function CompanionPopupHost({
     return () => {
       unsubscribeCatalog();
       unsubscribeLock();
+      unsubscribeUpdates();
       unsubscribePrompts();
       unsubscribeStore?.();
       runtime.prompts.cancel();
       window.removeEventListener("focus", onFocus);
     };
   }, [refreshInventory, runtime, store, syncKits]);
+
+  const refreshInstalled = useCallback(async () => {
+    if (!runtime) return;
+    if (!(await refreshInventory())) return;
+    await runtime.updates.checkAll();
+  }, [refreshInventory, runtime]);
+
+  const checkAllUpdates = useCallback(async () => {
+    if (!runtime) return;
+    setOperationError(null);
+    await runtime.updates.checkAll();
+  }, [runtime]);
 
   const executeInstallSelection = async (
     projectId: string,
@@ -322,6 +357,31 @@ export function CompanionPopupHost({
 
   const showOperationError = (error: unknown) => {
     setOperationError(error instanceof Error ? error.message : "The operation could not finish.");
+  };
+
+  const requestUpdate = (projectId: string, projectName: string, anchor: HTMLButtonElement) => {
+    if (!runtime) return;
+    setOperationError(null);
+    try {
+      setPendingUpdateChoice({
+        projectId,
+        projectName,
+        anchor,
+        choice: runtime.updates.prepare(projectId),
+      });
+    } catch (error) {
+      showOperationError(error);
+    }
+  };
+
+  const executeUpdateSelection = async (selection: PreparedUpdateSelection): Promise<void> => {
+    if (!runtime) return;
+    try {
+      const result = await runtime.updates.update(selection);
+      setReceipt(result);
+    } catch (error) {
+      showOperationError(error);
+    }
   };
 
   const toggleExtension = async (projectId: string, internalName: string, enabled: boolean) => {
@@ -441,7 +501,18 @@ export function CompanionPopupHost({
         inventoryRefreshing={inventoryRefreshing}
         togglingInternalName={togglingInternalName}
         onRefreshCatalog={refreshCatalog}
-        onRefreshInventory={refreshInventory}
+        onRefreshInventory={refreshInstalled}
+        updateStates={updateSnapshot.states}
+        onCheckUpdates={checkAllUpdates}
+        onRetryUpdate={(projectId) => void runtime?.updates.check(projectId)}
+        onUpdateExtension={(projectId, anchor) => {
+          const snapshot = runtime?.catalog.read();
+          const projectName =
+            snapshot && "catalog" in snapshot
+              ? (snapshot.catalog.projects.find(({ id }) => id === projectId)?.name ?? projectId)
+              : projectId;
+          requestUpdate(projectId, projectName, anchor);
+        }}
         onToggleExtension={(projectId, internalName, enabled) =>
           void toggleExtension(projectId, internalName, enabled)
         }
@@ -454,6 +525,7 @@ export function CompanionPopupHost({
           togglingInternalName !== null ||
           preparingInstall ||
           pendingInstallChoice !== null ||
+          pendingUpdateChoice !== null ||
           pendingInstallFallback !== null ||
           preparingKitPlan
         }
@@ -602,6 +674,19 @@ export function CompanionPopupHost({
           }}
         />
       ) : null}
+      {pendingUpdateChoice ? (
+        <UpdateVersionChooser
+          projectId={pendingUpdateChoice.projectId}
+          projectName={pendingUpdateChoice.projectName}
+          anchor={pendingUpdateChoice.anchor}
+          choice={pendingUpdateChoice.choice}
+          onCancel={() => setPendingUpdateChoice(null)}
+          onSelect={(selection) => {
+            setPendingUpdateChoice(null);
+            void executeUpdateSelection(selection);
+          }}
+        />
+      ) : null}
       {pendingInstallFallback &&
       (fallbackAnchor.current ?? document.querySelector(".tavernary-companion-root")) ? (
         <InstallVersionChooser
@@ -647,6 +732,7 @@ export function CompanionPopupHost({
         }}
         onDismissError={() => setOperationError(null)}
         onRetryError={() => void refreshInventory()}
+        onReload={() => host?.reload()}
       />
       <KitOperationTray
         active={activeOperation}
@@ -696,6 +782,14 @@ export function createPopupRuntime(
     confirm: (prompt, project) => prompts.request(prompt, project),
   });
   const lock = lifecycle.lock;
+  const updates = createExtensionUpdateCoordinator({
+    host,
+    store,
+    lock,
+    getSnapshot: () => catalog.read(),
+    getInventory: () => kitContext.inventory,
+    confirm: (prompt, project) => prompts.request(prompt, project),
+  });
   const kitExecutor = createKitExecutor({
     host,
     profile: store,
@@ -730,6 +824,7 @@ export function createPopupRuntime(
     catalog,
     discovery,
     lifecycle,
+    updates,
     prompts,
     installFallbacks,
     kits,
@@ -743,7 +838,7 @@ function parseReceipt(value: Record<string, unknown> | null | undefined): Lifecy
   if (
     !value ||
     typeof value.id !== "string" ||
-    (value.kind !== "install" && value.kind !== "remove") ||
+    (value.kind !== "install" && value.kind !== "update" && value.kind !== "remove") ||
     typeof value.projectId !== "string" ||
     typeof value.projectName !== "string" ||
     !Array.isArray(value.steps)

@@ -3,6 +3,7 @@ import { useEffect } from "preact/hooks";
 import type { InstalledSectionViewModel } from "../../catalog/installed-view-model";
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
 import type { InstalledKitViewModel } from "../../kits/kit-view-model";
+import type { ProjectUpdateState } from "../../updates/update-coordinator";
 import { InstalledSection } from "./installed-section";
 
 interface InstalledRouteProps {
@@ -11,7 +12,11 @@ interface InstalledRouteProps {
   activeKitId?: string | null;
   refreshing?: boolean;
   togglingInternalName?: string | null;
+  updateStates?: Readonly<Record<string, ProjectUpdateState>>;
   onRefresh(): void | Promise<void>;
+  onCheckUpdates?(): void | Promise<void>;
+  onRetryUpdate?(id: string): void;
+  onUpdate?(id: string, anchor: HTMLButtonElement): void;
   onAction?(id: string, action: ProjectPrimaryAction, anchor: HTMLButtonElement): void;
   onManage?(): void;
   onOpenKit?(id: string): void;
@@ -26,7 +31,11 @@ export function InstalledRoute({
   activeKitId = null,
   refreshing = false,
   togglingInternalName = null,
+  updateStates = {},
   onRefresh,
+  onCheckUpdates,
+  onRetryUpdate,
+  onUpdate,
   onAction,
   onManage,
   onOpenKit,
@@ -39,6 +48,7 @@ export function InstalledRoute({
   }, [onRefresh]);
   const populatedSections = sections.filter((section) => section.rows.length > 0);
   const installedKits = kits;
+  const checkingUpdates = Object.values(updateStates).some(({ kind }) => kind === "checking");
   const installedCount = populatedSections.reduce(
     (total, section) => total + section.rows.length,
     0,
@@ -62,6 +72,14 @@ export function InstalledRoute({
           {installedCount} installed {installedCount === 1 ? "extension" : "extensions"}
         </span>
         {refreshing ? <p role="status">Updating installed extensions…</p> : null}
+        <button
+          type="button"
+          aria-label={checkingUpdates ? "Checking for updates" : "Check for updates"}
+          disabled={checkingUpdates}
+          onClick={() => void onCheckUpdates?.()}
+        >
+          {checkingUpdates ? "Checking…" : "Check again"}
+        </button>
       </header>
       {installedKits.length ? (
         <section
@@ -123,7 +141,10 @@ export function InstalledRoute({
             section={section}
             memberships={memberships}
             togglingInternalName={togglingInternalName}
+            updateStates={updateStates}
             onAction={onAction}
+            onRetryUpdate={onRetryUpdate}
+            onUpdate={onUpdate}
             onManage={onManage}
             onToggleExtension={onToggleExtension}
             lifecycleDisabled={lifecycleDisabled}

@@ -1836,6 +1836,21 @@
   text-underline-offset: 3px;
 }
 
+.tavernary-companion-installed-update-status {
+  color: var(--tavernary-color-text-secondary);
+  font-size: 9px;
+  font-weight: 650;
+}
+
+.tavernary-companion-installed-update-status.is-available {
+  color: var(--tavernary-color-accent-teal-text);
+}
+
+.tavernary-companion-installed-update-status.is-attention,
+.tavernary-companion-installed-update-status.is-error {
+  color: var(--tavernary-companion-high);
+}
+
 .tavernary-companion-installed-memberships,
 .tavernary-companion-installed-kit-components {
   display: flex;

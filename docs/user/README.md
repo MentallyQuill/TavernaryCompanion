@@ -10,6 +10,7 @@ Then pick the task you need:
 
 - [Browsing and installing](browsing-and-installing.md)  
   how to find and install projects from the catalog
+- [Updating extensions](updating-extensions.md) — how update checks, version choices, and reloads work
 - [Managing kits](kits.md)  
   how to save, switch, and keep extension sets
 - [Checks and choices](safety-and-trust.md)

@@ -3,6 +3,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { InstalledSectionViewModel } from "../../src/catalog/installed-view-model";
 import { InstalledRoute } from "../../src/ui/installed/installed-route";
+import type { ProjectUpdateState } from "../../src/updates/update-coordinator";
 
 afterEach(() => document.body.replaceChildren());
 
@@ -75,6 +76,80 @@ describe("InstalledRoute", () => {
     render(<InstalledRoute sections={sections} refreshing onRefresh={vi.fn()} />);
     expect(screen.getByText("Updating installed extensions…")).toBeVisible();
     expect(screen.getAllByText("Alpha")[0]).toBeVisible();
+  });
+
+  it("shows an available update immediately before uninstall", () => {
+    const onUpdate = vi.fn();
+    const updateStates: Record<string, ProjectUpdateState> = {
+      alpha: { kind: "available", notice: null, targets: [] },
+    };
+    const { container } = render(
+      <InstalledRoute
+        sections={sections}
+        updateStates={updateStates}
+        onRefresh={vi.fn()}
+        onUpdate={onUpdate}
+      />,
+    );
+
+    expect(screen.getByText("Update available")).toBeVisible();
+    const update = screen.getByRole("button", { name: "Update Alpha" });
+    const uninstall = screen.getByRole("button", { name: "Uninstall Alpha" });
+    const actions = Array.from(
+      container.querySelectorAll<HTMLButtonElement>(
+        '.tavernary-companion-installed-card footer button[aria-label="Update Alpha"], .tavernary-companion-installed-card footer button[aria-label="Uninstall Alpha"]',
+      ),
+    );
+    expect(actions).toEqual([update, uninstall]);
+    fireEvent.click(update);
+    expect(onUpdate).toHaveBeenCalledWith("alpha", update);
+  });
+
+  it("reports current extensions without an inactive update button", () => {
+    render(
+      <InstalledRoute
+        sections={sections}
+        updateStates={{ alpha: { kind: "current" } }}
+        onRefresh={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Up to date")).toBeVisible();
+    expect(screen.queryByRole("button", { name: "Update Alpha" })).not.toBeInTheDocument();
+  });
+
+  it("offers a per-extension retry after a failed check", () => {
+    const onRetryUpdate = vi.fn();
+    render(
+      <InstalledRoute
+        sections={sections}
+        updateStates={{
+          alpha: { kind: "error", reason: "Could not check for updates." },
+        }}
+        onRefresh={vi.fn()}
+        onRetryUpdate={onRetryUpdate}
+      />,
+    );
+
+    expect(screen.getByText("Could not check")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Retry updates for Alpha" }));
+    expect(onRetryUpdate).toHaveBeenCalledWith("alpha");
+  });
+
+  it("offers a manual update check for all installed extensions", () => {
+    const onCheckUpdates = vi.fn();
+    render(
+      <InstalledRoute
+        sections={sections}
+        updateStates={{ alpha: { kind: "current" } }}
+        onRefresh={vi.fn()}
+        onCheckUpdates={onCheckUpdates}
+      />,
+    );
+
+    const button = screen.getByRole("button", { name: "Check for updates" });
+    fireEvent.click(button);
+    expect(onCheckUpdates).toHaveBeenCalledOnce();
   });
 
   it("links cataloged installed projects directly to their canonical source", () => {

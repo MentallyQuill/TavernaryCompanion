@@ -8,8 +8,9 @@ It is built for players, so your current SillyTavern setup stays in your control
 
 - Browse the Tavernary catalog from inside SillyTavern.
 - Install and remove extensions that Companion manages.
+- Check catalog-matched installed extensions for updates and apply an exact version you choose.
 - Save, switch, and track your extension sets with Kits.
-- Leave your manually installed or external extensions alone.
+- Preserve the ownership of manually installed or external extensions.
 - Let you choose the TavernKeeper-checked version or the newest version when they differ.
 
 ## Start here
@@ -24,7 +25,7 @@ It is built for players, so your current SillyTavern setup stays in your control
 - This is a **pre-alpha** feature. Some behaviors are still improving.
 - In this release, Presets are browse-only.
 - Not every catalog item is installable.
-- Companion only manages extensions it installed. It does not automatically manage manually added external extensions.
+- Companion only Kit-manages or removes extensions it installed. Updating a catalog-matched external extension does not make it Companion-managed.
 - Extensions in Companion are powerful; if a project was flagged, Companion warns you before install.
 
 ## Checks at a glance
@@ -44,6 +45,7 @@ Companion does not switch between them by itself. If there is only one meaningfu
 - [Read the player docs index](docs/user/README.md)
 - [Getting started](docs/user/getting-started.md)
 - [Browsing and installing](docs/user/browsing-and-installing.md)
+- [Updating extensions](docs/user/updating-extensions.md)
 - [Managing kits](docs/user/kits.md)
 - [Checks and choices](docs/user/safety-and-trust.md)
 - [Troubleshooting](docs/user/troubleshooting.md)

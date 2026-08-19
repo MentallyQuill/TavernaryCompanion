@@ -185,6 +185,43 @@ describe("lifecycle UI", () => {
     );
   });
 
+  it("keeps a successful update visible until the user reloads", () => {
+    vi.useFakeTimers();
+    const onDismissReceipt = vi.fn();
+    const onReload = vi.fn();
+    const receipt = createReceipt({
+      id: "receipt-update",
+      kind: "update",
+      projectId: "alpha",
+      projectName: "Alpha",
+      startedAt: "2026-08-18T10:00:00.000Z",
+      finishedAt: "2026-08-18T10:01:00.000Z",
+      status: "succeeded",
+      completedThrough: "recorded",
+      safeError: null,
+      reloadRequired: true,
+    });
+
+    render(
+      <OperationTray
+        active={null}
+        receipt={receipt}
+        onDismissReceipt={onDismissReceipt}
+        onReload={onReload}
+      />,
+    );
+
+    expect(screen.getByRole("status", { name: "Update complete" })).toHaveTextContent(
+      "Reload to apply updates",
+    );
+    act(() => {
+      vi.advanceTimersByTime(30_000);
+    });
+    expect(onDismissReceipt).not.toHaveBeenCalled();
+    fireEvent.click(screen.getByRole("button", { name: "Reload now" }));
+    expect(onReload).toHaveBeenCalledOnce();
+  });
+
   it("dismisses a successful receipt when its notification is clicked", () => {
     const onDismissReceipt = vi.fn();
     const receipt = createReceipt({

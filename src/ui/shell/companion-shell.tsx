@@ -12,6 +12,7 @@ import type {
   KitPrimaryAction,
 } from "../../kits/kit-view-model";
 import type { ProjectFacets } from "../projects/filter-panel";
+import type { ProjectUpdateState } from "../../updates/update-coordinator";
 import { InstalledRoute } from "../installed/installed-route";
 import { KitInspector } from "../kits/kit-inspector";
 import { KitsRoute } from "../kits/kits-route";
@@ -27,6 +28,10 @@ interface CompanionShellProps {
   facets?: ProjectFacets;
   onProjectAction?(id: string, action: ProjectPrimaryAction, anchor: HTMLButtonElement): void;
   onRefreshInventory?(): void | Promise<void>;
+  updateStates?: Readonly<Record<string, ProjectUpdateState>>;
+  onCheckUpdates?(): void | Promise<void>;
+  onRetryUpdate?(id: string): void;
+  onUpdateExtension?(id: string, anchor: HTMLButtonElement): void;
   inventoryRefreshing?: boolean;
   togglingInternalName?: string | null;
   onToggleExtension?(projectId: string, internalName: string, enabled: boolean): void;
@@ -66,6 +71,10 @@ export function CompanionShell({
   facets,
   onProjectAction,
   onRefreshInventory = noRefresh,
+  updateStates = {},
+  onCheckUpdates,
+  onRetryUpdate,
+  onUpdateExtension,
   inventoryRefreshing = false,
   togglingInternalName = null,
   onToggleExtension,
@@ -227,8 +236,12 @@ export function CompanionShell({
                     kits={installedKits}
                     activeKitId={activeKitId}
                     refreshing={inventoryRefreshing}
+                    updateStates={updateStates}
                     togglingInternalName={togglingInternalName}
                     onRefresh={onRefreshInventory}
+                    onCheckUpdates={onCheckUpdates}
+                    onRetryUpdate={onRetryUpdate}
+                    onUpdate={onUpdateExtension}
                     onAction={(id, action, anchor) => onProjectAction?.(id, action, anchor)}
                     onManage={onOpenExtensionManager}
                     onOpenKit={(id) =>

@@ -3,13 +3,17 @@ import type {
   InstalledSectionViewModel,
 } from "../../catalog/installed-view-model";
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
+import type { ProjectUpdateState } from "../../updates/update-coordinator";
 import { ProjectLifecycleControl } from "../projects/project-lifecycle-control";
 
 interface InstalledSectionProps {
   section: InstalledSectionViewModel;
   memberships?: ReadonlyMap<string, readonly string[]>;
   togglingInternalName?: string | null;
+  updateStates?: Readonly<Record<string, ProjectUpdateState>>;
   onAction?(id: string, action: ProjectPrimaryAction, anchor: HTMLButtonElement): void;
+  onRetryUpdate?(id: string): void;
+  onUpdate?(id: string, anchor: HTMLButtonElement): void;
   onManage?(): void;
   onToggleExtension?(projectId: string, internalName: string, enabled: boolean): void;
   lifecycleDisabled?: boolean;
@@ -19,7 +23,10 @@ export function InstalledSection({
   section,
   memberships = new Map(),
   togglingInternalName = null,
+  updateStates = {},
   onAction,
+  onRetryUpdate,
+  onUpdate,
   onManage,
   onToggleExtension,
   lifecycleDisabled,
@@ -41,7 +48,10 @@ export function InstalledSection({
               sectionId={section.id}
               kitTitles={memberships.get(row.id) ?? []}
               toggling={togglingInternalName === row.internalName}
+              updateState={updateStates[row.id]}
               onAction={onAction}
+              onRetryUpdate={onRetryUpdate}
+              onUpdate={onUpdate}
               onManage={onManage}
               onToggleExtension={onToggleExtension}
               lifecycleDisabled={lifecycleDisabled}
@@ -58,7 +68,10 @@ function InstalledCard({
   sectionId,
   kitTitles,
   toggling,
+  updateState,
   onAction,
+  onRetryUpdate,
+  onUpdate,
   onManage,
   onToggleExtension,
   lifecycleDisabled,
@@ -67,7 +80,10 @@ function InstalledCard({
   sectionId: InstalledSectionViewModel["id"];
   kitTitles: readonly string[];
   toggling: boolean;
+  updateState?: ProjectUpdateState;
   onAction?: (id: string, action: ProjectPrimaryAction, anchor: HTMLButtonElement) => void;
+  onRetryUpdate?: (id: string) => void;
+  onUpdate?: (id: string, anchor: HTMLButtonElement) => void;
   onManage?: () => void;
   onToggleExtension?: (projectId: string, internalName: string, enabled: boolean) => void;
   lifecycleDisabled?: boolean;
@@ -79,7 +95,17 @@ function InstalledCard({
     >
       <header>
         <span>{sectionLabel(sectionId)}</span>
-        {row.enabled !== null ? <strong>{row.enabled ? "Enabled" : "Disabled"}</strong> : null}
+        {updateState && updateState.kind !== "idle" ? (
+          <strong
+            class={`tavernary-companion-installed-update-status is-${updateState.kind}`}
+            role="status"
+            title={updateState.kind === "attention" ? updateState.reason : undefined}
+          >
+            {updateStatusLabel(updateState)}
+          </strong>
+        ) : row.enabled !== null ? (
+          <strong>{row.enabled ? "Enabled" : "Disabled"}</strong>
+        ) : null}
       </header>
       <h4>
         {row.canonicalUrl ? (
@@ -110,6 +136,27 @@ function InstalledCard({
             <b>{toggling ? "Updating…" : row.enabled ? "Enabled" : "Disabled"}</b>
           </button>
         ) : null}
+        {updateState?.kind === "available" ? (
+          <button
+            type="button"
+            class="tavernary-companion-installed-update-button"
+            aria-label={`Update ${row.name}`}
+            disabled={lifecycleDisabled}
+            onClick={(event) => onUpdate?.(row.id, event.currentTarget)}
+          >
+            Update
+          </button>
+        ) : null}
+        {updateState?.kind === "error" ? (
+          <button
+            type="button"
+            aria-label={`Retry updates for ${row.name}`}
+            disabled={lifecycleDisabled}
+            onClick={() => onRetryUpdate?.(row.id)}
+          >
+            Retry
+          </button>
+        ) : null}
         {unknown ? (
           <button
             type="button"
@@ -129,6 +176,16 @@ function InstalledCard({
       </footer>
     </article>
   );
+}
+
+function updateStatusLabel(state: Exclude<ProjectUpdateState, { kind: "idle" }>): string {
+  return {
+    checking: "Checking…",
+    current: "Up to date",
+    available: "Update available",
+    attention: "Needs attention",
+    error: "Could not check",
+  }[state.kind];
 }
 
 function sectionLabel(id: InstalledSectionViewModel["id"]): string {

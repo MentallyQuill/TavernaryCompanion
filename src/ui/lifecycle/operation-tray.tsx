@@ -10,6 +10,7 @@ interface OperationTrayProps {
   onDismissReceipt?(): void;
   onDismissError?(): void;
   onRetryError?(): void;
+  onReload?(): void;
 }
 
 export function OperationTray({
@@ -19,6 +20,7 @@ export function OperationTray({
   onDismissReceipt,
   onDismissError,
   onRetryError,
+  onReload,
 }: OperationTrayProps): preact.JSX.Element | null {
   if (error) {
     return (
@@ -47,6 +49,23 @@ export function OperationTray({
     );
   }
   if (receipt) {
+    if (receipt.kind === "update" && receipt.status === "succeeded") {
+      return (
+        <aside
+          class="tavernary-companion-operation-tray tavernary-companion-update-reload"
+          role="status"
+          aria-label="Update complete"
+          aria-live="polite"
+        >
+          <p>
+            <strong>{receipt.projectName} updated.</strong> Reload to apply updates.
+          </p>
+          <button type="button" onClick={onReload}>
+            Reload now
+          </button>
+        </aside>
+      );
+    }
     if (receipt.status === "succeeded") {
       return <OperationSuccessNotification receipt={receipt} onDismiss={onDismissReceipt} />;
     }

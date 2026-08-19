@@ -68,6 +68,17 @@
   background: var(--tavernary-companion-accent);
 }
 
+.tavernary-companion-update-reload {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.tavernary-companion-update-reload button {
+  flex: none;
+}
+
 .tavernary-companion-operation-receipt h3,
 .tavernary-companion-operation-tray p {
   margin-block: 0.25rem;
