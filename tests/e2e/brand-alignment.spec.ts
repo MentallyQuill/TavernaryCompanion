@@ -149,3 +149,37 @@ test("Kits and Installed reuse the Tavernary card and control system", async ({ 
     "rgb(24, 34, 40)",
   );
 });
+
+test("mobile Kits and Installed use the compact shared route grammar", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHarness(page);
+  const browse = page.getByRole("combobox", { name: "Browse Companion" });
+
+  await browse.selectOption("kits");
+  const kitsToolbar = page.locator(".tavernary-companion-route-toolbar");
+  await expect(kitsToolbar).toHaveCSS("display", "flex");
+  await expect(kitsToolbar.locator("> strong")).not.toBeVisible();
+  await page.getByRole("tab", { name: /Personal/ }).click();
+  const kitCard = await page.locator(".tavernary-companion-kit-card").first().boundingBox();
+  expect(kitCard).not.toBeNull();
+  expect(kitCard!.x).toBeGreaterThanOrEqual(12);
+  expect(kitCard!.x).toBeLessThanOrEqual(16);
+  expect(kitCard!.y).toBeLessThanOrEqual(460);
+
+  await browse.selectOption("installed");
+  const installedToolbar = page.locator(".tavernary-companion-route-toolbar");
+  await expect(installedToolbar).toHaveCSS("display", "flex");
+  await expect(installedToolbar.locator("> strong")).not.toBeVisible();
+  const installed = await page
+    .locator(".tavernary-companion-installed-section")
+    .first()
+    .boundingBox();
+  expect(installed).not.toBeNull();
+  expect(installed!.x).toBeGreaterThanOrEqual(12);
+  expect(installed!.x).toBeLessThanOrEqual(16);
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
+});

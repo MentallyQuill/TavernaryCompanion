@@ -8,7 +8,8 @@
   background: var(--tavernary-color-bg-canvas);
 }
 
-.tavernary-companion-catalog-state > .tavernary-companion-projects-route {
+.tavernary-companion-catalog-state > .tavernary-companion-projects-route,
+.tavernary-companion-catalog-state > .tavernary-companion-installed-route {
   margin: 0;
 }
 

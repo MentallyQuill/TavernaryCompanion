@@ -51,6 +51,7 @@ describe("InstalledRoute", () => {
       screen.queryByRole("heading", { name: "Installed outside Companion" }),
     ).not.toBeInTheDocument();
     expect(screen.getByRole("heading", { name: "Not found in current catalog" })).toBeVisible();
+    expect(screen.getByText("2 installed extensions")).toBeVisible();
     await waitFor(() => expect(onRefresh).toHaveBeenCalledOnce());
   });
 

@@ -34,12 +34,15 @@ export function KitsRoute({
   useEffect(() => controller.subscribe(setState), [controller]);
   return (
     <section class="tavernary-companion-kits-route" aria-labelledby="kits-heading">
-      <header>
-        <div>
-          <h2 id="kits-heading">Kits</h2>
-          <p>Save, install, and switch extension collections.</p>
-        </div>
-        <div>
+      <h2 id="kits-heading" class="tavernary-companion-sr-only">
+        Kits
+      </h2>
+      <header class="tavernary-companion-route-toolbar">
+        <strong aria-hidden="true">Kits</strong>
+        <span>
+          {state.visible.length} {state.visible.length === 1 ? "Kit" : "Kits"} shown
+        </span>
+        <div class="tavernary-companion-route-actions">
           <button type="button" onClick={onNewKit}>
             New Kit
           </button>
@@ -82,9 +85,11 @@ export function KitsRoute({
         </button>
       </div>
       <label class="tavernary-companion-kit-search">
-        Search Kits
+        <span class="tavernary-companion-sr-only">Search Kits</span>
         <input
           type="search"
+          aria-label="Search Kits"
+          placeholder="Search Kits…"
           value={state.search}
           onInput={(event) => controller.setSearch(event.currentTarget.value)}
         />

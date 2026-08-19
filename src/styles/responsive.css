@@ -182,6 +182,10 @@
     min-block-size: 44px;
   }
 
+  .tavernary-companion-route-toolbar > strong {
+    display: none;
+  }
+
   .tavernary-companion-shell__tabs {
     min-block-size: 58px;
     padding: 0.5rem 0.75rem;

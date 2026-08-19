@@ -17,6 +17,11 @@ it("toggles compact published Kit filters", () => {
   );
 
   const trigger = screen.getByRole("button", { name: "Kit filters" });
+  expect(
+    screen.queryByText("Save, install, and switch extension collections."),
+  ).not.toBeInTheDocument();
+  expect(screen.getByText("0 Kits shown")).toBeVisible();
+  expect(screen.getByRole("searchbox", { name: "Search Kits" })).toBeVisible();
   expect(trigger).toHaveAttribute("aria-expanded", "false");
   fireEvent.click(trigger);
   expect(trigger).toHaveAttribute("aria-expanded", "true");
@@ -44,6 +49,7 @@ it("switches between published and personal Kit segments", () => {
     <KitsRoute controller={controller} onOpenKit={() => undefined} onAction={() => undefined} />,
   );
   fireEvent.click(screen.getByRole("tab", { name: /Personal/u }));
+  expect(screen.getByText("1 Kit shown")).toBeVisible();
   expect(screen.getByRole("heading", { name: "Writer" })).toBeVisible();
   expect(screen.getByRole("button", { name: "Install Kit" })).toBeVisible();
 });

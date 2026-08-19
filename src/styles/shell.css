@@ -208,6 +208,30 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   overflow: hidden;
 }
 
+.tavernary-companion-route-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block-end: 0.65rem;
+}
+
+.tavernary-companion-route-toolbar > strong {
+  color: var(--tavernary-color-heading);
+  font-size: 1.2rem;
+}
+
+.tavernary-companion-route-toolbar > span {
+  color: var(--tavernary-color-text-muted);
+  font-size: 0.78rem;
+}
+
+.tavernary-companion-route-actions {
+  display: flex;
+  gap: 0.5rem;
+  margin-inline-start: auto;
+}
+
 .tavernary-companion-catalog-state {
   display: flex;
   flex-direction: column;

@@ -206,7 +206,7 @@ export function CompanionShell({
             </>
           ) : null}
           {!detail && state.route === "kits" ? (
-            <section aria-labelledby="tavernary-companion-kits-heading">
+            <>
               {kitDiscovery ? (
                 <KitsRoute
                   controller={kitDiscovery}
@@ -234,10 +234,10 @@ export function CompanionShell({
               ) : (
                 <h2 id="tavernary-companion-kits-heading">Kits</h2>
               )}
-            </section>
+            </>
           ) : null}
           {!detail && state.route === "installed" ? (
-            <section aria-labelledby="tavernary-companion-installed-heading">
+            <>
               {discoveryState ? (
                 <InstalledRoute
                   sections={discoveryState.installedSections}
@@ -253,7 +253,7 @@ export function CompanionShell({
               ) : (
                 <h2 id="tavernary-companion-installed-heading">Installed extensions</h2>
               )}
-            </section>
+            </>
           ) : null}
           {detail ? (
             <section aria-label={`${detail.kind} detail`}>
