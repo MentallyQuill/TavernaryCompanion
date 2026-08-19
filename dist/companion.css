@@ -2799,7 +2799,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 }
 .tavernary-companion-install-version-chooser-backdrop {
   position: fixed;
-  z-index: 2147483000;
+  z-index: 2147483001;
   inset: 0;
   box-sizing: border-box;
   pointer-events: none;

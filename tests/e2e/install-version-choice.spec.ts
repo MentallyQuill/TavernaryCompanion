@@ -65,8 +65,46 @@ test.describe("touch choice", () => {
     await installAlpha(page).tap();
     const backdrop = page.locator(".tavernary-companion-install-version-chooser-backdrop");
 
-    await expect(backdrop).toHaveCSS("backdrop-filter", /blur\([1-9]/u);
-    await expect(backdrop).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+    await expect(backdrop).toHaveCSS("backdrop-filter", "blur(4px)");
+    await expect(backdrop).toHaveCSS("background-color", "rgba(0, 0, 0, 0.32)");
+  });
+
+  test("keeps the chooser above a concurrent operation notification", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openVersionChoice(page, "version-choice");
+
+    await installAlpha(page).tap();
+    const chooser = page.getByRole("dialog", { name: "Which version would you like?" });
+    await page.evaluate(() => {
+      const chooser = document.querySelector<HTMLElement>(
+        ".tavernary-companion-install-version-chooser",
+      );
+      if (!chooser) throw new Error("Version chooser is missing");
+      const bounds = chooser.getBoundingClientRect();
+      const notification = document.createElement("aside");
+      notification.className = "tavernary-companion-operation-notification";
+      notification.style.insetBlockStart = `${bounds.top + bounds.height / 2 - 40}px`;
+      notification.style.insetInlineStart = `${bounds.left + bounds.width / 2}px`;
+      notification.style.inlineSize = "240px";
+      notification.style.visibility = "visible";
+      const action = document.createElement("button");
+      action.className = "tavernary-companion-operation-notification__button";
+      action.style.blockSize = "80px";
+      action.textContent = "Installation complete";
+      notification.append(action);
+      document.body.append(notification);
+    });
+
+    const chooserIsTopmost = await chooser.evaluate((element) => {
+      const bounds = element.getBoundingClientRect();
+      return (
+        document
+          .elementFromPoint(bounds.left + bounds.width / 2, bounds.top + bounds.height / 2)
+          ?.closest(".tavernary-companion-install-version-chooser") === element
+      );
+    });
+
+    expect(chooserIsTopmost).toBe(true);
   });
 
   test("keeps the chooser on screen and installs the tapped choice", async ({ page }) => {
