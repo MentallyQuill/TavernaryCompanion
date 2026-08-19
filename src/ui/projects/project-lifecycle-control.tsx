@@ -1,7 +1,7 @@
 import { useId } from "preact/hooks";
 
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
-import { InstallIcon } from "../shared/install-icon";
+import { InstallIcon, UninstallIcon } from "../shared/install-icon";
 import { Tooltip } from "../shared/tooltip";
 
 interface ProjectLifecycleControlProps {
@@ -39,7 +39,7 @@ export function ProjectLifecycleControl({
           onClick={() => onAction(action)}
         >
           <span class="tavernary-companion-project-lifecycle__face" aria-hidden="true">
-            <InstallIcon />
+            {installed ? <UninstallIcon /> : <InstallIcon />}
           </span>
         </button>
       </Tooltip>
