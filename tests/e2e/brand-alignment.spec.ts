@@ -150,6 +150,82 @@ test("desktop filters use Tavernary's persistent flush rail", async ({ page }) =
   await expect(surface).toHaveCSS("border-radius", "0px");
   await expect(surface.getByRole("heading", { name: "Filters" })).toBeVisible();
   await expect(surface.getByText("Refine catalog")).not.toBeVisible();
+  const filterMetrics = await surface.evaluate((element) => {
+    const metric = (selector: string) => getComputedStyle(element.querySelector(selector)!);
+    const surface = getComputedStyle(element);
+    const header = metric(".tavernary-companion-filter-surface__header");
+    const panel = metric(".tavernary-companion-filter-panel");
+    const title = metric(".tavernary-companion-filter-surface__header h2");
+    const clear = metric(".tavernary-companion-filter-clear");
+    const groupHeading = metric(".tavernary-companion-filter-group legend");
+    const searchElement = element.querySelector<HTMLElement>(".tavernary-companion-filter-search")!;
+    const search = getComputedStyle(searchElement);
+    const searchPlaceholder = getComputedStyle(searchElement, "::placeholder");
+    const row = metric(".tavernary-companion-filter-option");
+    const lastGroup = metric(".tavernary-companion-filter-group:last-child");
+    const tagSection = metric(".tavernary-companion-filter-tag-browser");
+    const tagHeading = metric(".tavernary-companion-filter-tag-browser > h3");
+    const tagBrowser = metric(".tavernary-companion-tag-browser");
+    const tagStatus = metric(".tavernary-companion-tag-browser__status");
+    const metadata = metric(".tavernary-companion-filter-options--chips");
+    const chip = metric(".tavernary-companion-filter-choice__chip");
+    return {
+      surfacePadding: surface.padding,
+      headerPadding: header.padding,
+      headerMargin: header.marginBottom,
+      panelPadding: panel.padding,
+      titleSize: title.fontSize,
+      clearSize: clear.fontSize,
+      clearColor: clear.color,
+      groupHeadingSize: groupHeading.fontSize,
+      searchHeight: search.height,
+      searchSize: search.fontSize,
+      searchPlaceholderColor: searchPlaceholder.color,
+      rowHeight: row.height,
+      rowSize: row.fontSize,
+      lastGroupPaddingBottom: lastGroup.paddingBottom,
+      tagSectionPadding: tagSection.paddingTop,
+      tagSectionBorder: tagSection.borderTopWidth,
+      tagHeadingSize: tagHeading.fontSize,
+      tagHeadingMargin: tagHeading.marginBottom,
+      tagDisplay: tagBrowser.display,
+      tagGap: tagBrowser.gap,
+      tagStatusJustification: tagStatus.justifyContent,
+      tagStatusMargin: tagStatus.marginBottom,
+      tagStatusSize: tagStatus.fontSize,
+      metadataMargin: metadata.marginTop,
+      chipHeight: chip.height,
+      chipSize: chip.fontSize,
+    };
+  });
+  expect(filterMetrics).toEqual({
+    surfacePadding: "20px 18px 50px",
+    headerPadding: "0px",
+    headerMargin: "12px",
+    panelPadding: "0px",
+    titleSize: "13px",
+    clearSize: "10px",
+    clearColor: "rgb(130, 144, 153)",
+    groupHeadingSize: "10px",
+    searchHeight: "32px",
+    searchSize: "10px",
+    searchPlaceholderColor: "rgb(113, 128, 135)",
+    rowHeight: "27px",
+    rowSize: "11px",
+    lastGroupPaddingBottom: "0px",
+    tagSectionPadding: "18px",
+    tagSectionBorder: "1px",
+    tagHeadingSize: "10px",
+    tagHeadingMargin: "8px",
+    tagDisplay: "grid",
+    tagGap: "8px",
+    tagStatusJustification: "space-between",
+    tagStatusMargin: "0px",
+    tagStatusSize: "9px",
+    metadataMargin: "10px",
+    chipHeight: "26px",
+    chipSize: "9px",
+  });
 
   const workspace = page.locator(".tavernary-companion-projects-route__workspace");
   const workspaceBox = await workspace.boundingBox();
@@ -157,6 +233,8 @@ test("desktop filters use Tavernary's persistent flush rail", async ({ page }) =
   expect(workspaceBox).not.toBeNull();
   expect(routeBox).not.toBeNull();
   expect(workspaceBox!.x).toBe(routeBox!.x);
+  expect(workspaceBox!.y).toBe(routeBox!.y);
+  expect(box!.y).toBe(routeBox!.y);
   expect(
     await page
       .locator(".tavernary-companion-project-grid")
@@ -164,6 +242,33 @@ test("desktop filters use Tavernary's persistent flush rail", async ({ page }) =
         (grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length,
       ),
   ).toBe(3);
+  const modelFamily = surface.getByRole("checkbox", { name: "Model-Agnostic" });
+  const modelFamilyChip = modelFamily.locator("../..");
+  await expect(modelFamilyChip).toHaveCSS("order", "1");
+  await modelFamily.check({ force: true });
+  await expect(modelFamilyChip).toHaveCSS("order", "0");
+});
+
+test("compact desktop keeps Tavernary's 210px persistent rail", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await openHarness(page);
+
+  await expect(page.getByRole("button", { name: "Open filters" })).not.toBeVisible();
+  const route = page.locator(".tavernary-companion-projects-route");
+  const surface = page.locator(".tavernary-companion-filter-surface");
+  const [routeBox, surfaceBox] = await Promise.all([route.boundingBox(), surface.boundingBox()]);
+  expect(routeBox).not.toBeNull();
+  expect(surfaceBox).not.toBeNull();
+  expect(surfaceBox!.x).toBe(routeBox!.x);
+  expect(surfaceBox!.y).toBe(routeBox!.y);
+  expect(surfaceBox!.width).toBe(210);
+  expect(
+    await page
+      .locator(".tavernary-companion-project-grid")
+      .evaluate(
+        (grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length,
+      ),
+  ).toBe(2);
 });
 
 test("mobile filters use Tavernary's compact icon and inset refinement sheet", async ({ page }) => {
@@ -187,6 +292,21 @@ test("mobile filters use Tavernary's compact icon and inset refinement sheet", a
   await expect(sheet).toHaveCSS("background-color", "rgb(28, 40, 46)");
   await expect(sheet.getByText("Refine catalog")).toBeVisible();
   await expect(sheet.getByRole("heading", { name: "Filters" })).toBeVisible();
+  const mobileFilterMetrics = await sheet.evaluate((element) => {
+    const metric = (selector: string) => getComputedStyle(element.querySelector(selector)!);
+    return {
+      groupPadding: metric(".tavernary-companion-filter-group").paddingTop,
+      tagSectionPadding: metric(".tavernary-companion-filter-tag-browser").paddingTop,
+      tagBrowserPadding: metric(".tavernary-companion-tag-browser").paddingTop,
+      metadataPreviewHeight: metric(".tavernary-companion-filter-options--chips").maxHeight,
+    };
+  });
+  expect(mobileFilterMetrics).toEqual({
+    groupPadding: "18px",
+    tagSectionPadding: "18px",
+    tagBrowserPadding: "0px",
+    metadataPreviewHeight: "194px",
+  });
   const close = sheet.getByRole("button", { name: "Close filters" });
   const closeBox = await close.boundingBox();
   expect(closeBox).not.toBeNull();

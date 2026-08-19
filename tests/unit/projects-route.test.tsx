@@ -100,7 +100,6 @@ describe("ProjectsRoute", () => {
     for (const name of [
       "Compatible frontend",
       "Project kind",
-      "Goals & traits",
       "Model family",
       "Completion format",
       "Development",
@@ -108,6 +107,7 @@ describe("ProjectsRoute", () => {
     ]) {
       expect(screen.getByRole("group", { name })).toBeVisible();
     }
+    expect(screen.getByRole("region", { name: "Goals & traits" })).toBeVisible();
 
     fireEvent.click(screen.getByRole("checkbox", { name: "SillyTavern" }));
     expect(onQueryChange).toHaveBeenCalledWith(expect.objectContaining({ frontends: [] }));

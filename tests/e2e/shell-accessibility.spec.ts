@@ -38,10 +38,10 @@ test("filter sheet closes from its backdrop and returns focus", async ({ page })
   await expect(trigger).toBeFocused();
 });
 
-test("filter sheet traps focus, clears safely, and releases modal state on desktop", async ({
+test("filter sheet traps focus, clears safely, and releases modal state on mobile", async ({
   page,
 }) => {
-  await page.setViewportSize({ width: 1024, height: 768 });
+  await page.setViewportSize({ width: 390, height: 844 });
   await openHarness(page);
   await page.getByRole("button", { name: "Open filters" }).click();
   const sheet = page.getByRole("dialog", { name: "Project filters" });

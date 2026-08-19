@@ -1,4 +1,4 @@
-import { useState } from "preact/hooks";
+import { useLayoutEffect, useRef, useState } from "preact/hooks";
 
 import { FilterChoice } from "./filter-choice";
 
@@ -35,7 +35,8 @@ export function FilterGroup({
 }: FilterGroupProps): preact.JSX.Element | null {
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState(false);
-  if (options.length === 0) return null;
+  const [chipsOverflow, setChipsOverflow] = useState(false);
+  const chipListRef = useRef<HTMLDivElement>(null);
 
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const pinned = options.slice(0, initialVisibleCount);
@@ -51,6 +52,27 @@ export function FilterGroup({
       : collapsedOptions;
   const hiddenCount = options.length - collapsedOptions.length;
 
+  useLayoutEffect(() => {
+    if (presentation !== "chips" || !chipListRef.current) return;
+    const list = chipListRef.current;
+    const measure = () => {
+      const rowCount = new Set(
+        Array.from(list.children).map((child) => Math.round((child as HTMLElement).offsetTop)),
+      ).size;
+      setChipsOverflow(rowCount > 4);
+    };
+    if (typeof ResizeObserver === "undefined") {
+      measure();
+      return;
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(list);
+    measure();
+    return () => observer.disconnect();
+  }, [expanded, options, presentation, selected]);
+
+  if (options.length === 0) return null;
+
   return (
     <fieldset class="tavernary-companion-filter-group">
       <legend>{title}</legend>
@@ -65,7 +87,8 @@ export function FilterGroup({
         />
       ) : null}
       <div
-        class={`tavernary-companion-filter-options tavernary-companion-filter-options--${presentation}`}
+        ref={presentation === "chips" ? chipListRef : undefined}
+        class={`tavernary-companion-filter-options tavernary-companion-filter-options--${presentation}${presentation === "chips" && !expanded ? " is-collapsed" : ""}`}
       >
         {visibleOptions.map((option) =>
           presentation === "chips" ? (
@@ -95,7 +118,7 @@ export function FilterGroup({
           ),
         )}
       </div>
-      {!normalizedSearch && (hiddenCount > 0 || expanded) ? (
+      {presentation === "list" && !normalizedSearch && (hiddenCount > 0 || expanded) ? (
         <button
           class="tavernary-companion-filter-disclosure"
           type="button"
@@ -103,6 +126,16 @@ export function FilterGroup({
           onClick={() => setExpanded((value) => !value)}
         >
           {expanded ? "Show fewer" : `Show ${hiddenCount} more`}
+        </button>
+      ) : null}
+      {presentation === "chips" && (chipsOverflow || expanded) ? (
+        <button
+          class="tavernary-companion-filter-disclosure tavernary-companion-metadata-disclosure"
+          type="button"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {expanded ? "Show fewer" : "Show more"}
         </button>
       ) : null}
     </fieldset>

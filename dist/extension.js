@@ -81,7 +81,7 @@ var require_code = __commonJS({
     };
     exports._Code = _Code;
     exports.nil = new _Code("");
-    function _2(strs, ...args) {
+    function _3(strs, ...args) {
       const code = [strs[0]];
       let i3 = 0;
       while (i3 < args.length) {
@@ -90,7 +90,7 @@ var require_code = __commonJS({
       }
       return new _Code(code);
     }
-    exports._ = _2;
+    exports._ = _3;
     var plus = new _Code("+");
     function str(strs, ...args) {
       const expr = [safeStringify(strs[0])];
@@ -161,7 +161,7 @@ var require_code = __commonJS({
     }
     exports.safeStringify = safeStringify;
     function getProperty(key) {
-      return typeof key == "string" && exports.IDENTIFIER.test(key) ? new _Code(`.${key}`) : _2`[${key}]`;
+      return typeof key == "string" && exports.IDENTIFIER.test(key) ? new _Code(`.${key}`) : _3`[${key}]`;
     }
     exports.getProperty = getProperty;
     function getEsmExportName(key) {
@@ -2258,7 +2258,7 @@ var require_resolve = __commonJS({
       const pathPrefix = getFullPath(uriResolver, schId, false);
       const localRefs = {};
       const schemaRefs = /* @__PURE__ */ new Set();
-      traverse(schema, { allKeys: true }, (sch, jsonPtr, _2, parentJsonPtr) => {
+      traverse(schema, { allKeys: true }, (sch, jsonPtr, _3, parentJsonPtr) => {
         if (parentJsonPtr === void 0)
           return;
         const fullPath = pathPrefix + jsonPtr;
@@ -7281,8 +7281,8 @@ function H() {
   }
 }
 function L(n2, l3, u4, t3, i3, r3, o3, e3, f4, c3, a3) {
-  var s3, h3, p3, v3, y3, _2, g3 = t3 && t3.__k || w, m3 = l3.length;
-  for (f4 = T(u4, l3, g3, f4, m3), s3 = 0; s3 < m3; s3++) null != (p3 = u4.__k[s3]) && (h3 = -1 != p3.__i && g3[p3.__i] || d, p3.__i = s3, _2 = q(n2, p3, h3, i3, r3, o3, e3, f4, c3, a3), v3 = p3.__e, p3.ref && h3.ref != p3.ref && (h3.ref && J(h3.ref, null, p3), a3.push(p3.ref, p3.__c || v3, p3)), null == y3 && null != v3 && (y3 = v3), 4 & p3.__u ? (f4 = j(p3, f4, n2), h3.__e && (h3.__e = null)) : "function" == typeof p3.type && void 0 !== _2 ? f4 = _2 : v3 && (f4 = v3.nextSibling), p3.__u &= -7);
+  var s3, h3, p3, v3, y3, _3, g3 = t3 && t3.__k || w, m3 = l3.length;
+  for (f4 = T(u4, l3, g3, f4, m3), s3 = 0; s3 < m3; s3++) null != (p3 = u4.__k[s3]) && (h3 = -1 != p3.__i && g3[p3.__i] || d, p3.__i = s3, _3 = q(n2, p3, h3, i3, r3, o3, e3, f4, c3, a3), v3 = p3.__e, p3.ref && h3.ref != p3.ref && (h3.ref && J(h3.ref, null, p3), a3.push(p3.ref, p3.__c || v3, p3)), null == y3 && null != v3 && (y3 = v3), 4 & p3.__u ? (f4 = j(p3, f4, n2), h3.__e && (h3.__e = null)) : "function" == typeof p3.type && void 0 !== _3 ? f4 = _3 : v3 && (f4 = v3.nextSibling), p3.__u &= -7);
   return u4.__e = y3, f4;
 }
 function T(n2, l3, u4, t3, i3) {
@@ -7343,7 +7343,7 @@ function V(n2) {
   };
 }
 function q(n2, u4, t3, i3, r3, o3, e3, f4, c3, a3) {
-  var s3, h3, p3, v3, y3, d3, _2, k3, x2, M, I2, P2, A3, H2, T3, j3, F = u4.type;
+  var s3, h3, p3, v3, y3, d3, _3, k3, x2, M, I2, P2, A3, H2, T3, j3, F = u4.type;
   if (void 0 !== u4.constructor) return null;
   128 & t3.__u && (c3 = !!(32 & t3.__u), o3 = [f4 = u4.__e = t3.__e]), (s3 = l.__b) && s3(u4);
   n: if ("function" == typeof F) {
@@ -7358,14 +7358,14 @@ function q(n2, u4, t3, i3, r3, o3, e3, f4, c3, a3) {
           break n;
         }
         null != p3.componentWillUpdate && p3.componentWillUpdate(x2, p3.__s, P2), M && null != p3.componentDidUpdate && p3.__h.push(function() {
-          p3.componentDidUpdate(y3, d3, _2);
+          p3.componentDidUpdate(y3, d3, _3);
         });
       }
       if (p3.context = P2, p3.props = x2, p3.__P = n2, p3.__e = false, A3 = l.__r, H2 = 0, M) p3.state = p3.__s, p3.__d = false, A3 && A3(u4), s3 = p3.render(p3.props, p3.state, p3.context), w.push.apply(p3.__h, p3._sb), p3._sb = [];
       else do {
         p3.__d = false, A3 && A3(u4), s3 = p3.render(p3.props, p3.state, p3.context), p3.state = p3.__s;
       } while (p3.__d && ++H2 < 25);
-      p3.state = p3.__s, null != p3.getChildContext && (i3 = m(m({}, i3), p3.getChildContext())), M && !v3 && null != p3.getSnapshotBeforeUpdate && (_2 = p3.getSnapshotBeforeUpdate(y3, d3)), T3 = null != s3 && s3.type === S && null == s3.key ? E(s3.props.children) : s3, f4 = L(n2, g(T3) ? T3 : [T3], u4, t3, i3, r3, o3, e3, f4, c3, a3), p3.base = u4.__e, u4.__u &= -161, p3.__h.length && e3.push(p3), k3 && (p3.__E = p3.__ = null);
+      p3.state = p3.__s, null != p3.getChildContext && (i3 = m(m({}, i3), p3.getChildContext())), M && !v3 && null != p3.getSnapshotBeforeUpdate && (_3 = p3.getSnapshotBeforeUpdate(y3, d3)), T3 = null != s3 && s3.type === S && null == s3.key ? E(s3.props.children) : s3, f4 = L(n2, g(T3) ? T3 : [T3], u4, t3, i3, r3, o3, e3, f4, c3, a3), p3.base = u4.__e, u4.__u &= -161, p3.__h.length && e3.push(p3), k3 && (p3.__E = p3.__ = null);
     } catch (n3) {
       if (e3.length = h3, u4.__v = null, c3 || null != o3) {
         if (n3.then) {
@@ -7397,7 +7397,7 @@ function E(n2) {
   return "object" != typeof n2 || null == n2 || n2.__b > 0 ? n2 : g(n2) ? n2.map(E) : void 0 !== n2.constructor ? null : m({}, n2);
 }
 function G(u4, t3, i3, r3, o3, e3, f4, c3, a3) {
-  var s3, h3, p3, v3, y3, w3, _2, m3 = i3.props || d, k3 = t3.props, x2 = t3.type;
+  var s3, h3, p3, v3, y3, w3, _3, m3 = i3.props || d, k3 = t3.props, x2 = t3.type;
   if ("svg" == x2 ? o3 = "http://www.w3.org/2000/svg" : "math" == x2 ? o3 = "http://www.w3.org/1998/Math/MathML" : o3 || (o3 = "http://www.w3.org/1999/xhtml"), null != e3) {
     for (s3 = 0; s3 < e3.length; s3++) if ((y3 = e3[s3]) && "setAttribute" in y3 == !!x2 && (x2 ? y3.localName == x2 : 3 == y3.nodeType)) {
       u4 = y3, e3[s3] = null;
@@ -7412,10 +7412,10 @@ function G(u4, t3, i3, r3, o3, e3, f4, c3, a3) {
   else {
     if (e3 = "textarea" == x2 && null != k3.defaultValue ? null : e3 && n.call(u4.childNodes), !c3 && null != e3) for (m3 = {}, s3 = 0; s3 < u4.attributes.length; s3++) m3[(y3 = u4.attributes[s3]).name] = y3.value;
     for (s3 in m3) y3 = m3[s3], "dangerouslySetInnerHTML" == s3 ? p3 = y3 : "children" == s3 || s3 in k3 || "value" == s3 && "defaultValue" in k3 || "checked" == s3 && "defaultChecked" in k3 || N(u4, s3, null, y3, o3);
-    for (s3 in k3) y3 = k3[s3], "children" == s3 ? v3 = y3 : "dangerouslySetInnerHTML" == s3 ? h3 = y3 : "value" == s3 ? w3 = y3 : "checked" == s3 ? _2 = y3 : c3 && "function" != typeof y3 || m3[s3] === y3 || N(u4, s3, y3, m3[s3], o3);
+    for (s3 in k3) y3 = k3[s3], "children" == s3 ? v3 = y3 : "dangerouslySetInnerHTML" == s3 ? h3 = y3 : "value" == s3 ? w3 = y3 : "checked" == s3 ? _3 = y3 : c3 && "function" != typeof y3 || m3[s3] === y3 || N(u4, s3, y3, m3[s3], o3);
     if (h3) c3 || p3 && (h3.__html == p3.__html || h3.__html == u4.innerHTML) || (u4.innerHTML = h3.__html), t3.__k = [];
     else if (p3 && (u4.innerHTML = ""), L("template" == t3.type ? u4.content : u4, g(v3) ? v3 : [v3], t3, i3, r3, "foreignObject" == x2 ? "http://www.w3.org/1999/xhtml" : o3, e3, f4, e3 ? e3[0] : i3.__k && $(i3, 0), c3, a3), null != e3) for (s3 = e3.length; s3--; ) b(e3[s3]);
-    c3 && "textarea" != x2 || (s3 = "value", "progress" == x2 && null == w3 ? u4.removeAttribute("value") : null != w3 && (w3 !== u4[s3] || "progress" == x2 && !w3 || "option" == x2 && w3 != m3[s3]) && N(u4, s3, w3, m3[s3], o3), s3 = "checked", null != _2 && _2 != u4[s3] && N(u4, s3, _2, m3[s3], o3));
+    c3 && "textarea" != x2 || (s3 = "value", "progress" == x2 && null == w3 ? u4.removeAttribute("value") : null != w3 && (w3 !== u4[s3] || "progress" == x2 && !w3 || "option" == x2 && w3 != m3[s3]) && N(u4, s3, w3, m3[s3], o3), s3 = "checked", null != _3 && _3 != u4[s3] && N(u4, s3, _3, m3[s3], o3));
   }
   return u4;
 }
@@ -7525,6 +7525,10 @@ function y2(n2, u4, i3) {
 function h2(n2, u4) {
   var i3 = s2(t2++, 3);
   !c2.__s && C2(i3.__H, u4) && (i3.__ = n2, i3.u = u4, r2.__H.__h.push(i3));
+}
+function _2(n2, u4) {
+  var i3 = s2(t2++, 4);
+  !c2.__s && C2(i3.__H, u4) && (i3.__ = n2, i3.u = u4, r2.__h.push(i3));
 }
 function A2(n2) {
   return o2 = 5, T2(function() {
@@ -10398,7 +10402,7 @@ function proximityBonus(document2, query) {
 function levenshteinDistance(left, right) {
   const previous = Array.from(
     { length: right.length + 1 },
-    (_2, index) => index
+    (_3, index) => index
   );
   const current = new Array(right.length + 1);
   for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
@@ -15180,7 +15184,8 @@ function FilterGroup({
 }) {
   const [search, setSearch] = d2("");
   const [expanded, setExpanded] = d2(false);
-  if (options.length === 0) return null;
+  const [chipsOverflow, setChipsOverflow] = d2(false);
+  const chipListRef = A2(null);
   const normalizedSearch = search.trim().toLocaleLowerCase();
   const pinned = options.slice(0, initialVisibleCount);
   const selectedExtras = options.filter(
@@ -15190,6 +15195,25 @@ function FilterGroup({
   const collapsedOptions = options.filter(({ id }) => collapsedIds.has(id));
   const visibleOptions = normalizedSearch ? options.filter(({ label: label2 }) => label2.toLocaleLowerCase().includes(normalizedSearch)) : expanded ? options : collapsedOptions;
   const hiddenCount = options.length - collapsedOptions.length;
+  _2(() => {
+    if (presentation !== "chips" || !chipListRef.current) return;
+    const list2 = chipListRef.current;
+    const measure = () => {
+      const rowCount = new Set(
+        Array.from(list2.children).map((child) => Math.round(child.offsetTop))
+      ).size;
+      setChipsOverflow(rowCount > 4);
+    };
+    if (typeof ResizeObserver === "undefined") {
+      measure();
+      return;
+    }
+    const observer = new ResizeObserver(measure);
+    observer.observe(list2);
+    measure();
+    return () => observer.disconnect();
+  }, [expanded, options, presentation, selected]);
+  if (options.length === 0) return null;
   return /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-filter-group", children: [
     /* @__PURE__ */ u3("legend", { children: title }),
     searchLabel ? /* @__PURE__ */ u3(
@@ -15206,7 +15230,8 @@ function FilterGroup({
     /* @__PURE__ */ u3(
       "div",
       {
-        class: `tavernary-companion-filter-options tavernary-companion-filter-options--${presentation}`,
+        ref: presentation === "chips" ? chipListRef : void 0,
+        class: `tavernary-companion-filter-options tavernary-companion-filter-options--${presentation}${presentation === "chips" && !expanded ? " is-collapsed" : ""}`,
         children: visibleOptions.map(
           (option) => presentation === "chips" ? /* @__PURE__ */ u3(
             FilterChoice,
@@ -15236,7 +15261,7 @@ function FilterGroup({
         )
       }
     ),
-    !normalizedSearch && (hiddenCount > 0 || expanded) ? /* @__PURE__ */ u3(
+    presentation === "list" && !normalizedSearch && (hiddenCount > 0 || expanded) ? /* @__PURE__ */ u3(
       "button",
       {
         class: "tavernary-companion-filter-disclosure",
@@ -15244,6 +15269,16 @@ function FilterGroup({
         "aria-expanded": expanded,
         onClick: () => setExpanded((value) => !value),
         children: expanded ? "Show fewer" : `Show ${hiddenCount} more`
+      }
+    ) : null,
+    presentation === "chips" && (chipsOverflow || expanded) ? /* @__PURE__ */ u3(
+      "button",
+      {
+        class: "tavernary-companion-filter-disclosure tavernary-companion-metadata-disclosure",
+        type: "button",
+        "aria-expanded": expanded,
+        onClick: () => setExpanded((value) => !value),
+        children: expanded ? "Show fewer" : "Show more"
       }
     ) : null
   ] });
@@ -16006,82 +16041,91 @@ function TagBrowser({
     ({ id, label: label2 }) => !normalizedSearch || id.toLocaleLowerCase().includes(normalizedSearch) || label2.toLocaleLowerCase().includes(normalizedSearch)
   );
   const selectedTags = selected.map((id) => tags.find((tag2) => tag2.id === id)).filter((tag2) => tag2 !== void 0);
-  return /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-tag-browser", children: [
-    /* @__PURE__ */ u3("legend", { children: "Goals & traits" }),
-    /* @__PURE__ */ u3(
-      "input",
-      {
-        class: "tavernary-companion-filter-search",
-        type: "search",
-        value: search,
-        placeholder: "Search tags\u2026",
-        "aria-label": "Search goals and traits",
-        onInput: (event) => setSearch(event.currentTarget.value)
-      }
-    ),
-    /* @__PURE__ */ u3("span", { class: "tavernary-companion-tag-browser__status", "aria-live": "polite", children: [
-      selected.length,
-      " selected"
-    ] }),
-    selectedTags.length ? /* @__PURE__ */ u3(
-      "div",
-      {
-        class: "tavernary-companion-tag-browser__selected",
-        "aria-label": "Selected goals and traits",
-        children: selectedTags.map((tag2) => /* @__PURE__ */ u3(
-          "button",
-          {
-            type: "button",
-            "aria-label": `Remove ${tag2.label}`,
-            onClick: () => onToggle(tag2.id),
-            children: [
-              /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: "\u2713" }),
-              /* @__PURE__ */ u3("span", { children: tag2.label }),
-              /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: "\xD7" })
-            ]
-          },
-          tag2.id
-        ))
-      }
-    ) : null,
-    /* @__PURE__ */ u3("div", { class: "tavernary-companion-tag-browser__facets", children: [
-      ["goal", "Goals"],
-      ["trait", "Traits"]
-    ].map(([facet, label2]) => {
-      const group = visibleTags.filter((tag2) => tag2.facet === facet).sort(
-        (left, right) => right.count - left.count || left.label.localeCompare(right.label)
-      );
-      if (group.length === 0) return null;
-      const shown = normalizedSearch || expanded[facet] ? group : group.slice(0, 8);
-      const hiddenCount = group.length - shown.length;
-      return /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-tag-browser__group", children: [
-        /* @__PURE__ */ u3("legend", { children: label2 }),
-        /* @__PURE__ */ u3("div", { class: "tavernary-companion-tag-browser__options", children: shown.map((tag2) => /* @__PURE__ */ u3(
-          FilterChoice,
-          {
-            class: "tavernary-companion-tag-browser__option",
-            label: tag2.label,
-            count: tag2.count,
-            checked: selected.includes(tag2.id),
-            title: tag2.description,
-            onChange: () => onToggle(tag2.id)
-          },
-          tag2.id
-        )) }),
-        !normalizedSearch && (hiddenCount > 0 || expanded[facet]) ? /* @__PURE__ */ u3(
-          "button",
-          {
-            type: "button",
-            class: "tavernary-companion-filter-disclosure",
-            "aria-expanded": expanded[facet],
-            onClick: () => setExpanded((current) => ({ ...current, [facet]: !current[facet] })),
-            children: expanded[facet] ? "Show fewer" : `Show ${hiddenCount} more`
-          }
-        ) : null
-      ] }, facet);
-    }) }),
-    normalizedSearch && visibleTags.length === 0 ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-tag-browser__empty", children: "No matching goals or traits." }) : null
-  ] });
+  return /* @__PURE__ */ u3(
+    "section",
+    {
+      class: "tavernary-companion-filter-tag-browser",
+      "aria-labelledby": "tavernary-companion-project-tag-filter-heading",
+      children: [
+        /* @__PURE__ */ u3("h3", { id: "tavernary-companion-project-tag-filter-heading", children: "Goals & traits" }),
+        /* @__PURE__ */ u3("div", { class: "tavernary-companion-tag-browser", children: [
+          /* @__PURE__ */ u3(
+            "input",
+            {
+              class: "tavernary-companion-filter-search",
+              type: "search",
+              value: search,
+              placeholder: "Search tags\u2026",
+              "aria-label": "Search goals and traits",
+              onInput: (event) => setSearch(event.currentTarget.value)
+            }
+          ),
+          /* @__PURE__ */ u3("div", { class: "tavernary-companion-tag-browser__status", children: /* @__PURE__ */ u3("span", { "aria-live": "polite", children: [
+            selected.length,
+            " selected"
+          ] }) }),
+          selectedTags.length ? /* @__PURE__ */ u3(
+            "div",
+            {
+              class: "tavernary-companion-tag-browser__selected",
+              "aria-label": "Selected goals and traits",
+              children: selectedTags.map((tag2) => /* @__PURE__ */ u3(
+                "button",
+                {
+                  type: "button",
+                  "aria-label": `Remove ${tag2.label}`,
+                  onClick: () => onToggle(tag2.id),
+                  children: [
+                    /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: "\u2713" }),
+                    /* @__PURE__ */ u3("span", { children: tag2.label }),
+                    /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: "\xD7" })
+                  ]
+                },
+                tag2.id
+              ))
+            }
+          ) : null,
+          /* @__PURE__ */ u3("div", { class: "tavernary-companion-tag-browser__facets", children: [
+            ["goal", "Goals"],
+            ["trait", "Traits"]
+          ].map(([facet, label2]) => {
+            const group = visibleTags.filter((tag2) => tag2.facet === facet).sort(
+              (left, right) => right.count - left.count || left.label.localeCompare(right.label)
+            );
+            if (group.length === 0) return null;
+            const shown = normalizedSearch || expanded[facet] ? group : group.slice(0, 8);
+            const hiddenCount = group.length - shown.length;
+            return /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-tag-browser__group", children: [
+              /* @__PURE__ */ u3("legend", { children: label2 }),
+              /* @__PURE__ */ u3("div", { class: "tavernary-companion-tag-browser__options", children: shown.map((tag2) => /* @__PURE__ */ u3(
+                FilterChoice,
+                {
+                  class: "tavernary-companion-tag-browser__option",
+                  label: tag2.label,
+                  count: tag2.count,
+                  checked: selected.includes(tag2.id),
+                  title: tag2.description,
+                  onChange: () => onToggle(tag2.id)
+                },
+                tag2.id
+              )) }),
+              !normalizedSearch && (hiddenCount > 0 || expanded[facet]) ? /* @__PURE__ */ u3(
+                "button",
+                {
+                  type: "button",
+                  class: "tavernary-companion-filter-disclosure",
+                  "aria-expanded": expanded[facet],
+                  onClick: () => setExpanded((current) => ({ ...current, [facet]: !current[facet] })),
+                  children: expanded[facet] ? "Show fewer" : `Show ${hiddenCount} more`
+                }
+              ) : null
+            ] }, facet);
+          }) }),
+          normalizedSearch && visibleTags.length === 0 ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-tag-browser__empty", children: "No matching goals or traits." }) : null
+        ] })
+      ]
+    }
+  );
 }
 function toggle(values, id) {
   return values.includes(id) ? values.filter((value) => value !== id) : [...values, id];
@@ -16951,7 +16995,7 @@ function ProjectsRoute({
     const root = route.current?.closest(".tavernary-companion-root");
     if (!root) return;
     const syncMode = () => {
-      const compact = root.clientWidth <= 1199;
+      const compact = root.clientWidth <= 760;
       setCompactFilters(compact);
       if (!compact) setFiltersOpen(false);
     };
@@ -17036,34 +17080,6 @@ function ProjectsRoute({
       class: `tavernary-companion-projects-route${filtersOpen && compactFilters ? " has-open-filters" : ""}`,
       "aria-label": "Projects",
       children: [
-        /* @__PURE__ */ u3("div", { class: "tavernary-companion-filter-bar", children: [
-          /* @__PURE__ */ u3("p", { class: "tavernary-companion-catalog-advisory", children: "TavernKeeper provides evidence, not a guarantee of safety. Review projects before installing." }),
-          /* @__PURE__ */ u3(
-            "button",
-            {
-              ref: filterTrigger,
-              type: "button",
-              class: "tavernary-companion-filter-trigger",
-              "aria-label": "Open filters",
-              "aria-controls": "tavernary-companion-project-filters",
-              "aria-expanded": filtersOpen,
-              onClick: () => setFiltersOpen(true),
-              children: [
-                /* @__PURE__ */ u3(CategoryIcon, { name: "filter-lines" }),
-                filterCount > 0 ? /* @__PURE__ */ u3("b", { children: filterCount }) : null
-              ]
-            }
-          )
-        ] }),
-        /* @__PURE__ */ u3(
-          ProjectResultsToolbar,
-          {
-            query: state.query,
-            resultCount: state.projects.length,
-            onQueryChange
-          }
-        ),
-        hasChangedFilters ? /* @__PURE__ */ u3(ActiveFilterChips, { query: state.query, facets, onQueryChange }) : null,
         /* @__PURE__ */ u3("div", { class: "tavernary-companion-projects-route__workspace", children: [
           filtersOpen && compactFilters ? /* @__PURE__ */ u3(
             "div",
@@ -17115,19 +17131,49 @@ function ProjectsRoute({
               ]
             }
           ),
-          /* @__PURE__ */ u3(
-            ProjectGrid,
-            {
-              projects: state.projects,
-              onProjectAction,
-              onManageInSillyTavern,
-              lifecycleDisabled,
-              selectedKitProjectIds,
-              onToggleKitSelection,
-              visibleCount: visibleProjectCount,
-              onVisibleCountChange: onVisibleProjectCountChange
-            }
-          )
+          /* @__PURE__ */ u3("main", { class: "tavernary-companion-projects-route__main", children: [
+            /* @__PURE__ */ u3("div", { class: "tavernary-companion-filter-bar", children: [
+              /* @__PURE__ */ u3("p", { class: "tavernary-companion-catalog-advisory", children: "TavernKeeper provides evidence, not a guarantee of safety. Review projects before installing." }),
+              /* @__PURE__ */ u3(
+                "button",
+                {
+                  ref: filterTrigger,
+                  type: "button",
+                  class: "tavernary-companion-filter-trigger",
+                  "aria-label": "Open filters",
+                  "aria-controls": "tavernary-companion-project-filters",
+                  "aria-expanded": filtersOpen,
+                  onClick: () => setFiltersOpen(true),
+                  children: [
+                    /* @__PURE__ */ u3(CategoryIcon, { name: "filter-lines" }),
+                    filterCount > 0 ? /* @__PURE__ */ u3("b", { children: filterCount }) : null
+                  ]
+                }
+              )
+            ] }),
+            /* @__PURE__ */ u3(
+              ProjectResultsToolbar,
+              {
+                query: state.query,
+                resultCount: state.projects.length,
+                onQueryChange
+              }
+            ),
+            hasChangedFilters ? /* @__PURE__ */ u3(ActiveFilterChips, { query: state.query, facets, onQueryChange }) : null,
+            /* @__PURE__ */ u3(
+              ProjectGrid,
+              {
+                projects: state.projects,
+                onProjectAction,
+                onManageInSillyTavern,
+                lifecycleDisabled,
+                selectedKitProjectIds,
+                onToggleKitSelection,
+                visibleCount: visibleProjectCount,
+                onVisibleCountChange: onVisibleProjectCountChange
+              }
+            )
+          ] })
         ] }),
         kitSelectionActive ? /* @__PURE__ */ u3(
           KitSelectionDock,

@@ -78,7 +78,7 @@ export function ProjectsRoute({
     const root = route.current?.closest<HTMLElement>(".tavernary-companion-root");
     if (!root) return;
     const syncMode = () => {
-      const compact = root.clientWidth <= 1199;
+      const compact = root.clientWidth <= 760;
       setCompactFilters(compact);
       if (!compact) setFiltersOpen(false);
     };
@@ -186,32 +186,6 @@ export function ProjectsRoute({
       class={`tavernary-companion-projects-route${filtersOpen && compactFilters ? " has-open-filters" : ""}`}
       aria-label="Projects"
     >
-      <div class="tavernary-companion-filter-bar">
-        <p class="tavernary-companion-catalog-advisory">
-          TavernKeeper provides evidence, not a guarantee of safety. Review projects before
-          installing.
-        </p>
-        <button
-          ref={filterTrigger}
-          type="button"
-          class="tavernary-companion-filter-trigger"
-          aria-label="Open filters"
-          aria-controls="tavernary-companion-project-filters"
-          aria-expanded={filtersOpen}
-          onClick={() => setFiltersOpen(true)}
-        >
-          <CategoryIcon name="filter-lines" />
-          {filterCount > 0 ? <b>{filterCount}</b> : null}
-        </button>
-      </div>
-      <ProjectResultsToolbar
-        query={state.query}
-        resultCount={state.projects.length}
-        onQueryChange={onQueryChange}
-      />
-      {hasChangedFilters ? (
-        <ActiveFilterChips query={state.query} facets={facets} onQueryChange={onQueryChange} />
-      ) : null}
       <div class="tavernary-companion-projects-route__workspace">
         {filtersOpen && compactFilters ? (
           <div
@@ -254,16 +228,44 @@ export function ProjectsRoute({
           </header>
           <FilterPanel query={state.query} facets={facets} onQueryChange={onQueryChange} />
         </div>
-        <ProjectGrid
-          projects={state.projects}
-          onProjectAction={onProjectAction}
-          onManageInSillyTavern={onManageInSillyTavern}
-          lifecycleDisabled={lifecycleDisabled}
-          selectedKitProjectIds={selectedKitProjectIds}
-          onToggleKitSelection={onToggleKitSelection}
-          visibleCount={visibleProjectCount}
-          onVisibleCountChange={onVisibleProjectCountChange}
-        />
+        <main class="tavernary-companion-projects-route__main">
+          <div class="tavernary-companion-filter-bar">
+            <p class="tavernary-companion-catalog-advisory">
+              TavernKeeper provides evidence, not a guarantee of safety. Review projects before
+              installing.
+            </p>
+            <button
+              ref={filterTrigger}
+              type="button"
+              class="tavernary-companion-filter-trigger"
+              aria-label="Open filters"
+              aria-controls="tavernary-companion-project-filters"
+              aria-expanded={filtersOpen}
+              onClick={() => setFiltersOpen(true)}
+            >
+              <CategoryIcon name="filter-lines" />
+              {filterCount > 0 ? <b>{filterCount}</b> : null}
+            </button>
+          </div>
+          <ProjectResultsToolbar
+            query={state.query}
+            resultCount={state.projects.length}
+            onQueryChange={onQueryChange}
+          />
+          {hasChangedFilters ? (
+            <ActiveFilterChips query={state.query} facets={facets} onQueryChange={onQueryChange} />
+          ) : null}
+          <ProjectGrid
+            projects={state.projects}
+            onProjectAction={onProjectAction}
+            onManageInSillyTavern={onManageInSillyTavern}
+            lifecycleDisabled={lifecycleDisabled}
+            selectedKitProjectIds={selectedKitProjectIds}
+            onToggleKitSelection={onToggleKitSelection}
+            visibleCount={visibleProjectCount}
+            onVisibleCountChange={onVisibleProjectCountChange}
+          />
+        </main>
       </div>
       {kitSelectionActive ? (
         <KitSelectionDock

@@ -1,4 +1,16 @@
 @container tavernary-companion (max-width: 1199px) {
+  .tavernary-companion-project-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@container tavernary-companion (min-width: 761px) and (max-width: 1050px) {
+  .tavernary-companion-projects-route__workspace {
+    grid-template-columns: 210px minmax(0, 1fr);
+  }
+}
+
+@container tavernary-companion (max-width: 760px) {
   .tavernary-companion-projects-route {
     position: relative;
   }
@@ -17,10 +29,6 @@
     z-index: 7;
     inset: 0;
     background: rgb(0 0 0 / 45%);
-  }
-
-  .tavernary-companion-project-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .tavernary-companion-filter-bar {
@@ -46,6 +54,7 @@
     block-size: auto;
     max-block-size: none;
     overflow: hidden;
+    padding: 0;
     border: 1px solid var(--tavernary-color-border-default);
     border-radius: 10px;
     background: var(--tavernary-color-bg-surface-raised);
@@ -61,6 +70,7 @@
 
   .tavernary-companion-filter-surface__header {
     flex: 0 0 auto;
+    margin-block-end: 0;
     padding: 1rem;
     border-block-end: 1px solid var(--tavernary-color-divider);
   }
@@ -101,8 +111,9 @@
     overscroll-behavior: contain;
   }
 
-  .tavernary-companion-filter-panel fieldset {
-    padding-block: 1rem;
+  .tavernary-companion-filter-group,
+  .tavernary-companion-filter-tag-browser {
+    padding-block: 18px;
   }
 }
 
@@ -297,7 +308,7 @@
   }
 }
 
-@container tavernary-companion (max-width: 1199px) {
+@container tavernary-companion (max-width: 760px) {
   .tavernary-companion-project-results {
     padding-block-start: 8px;
   }
@@ -310,10 +321,13 @@
     padding: 0 1rem 2rem;
   }
 
-  .tavernary-companion-filter-panel fieldset,
   .tavernary-companion-filter-group,
-  .tavernary-companion-tag-browser {
-    padding-block: 1rem;
+  .tavernary-companion-filter-tag-browser {
+    padding-block: 18px;
+  }
+
+  .tavernary-companion-filter-options--chips.is-collapsed {
+    max-block-size: calc(44px * 4 + 6px * 3);
   }
 
   .tavernary-companion-filter-option {

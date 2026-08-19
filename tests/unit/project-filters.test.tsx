@@ -3,8 +3,12 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { DEFAULT_COMPANION_QUERY } from "../../src/catalog/catalog-core";
 import { FilterPanel, type ProjectFacets } from "../../src/ui/projects/filter-panel";
+import { FilterGroup } from "../../src/ui/projects/filter-controls";
 
-afterEach(() => document.body.replaceChildren());
+afterEach(() => {
+  document.body.replaceChildren();
+  vi.restoreAllMocks();
+});
 
 const facets: ProjectFacets = {
   frontends: [
@@ -63,7 +67,6 @@ describe("FilterPanel", () => {
     expect([...document.querySelectorAll("legend")].map((legend) => legend.textContent)).toEqual([
       "Compatible frontend",
       "Project kind",
-      "Goals & traits",
       "Goals",
       "Traits",
       "Model family",
@@ -71,6 +74,9 @@ describe("FilterPanel", () => {
       "Development",
       "License",
     ]);
+    const tagBrowser = screen.getByRole("region", { name: "Goals & traits" });
+    expect(within(tagBrowser).getByRole("heading", { name: "Goals & traits" })).toBeVisible();
+    expect(within(tagBrowser).getByText("0 selected")).toBeVisible();
 
     const frontends = screen.getByRole("group", { name: "Compatible frontend" });
     expect(within(frontends).getByRole("checkbox", { name: "SillyTavern" })).toBeChecked();
@@ -107,5 +113,33 @@ describe("FilterPanel", () => {
     });
     expect(screen.getByRole("checkbox", { name: "RisuAI" })).toBeVisible();
     expect(screen.queryByRole("checkbox", { name: "Agnai" })).not.toBeInTheDocument();
+  });
+
+  it("collapses metadata chips after Tavernary's four-row preview", () => {
+    vi.spyOn(HTMLElement.prototype, "offsetTop", "get").mockImplementation(function (
+      this: HTMLElement,
+    ) {
+      if (!this.classList.contains("tavernary-companion-filter-choice")) return 0;
+      return Array.from(this.parentElement?.children ?? []).indexOf(this) * 32;
+    });
+    render(
+      <FilterGroup
+        title="Model family"
+        options={Array.from({ length: 5 }, (_, index) => ({
+          id: `model-${index}`,
+          label: `Model ${index}`,
+          count: index + 1,
+        }))}
+        selected={[]}
+        onToggle={vi.fn()}
+        presentation="chips"
+      />,
+    );
+
+    const options = document.querySelector(".tavernary-companion-filter-options--chips");
+    expect(options).toHaveClass("is-collapsed");
+    fireEvent.click(screen.getByRole("button", { name: "Show more" }));
+    expect(options).not.toHaveClass("is-collapsed");
+    expect(screen.getByRole("button", { name: "Show fewer" })).toBeVisible();
   });
 });

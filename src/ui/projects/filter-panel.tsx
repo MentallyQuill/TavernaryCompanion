@@ -130,89 +130,94 @@ function TagBrowser({
     .filter((tag): tag is DiscoveryTagFacet => tag !== undefined);
 
   return (
-    <fieldset class="tavernary-companion-tag-browser">
-      <legend>Goals &amp; traits</legend>
-      <input
-        class="tavernary-companion-filter-search"
-        type="search"
-        value={search}
-        placeholder="Search tags…"
-        aria-label="Search goals and traits"
-        onInput={(event) => setSearch(event.currentTarget.value)}
-      />
-      <span class="tavernary-companion-tag-browser__status" aria-live="polite">
-        {selected.length} selected
-      </span>
-      {selectedTags.length ? (
-        <div
-          class="tavernary-companion-tag-browser__selected"
-          aria-label="Selected goals and traits"
-        >
-          {selectedTags.map((tag) => (
-            <button
-              type="button"
-              key={tag.id}
-              aria-label={`Remove ${tag.label}`}
-              onClick={() => onToggle(tag.id)}
-            >
-              <span aria-hidden="true">✓</span>
-              <span>{tag.label}</span>
-              <span aria-hidden="true">×</span>
-            </button>
-          ))}
+    <section
+      class="tavernary-companion-filter-tag-browser"
+      aria-labelledby="tavernary-companion-project-tag-filter-heading"
+    >
+      <h3 id="tavernary-companion-project-tag-filter-heading">Goals &amp; traits</h3>
+      <div class="tavernary-companion-tag-browser">
+        <input
+          class="tavernary-companion-filter-search"
+          type="search"
+          value={search}
+          placeholder="Search tags…"
+          aria-label="Search goals and traits"
+          onInput={(event) => setSearch(event.currentTarget.value)}
+        />
+        <div class="tavernary-companion-tag-browser__status">
+          <span aria-live="polite">{selected.length} selected</span>
         </div>
-      ) : null}
-      <div class="tavernary-companion-tag-browser__facets">
-        {(
-          [
-            ["goal", "Goals"],
-            ["trait", "Traits"],
-          ] as const
-        ).map(([facet, label]) => {
-          const group = visibleTags
-            .filter((tag) => tag.facet === facet)
-            .sort(
-              (left, right) => right.count - left.count || left.label.localeCompare(right.label),
+        {selectedTags.length ? (
+          <div
+            class="tavernary-companion-tag-browser__selected"
+            aria-label="Selected goals and traits"
+          >
+            {selectedTags.map((tag) => (
+              <button
+                type="button"
+                key={tag.id}
+                aria-label={`Remove ${tag.label}`}
+                onClick={() => onToggle(tag.id)}
+              >
+                <span aria-hidden="true">✓</span>
+                <span>{tag.label}</span>
+                <span aria-hidden="true">×</span>
+              </button>
+            ))}
+          </div>
+        ) : null}
+        <div class="tavernary-companion-tag-browser__facets">
+          {(
+            [
+              ["goal", "Goals"],
+              ["trait", "Traits"],
+            ] as const
+          ).map(([facet, label]) => {
+            const group = visibleTags
+              .filter((tag) => tag.facet === facet)
+              .sort(
+                (left, right) => right.count - left.count || left.label.localeCompare(right.label),
+              );
+            if (group.length === 0) return null;
+            const shown = normalizedSearch || expanded[facet] ? group : group.slice(0, 8);
+            const hiddenCount = group.length - shown.length;
+            return (
+              <fieldset key={facet} class="tavernary-companion-tag-browser__group">
+                <legend>{label}</legend>
+                <div class="tavernary-companion-tag-browser__options">
+                  {shown.map((tag) => (
+                    <FilterChoice
+                      key={tag.id}
+                      class="tavernary-companion-tag-browser__option"
+                      label={tag.label}
+                      count={tag.count}
+                      checked={selected.includes(tag.id)}
+                      title={tag.description}
+                      onChange={() => onToggle(tag.id)}
+                    />
+                  ))}
+                </div>
+                {!normalizedSearch && (hiddenCount > 0 || expanded[facet]) ? (
+                  <button
+                    type="button"
+                    class="tavernary-companion-filter-disclosure"
+                    aria-expanded={expanded[facet]}
+                    onClick={() =>
+                      setExpanded((current) => ({ ...current, [facet]: !current[facet] }))
+                    }
+                  >
+                    {expanded[facet] ? "Show fewer" : `Show ${hiddenCount} more`}
+                  </button>
+                ) : null}
+              </fieldset>
             );
-          if (group.length === 0) return null;
-          const shown = normalizedSearch || expanded[facet] ? group : group.slice(0, 8);
-          const hiddenCount = group.length - shown.length;
-          return (
-            <fieldset key={facet} class="tavernary-companion-tag-browser__group">
-              <legend>{label}</legend>
-              <div class="tavernary-companion-tag-browser__options">
-                {shown.map((tag) => (
-                  <FilterChoice
-                    key={tag.id}
-                    class="tavernary-companion-tag-browser__option"
-                    label={tag.label}
-                    count={tag.count}
-                    checked={selected.includes(tag.id)}
-                    title={tag.description}
-                    onChange={() => onToggle(tag.id)}
-                  />
-                ))}
-              </div>
-              {!normalizedSearch && (hiddenCount > 0 || expanded[facet]) ? (
-                <button
-                  type="button"
-                  class="tavernary-companion-filter-disclosure"
-                  aria-expanded={expanded[facet]}
-                  onClick={() =>
-                    setExpanded((current) => ({ ...current, [facet]: !current[facet] }))
-                  }
-                >
-                  {expanded[facet] ? "Show fewer" : `Show ${hiddenCount} more`}
-                </button>
-              ) : null}
-            </fieldset>
-          );
-        })}
+          })}
+        </div>
+        {normalizedSearch && visibleTags.length === 0 ? (
+          <p class="tavernary-companion-tag-browser__empty">No matching goals or traits.</p>
+        ) : null}
       </div>
-      {normalizedSearch && visibleTags.length === 0 ? (
-        <p class="tavernary-companion-tag-browser__empty">No matching goals or traits.</p>
-      ) : null}
-    </fieldset>
+    </section>
   );
 }
 
