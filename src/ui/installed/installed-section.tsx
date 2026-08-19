@@ -3,10 +3,10 @@ import type {
   InstalledSectionViewModel,
 } from "../../catalog/installed-view-model";
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
+import { ProjectLifecycleControl } from "../projects/project-lifecycle-control";
 
 interface InstalledSectionProps {
   section: InstalledSectionViewModel;
-  onOpenProject?(id: string): void;
   onAction?(id: string, action: ProjectPrimaryAction): void;
   onManage?(): void;
   lifecycleDisabled?: boolean;
@@ -14,7 +14,6 @@ interface InstalledSectionProps {
 
 export function InstalledSection({
   section,
-  onOpenProject,
   onAction,
   onManage,
   lifecycleDisabled,
@@ -33,7 +32,6 @@ export function InstalledSection({
             <InstalledRow
               row={row}
               sectionId={section.id}
-              onOpenProject={onOpenProject}
               onAction={onAction}
               onManage={onManage}
               lifecycleDisabled={lifecycleDisabled}
@@ -48,14 +46,12 @@ export function InstalledSection({
 function InstalledRow({
   row,
   sectionId,
-  onOpenProject,
   onAction,
   onManage,
   lifecycleDisabled,
 }: {
   row: InstalledRowViewModel;
   sectionId: InstalledSectionViewModel["id"];
-  onOpenProject?: (id: string) => void;
   onAction?: (id: string, action: ProjectPrimaryAction) => void;
   onManage?: () => void;
   lifecycleDisabled?: boolean;
@@ -64,30 +60,34 @@ function InstalledRow({
   return (
     <li>
       <div>
-        <strong>{row.name}</strong>
+        <strong>
+          {row.canonicalUrl ? (
+            <a href={row.canonicalUrl} target="_blank" rel="noopener noreferrer">
+              {row.name}
+            </a>
+          ) : (
+            row.name
+          )}
+        </strong>
         <span>{row.detail}</span>
         {row.enabled !== null ? <span>{row.enabled ? "Enabled" : "Disabled"}</span> : null}
       </div>
-      {!unknown ? (
+      {unknown ? (
         <button
           type="button"
-          data-focus-key={`installed-${row.id}`}
-          onClick={() => onOpenProject?.(row.id)}
-          aria-label={`View ${row.name}`}
+          aria-label={`Manage ${row.name} in SillyTavern`}
+          onClick={() => onManage?.()}
         >
-          Details
+          {row.action.label}
         </button>
-      ) : null}
-      <button
-        type="button"
-        aria-label={
-          unknown ? `Manage ${row.name} in SillyTavern` : `${row.action.label} ${row.name}`
-        }
-        onClick={() => (unknown ? onManage?.() : onAction?.(row.id, row.action))}
-        disabled={!unknown && lifecycleDisabled}
-      >
-        {row.action.label}
-      </button>
+      ) : (
+        <ProjectLifecycleControl
+          projectName={row.name}
+          action={row.action}
+          disabled={lifecycleDisabled}
+          onAction={(action) => onAction?.(row.id, action)}
+        />
+      )}
     </li>
   );
 }

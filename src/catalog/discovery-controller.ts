@@ -12,19 +12,13 @@ import {
   toInstalledSectionViewModel,
   type InstalledSectionViewModel,
 } from "./installed-view-model";
-import {
-  toProjectCardViewModel,
-  toProjectDetailViewModel,
-  type ProjectCardViewModel,
-  type ProjectDetailViewModel,
-} from "./project-view-model";
+import { toProjectCardViewModel, type ProjectCardViewModel } from "./project-view-model";
 import type { InventorySnapshot } from "../inventory/inventory-types";
 
 export interface DiscoveryState {
   query: CatalogQuery;
   catalogState: CatalogSnapshot["state"];
   projects: ProjectCardViewModel[];
-  projectDetails: Record<string, ProjectDetailViewModel>;
   installedSections: InstalledSectionViewModel[];
   facets?: {
     frontends: DiscoveryFacet[];
@@ -113,7 +107,6 @@ class DefaultDiscoveryController implements DiscoveryController {
     const catalog = "catalog" in this.#snapshot ? this.#snapshot.catalog : null;
     const now = catalog ? this.#now() : "";
     let projects: ProjectCardViewModel[] = [];
-    let projectDetails: Record<string, ProjectDetailViewModel> = {};
     if (catalog) {
       if (catalog !== this.#indexedCatalog) {
         this.#indexedCatalog = catalog;
@@ -134,23 +127,11 @@ class DefaultDiscoveryController implements DiscoveryController {
           now,
         }),
       );
-      projectDetails = Object.fromEntries(
-        catalog.projects.map((project) => [
-          project.id,
-          toProjectDetailViewModel(project, {
-            snapshot: this.#snapshot,
-            inventory: this.#inventory,
-            now,
-            kits: catalog.kits,
-          }),
-        ]),
-      );
     }
     return {
       query: structuredClone(this.#query),
       catalogState: this.#snapshot.state,
       projects,
-      projectDetails,
       installedSections: toInstalledSectionViewModel(this.#inventory),
       facets: catalog
         ? {

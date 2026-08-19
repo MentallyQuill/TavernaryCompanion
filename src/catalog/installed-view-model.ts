@@ -5,6 +5,7 @@ export interface InstalledRowViewModel {
   id: string;
   name: string;
   detail: string;
+  canonicalUrl: string | null;
   enabled: boolean | null;
   action: ProjectPrimaryAction;
 }
@@ -30,6 +31,7 @@ export function toInstalledSectionViewModel(
         id: project.id,
         name: project.name,
         detail: extension.folderName,
+        canonicalUrl: project.canonicalUrl,
         enabled: extension.enabled,
         action: {
           kind: "uninstall",
@@ -45,6 +47,7 @@ export function toInstalledSectionViewModel(
         id: project.id,
         name: project.name,
         detail: extension.folderName,
+        canonicalUrl: project.canonicalUrl,
         enabled: extension.enabled,
         action: {
           kind: "uninstall",
@@ -63,6 +66,7 @@ export function toInstalledSectionViewModel(
             ? extension.manifest.display_name
             : extension.folderName,
         detail: extension.internalName,
+        canonicalUrl: null,
         enabled: extension.enabled,
         action: {
           kind: "manage-in-sillytavern",
@@ -78,6 +82,7 @@ export function toInstalledSectionViewModel(
         id: record.projectId,
         name: project?.name ?? record.folderName,
         detail: "Managed record is missing from SillyTavern.",
+        canonicalUrl: project?.canonicalUrl ?? null,
         enabled: null,
         action: {
           kind: "manage-in-sillytavern",

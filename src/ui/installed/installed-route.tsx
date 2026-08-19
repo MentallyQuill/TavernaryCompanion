@@ -8,7 +8,6 @@ interface InstalledRouteProps {
   sections: InstalledSectionViewModel[];
   refreshing?: boolean;
   onRefresh(): void | Promise<void>;
-  onOpenProject?(id: string): void;
   onAction?(id: string, action: ProjectPrimaryAction): void;
   onManage?(): void;
   lifecycleDisabled?: boolean;
@@ -18,7 +17,6 @@ export function InstalledRoute({
   sections,
   refreshing = false,
   onRefresh,
-  onOpenProject,
   onAction,
   onManage,
   lifecycleDisabled,
@@ -48,7 +46,6 @@ export function InstalledRoute({
           <InstalledSection
             key={section.id}
             section={section}
-            onOpenProject={onOpenProject}
             onAction={onAction}
             onManage={onManage}
             lifecycleDisabled={lifecycleDisabled}

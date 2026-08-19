@@ -14,7 +14,6 @@ interface ProjectsRouteProps {
   state: DiscoveryState;
   facets?: ProjectFacets;
   onQueryChange(query: CatalogQuery): void;
-  onOpenProject?(id: string): void;
   onProjectAction?(id: string, action: ProjectPrimaryAction): void;
   onManageInSillyTavern?(): void;
   lifecycleDisabled?: boolean;
@@ -54,7 +53,6 @@ export function ProjectsRoute({
   state,
   facets = state.facets ?? defaultFacets,
   onQueryChange,
-  onOpenProject = () => undefined,
   onProjectAction = () => undefined,
   onManageInSillyTavern,
   lifecycleDisabled,
@@ -246,7 +244,6 @@ export function ProjectsRoute({
         </div>
         <ProjectGrid
           projects={state.projects}
-          onOpenProject={onOpenProject}
           onProjectAction={onProjectAction}
           onManageInSillyTavern={onManageInSillyTavern}
           lifecycleDisabled={lifecycleDisabled}

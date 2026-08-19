@@ -6,7 +6,6 @@ const PROJECT_BATCH_SIZE = 30;
 
 interface ProjectGridProps {
   projects: ProjectCardViewModel[];
-  onOpenProject(id: string): void;
   onProjectAction(id: string, action: ProjectPrimaryAction): void;
   onManageInSillyTavern?(): void;
   lifecycleDisabled?: boolean;
@@ -18,7 +17,6 @@ interface ProjectGridProps {
 
 export function ProjectGrid({
   projects,
-  onOpenProject,
   onProjectAction,
   onManageInSillyTavern,
   lifecycleDisabled,
@@ -47,7 +45,6 @@ export function ProjectGrid({
           <ProjectCard
             key={project.id}
             project={project}
-            onOpen={() => onOpenProject(project.id)}
             onAction={(action) => onProjectAction(project.id, action)}
             onManageInSillyTavern={onManageInSillyTavern}
             lifecycleDisabled={lifecycleDisabled}

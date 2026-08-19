@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/preact";
+import { fireEvent, render, screen, within } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CompanionShell } from "../../src/ui/shell/companion-shell";
@@ -21,17 +21,6 @@ afterEach(() => {
 });
 
 describe("CompanionShell", () => {
-  it("restores the originating card after closing project detail", async () => {
-    const controller = createShellController({ initialRoute: "projects" });
-    render(<CompanionShell controller={controller} projects={[{ id: "alpha", name: "Alpha" }]} />);
-    const card = screen.getByRole("button", { name: "View Alpha" });
-    card.focus();
-    fireEvent.click(card);
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
-
-    await waitFor(() => expect(screen.getByRole("button", { name: "View Alpha" })).toHaveFocus());
-  });
-
   it("renders semantic routes and restores the active route from state", () => {
     const controller = createShellController({ initialRoute: "installed" });
     render(<CompanionShell controller={controller} />);
@@ -123,9 +112,10 @@ describe("CompanionShell", () => {
   });
 
   it("uses one browser Back event for the top detail and preserves the popup", () => {
-    const controller = createShellController({ initialRoute: "projects" });
-    render(<CompanionShell controller={controller} projects={[{ id: "alpha", name: "Alpha" }]} />);
-    fireEvent.click(screen.getByRole("button", { name: "View Alpha" }));
+    const controller = createShellController({ initialRoute: "kits" });
+    controller.openDetail({ kind: "kit", id: "alpha", focusKey: "kit-alpha" });
+    render(<CompanionShell controller={controller} />);
+    expect(screen.getByRole("button", { name: "Back" })).toBeVisible();
 
     fireEvent(window, new PopStateEvent("popstate"));
 

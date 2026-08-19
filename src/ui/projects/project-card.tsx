@@ -1,14 +1,13 @@
 import type { ProjectCardViewModel, ProjectPrimaryAction } from "../../catalog/project-view-model";
 import { COMPANION_PROJECT_ID } from "../../lifecycle/self-protection";
 import { ActivitySummary } from "../shared/activity-summary";
-import { AssessmentBadge } from "../shared/assessment-badge";
 import { CategoryIcon } from "../shared/category-icon";
 import { ProjectKitControl } from "./project-kit-control";
 import { ProjectLifecycleControl } from "./project-lifecycle-control";
+import { TavernKeeperScanIndicator } from "./tavernkeeper-scan-indicator";
 
 interface ProjectCardProps {
   project: ProjectCardViewModel;
-  onOpen(): void;
   onAction(action: ProjectPrimaryAction): void;
   onManageInSillyTavern?(): void;
   lifecycleDisabled?: boolean;
@@ -18,7 +17,6 @@ interface ProjectCardProps {
 
 export function ProjectCard({
   project,
-  onOpen,
   onAction,
   onManageInSillyTavern,
   lifecycleDisabled = false,
@@ -113,7 +111,9 @@ export function ProjectCard({
             {project.displayName}
           </a>
         </h3>
-        {project.tavernKeeper ? <AssessmentBadge status={project.tavernKeeper} compact /> : null}
+        {project.tavernKeeper ? (
+          <TavernKeeperScanIndicator projectId={project.id} status={project.tavernKeeper} />
+        ) : null}
       </div>
       {project.attributionLabel ? (
         <p class="tavernary-companion-project-card__attribution">{project.attributionLabel}</p>

@@ -13,7 +13,6 @@ function state(): DiscoveryState {
     query: structuredClone(DEFAULT_COMPANION_QUERY),
     catalogState: "ready-current",
     projects: [],
-    projectDetails: {},
     installedSections: [],
   };
 }

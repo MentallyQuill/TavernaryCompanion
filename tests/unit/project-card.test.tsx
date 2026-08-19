@@ -65,7 +65,6 @@ describe("ProjectCard", () => {
     render(
       <ProjectCard
         project={{ ...project(), canonicalUrl: "https://example.test/repo" }}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -79,7 +78,7 @@ describe("ProjectCard", () => {
 
   it("renders bounded evidence and exactly one primary lifecycle action", () => {
     const onAction = vi.fn();
-    render(<ProjectCard project={project()} onOpen={vi.fn()} onAction={onAction} />);
+    render(<ProjectCard project={project()} onAction={onAction} />);
 
     expect(screen.getByRole("heading", { name: "Alpha" })).toBeVisible();
     expect(screen.getByText("Extension")).toBeVisible();
@@ -114,7 +113,6 @@ describe("ProjectCard", () => {
             historyUrl: null,
           },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -133,7 +131,6 @@ describe("ProjectCard", () => {
             weeklyActivity: null,
           },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -150,7 +147,6 @@ describe("ProjectCard", () => {
             latestSourceActivityLabel: null,
           },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -166,7 +162,6 @@ describe("ProjectCard", () => {
             evidenceStatus: "provisional",
           },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -183,7 +178,6 @@ describe("ProjectCard", () => {
             evidenceStatus: "degraded",
           },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -199,7 +193,6 @@ describe("ProjectCard", () => {
           primaryFunctionId: "memory-retrieval",
           primaryFunction: "Memory & Retrieval",
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -227,7 +220,6 @@ describe("ProjectCard", () => {
             reason: "Preset installation is not available in V1",
           },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -243,7 +235,6 @@ describe("ProjectCard", () => {
     render(
       <ProjectCard
         project={project({ name: "SillyTavern Alpha", displayName: "Alpha" })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -253,7 +244,7 @@ describe("ProjectCard", () => {
   });
 
   it("uses Tavernary chip and license semantics without invented compatibility", () => {
-    const view = render(<ProjectCard project={project()} onOpen={vi.fn()} onAction={vi.fn()} />);
+    const view = render(<ProjectCard project={project()} onAction={vi.fn()} />);
 
     expect(screen.getByText("SillyTavern")).toHaveClass("tavernary-companion-chip--frontend");
     expect(screen.getByText("Workflow")).toHaveClass("tavernary-companion-chip--tag");
@@ -261,14 +252,12 @@ describe("ProjectCard", () => {
     expect(screen.queryByText("Interface & Workflow")).not.toBeInTheDocument();
     expect(screen.getByText("MIT")).toHaveClass("license-osi-approved");
 
-    view.rerender(
-      <ProjectCard project={project({ frontends: [] })} onOpen={vi.fn()} onAction={vi.fn()} />,
-    );
+    view.rerender(<ProjectCard project={project({ frontends: [] })} onAction={vi.fn()} />);
     expect(screen.queryByText("Frontend-neutral")).not.toBeInTheDocument();
   });
 
   it("shows Tavernary activity, community, and repository metadata", () => {
-    render(<ProjectCard project={project()} onOpen={vi.fn()} onAction={vi.fn()} />);
+    render(<ProjectCard project={project()} onAction={vi.fn()} />);
 
     expect(screen.getByText("1d ago")).toBeVisible();
     expect(screen.getByText("11")).toBeVisible();
@@ -284,7 +273,6 @@ describe("ProjectCard", () => {
           ownership: "managed",
           action: { kind: "uninstall", label: "Uninstall", reason: "Managed by Companion" },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -306,7 +294,6 @@ describe("ProjectCard", () => {
             reason: "Preset installation is not available in V1",
           },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -320,13 +307,12 @@ describe("ProjectCard", () => {
     const view = render(
       <ProjectCard
         project={project({ attributionLabel: "By tavernary-author" })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
     expect(screen.getByText("By tavernary-author")).toBeVisible();
 
-    view.rerender(<ProjectCard project={project()} onOpen={vi.fn()} onAction={vi.fn()} />);
+    view.rerender(<ProjectCard project={project()} onAction={vi.fn()} />);
     expect(screen.queryByText("By tavernary-author")).not.toBeInTheDocument();
   });
 
@@ -334,7 +320,6 @@ describe("ProjectCard", () => {
     render(
       <ProjectCard
         project={project({ id: COMPANION_PROJECT_ID, action: project().action })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
         onManageInSillyTavern={vi.fn()}
       />,
@@ -348,7 +333,6 @@ describe("ProjectCard", () => {
     const { rerender } = render(
       <ProjectCard
         project={project()}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
         selectedForKit={false}
         onToggleKitSelection={toggle}
@@ -369,7 +353,6 @@ describe("ProjectCard", () => {
     rerender(
       <ProjectCard
         project={project()}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
         selectedForKit
         onToggleKitSelection={toggle}
