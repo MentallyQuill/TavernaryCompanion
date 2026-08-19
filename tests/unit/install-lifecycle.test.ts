@@ -600,6 +600,8 @@ describe("install lifecycle", () => {
       reason: "This install choice is out of date. Choose a version again.",
     });
     expect(host.calls.filter(({ operation }) => operation === "install")).toEqual([]);
+    expect(host.calls.filter(({ operation }) => operation === "remove")).toEqual([]);
+    await expect(host.discover()).resolves.toContainEqual(concurrentExtension);
     expect(store.read().managedExtensions).toEqual({});
   });
 
