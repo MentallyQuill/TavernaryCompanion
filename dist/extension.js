@@ -17235,7 +17235,7 @@ function OperationTray({
     ] });
   }
   if (receipt) {
-    if (receipt.kind === "update" && receipt.status === "succeeded") {
+    if (receipt.kind === "update" && (receipt.status === "succeeded" || receipt.status === "updated-unrecorded")) {
       return /* @__PURE__ */ u3(
         "aside",
         {
@@ -17245,12 +17245,10 @@ function OperationTray({
           "aria-live": "polite",
           children: [
             /* @__PURE__ */ u3("p", { children: [
-              /* @__PURE__ */ u3("strong", { children: [
-                receipt.projectName,
-                " updated."
-              ] }),
+              /* @__PURE__ */ u3("strong", { children: updateSuccessLabel(receipt) }),
               " Reload to apply updates."
             ] }),
+            receipt.safeError ? /* @__PURE__ */ u3("p", { children: receipt.safeError }) : null,
             /* @__PURE__ */ u3("button", { type: "button", onClick: onReload, children: "Reload now" })
           ]
         }
@@ -17262,6 +17260,15 @@ function OperationTray({
     return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-operation-tray", children: /* @__PURE__ */ u3(OperationReceipt, { receipt, onDismiss: onDismissReceipt }) });
   }
   return null;
+}
+function updateSuccessLabel(receipt) {
+  if (receipt.installProvenance?.targetKind === "checked") {
+    return "Updated to the latest scanned version.";
+  }
+  if (receipt.installProvenance?.targetKind === "newest") {
+    return "Updated to the newest version.";
+  }
+  return `${receipt.projectName} updated.`;
 }
 function phaseLabel(phase2) {
   return {
@@ -17619,6 +17626,7 @@ function InstalledCard({
           "In ",
           kitTitles.join(", ")
         ] }) : null,
+        updateState?.kind === "attention" ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-attention-reason", children: updateState.reason }) : null,
         /* @__PURE__ */ u3("footer", { children: [
           row.toggleable && row.internalName && row.enabled !== null ? /* @__PURE__ */ u3(
             "button",
@@ -17655,6 +17663,16 @@ function InstalledCard({
               disabled: lifecycleDisabled,
               onClick: () => onRetryUpdate?.(row.id),
               children: "Retry"
+            }
+          ) : null,
+          updateState?.kind === "attention" && !unknown ? /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              "aria-label": `Manage ${row.name} in SillyTavern`,
+              disabled: lifecycleDisabled,
+              onClick: () => onManage?.(),
+              children: "Manage in SillyTavern"
             }
           ) : null,
           unknown ? /* @__PURE__ */ u3(
@@ -17757,7 +17775,7 @@ function InstalledRoute({
         {
           type: "button",
           "aria-label": checkingUpdates ? "Checking for updates" : "Check for updates",
-          disabled: checkingUpdates,
+          disabled: checkingUpdates || lifecycleDisabled,
           onClick: () => void onCheckUpdates?.(),
           children: checkingUpdates ? "Checking\u2026" : "Check again"
         }
@@ -20769,7 +20787,7 @@ function bindUpdateSelection({
   };
 }
 function matchesUpdateBinding(selection, current) {
-  return selection.binding.installedSha === current.installedSha && selection.binding.catalogGeneratedAt === current.catalogGeneratedAt && selection.binding.projectId === current.project.id && selection.binding.internalName === current.internalName && current.project.install !== null && sameRepositoryUrl(selection.binding.repositoryUrl, current.project.install.repositoryUrl) && selection.binding.branch === current.project.install.branch;
+  return selection.binding.requestedSha === selection.target.requestedSha && selection.binding.installedSha === current.installedSha && selection.binding.catalogGeneratedAt === current.catalogGeneratedAt && selection.binding.projectId === current.project.id && selection.binding.internalName === current.internalName && current.project.install !== null && sameRepositoryUrl(selection.binding.repositoryUrl, current.project.install.repositoryUrl) && selection.binding.branch === current.project.install.branch;
 }
 function deriveUpdateAvailability({
   project: project2,
@@ -20808,7 +20826,7 @@ function deriveUpdateAvailability({
   if (!inspection.exactUpdateSupported && (inspection.newestRelationship === "behind" || Object.values(inspection.candidateRelationships).includes("behind"))) {
     return {
       kind: "attention",
-      reason: "Update SillyTavern to update this extension safely."
+      reason: "This SillyTavern build does not support exact Companion updates."
     };
   }
   const targets = [];
@@ -20865,6 +20883,7 @@ var DefaultExtensionUpdateCoordinator = class {
   #subscribers = /* @__PURE__ */ new Set();
   #snapshot = { states: {} };
   #checkedEvidence = {};
+  #checkSequence = {};
   #generation = 0;
   constructor(options) {
     this.#host = options.host;
@@ -20874,7 +20893,7 @@ var DefaultExtensionUpdateCoordinator = class {
     this.#store = options.store;
     this.#confirm = options.confirm;
     this.#now = options.now ?? (() => (/* @__PURE__ */ new Date()).toISOString());
-    this.#createId = options.createId ?? (() => crypto.randomUUID());
+    this.#createId = options.createId ?? createRuntimeId;
   }
   read() {
     return structuredClone(this.#snapshot);
@@ -20886,6 +20905,9 @@ var DefaultExtensionUpdateCoordinator = class {
   async check(projectId) {
     if (projectId === COMPANION_PROJECT_ID) return;
     const generation = this.#generation;
+    const sequence = (this.#checkSequence[projectId] ?? 0) + 1;
+    this.#checkSequence[projectId] = sequence;
+    const isCurrent = () => generation === this.#generation && sequence === this.#checkSequence[projectId];
     this.#setState(projectId, { kind: "checking" });
     const snapshot = this.#getSnapshot();
     const inventory = this.#getInventory();
@@ -20908,19 +20930,19 @@ var DefaultExtensionUpdateCoordinator = class {
         branch: project2.install.branch,
         candidateShas
       });
-      if (generation !== this.#generation) return;
+      if (!isCurrent()) return;
       this.#checkedEvidence[projectId] = {
         installedSha: inspection.installedSha,
         internalName: entry.extension.internalName
       };
       this.#setState(projectId, deriveUpdateAvailability({ project: project2, inspection }));
     } catch (error) {
-      if (generation !== this.#generation) return;
+      if (!isCurrent()) return;
       delete this.#checkedEvidence[projectId];
       if (error instanceof HostOperationError && error.operation === "inspectUpdate" && error.status === 404) {
         this.#setState(projectId, {
           kind: "attention",
-          reason: "Update SillyTavern to check this extension safely."
+          reason: "This SillyTavern build does not support exact Companion updates."
         });
         return;
       }
@@ -20951,6 +20973,7 @@ var DefaultExtensionUpdateCoordinator = class {
     this.#generation += 1;
     this.#snapshot = { states: {} };
     this.#checkedEvidence = {};
+    this.#checkSequence = {};
     const snapshot = this.read();
     for (const subscriber of this.#subscribers) subscriber(snapshot);
   }
@@ -21048,6 +21071,7 @@ var DefaultExtensionUpdateCoordinator = class {
           if (prompt.kind === "unsandboxed-disclosure") disclosureAccepted = true;
         }
         setPhase("host-request");
+        let applyResponseFailed = false;
         try {
           await this.#host.applyUpdate({
             internalName: entry.extension.internalName,
@@ -21058,36 +21082,78 @@ var DefaultExtensionUpdateCoordinator = class {
             targetSha: selection.target.requestedSha
           });
         } catch {
-          const receipt2 = createReceipt({
-            id: receiptId,
-            kind: "update",
-            projectId: project2.id,
-            projectName: project2.name,
-            startedAt,
-            finishedAt: this.#now(),
-            status: "failed",
-            completedThrough: "requested",
-            failedAt: "host-accepted",
-            safeError: "SillyTavern did not complete the extension update.",
-            reloadRequired: false
-          });
-          await this.#store.update((draft) => {
-            if (disclosureAccepted && !draft.trustAcknowledgedAt) {
-              draft.trustAcknowledgedAt = this.#now();
-            }
-            draft.operationReceipt = structuredClone(receipt2);
-          });
-          return receipt2;
+          applyResponseFailed = true;
+        }
+        if (applyResponseFailed) {
+          let observedSha = null;
+          let outcomeKnown = false;
+          try {
+            const afterRequest = await this.#host.inspectUpdate({
+              internalName: entry.extension.internalName,
+              type: entry.extension.type,
+              repositoryUrl: project2.install.repositoryUrl,
+              branch: project2.install.branch,
+              candidateShas
+            });
+            observedSha = afterRequest.installedSha;
+            outcomeKnown = true;
+          } catch {
+          }
+          if (outcomeKnown && observedSha === selection.binding.installedSha) {
+            const receipt2 = createReceipt({
+              id: receiptId,
+              kind: "update",
+              projectId: project2.id,
+              projectName: project2.name,
+              startedAt,
+              finishedAt: this.#now(),
+              status: "failed",
+              completedThrough: "requested",
+              failedAt: "host-accepted",
+              safeError: "SillyTavern did not complete the extension update.",
+              reloadRequired: false
+            });
+            await this.#persistIncompleteReceipt(receipt2, disclosureAccepted);
+            return receipt2;
+          }
+          if (!outcomeKnown || observedSha !== selection.target.requestedSha) {
+            delete this.#checkedEvidence[project2.id];
+            this.#setState(project2.id, {
+              kind: "attention",
+              reason: "Companion could not verify the installed version. Manage it in SillyTavern."
+            });
+            const receipt2 = createReceipt({
+              id: receiptId,
+              kind: "update",
+              projectId: project2.id,
+              projectName: project2.name,
+              startedAt,
+              finishedAt: this.#now(),
+              status: "verification-failed",
+              completedThrough: "requested",
+              failedAt: "verified",
+              safeError: "Companion could not determine whether SillyTavern applied the update.",
+              reloadRequired: false
+            });
+            await this.#persistIncompleteReceipt(receipt2, disclosureAccepted);
+            return receipt2;
+          }
         }
         setPhase("verifying");
-        const discovered = await this.#host.discover();
-        const verifiedExtension = discovered.find(
-          (candidate) => candidate.internalName === entry.extension.internalName && candidate.folderName.toLocaleLowerCase("en-US") === entry.extension.folderName.toLocaleLowerCase("en-US") && candidate.type === entry.extension.type
-        );
-        const installedSha = verifiedExtension ? await this.#host.readLocalRevision({
-          internalName: verifiedExtension.internalName,
-          type: verifiedExtension.type
-        }) : null;
+        let installedSha = null;
+        let verificationReadable = false;
+        try {
+          const discovered = await this.#host.discover();
+          const verifiedExtension = discovered.find(
+            (candidate) => candidate.internalName === entry.extension.internalName && candidate.folderName.toLocaleLowerCase("en-US") === entry.extension.folderName.toLocaleLowerCase("en-US") && candidate.type === entry.extension.type
+          );
+          installedSha = verifiedExtension ? await this.#host.readLocalRevision({
+            internalName: verifiedExtension.internalName,
+            type: verifiedExtension.type
+          }) : null;
+          verificationReadable = true;
+        } catch {
+        }
         const provenance = {
           targetKind: selection.target.kind,
           requestedSha: selection.target.requestedSha,
@@ -21095,7 +21161,31 @@ var DefaultExtensionUpdateCoordinator = class {
           catalogGeneratedAt: catalog.generatedAt,
           tavernKeeperReportId: selection.target.kind === "checked" ? selection.target.reportId : null
         };
-        if (!verifiedExtension || installedSha !== selection.target.requestedSha) {
+        if (!verificationReadable) {
+          delete this.#checkedEvidence[project2.id];
+          this.#setState(project2.id, {
+            kind: "attention",
+            reason: "Companion could not verify the installed version. Manage it in SillyTavern."
+          });
+          const receipt2 = createReceipt({
+            id: receiptId,
+            kind: "update",
+            projectId: project2.id,
+            projectName: project2.name,
+            startedAt,
+            finishedAt: this.#now(),
+            status: "verification-failed",
+            completedThrough: "host-accepted",
+            failedAt: "verified",
+            safeError: "Companion could not verify the installed extension after updating.",
+            reloadRequired: false,
+            installProvenance: provenance,
+            tavernKeeperReportUrl: selection.target.kind === "checked" ? selection.target.reportUrl : null
+          });
+          await this.#persistIncompleteReceipt(receipt2, disclosureAccepted);
+          return receipt2;
+        }
+        if (installedSha !== selection.target.requestedSha) {
           delete this.#checkedEvidence[project2.id];
           this.#setState(project2.id, {
             kind: "attention",
@@ -21116,12 +21206,7 @@ var DefaultExtensionUpdateCoordinator = class {
             installProvenance: provenance,
             tavernKeeperReportUrl: selection.target.kind === "checked" ? selection.target.reportUrl : null
           });
-          await this.#store.update((draft) => {
-            if (disclosureAccepted && !draft.trustAcknowledgedAt) {
-              draft.trustAcknowledgedAt = this.#now();
-            }
-            draft.operationReceipt = structuredClone(receipt2);
-          });
+          await this.#persistIncompleteReceipt(receipt2, disclosureAccepted);
           return receipt2;
         }
         const receipt = createReceipt({
@@ -21139,16 +21224,35 @@ var DefaultExtensionUpdateCoordinator = class {
           tavernKeeperReportUrl: selection.target.kind === "checked" ? selection.target.reportUrl : null
         });
         setPhase("recording");
-        await this.#store.update((draft) => {
-          const managed = draft.managedExtensions[project2.id];
-          if (managed && typeof managed === "object" && !Array.isArray(managed)) {
-            managed.provenance = structuredClone(provenance);
-          }
-          if (disclosureAccepted && !draft.trustAcknowledgedAt) {
-            draft.trustAcknowledgedAt = this.#now();
-          }
-          draft.operationReceipt = structuredClone(receipt);
-        });
+        try {
+          await this.#store.update((draft) => {
+            const managed = draft.managedExtensions[project2.id];
+            if (managed && typeof managed === "object" && !Array.isArray(managed)) {
+              managed.provenance = structuredClone(provenance);
+            }
+            if (disclosureAccepted && !draft.trustAcknowledgedAt) {
+              draft.trustAcknowledgedAt = this.#now();
+            }
+            draft.operationReceipt = null;
+          });
+        } catch {
+          await this.check(project2.id);
+          return createReceipt({
+            id: receiptId,
+            kind: "update",
+            projectId: project2.id,
+            projectName: project2.name,
+            startedAt,
+            finishedAt: this.#now(),
+            status: "updated-unrecorded",
+            completedThrough: "verified",
+            failedAt: "recorded",
+            safeError: "The extension was updated and verified, but Companion could not save its update record. Reopen Companion to reconcile it.",
+            reloadRequired: true,
+            installProvenance: provenance,
+            tavernKeeperReportUrl: selection.target.kind === "checked" ? selection.target.reportUrl : null
+          });
+        }
         await this.check(project2.id);
         return receipt;
       }
@@ -21158,6 +21262,14 @@ var DefaultExtensionUpdateCoordinator = class {
     this.#snapshot.states[projectId] = structuredClone(state);
     const snapshot = this.read();
     for (const subscriber of this.#subscribers) subscriber(snapshot);
+  }
+  async #persistIncompleteReceipt(receipt, disclosureAccepted) {
+    await this.#store.update((draft) => {
+      if (disclosureAccepted && !draft.trustAcknowledgedAt) {
+        draft.trustAcknowledgedAt = this.#now();
+      }
+      draft.operationReceipt = structuredClone(receipt);
+    }).catch(() => void 0);
   }
 };
 function createExtensionUpdateCoordinator(options) {
@@ -21258,6 +21370,7 @@ function UpdateVersionChooser({
           choice.notice ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-install-version-chooser__notice", role: "status", children: choice.notice }) : null,
           choice.selections.map((selection, index) => {
             const checked = selection.target.kind === "checked";
+            const description = selection.target.kind === "checked" ? `The latest version scanned by TavernKeeper. ${checkedVersionDescription(selection.target.checkedAt)}` : "The latest version from the creator. It may include changes TavernKeeper hasn't checked yet.";
             const descriptionId = `${headingId}-${selection.target.kind}-description`;
             return /* @__PURE__ */ u3(
               "button",
@@ -21269,7 +21382,7 @@ function UpdateVersionChooser({
                 onClick: () => select(selection),
                 children: [
                   /* @__PURE__ */ u3("strong", { children: checked ? "Latest scanned version" : "Newest version" }),
-                  /* @__PURE__ */ u3("span", { id: descriptionId, children: checked ? "The latest version scanned by TavernKeeper." : "The latest version from the creator. It may include changes TavernKeeper hasn't checked yet." })
+                  /* @__PURE__ */ u3("span", { id: descriptionId, children: description })
                 ]
               },
               `${selection.target.kind}-${selection.target.requestedSha}`
