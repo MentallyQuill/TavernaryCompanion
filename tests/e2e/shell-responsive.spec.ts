@@ -278,7 +278,7 @@ test("touch devices hide header freshness even with a desktop-width viewport", a
   try {
     await openHarness(page);
     await expect(
-      page.locator(".tavernary-companion-shell__header").getByText(/^Updated /u),
+      page.locator(".tavernary-companion-shell__header").getByText(/^Catalog up to date$/u),
     ).toBeHidden();
     await expect(page.getByRole("button", { name: "Refresh catalog" })).toBeVisible();
   } finally {

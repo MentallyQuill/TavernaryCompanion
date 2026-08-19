@@ -14807,6 +14807,7 @@ function TrustDisclosureDialog({
 
 // src/ui/shared/install-icon.tsx
 var INSTALL_PATH = "M9 2v2H5l-.001 10h14L19 4h-4V2h5a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h5zm9.999 14h-14L5 20h14l-.001-4zM17 17v2h-2v-2h2zM13 2v5h3l-4 4-4-4h3V2h2z";
+var UNINSTALL_PATH = "M8 2v2H5l-.001 10h14L19 4h-3V2h4a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h4zm10.999 14h-14L5 20h14l-.001-4zM17 17v2h-2v-2h2zM12 2l4 4h-3v5h-2V6H8l4-4z";
 function InstallIcon() {
   return /* @__PURE__ */ u3(
     "svg",
@@ -14817,6 +14818,19 @@ function InstallIcon() {
       fill: "currentColor",
       viewBox: "0 0 24 24",
       children: /* @__PURE__ */ u3("path", { d: INSTALL_PATH })
+    }
+  );
+}
+function UninstallIcon() {
+  return /* @__PURE__ */ u3(
+    "svg",
+    {
+      "aria-hidden": "true",
+      "data-icon": "uninstall",
+      "data-testid": "uninstall-icon",
+      fill: "currentColor",
+      viewBox: "0 0 24 24",
+      children: /* @__PURE__ */ u3("path", { d: UNINSTALL_PATH })
     }
   );
 }
@@ -15184,7 +15198,7 @@ function ProjectLifecycleControl({
             "aria-pressed": installed,
             disabled,
             onClick: () => onAction(action),
-            children: /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-lifecycle__face", "aria-hidden": "true", children: /* @__PURE__ */ u3(InstallIcon, {}) })
+            children: /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-lifecycle__face", "aria-hidden": "true", children: installed ? /* @__PURE__ */ u3(UninstallIcon, {}) : /* @__PURE__ */ u3(InstallIcon, {}) })
           }
         )
       }
@@ -16189,22 +16203,23 @@ function CatalogFreshness({
   now = (/* @__PURE__ */ new Date()).toISOString(),
   refreshing = false
 }) {
-  const label2 = refreshing ? "Checking for updates" : freshnessLabel(snapshot, now);
-  return /* @__PURE__ */ u3("span", { class: "tavernary-companion-catalog-freshness", "data-state": snapshot.state, children: label2 });
+  const label2 = refreshing ? "Checking catalog\u2026" : freshnessLabel(snapshot);
+  const title = "catalog" in snapshot ? `Catalog published ${relativeAge(snapshot.catalog.generatedAt, now)}` : void 0;
+  return /* @__PURE__ */ u3("span", { class: "tavernary-companion-catalog-freshness", "data-state": snapshot.state, title, children: label2 });
 }
-function freshnessLabel(snapshot, now) {
+function freshnessLabel(snapshot) {
   switch (snapshot.state) {
     case "empty-loading":
-      return "Checking for updates";
+      return "Checking catalog\u2026";
     case "ready-current":
-      return `Updated ${relativeAge(snapshot.catalog.generatedAt, now)}`;
+      return "Catalog up to date";
     case "ready-stale":
-      return "Saved catalog may be outdated";
+      return "Catalog may be old";
     case "ready-offline":
-      return "Using saved catalog \u2014 offline";
+      return "Cached \xB7 offline";
     case "incompatible-with-cache":
     case "incompatible-empty":
-      return "Companion update required";
+      return "Update required";
     case "error-empty":
       return "Catalog unavailable";
   }
