@@ -5,6 +5,7 @@ import type {
   HostPopupOptions,
 } from "../../src/host/host-types";
 import { HostOperationError, HostRevisionUnavailableError } from "../../src/host/host-errors";
+import type { HostUpdateInspection } from "../../src/updates/update-types";
 
 export interface FakeHostOptions {
   extensions?: HostExtension[];
@@ -14,6 +15,7 @@ export interface FakeHostOptions {
   installedRevisions?: Record<string, string | null>;
   unavailableHashes?: string[];
   mismatchResults?: Record<string, string>;
+  updateInspections?: Record<string, HostUpdateInspection>;
   failures?: Partial<Record<FakeHostOperation, Error>>;
 }
 
@@ -22,6 +24,8 @@ export type FakeHostOperation =
   | "resolveRemoteRevision"
   | "install"
   | "readLocalRevision"
+  | "inspectUpdate"
+  | "applyUpdate"
   | "remove"
   | "enable"
   | "disable"
@@ -37,6 +41,7 @@ export class FakeHost implements HostExtensionAdapter {
   readonly #installedRevisions: Record<string, string | null>;
   readonly #unavailableHashes: Set<string>;
   readonly #mismatchResults: Record<string, string>;
+  readonly #updateInspections: Record<string, HostUpdateInspection>;
   readonly #failures: Partial<Record<FakeHostOperation, Error>>;
   readonly calls: Array<{ operation: string; [key: string]: unknown }> = [];
   reloadCount = 0;
@@ -55,6 +60,7 @@ export class FakeHost implements HostExtensionAdapter {
     this.#installedRevisions = structuredClone(options.installedRevisions ?? {});
     this.#unavailableHashes = new Set(options.unavailableHashes ?? []);
     this.#mismatchResults = structuredClone(options.mismatchResults ?? {});
+    this.#updateInspections = structuredClone(options.updateInspections ?? {});
     this.#failures = { ...options.failures };
   }
 
@@ -118,6 +124,38 @@ export class FakeHost implements HostExtensionAdapter {
       throw new HostOperationError("readRevision", "Local revision lookup is unavailable.");
     }
     return this.#installedRevisions[`${input.type}:${input.internalName}`] ?? null;
+  }
+
+  async inspectUpdate(input: {
+    internalName: string;
+    type: "local" | "global";
+    repositoryUrl: string;
+    branch: string | null;
+    candidateShas: string[];
+  }): Promise<HostUpdateInspection> {
+    this.calls.push({ operation: "inspectUpdate", ...structuredClone(input) });
+    this.#throwConfiguredFailure("inspectUpdate");
+    const key = `${input.type}:${input.internalName}`;
+    const inspection = this.#updateInspections[key];
+    if (!inspection) throw new Error(`No fake update inspection for: ${key}`);
+    return structuredClone(inspection);
+  }
+
+  async applyUpdate(input: {
+    internalName: string;
+    type: "local" | "global";
+    repositoryUrl: string;
+    branch: string | null;
+    expectedCurrentSha: string;
+    targetSha: string;
+  }): Promise<void> {
+    this.calls.push({ operation: "applyUpdate", ...structuredClone(input) });
+    this.#throwConfiguredFailure("applyUpdate");
+    const key = `${input.type}:${input.internalName}`;
+    if (this.#installedRevisions[key] !== input.expectedCurrentSha) {
+      throw new HostOperationError("update", "The installed extension changed before updating.");
+    }
+    this.#installedRevisions[key] = this.#mismatchResults[input.targetSha] ?? input.targetSha;
   }
 
   async remove(input: { internalName: string; type: "local" | "global" }): Promise<void> {

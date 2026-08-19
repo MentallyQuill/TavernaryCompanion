@@ -5,6 +5,7 @@ import { SillyTavernHostAdapter } from "../../src/host/sillytavern-host";
 import { createFakeHost } from "../helpers/fake-host";
 
 const repositoryUrl = "https://github.com/example/Alpha";
+const installedSha = "0".repeat(40);
 const checkedSha = "a".repeat(40);
 const remoteSha = "b".repeat(40);
 
@@ -135,6 +136,125 @@ it("rejects malformed non-empty local revision hashes", async () => {
   ).rejects.toThrow("valid commit");
 });
 
+it("reads strict update inspection evidence from the non-legacy status endpoint", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(
+    Response.json({
+      installedSha,
+      newestSha: remoteSha,
+      remoteUrl: repositoryUrl,
+      branch: "main",
+      worktreeClean: true,
+      branchMatches: true,
+      exactUpdateSupported: true,
+      newestRelationship: "behind",
+      candidateRelationships: { [checkedSha]: "behind" },
+    }),
+  );
+  const host = createSillyTavernHost({ fetch: fetchMock });
+
+  await expect(
+    host.inspectUpdate({
+      internalName: "third-party/Alpha",
+      type: "local",
+      repositoryUrl,
+      branch: null,
+      candidateShas: [checkedSha],
+    }),
+  ).resolves.toEqual({
+    installedSha,
+    newestSha: remoteSha,
+    remoteUrl: repositoryUrl,
+    branch: "main",
+    worktreeClean: true,
+    branchMatches: true,
+    exactUpdateSupported: true,
+    newestRelationship: "behind",
+    candidateRelationships: { [checkedSha]: "behind" },
+  });
+  expect(fetchMock).toHaveBeenCalledWith("/api/extensions/update-status", {
+    method: "POST",
+    headers: { Authorization: "private" },
+    body: JSON.stringify({
+      extensionName: "Alpha",
+      global: false,
+      repositoryUrl,
+      branch: null,
+      candidateShas: [checkedSha],
+    }),
+  });
+});
+
+it("explains when safe update inspection is unavailable on an older host", async () => {
+  const host = createSillyTavernHost({
+    fetch: vi.fn().mockResolvedValue(new Response("missing", { status: 404 })),
+  });
+
+  await expect(
+    host.inspectUpdate({
+      internalName: "third-party/Alpha",
+      type: "local",
+      repositoryUrl,
+      branch: null,
+      candidateShas: [],
+    }),
+  ).rejects.toThrow("This version of SillyTavern cannot check updates safely.");
+});
+
+it("rejects non-boolean update safety evidence", async () => {
+  const host = createSillyTavernHost({
+    fetch: vi.fn().mockResolvedValue(
+      Response.json({
+        installedSha,
+        newestSha: remoteSha,
+        remoteUrl: repositoryUrl,
+        branch: "main",
+        worktreeClean: "yes",
+        branchMatches: true,
+        exactUpdateSupported: true,
+        newestRelationship: "behind",
+        candidateRelationships: {},
+      }),
+    ),
+  });
+
+  await expect(
+    host.inspectUpdate({
+      internalName: "third-party/Alpha",
+      type: "local",
+      repositoryUrl,
+      branch: null,
+      candidateShas: [],
+    }),
+  ).rejects.toThrow("invalid extension update evidence");
+});
+
+it("sends immutable update targets only to the exact update endpoint", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(new Response(null, { status: 204 }));
+  const host = createSillyTavernHost({ fetch: fetchMock });
+
+  await host.applyUpdate({
+    internalName: "third-party/Alpha",
+    type: "local",
+    repositoryUrl,
+    branch: null,
+    expectedCurrentSha: installedSha,
+    targetSha: remoteSha,
+  });
+
+  expect(fetchMock).toHaveBeenCalledWith("/api/extensions/update-to", {
+    method: "POST",
+    headers: { Authorization: "private" },
+    body: JSON.stringify({
+      extensionName: "Alpha",
+      global: false,
+      repositoryUrl,
+      branch: null,
+      expectedCurrentSha: installedSha,
+      targetSha: remoteSha,
+    }),
+  });
+});
+
 it("forwards a checked commit only when pinned installs are advertised", async () => {
   const installExtension = vi.fn().mockResolvedValue(true);
   const host = createSillyTavernHost({
@@ -249,6 +369,54 @@ it("models remote, installed, unavailable, and mismatched revisions in the fake 
   await expect(
     host.install({ repositoryUrl, branch: null, commitSha: unavailableSha }),
   ).rejects.toMatchObject({ name: "HostRevisionUnavailableError" });
+});
+
+it("models update inspection and exact revision changes in the fake host", async () => {
+  const inspection = {
+    installedSha,
+    newestSha: remoteSha,
+    remoteUrl: repositoryUrl,
+    branch: "main",
+    worktreeClean: true,
+    branchMatches: true,
+    exactUpdateSupported: true,
+    newestRelationship: "behind" as const,
+    candidateRelationships: { [checkedSha]: "behind" as const },
+  };
+  const host = createFakeHost({
+    extensions: [
+      {
+        internalName: "third-party/Alpha",
+        folderName: "Alpha",
+        enabled: true,
+        type: "local",
+        manifest: null,
+      },
+    ],
+    installedRevisions: { "local:third-party/Alpha": installedSha },
+    updateInspections: { "local:third-party/Alpha": inspection },
+  });
+
+  await expect(
+    host.inspectUpdate({
+      internalName: "third-party/Alpha",
+      type: "local",
+      repositoryUrl,
+      branch: null,
+      candidateShas: [checkedSha],
+    }),
+  ).resolves.toEqual(inspection);
+  await host.applyUpdate({
+    internalName: "third-party/Alpha",
+    type: "local",
+    repositoryUrl,
+    branch: null,
+    expectedCurrentSha: installedSha,
+    targetSha: remoteSha,
+  });
+  await expect(
+    host.readLocalRevision({ internalName: "third-party/Alpha", type: "local" }),
+  ).resolves.toBe(remoteSha);
 });
 
 it("discovers canonical host identities and enabled state", async () => {

@@ -6,6 +6,7 @@ import type {
   HostPopupOptions,
   HostResolvedRevision,
 } from "./host-types";
+import type { HostUpdateInspection, RevisionRelationship } from "../updates/update-types";
 
 export interface SillyTavernHostDependencies {
   getExtensionNames(): readonly string[];
@@ -205,6 +206,112 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
     return parseCommitSha(body.currentCommitHash, "readRevision");
   }
 
+  async inspectUpdate(input: {
+    internalName: string;
+    type: "local" | "global";
+    repositoryUrl: string;
+    branch: string | null;
+    candidateShas: string[];
+  }): Promise<HostUpdateInspection> {
+    const repositoryUrl = parseRepositoryUrl(input.repositoryUrl, "inspectUpdate");
+    const candidateShas = input.candidateShas.map((sha) => parseCommitSha(sha, "inspectUpdate"));
+    let response: Response;
+    try {
+      response = await this.#dependencies.fetch("/api/extensions/update-status", {
+        method: "POST",
+        headers: this.#dependencies.getRequestHeaders(),
+        body: JSON.stringify({
+          extensionName: input.internalName.replace(/^third-party\//, ""),
+          global: input.type === "global",
+          repositoryUrl,
+          branch: input.branch,
+          candidateShas,
+        }),
+      });
+    } catch (cause) {
+      throw new HostOperationError(
+        "inspectUpdate",
+        "SillyTavern could not reach the extension update service.",
+        { cause },
+      );
+    }
+    if (response.status === 404) {
+      throw new HostOperationError(
+        "inspectUpdate",
+        "This version of SillyTavern cannot check updates safely.",
+      );
+    }
+    if (!response.ok) {
+      throw await responseError(
+        "inspectUpdate",
+        "SillyTavern could not check extension updates.",
+        response,
+      );
+    }
+    const body = await readJsonObject(response, "inspectUpdate");
+    const relationships = parseCandidateRelationships(body.candidateRelationships);
+    if (
+      typeof body.remoteUrl !== "string" ||
+      typeof body.branch !== "string" ||
+      typeof body.worktreeClean !== "boolean" ||
+      typeof body.branchMatches !== "boolean" ||
+      typeof body.exactUpdateSupported !== "boolean"
+    ) {
+      throw new HostOperationError(
+        "inspectUpdate",
+        "SillyTavern returned invalid extension update evidence.",
+      );
+    }
+    return {
+      installedSha: parseCommitSha(body.installedSha, "inspectUpdate"),
+      newestSha: parseCommitSha(body.newestSha, "inspectUpdate"),
+      remoteUrl: body.remoteUrl,
+      branch: body.branch,
+      worktreeClean: body.worktreeClean,
+      branchMatches: body.branchMatches,
+      exactUpdateSupported: body.exactUpdateSupported,
+      newestRelationship: parseRevisionRelationship(body.newestRelationship),
+      candidateRelationships: relationships,
+    };
+  }
+
+  async applyUpdate(input: {
+    internalName: string;
+    type: "local" | "global";
+    repositoryUrl: string;
+    branch: string | null;
+    expectedCurrentSha: string;
+    targetSha: string;
+  }): Promise<void> {
+    const repositoryUrl = parseRepositoryUrl(input.repositoryUrl, "update");
+    const expectedCurrentSha = parseCommitSha(input.expectedCurrentSha, "update");
+    const targetSha = parseCommitSha(input.targetSha, "update");
+    let response: Response;
+    try {
+      response = await this.#dependencies.fetch("/api/extensions/update-to", {
+        method: "POST",
+        headers: this.#dependencies.getRequestHeaders(),
+        body: JSON.stringify({
+          extensionName: input.internalName.replace(/^third-party\//, ""),
+          global: input.type === "global",
+          repositoryUrl,
+          branch: input.branch,
+          expectedCurrentSha,
+          targetSha,
+        }),
+      });
+    } catch (cause) {
+      throw new HostOperationError(
+        "update",
+        "SillyTavern could not reach the extension update service.",
+        { cause },
+      );
+    }
+    if (!response.ok) {
+      throw await responseError("update", "SillyTavern could not update the extension.", response);
+    }
+  }
+
   async remove(input: { internalName: string; type: "local" | "global" }): Promise<void> {
     let response: Response;
     try {
@@ -303,7 +410,7 @@ function legacyInstallCapabilities(): HostInstallCapabilities {
 }
 
 async function responseError(
-  operation: "capabilities" | "resolveRevision" | "readRevision",
+  operation: "capabilities" | "resolveRevision" | "readRevision" | "inspectUpdate" | "update",
   message: string,
   response: Response,
 ): Promise<HostOperationError> {
@@ -315,7 +422,7 @@ async function responseError(
 
 async function readJsonObject(
   response: Response,
-  operation: "capabilities" | "resolveRevision" | "readRevision",
+  operation: "capabilities" | "resolveRevision" | "readRevision" | "inspectUpdate",
 ): Promise<Record<string, unknown>> {
   try {
     const body: unknown = await response.json();
@@ -330,7 +437,7 @@ async function readJsonObject(
 
 function parseCommitSha(
   value: unknown,
-  operation: "resolveRevision" | "install" | "readRevision",
+  operation: "resolveRevision" | "install" | "readRevision" | "inspectUpdate" | "update",
 ): string {
   if (typeof value !== "string" || !/^[0-9a-f]{40}$/i.test(value)) {
     throw new HostOperationError(operation, "SillyTavern did not return a valid commit SHA.");
@@ -347,7 +454,10 @@ function isExplicitUnavailableCommitError(cause: unknown): boolean {
   );
 }
 
-function parseRepositoryUrl(input: string, operation: "resolveRevision" | "install"): string {
+function parseRepositoryUrl(
+  input: string,
+  operation: "resolveRevision" | "install" | "inspectUpdate" | "update",
+): string {
   let url: URL;
   try {
     url = new URL(input);
@@ -366,6 +476,31 @@ function parseRepositoryUrl(input: string, operation: "resolveRevision" | "insta
   }
 
   return url.href;
+}
+
+function parseRevisionRelationship(value: unknown): RevisionRelationship {
+  if (value === "equal" || value === "behind" || value === "ahead" || value === "diverged") {
+    return value;
+  }
+  throw new HostOperationError(
+    "inspectUpdate",
+    "SillyTavern returned invalid extension update evidence.",
+  );
+}
+
+function parseCandidateRelationships(value: unknown): Record<string, RevisionRelationship> {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new HostOperationError(
+      "inspectUpdate",
+      "SillyTavern returned invalid extension update evidence.",
+    );
+  }
+  return Object.fromEntries(
+    Object.entries(value).map(([sha, relationship]) => [
+      parseCommitSha(sha, "inspectUpdate"),
+      parseRevisionRelationship(relationship),
+    ]),
+  );
 }
 
 export function sanitizeResponseDetails(input: string): string {

@@ -4,6 +4,8 @@ export type HostOperation =
   | "resolveRevision"
   | "install"
   | "readRevision"
+  | "inspectUpdate"
+  | "update"
   | "remove"
   | "enable"
   | "disable";

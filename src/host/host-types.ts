@@ -1,3 +1,5 @@
+import type { HostUpdateInspection } from "../updates/update-types";
+
 export type HostExtensionType = "local" | "global";
 
 export interface HostExtension {
@@ -44,6 +46,21 @@ export interface HostExtensionAdapter {
     internalName: string;
     type: HostExtensionType;
   }): Promise<string | null>;
+  inspectUpdate(input: {
+    internalName: string;
+    type: HostExtensionType;
+    repositoryUrl: string;
+    branch: string | null;
+    candidateShas: string[];
+  }): Promise<HostUpdateInspection>;
+  applyUpdate(input: {
+    internalName: string;
+    type: HostExtensionType;
+    repositoryUrl: string;
+    branch: string | null;
+    expectedCurrentSha: string;
+    targetSha: string;
+  }): Promise<void>;
   remove(input: { internalName: string; type: HostExtensionType }): Promise<void>;
   enable(internalName: string): Promise<void>;
   disable(internalName: string): Promise<void>;
