@@ -42,9 +42,15 @@ export async function executeVerifiedInstall(input: {
     });
   }
   const contract = parseInstallContract(input.project.install);
-  const canReadLocalRevision =
-    input.target.requestedSha !== null ||
-    (await input.host.getInstallCapabilities()).localRevisionLookup;
+  const capabilities = await input.host.getInstallCapabilities();
+  if (input.target.requestedSha !== null && !capabilities.localRevisionLookup) {
+    throw new VerifiedInstallError({
+      message: "The selected revision cannot be verified on this host.",
+      cleanupOutcome: "not-needed",
+      requestedSha: input.target.requestedSha,
+      installedSha: null,
+    });
+  }
   await input.host.install({
     repositoryUrl: contract.repositoryUrl,
     branch: contract.branch,
@@ -61,12 +67,24 @@ export async function executeVerifiedInstall(input: {
     });
   }
 
-  const installedSha = canReadLocalRevision
-    ? await input.host.readLocalRevision({
+  let installedSha: string | null = null;
+  if (capabilities.localRevisionLookup) {
+    try {
+      installedSha = await input.host.readLocalRevision({
         internalName: installed.internalName,
         type: installed.type,
-      })
-    : null;
+      });
+    } catch (cause) {
+      if (input.target.requestedSha === null) throw cause;
+      throw await cleanupMismatch({
+        host: input.host,
+        extension: installed,
+        expectedFolderName: contract.folderName,
+        requestedSha: input.target.requestedSha,
+        installedSha: null,
+      });
+    }
+  }
   if (input.target.requestedSha !== null && installedSha !== input.target.requestedSha) {
     throw await cleanupMismatch({
       host: input.host,

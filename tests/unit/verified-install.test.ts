@@ -100,6 +100,61 @@ describe("verified install", () => {
     );
   });
 
+  it("rejects a pinned target before mutation when local revision lookup is unavailable", async () => {
+    const { host, project } = fixture({
+      capabilities: {
+        pinnedCommitInstall: true,
+        remoteRevisionLookup: true,
+        localRevisionLookup: false,
+      },
+    });
+
+    await expect(
+      executeVerifiedInstall({ host, project, target: checkedTarget }),
+    ).rejects.toMatchObject({
+      name: "VerifiedInstallError",
+      cleanupOutcome: "not-needed",
+    } satisfies Partial<VerifiedInstallError>);
+    expect(host.calls.map(({ operation }) => operation)).toEqual(["getInstallCapabilities"]);
+  });
+
+  it("cleans up when local revision lookup unexpectedly fails after a pinned install", async () => {
+    const { host, project } = fixture({
+      failures: { readLocalRevision: new Error("version endpoint failed") },
+    });
+
+    await expect(
+      executeVerifiedInstall({ host, project, target: checkedTarget }),
+    ).rejects.toMatchObject({
+      name: "VerifiedInstallError",
+      cleanupOutcome: "succeeded",
+    } satisfies Partial<VerifiedInstallError>);
+    expect(host.calls).toContainEqual({
+      operation: "remove",
+      internalName: extension.internalName,
+      type: extension.type,
+    });
+    expect(
+      (await host.discover()).some(({ folderName }) => folderName === extension.folderName),
+    ).toBe(false);
+  });
+
+  it("reports failed cleanup when local revision lookup and removal both fail", async () => {
+    const { host, project } = fixture({
+      failures: {
+        readLocalRevision: new Error("version endpoint failed"),
+        remove: new Error("cleanup refused"),
+      },
+    });
+
+    await expect(
+      executeVerifiedInstall({ host, project, target: checkedTarget }),
+    ).rejects.toMatchObject({
+      name: "VerifiedInstallError",
+      cleanupOutcome: "failed",
+    } satisfies Partial<VerifiedInstallError>);
+  });
+
   it("cleans up a post-install revision mismatch and reports a typed failure", async () => {
     const { host, project } = fixture({
       mismatchResults: { [checkedSha]: mismatchedSha },

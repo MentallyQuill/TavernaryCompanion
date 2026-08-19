@@ -26,10 +26,54 @@ import { executeVerifiedInstall, VerifiedInstallError } from "./verified-install
 
 export interface LifecycleCoordinator {
   readonly lock: OperationLock;
-  prepareInstall(projectId: string): Promise<InstallTargetChoice>;
-  install(projectId: string, target?: InstallTarget): Promise<LifecycleReceipt>;
+  prepareInstall(projectId: string): Promise<PreparedInstallTargetChoice>;
+  install(projectId: string, selection?: PreparedInstallSelection): Promise<LifecycleReceipt>;
   previewRemoval(projectId: string): Promise<RemovalImpact>;
   remove(projectId: string): Promise<LifecycleReceipt>;
+}
+
+export interface InstallPreparationBinding {
+  projectId: string;
+  catalogGeneratedAt: string;
+  install: {
+    kind: "sillytavern-extension-git";
+    repositoryUrl: string;
+    branch: string | null;
+    manifestPath: string;
+    folderName: string;
+  };
+  report: { reportId: string; scannedSha: string } | null;
+  target: { kind: InstallTarget["kind"]; requestedSha: string | null };
+}
+
+export interface PreparedInstallSelection<TTarget extends InstallTarget = InstallTarget> {
+  target: TTarget;
+  binding: InstallPreparationBinding;
+}
+
+export type PreparedInstallTargetChoice =
+  | { kind: "single"; selection: PreparedInstallSelection }
+  | {
+      kind: "choose";
+      checked: {
+        selection: PreparedInstallSelection<Extract<InstallTarget, { kind: "checked" }>>;
+        disabledReason: string | null;
+      };
+      newest: {
+        selection: PreparedInstallSelection<Extract<InstallTarget, { kind: "newest" }>>;
+      };
+    };
+
+export const INSTALL_CHOICE_STALE_REASON =
+  "This install choice is out of date. Choose a version again.";
+
+export class InstallPreparationStaleError extends Error {
+  readonly reason = INSTALL_CHOICE_STALE_REASON;
+
+  constructor() {
+    super(INSTALL_CHOICE_STALE_REASON);
+    this.name = "InstallPreparationStaleError";
+  }
 }
 
 interface LifecycleCoordinatorOptions {
@@ -61,30 +105,42 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
     this.lock = options.lock ?? new OperationLock();
   }
 
-  prepareInstall(projectId: string): Promise<InstallTargetChoice> {
+  async prepareInstall(projectId: string): Promise<PreparedInstallTargetChoice> {
     const snapshot = this.#getSnapshot();
     const project = eligibleProjectForPreparation(projectId, snapshot);
-    if (!project) {
-      return Promise.reject(
-        new InstallTargetPreparationError("This project is not eligible for installation."),
-      );
+    const catalog = "catalog" in snapshot ? snapshot.catalog : null;
+    if (!project || !catalog) {
+      throw new InstallTargetPreparationError("This project is not eligible for installation.");
     }
-    return prepareInstallTargetChoice({
+    const choice = await prepareInstallTargetChoice({
       host: this.#host,
       snapshot,
       project,
       now: this.#now,
     });
+    return bindInstallTargetChoice(choice, project, catalog.generatedAt);
   }
 
-  install(projectId: string, target?: InstallTarget): Promise<LifecycleReceipt> {
+  install(projectId: string, selection?: PreparedInstallSelection): Promise<LifecycleReceipt> {
     return this.lock.runExclusive(`install:${projectId}`, async ({ setPhase }) => {
-      const selectedTarget = target ?? legacyNewestTarget();
+      const selectedTarget = selection?.target ?? legacyNewestTarget();
       const startedAt = this.#now();
       const id = this.#createId();
       const snapshot = this.#getSnapshot();
       const catalog = "catalog" in snapshot ? snapshot.catalog : null;
       const project = catalog?.projects.find((candidate) => candidate.id === projectId) ?? null;
+      if (
+        selection &&
+        (!project ||
+          !catalog ||
+          !matchesPreparationBinding(
+            selection,
+            eligibleProjectForPreparation(projectId, snapshot),
+            catalog.generatedAt,
+          ))
+      ) {
+        throw new InstallPreparationStaleError();
+      }
       if (projectId === COMPANION_PROJECT_ID) {
         return this.#rejected({
           id,
@@ -540,6 +596,90 @@ function removalKitTitles(
 
 function legacyNewestTarget(): InstallTarget {
   return { kind: "newest", requestedSha: null, resolvedAt: null };
+}
+
+function bindInstallTargetChoice(
+  choice: InstallTargetChoice,
+  project: CatalogProject,
+  catalogGeneratedAt: string,
+): PreparedInstallTargetChoice {
+  const bind = <TTarget extends InstallTarget>(
+    target: TTarget,
+  ): PreparedInstallSelection<TTarget> => ({
+    target,
+    binding: createPreparationBinding(project, target, catalogGeneratedAt),
+  });
+  if (choice.kind === "single") return { kind: "single", selection: bind(choice.target) };
+  return {
+    kind: "choose",
+    checked: {
+      selection: bind(choice.checked.target),
+      disabledReason: choice.checked.disabledReason,
+    },
+    newest: { selection: bind(choice.newest) },
+  };
+}
+
+function createPreparationBinding(
+  project: CatalogProject,
+  target: InstallTarget,
+  catalogGeneratedAt: string,
+): InstallPreparationBinding {
+  if (!project.install) throw new Error("Install contract is missing.");
+  const install = parseInstallContract(project.install);
+  const report = project.tavernKeeper?.report ?? null;
+  return {
+    projectId: project.id,
+    catalogGeneratedAt,
+    install: {
+      kind: install.kind,
+      repositoryUrl: install.repositoryUrl,
+      branch: install.branch,
+      manifestPath: install.manifestPath,
+      folderName: install.folderName,
+    },
+    report: report ? { reportId: report.reportId, scannedSha: report.scannedSha } : null,
+    target: { kind: target.kind, requestedSha: target.requestedSha },
+  };
+}
+
+function matchesPreparationBinding(
+  selection: PreparedInstallSelection,
+  project: CatalogProject | null,
+  catalogGeneratedAt: string,
+): boolean {
+  if (!project || !selection.target || !selection.binding) return false;
+  const report = project.tavernKeeper?.report ?? null;
+  if (
+    selection.target.kind === "checked" &&
+    (!report ||
+      selection.target.reportId !== report.reportId ||
+      selection.target.requestedSha.toLowerCase() !== report.scannedSha.toLowerCase())
+  ) {
+    return false;
+  }
+  const expected = createPreparationBinding(project, selection.target, catalogGeneratedAt);
+  const actual = selection.binding;
+  return (
+    actual.projectId === expected.projectId &&
+    actual.catalogGeneratedAt === expected.catalogGeneratedAt &&
+    actual.install.kind === expected.install.kind &&
+    actual.install.repositoryUrl === expected.install.repositoryUrl &&
+    actual.install.branch === expected.install.branch &&
+    actual.install.manifestPath === expected.install.manifestPath &&
+    actual.install.folderName === expected.install.folderName &&
+    actual.target.kind === expected.target.kind &&
+    actual.target.requestedSha === expected.target.requestedSha &&
+    sameReportIdentity(actual.report, expected.report)
+  );
+}
+
+function sameReportIdentity(
+  left: InstallPreparationBinding["report"],
+  right: InstallPreparationBinding["report"],
+): boolean {
+  if (left === null || right === null) return left === right;
+  return left.reportId === right.reportId && left.scannedSha === right.scannedSha;
 }
 
 function createInstallProvenance(input: {

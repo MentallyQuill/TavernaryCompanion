@@ -2,7 +2,6 @@ import { describe, expect, it, vi } from "vitest";
 
 import type { CatalogSnapshot } from "../../src/catalog/catalog-client";
 import { HostRevisionUnavailableError } from "../../src/host/host-errors";
-import type { InstallTarget } from "../../src/lifecycle/install-target";
 import { createLifecycleCoordinator } from "../../src/lifecycle/lifecycle-coordinator";
 import { OperationInProgressError } from "../../src/lifecycle/operation-lock";
 import { COMPANION_PROJECT_ID } from "../../src/lifecycle/self-protection";
@@ -13,18 +12,44 @@ import { catalogFixture, catalogProjectFixture, deferred } from "../helpers/cata
 
 const checkedSha = "a".repeat(40);
 const mismatchedSha = "b".repeat(40);
-const legacyNewestTarget: InstallTarget = {
-  kind: "newest",
-  requestedSha: null,
-  resolvedAt: null,
-};
-const checkedTarget: InstallTarget = {
-  kind: "checked",
-  requestedSha: checkedSha,
-  checkedAt: "2026-08-17T10:00:00.000Z",
-  reportId: "report-123",
-  reportUrl: "https://example.test/reports/report-123",
-};
+
+function attachReport(
+  project: ReturnType<typeof catalogProjectFixture>,
+  reportId: string,
+  scannedSha: string,
+): void {
+  project.tavernKeeper = {
+    state: "orange",
+    riskLevel: "material",
+    freshness: "current",
+    currentSha: scannedSha,
+    report: {
+      reportId,
+      riskLevel: "material",
+      headline: "Report",
+      summary: "Report summary",
+      minorCautions: 0,
+      materialConcerns: 1,
+      highDanger: 0,
+      maliciousEvidence: "none",
+      citedFindingIds: [],
+      scannedSha,
+      treeUrl: `https://example.test/tree/${scannedSha}`,
+      scannedAt: "2026-08-17T10:00:00.000Z",
+      assessedAt: "2026-08-17T10:00:00.000Z",
+      scannerPolicyVersion: "5",
+      contextualReviewPolicyVersion: "1",
+      synthesisPolicyVersion: "1",
+      synthesisModel: "test",
+      dangerBasis: "none",
+      assessmentSource: "model",
+      reportUrl: `https://example.test/reports/${reportId}`,
+      technicalHistoryUrl: null,
+    },
+    history: [],
+    historyUrl: null,
+  };
+}
 
 function setup({
   folderName = "Alpha",
@@ -69,11 +94,20 @@ function setup({
   return { coordinator, host, store, project, extensionSettings, confirm };
 }
 
+async function prepareSingleSelection(
+  coordinator: ReturnType<typeof createLifecycleCoordinator>,
+  projectId = "alpha",
+) {
+  const prepared = await coordinator.prepareInstall(projectId);
+  if (prepared.kind !== "single") throw new Error("Expected one prepared selection.");
+  return prepared.selection;
+}
+
 describe("install lifecycle", () => {
   it("installs, rediscovers, and records only verified ownership", async () => {
     const { coordinator, host, store, project } = setup();
 
-    const receipt = await coordinator.install("alpha", legacyNewestTarget);
+    const receipt = await coordinator.install("alpha");
 
     expect(host.calls.map(({ operation }) => operation)).toEqual([
       "discover",
@@ -98,7 +132,7 @@ describe("install lifecycle", () => {
 
   it("cancels before the host install call and persists no acknowledgement", async () => {
     const { coordinator, host, store } = setup({ confirm: vi.fn(async () => false) });
-    const receipt = await coordinator.install("alpha", legacyNewestTarget);
+    const receipt = await coordinator.install("alpha");
 
     expect(receipt.status).toBe("cancelled");
     expect(host.calls.map(({ operation }) => operation)).toEqual(["discover"]);
@@ -108,7 +142,7 @@ describe("install lifecycle", () => {
 
   it("does not record ownership when rediscovery finds the wrong folder", async () => {
     const { coordinator, store } = setup({ folderName: "Wrong" });
-    const receipt = await coordinator.install("alpha", legacyNewestTarget);
+    const receipt = await coordinator.install("alpha");
 
     expect(receipt.status).toBe("verification-failed");
     expect(store.read().managedExtensions).toEqual({});
@@ -117,7 +151,7 @@ describe("install lifecycle", () => {
   it("returns a safe host failure receipt", async () => {
     const fixture = setup();
     vi.spyOn(fixture.host, "install").mockRejectedValue(new Error("host refused token=secret"));
-    const receipt = await fixture.coordinator.install("alpha", legacyNewestTarget);
+    const receipt = await fixture.coordinator.install("alpha");
 
     expect(receipt.status).toBe("failed");
     expect(receipt.safeError).toBe("SillyTavern did not complete the install request.");
@@ -127,12 +161,10 @@ describe("install lifecycle", () => {
   it("rejects an accidental concurrent request instead of queuing it", async () => {
     const pending = deferred<boolean>();
     const fixture = setup({ confirm: vi.fn(() => pending.promise) });
-    const first = fixture.coordinator.install("alpha", legacyNewestTarget);
+    const first = fixture.coordinator.install("alpha");
     await vi.waitFor(() => expect(fixture.host.calls).toHaveLength(1));
 
-    await expect(fixture.coordinator.install("alpha", legacyNewestTarget)).rejects.toThrow(
-      OperationInProgressError,
-    );
+    await expect(fixture.coordinator.install("alpha")).rejects.toThrow(OperationInProgressError);
     pending.resolve(false);
     await first;
   });
@@ -141,7 +173,7 @@ describe("install lifecycle", () => {
     const fixture = setup({
       saveSettingsDebounced: vi.fn().mockRejectedValue(new Error("storage unavailable")),
     });
-    const receipt = await fixture.coordinator.install("alpha", legacyNewestTarget);
+    const receipt = await fixture.coordinator.install("alpha");
 
     expect(receipt.status).toBe("installed-unrecorded");
     expect(receipt.safeError).toMatch(/reopen Companion/i);
@@ -150,6 +182,7 @@ describe("install lifecycle", () => {
 
   it("records exact checked provenance only after local revision verification", async () => {
     const fixture = setup();
+    attachReport(fixture.project, "report-123", checkedSha);
     const host = createFakeHost({
       capabilities: {
         pinnedCommitInstall: true,
@@ -165,6 +198,7 @@ describe("install lifecycle", () => {
           manifest: null,
         },
       },
+      remoteHeads: { [`${fixture.project.install!.repositoryUrl}#`]: checkedSha },
     });
     const coordinator = createLifecycleCoordinator({
       host,
@@ -180,7 +214,8 @@ describe("install lifecycle", () => {
       createId: () => "checked-receipt",
     });
 
-    const receipt = await coordinator.install("alpha", checkedTarget);
+    const selection = await prepareSingleSelection(coordinator);
+    const receipt = await coordinator.install("alpha", selection);
 
     expect(host.calls).toContainEqual(
       expect.objectContaining({ operation: "install", commitSha: checkedSha }),
@@ -198,6 +233,7 @@ describe("install lifecycle", () => {
 
   it("returns the cleaned-up failure receipt and keeps ownership empty after a SHA mismatch", async () => {
     const fixture = setup();
+    attachReport(fixture.project, "report-123", checkedSha);
     const host = createFakeHost({
       capabilities: {
         pinnedCommitInstall: true,
@@ -214,6 +250,7 @@ describe("install lifecycle", () => {
         },
       },
       mismatchResults: { [checkedSha]: mismatchedSha },
+      remoteHeads: { [`${fixture.project.install!.repositoryUrl}#`]: checkedSha },
     });
     const coordinator = createLifecycleCoordinator({
       host,
@@ -227,7 +264,8 @@ describe("install lifecycle", () => {
       confirm: async () => true,
     });
 
-    const receipt = await coordinator.install("alpha", checkedTarget);
+    const selection = await prepareSingleSelection(coordinator);
+    const receipt = await coordinator.install("alpha", selection);
 
     expect(receipt).toMatchObject({
       status: "verification-failed",
@@ -240,6 +278,7 @@ describe("install lifecycle", () => {
 
   it("requests attention and remains unowned when mismatch cleanup fails", async () => {
     const fixture = setup();
+    attachReport(fixture.project, "report-123", checkedSha);
     const host = createFakeHost({
       capabilities: {
         pinnedCommitInstall: true,
@@ -256,6 +295,7 @@ describe("install lifecycle", () => {
         },
       },
       mismatchResults: { [checkedSha]: mismatchedSha },
+      remoteHeads: { [`${fixture.project.install!.repositoryUrl}#`]: checkedSha },
       failures: { remove: new Error("cleanup refused") },
     });
     const coordinator = createLifecycleCoordinator({
@@ -270,7 +310,8 @@ describe("install lifecycle", () => {
       confirm: async () => true,
     });
 
-    const receipt = await coordinator.install("alpha", checkedTarget);
+    const selection = await prepareSingleSelection(coordinator);
+    const receipt = await coordinator.install("alpha", selection);
 
     expect(receipt.status).toBe("verification-failed");
     expect(receipt.cleanupOutcome).toBe("failed");
@@ -280,6 +321,7 @@ describe("install lifecycle", () => {
 
   it("propagates an unavailable checked revision for the fallback broker", async () => {
     const fixture = setup();
+    attachReport(fixture.project, "report-123", checkedSha);
     const host = createFakeHost({
       capabilities: {
         pinnedCommitInstall: true,
@@ -296,6 +338,7 @@ describe("install lifecycle", () => {
         },
       },
       unavailableHashes: [checkedSha],
+      remoteHeads: { [`${fixture.project.install!.repositoryUrl}#`]: checkedSha },
     });
     const coordinator = createLifecycleCoordinator({
       host,
@@ -309,7 +352,8 @@ describe("install lifecycle", () => {
       confirm: async () => true,
     });
 
-    await expect(coordinator.install("alpha", checkedTarget)).rejects.toBeInstanceOf(
+    const selection = await prepareSingleSelection(coordinator);
+    await expect(coordinator.install("alpha", selection)).rejects.toBeInstanceOf(
       HostRevisionUnavailableError,
     );
     expect(host.calls.filter(({ operation }) => operation === "install")).toEqual([
@@ -346,9 +390,83 @@ describe("install lifecycle", () => {
 
     await expect(coordinator.prepareInstall("alpha")).resolves.toMatchObject({
       kind: "single",
-      target: { kind: "newest", requestedSha: "c".repeat(40) },
+      selection: {
+        target: { kind: "newest", requestedSha: "c".repeat(40) },
+        binding: {
+          projectId: "alpha",
+          catalogGeneratedAt: catalog.generatedAt,
+          install: project.install,
+          report: null,
+        },
+      },
     });
   });
+
+  it.each(["project ID", "install contract", "catalog generation", "report identity"])(
+    "rejects a prepared selection when refreshed %s drifts before install",
+    async (drift) => {
+      const project = catalogProjectFixture({ id: "alpha", folderName: "Alpha" });
+      attachReport(project, "report-old", checkedSha);
+      const catalog = catalogFixture("2026-08-19T00:00:00.000Z");
+      catalog.projects = [project];
+      const snapshot: CatalogSnapshot = {
+        state: "ready-current",
+        canMutate: true,
+        checkedAt: "2026-08-19T00:05:00.000Z",
+        catalog,
+      };
+      const host = createFakeHost({
+        installResults: {
+          [project.install!.repositoryUrl]: {
+            internalName: "third-party/Alpha",
+            folderName: "Alpha",
+            enabled: true,
+            type: "local",
+            manifest: null,
+          },
+          "https://github.com/example/Beta.git": {
+            internalName: "third-party/Beta",
+            folderName: "Beta",
+            enabled: true,
+            type: "local",
+            manifest: null,
+          },
+        },
+      });
+      const confirm = vi.fn(async () => true);
+      const coordinator = createLifecycleCoordinator({
+        host,
+        store: new ProfileStore({ extensionSettings: {}, saveSettingsDebounced: () => undefined }),
+        getSnapshot: () => snapshot,
+        confirm,
+      });
+      const prepared = await coordinator.prepareInstall("alpha");
+      if (prepared.kind !== "single") throw new Error("Expected one prepared selection.");
+      host.calls.length = 0;
+
+      let installProjectId = "alpha";
+      if (drift === "project ID") {
+        const beta = catalogProjectFixture({ id: "beta", folderName: "Beta" });
+        catalog.projects.push(beta);
+        installProjectId = "beta";
+      } else if (drift === "install contract") {
+        project.install = { ...project.install!, branch: "next" };
+      } else if (drift === "catalog generation") {
+        catalog.generatedAt = "2026-08-19T01:00:00.000Z";
+      } else {
+        attachReport(project, "report-new", mismatchedSha);
+      }
+
+      await expect(coordinator.install(installProjectId, prepared.selection)).rejects.toMatchObject(
+        {
+          name: "InstallPreparationStaleError",
+          reason: "This install choice is out of date. Choose a version again.",
+        },
+      );
+      expect(host.calls).toEqual([]);
+      expect(confirm).not.toHaveBeenCalled();
+    },
+  );
 
   it.each([
     {

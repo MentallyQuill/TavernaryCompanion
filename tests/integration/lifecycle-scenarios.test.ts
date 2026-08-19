@@ -1,16 +1,9 @@
 import { expect, it, vi } from "vitest";
 import type { CatalogSnapshot } from "../../src/catalog/catalog-client";
-import type { InstallTarget } from "../../src/lifecycle/install-target";
 import { createLifecycleCoordinator } from "../../src/lifecycle/lifecycle-coordinator";
 import { ProfileStore } from "../../src/state/profile-store";
 import { catalogFixture, catalogProjectFixture } from "../helpers/catalog-fixtures";
 import { createFakeHost } from "../helpers/fake-host";
-
-const legacyNewestTarget: InstallTarget = {
-  kind: "newest",
-  requestedSha: null,
-  resolvedAt: null,
-};
 
 it("runs disclosure, verified install, and exact managed removal as one service journey", async () => {
   const project = catalogProjectFixture({ id: "harmless", folderName: "HarmlessFixture" });
@@ -42,7 +35,7 @@ it("runs disclosure, verified install, and exact managed removal as one service 
     now: () => "2026-08-18T00:00:00.000Z",
     createId: () => "receipt",
   });
-  expect((await lifecycle.install("harmless", legacyNewestTarget)).status).toBe("succeeded");
+  expect((await lifecycle.install("harmless")).status).toBe("succeeded");
   expect(confirm).toHaveBeenCalledOnce();
   expect((await lifecycle.remove("harmless")).status).toBe("succeeded");
   expect(host.calls.filter(({ operation }) => operation === "remove")).toEqual([
