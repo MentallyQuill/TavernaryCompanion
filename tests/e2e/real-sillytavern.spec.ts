@@ -8,6 +8,60 @@ const realCatalogPath = process.env.REAL_SILLYTAVERN_CATALOG_PATH;
 test.describe("real SillyTavern acceptance", () => {
   test.skip(!realHostUrl, "Set REAL_SILLYTAVERN_URL to run against an installed extension.");
 
+  test("installs Story Engine with its version chooser above the Companion panel", async ({
+    page,
+  }, testInfo) => {
+    test.skip(
+      !realCatalogPath,
+      "Set REAL_SILLYTAVERN_CATALOG_PATH for the Story Engine install test.",
+    );
+    test.setTimeout(180_000);
+    await page.setViewportSize({ width: 1440, height: 960 });
+    await openInstalledCompanion(page);
+
+    const root = page.locator("[data-tavernary-companion-popup]");
+    const owner = page.locator("dialog.popup").filter({ has: root });
+    await root.getByRole("searchbox", { name: "Search projects" }).fill("Story Engine");
+    const storyEngine = root.locator('[data-project-id="zdost-story-engine"]');
+    await expect(storyEngine).toBeVisible();
+    const uninstall = storyEngine.getByRole("button", { name: "Uninstall Story Engine" });
+    if (await uninstall.isVisible()) {
+      test.skip(
+        realHostUser !== "companion-acceptance-v1",
+        "Do not remove Story Engine outside the isolated acceptance profile.",
+      );
+      await uninstall.click();
+      const removal = page.getByRole("dialog", { name: "Uninstall Story Engine" });
+      await removal.getByRole("button", { name: "Uninstall", exact: true }).click();
+      await expect(storyEngine.getByRole("button", { name: "Install Story Engine" })).toBeVisible({
+        timeout: 90_000,
+      });
+    }
+    await storyEngine.getByRole("button", { name: "Install Story Engine" }).click();
+
+    const chooser = page.locator(".tavernary-companion-install-version-chooser");
+    await expect(chooser).toBeAttached({ timeout: 30_000 });
+    await page.screenshot({ path: testInfo.outputPath("story-engine-version-chooser.png") });
+    await expectOwnedOverlay(chooser, owner);
+    expect(await isTopmostAtCenter(chooser)).toBe(true);
+
+    if (realHostUser !== "companion-acceptance-v1") {
+      await chooser.getByRole("button", { name: "Cancel" }).click();
+      await expect(chooser).toHaveCount(0);
+      return;
+    }
+
+    await expect(chooser.getByRole("button", { name: "Checked version" })).toBeDisabled();
+    await chooser.getByRole("button", { name: "Newest version" }).click();
+    const nativeConfirm = page.getByRole("button", { name: "Yes, install it" });
+    await expect(nativeConfirm).toBeVisible();
+    expect(await isTopmostAtCenter(nativeConfirm)).toBe(true);
+    await nativeConfirm.click();
+    await expect(storyEngine.getByRole("button", { name: "Uninstall Story Engine" })).toBeVisible({
+      timeout: 90_000,
+    });
+  });
+
   test("keeps installed desktop overlays in the owning popup top layer", async ({ page }) => {
     test.setTimeout(120_000);
     await page.setViewportSize({ width: 1440, height: 960 });
