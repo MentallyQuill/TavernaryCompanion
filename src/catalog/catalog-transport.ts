@@ -4,15 +4,14 @@ export type CatalogFetch = (input: string | URL | Request, init?: RequestInit) =
 
 export function fetchCatalog(
   fetchImpl: CatalogFetch,
-  { etag, signal }: { etag: string | null; signal?: AbortSignal },
+  { signal }: { signal?: AbortSignal } = {},
 ): Promise<Response> {
   return fetchImpl(CATALOG_URL, {
     method: "GET",
-    cache: "no-store",
+    cache: "no-cache",
     credentials: "omit",
     headers: {
       Accept: "application/json",
-      ...(etag ? { "If-None-Match": etag } : {}),
     },
     signal,
   });

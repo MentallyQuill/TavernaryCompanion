@@ -10995,17 +10995,148 @@ var DEFAULT_COMPANION_QUERY = {
 
 // src/catalog/catalog-transport.ts
 var CATALOG_URL = "https://tavernary.org/catalog/tavernary-catalog.json";
-function fetchCatalog(fetchImpl, { etag, signal }) {
+function fetchCatalog(fetchImpl, { signal } = {}) {
   return fetchImpl(CATALOG_URL, {
     method: "GET",
-    cache: "no-store",
+    cache: "no-cache",
     credentials: "omit",
     headers: {
-      Accept: "application/json",
-      ...etag ? { "If-None-Match": etag } : {}
+      Accept: "application/json"
     },
     signal
   });
+}
+
+// src/integrity/sha256.ts
+var INITIAL_HASH = [
+  1779033703,
+  3144134277,
+  1013904242,
+  2773480762,
+  1359893119,
+  2600822924,
+  528734635,
+  1541459225
+];
+var ROUND_CONSTANTS = [
+  1116352408,
+  1899447441,
+  3049323471,
+  3921009573,
+  961987163,
+  1508970993,
+  2453635748,
+  2870763221,
+  3624381080,
+  310598401,
+  607225278,
+  1426881987,
+  1925078388,
+  2162078206,
+  2614888103,
+  3248222580,
+  3835390401,
+  4022224774,
+  264347078,
+  604807628,
+  770255983,
+  1249150122,
+  1555081692,
+  1996064986,
+  2554220882,
+  2821834349,
+  2952996808,
+  3210313671,
+  3336571891,
+  3584528711,
+  113926993,
+  338241895,
+  666307205,
+  773529912,
+  1294757372,
+  1396182291,
+  1695183700,
+  1986661051,
+  2177026350,
+  2456956037,
+  2730485921,
+  2820302411,
+  3259730800,
+  3345764771,
+  3516065817,
+  3600352804,
+  4094571909,
+  275423344,
+  430227734,
+  506948616,
+  659060556,
+  883997877,
+  958139571,
+  1322822218,
+  1537002063,
+  1747873779,
+  1955562222,
+  2024104815,
+  2227730452,
+  2361852424,
+  2428436474,
+  2756734187,
+  3204031479,
+  3329325298
+];
+function rotateRight(value, amount) {
+  return value >>> amount | value << 32 - amount;
+}
+function sha256Hex(value) {
+  const bytes = new TextEncoder().encode(value);
+  const paddedLength = Math.ceil((bytes.length + 9) / 64) * 64;
+  const message2 = new Uint8Array(paddedLength);
+  message2.set(bytes);
+  message2[bytes.length] = 128;
+  const bitLength = bytes.length * 8;
+  const messageView = new DataView(message2.buffer);
+  messageView.setUint32(paddedLength - 8, Math.floor(bitLength / 4294967296), false);
+  messageView.setUint32(paddedLength - 4, bitLength >>> 0, false);
+  const hash = Array.from(INITIAL_HASH);
+  const words = new Uint32Array(64);
+  for (let offset = 0; offset < message2.length; offset += 64) {
+    for (let index = 0; index < 16; index += 1) {
+      words[index] = messageView.getUint32(offset + index * 4, false);
+    }
+    for (let index = 16; index < 64; index += 1) {
+      const prior = words[index - 15];
+      const recent = words[index - 2];
+      const sigma0 = rotateRight(prior, 7) ^ rotateRight(prior, 18) ^ prior >>> 3;
+      const sigma1 = rotateRight(recent, 17) ^ rotateRight(recent, 19) ^ recent >>> 10;
+      words[index] = words[index - 16] + sigma0 + words[index - 7] + sigma1 >>> 0;
+    }
+    let [a3, b2, c3, d3, e3, f4, g3, h3] = hash;
+    for (let index = 0; index < 64; index += 1) {
+      const sum1 = rotateRight(e3, 6) ^ rotateRight(e3, 11) ^ rotateRight(e3, 25);
+      const choice = e3 & f4 ^ ~e3 & g3;
+      const temp1 = h3 + sum1 + choice + ROUND_CONSTANTS[index] + words[index] >>> 0;
+      const sum0 = rotateRight(a3, 2) ^ rotateRight(a3, 13) ^ rotateRight(a3, 22);
+      const majority = a3 & b2 ^ a3 & c3 ^ b2 & c3;
+      const temp2 = sum0 + majority >>> 0;
+      h3 = g3;
+      g3 = f4;
+      f4 = e3;
+      e3 = d3 + temp1 >>> 0;
+      d3 = c3;
+      c3 = b2;
+      b2 = a3;
+      a3 = temp1 + temp2 >>> 0;
+    }
+    hash[0] = hash[0] + a3 >>> 0;
+    hash[1] = hash[1] + b2 >>> 0;
+    hash[2] = hash[2] + c3 >>> 0;
+    hash[3] = hash[3] + d3 >>> 0;
+    hash[4] = hash[4] + e3 >>> 0;
+    hash[5] = hash[5] + f4 >>> 0;
+    hash[6] = hash[6] + g3 >>> 0;
+    hash[7] = hash[7] + h3 >>> 0;
+  }
+  return hash.map((word) => word.toString(16).padStart(8, "0")).join("");
 }
 
 // src/catalog/catalog-client.ts
@@ -11019,9 +11150,8 @@ function elapsed(now, previous) {
 function errorMessage(cause) {
   return cause instanceof Error ? cause.message : "Catalog refresh failed.";
 }
-async function webSha256(body) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+async function stableSha256(body) {
+  return sha256Hex(body);
 }
 var DefaultCatalogClient = class {
   #cache;
@@ -11035,7 +11165,6 @@ var DefaultCatalogClient = class {
     checkedAt: null
   };
   #catalog = null;
-  #activeRecord = null;
   #lastCheckedAt = null;
   #opened = false;
   #opening = null;
@@ -11044,7 +11173,7 @@ var DefaultCatalogClient = class {
     this.#cache = options.cache;
     this.#fetch = options.fetch ?? fetch;
     this.#now = options.now ?? (() => (/* @__PURE__ */ new Date()).toISOString());
-    this.#sha256 = options.sha256 ?? webSha256;
+    this.#sha256 = options.sha256 ?? stableSha256;
   }
   open() {
     if (this.#opening) return this.#opening;
@@ -11066,7 +11195,6 @@ var DefaultCatalogClient = class {
           throw new Error("Cached catalog digest does not match its body.");
         }
         this.#catalog = parseCatalogV7(JSON.parse(activeRecord.body));
-        this.#activeRecord = activeRecord;
         this.#publish({
           state: "ready-stale",
           canMutate: true,
@@ -11075,7 +11203,6 @@ var DefaultCatalogClient = class {
         });
       } catch {
         this.#catalog = null;
-        this.#activeRecord = null;
       }
     }
     const now = this.#now();
@@ -11115,9 +11242,7 @@ var DefaultCatalogClient = class {
   }
   async #performRefresh(checkedAt) {
     try {
-      const response = await fetchCatalog(this.#fetch, {
-        etag: this.#activeRecord?.etag ?? null
-      });
+      const response = await fetchCatalog(this.#fetch);
       if (response.status === 304) {
         if (!this.#catalog) {
           throw new CatalogClientError("http", "Catalog returned 304 without a compatible cache.");
@@ -11193,7 +11318,6 @@ var DefaultCatalogClient = class {
       await this.#cache.stage(record2);
       await this.#cache.activate(record2.id);
       await this.#recordChecked(checkedAt);
-      this.#activeRecord = record2;
       this.#catalog = catalog;
       this.#publish({
         state: "ready-current",
@@ -13101,9 +13225,7 @@ function parseInstalledKitState(value) {
   };
 }
 async function fingerprintKitTopology(projectIds) {
-  const body = JSON.stringify(projectIds);
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return sha256Hex(JSON.stringify(projectIds));
 }
 function parseOrigin(value) {
   const origin = record(value, "Kit origin must be an object.");

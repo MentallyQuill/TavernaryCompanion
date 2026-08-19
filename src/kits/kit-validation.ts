@@ -1,3 +1,4 @@
+import { sha256Hex } from "../integrity/sha256";
 import { COMPANION_PROJECT_ID } from "../lifecycle/self-protection";
 import type { InstalledKitStateV1, KitOriginV1, PersonalKitV1 } from "./kit-types";
 
@@ -108,9 +109,7 @@ export async function fingerprintKit(kit: PersonalKitV1): Promise<string> {
 }
 
 export async function fingerprintKitTopology(projectIds: readonly string[]): Promise<string> {
-  const body = JSON.stringify(projectIds);
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return sha256Hex(JSON.stringify(projectIds));
 }
 
 function parseOrigin(value: unknown): KitOriginV1 {

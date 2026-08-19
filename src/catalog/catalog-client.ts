@@ -2,6 +2,7 @@ import type { CatalogCache, CatalogCacheRecord } from "./catalog-cache";
 import { CatalogClientError } from "./catalog-errors";
 import { parseCatalogV7, SUPPORTED_CATALOG_SCHEMA, type CatalogV7 } from "./catalog-core";
 import { fetchCatalog, type CatalogFetch } from "./catalog-transport";
+import { sha256Hex } from "../integrity/sha256";
 
 const OPEN_THROTTLE_MS = 15 * 60 * 1000;
 const FOCUS_RECHECK_MS = 60 * 60 * 1000;
@@ -68,9 +69,8 @@ function errorMessage(cause: unknown) {
   return cause instanceof Error ? cause.message : "Catalog refresh failed.";
 }
 
-async function webSha256(body: string) {
-  const digest = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(body));
-  return Array.from(new Uint8Array(digest), (byte) => byte.toString(16).padStart(2, "0")).join("");
+async function stableSha256(body: string) {
+  return sha256Hex(body);
 }
 
 class DefaultCatalogClient implements CatalogClient {
@@ -85,7 +85,6 @@ class DefaultCatalogClient implements CatalogClient {
     checkedAt: null,
   };
   #catalog: CatalogV7 | null = null;
-  #activeRecord: CatalogCacheRecord | null = null;
   #lastCheckedAt: string | null = null;
   #opened = false;
   #opening: Promise<void> | null = null;
@@ -95,7 +94,7 @@ class DefaultCatalogClient implements CatalogClient {
     this.#cache = options.cache;
     this.#fetch = options.fetch ?? fetch;
     this.#now = options.now ?? (() => new Date().toISOString());
-    this.#sha256 = options.sha256 ?? webSha256;
+    this.#sha256 = options.sha256 ?? stableSha256;
   }
 
   open(): Promise<void> {
@@ -119,7 +118,6 @@ class DefaultCatalogClient implements CatalogClient {
           throw new Error("Cached catalog digest does not match its body.");
         }
         this.#catalog = parseCatalogV7(JSON.parse(activeRecord.body));
-        this.#activeRecord = activeRecord;
         this.#publish({
           state: "ready-stale",
           canMutate: true,
@@ -128,7 +126,6 @@ class DefaultCatalogClient implements CatalogClient {
         });
       } catch {
         this.#catalog = null;
-        this.#activeRecord = null;
       }
     }
 
@@ -174,9 +171,7 @@ class DefaultCatalogClient implements CatalogClient {
 
   async #performRefresh(checkedAt: string) {
     try {
-      const response = await fetchCatalog(this.#fetch, {
-        etag: this.#activeRecord?.etag ?? null,
-      });
+      const response = await fetchCatalog(this.#fetch);
       if (response.status === 304) {
         if (!this.#catalog) {
           throw new CatalogClientError("http", "Catalog returned 304 without a compatible cache.");
@@ -261,7 +256,6 @@ class DefaultCatalogClient implements CatalogClient {
       await this.#cache.stage(record);
       await this.#cache.activate(record.id);
       await this.#recordChecked(checkedAt);
-      this.#activeRecord = record;
       this.#catalog = catalog;
       this.#publish({
         state: "ready-current",

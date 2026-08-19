@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 
 import {
   fingerprintKit,
+  fingerprintKitTopology,
   parseInstalledKitState,
   parsePersonalKit,
 } from "../../src/kits/kit-validation";
@@ -46,6 +47,25 @@ describe("personal Kit validation", () => {
     });
     expect(first).toBe(renamed);
     expect(first).not.toBe(reordered);
+  });
+
+  it("fingerprints Unicode topology without reading secure-context Web Crypto", async () => {
+    const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      get() {
+        throw new Error("Kit hashing must not access Web Crypto");
+      },
+    });
+
+    try {
+      await expect(fingerprintKitTopology(["café", "🦊"])).resolves.toBe(
+        "e543995871a5b5b7d1b706eedcf063cd6d0f9e6a4e3c42fafec55982028f24e6",
+      );
+    } finally {
+      if (cryptoDescriptor) Object.defineProperty(globalThis, "crypto", cryptoDescriptor);
+      else delete (globalThis as { crypto?: Crypto }).crypto;
+    }
   });
 });
 

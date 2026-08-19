@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from "vitest";
 
 import { createCatalogClient } from "../../src/catalog/catalog-client";
-import { CATALOG_URL } from "../../src/catalog/catalog-transport";
+import { CATALOG_URL, type CatalogFetch } from "../../src/catalog/catalog-transport";
 import { createMemoryCatalogCache } from "../helpers/memory-catalog-cache";
 import { cachedCatalogRecord, catalogBody, deferred } from "../helpers/catalog-fixtures";
 
@@ -29,20 +29,18 @@ describe("CatalogClient", () => {
     now = "2026-08-18T01:00:00.000Z";
   });
 
-  it("publishes compatible cache before conditional refresh resolves", async () => {
+  it("revalidates compatible cache without author-controlled conditional headers", async () => {
     const request = deferred<Response>();
     const cache = await seededCache();
-    const fetch = vi.fn(() => request.promise);
+    const fetch = vi.fn<CatalogFetch>(() => request.promise);
     const client = createCatalogClient({ cache, fetch, now: () => now });
 
     const opening = client.open();
     await vi.waitFor(() => expect(client.read().state).toBe("ready-stale"));
-    expect(fetch).toHaveBeenCalledWith(
-      CATALOG_URL,
-      expect.objectContaining({
-        headers: expect.objectContaining({ "If-None-Match": '"cached"' }),
-      }),
-    );
+    expect(fetch).toHaveBeenCalledWith(CATALOG_URL, expect.any(Object));
+    const fetchInit = fetch.mock.calls[0]?.[1];
+    expect(fetchInit?.cache).toBe("no-cache");
+    expect(fetchInit?.headers).toEqual({ Accept: "application/json" });
 
     request.resolve(response(null, { status: 304, headers: { ETag: '"cached"' } }));
     await opening;
@@ -86,6 +84,35 @@ describe("CatalogClient", () => {
       bodySha256: "b".repeat(64),
       body,
     });
+  });
+
+  it("loads and caches a catalog without reading secure-context Web Crypto", async () => {
+    const cryptoDescriptor = Object.getOwnPropertyDescriptor(globalThis, "crypto");
+    Object.defineProperty(globalThis, "crypto", {
+      configurable: true,
+      get() {
+        throw new Error("catalog hashing must not access Web Crypto");
+      },
+    });
+
+    try {
+      const cache = createMemoryCatalogCache();
+      const client = createCatalogClient({
+        cache,
+        fetch: vi.fn().mockResolvedValue(response(catalogBody())),
+        now: () => now,
+      });
+
+      await client.open();
+
+      expect(client.read()).toMatchObject({ state: "ready-current", canMutate: true });
+      await expect(cache.readActive()).resolves.toMatchObject({
+        bodySha256: "7f11a8ac09212a0fbaa34c667d9778e76dc03799855499f131f424eefcbf72ec",
+      });
+    } finally {
+      if (cryptoDescriptor) Object.defineProperty(globalThis, "crypto", cryptoDescriptor);
+      else delete (globalThis as { crypto?: Crypto }).crypto;
+    }
   });
 
   it.each([
