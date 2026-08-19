@@ -16,7 +16,7 @@ import {
   deriveUpdateAvailability,
   matchesUpdateBinding,
 } from "./update-targets";
-import type { PreparedUpdateSelection, UpdateTarget } from "./update-types";
+import type { HostUpdateInspection, PreparedUpdateSelection, UpdateTarget } from "./update-types";
 
 export type ProjectUpdateState =
   | { kind: "idle" }
@@ -124,11 +124,7 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
         candidateShas,
       });
       if (!isCurrent()) return;
-      this.#checkedEvidence[projectId] = {
-        installedSha: inspection.installedSha,
-        internalName: entry.extension.internalName,
-      };
-      this.#setState(projectId, deriveUpdateAvailability({ project, inspection }));
+      this.#publishInspection(project, entry.extension.internalName, inspection);
     } catch (error) {
       if (!isCurrent()) return;
       delete this.#checkedEvidence[projectId];
@@ -232,6 +228,11 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
           branch: project.install.branch,
           candidateShas,
         });
+        const availability = this.#publishInspection(
+          project,
+          entry.extension.internalName,
+          inspection,
+        );
         if (
           !matchesUpdateBinding(selection, {
             project,
@@ -242,7 +243,6 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
         ) {
           throw new Error("This update choice is out of date. Check again.");
         }
-        const availability = deriveUpdateAvailability({ project, inspection });
         if (
           availability.kind !== "available" ||
           !availability.targets.some(
@@ -316,6 +316,7 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
             });
             observedSha = afterRequest.installedSha;
             outcomeKnown = true;
+            this.#publishInspection(project, entry.extension.internalName, afterRequest);
           } catch {
             // The request may have reached the host. Verification below must remain conservative.
           }
@@ -499,6 +500,20 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
     this.#snapshot.states[projectId] = structuredClone(state);
     const snapshot = this.read();
     for (const subscriber of this.#subscribers) subscriber(snapshot);
+  }
+
+  #publishInspection(
+    project: CatalogProject,
+    internalName: string,
+    inspection: HostUpdateInspection,
+  ): ProjectUpdateState {
+    const availability = deriveUpdateAvailability({ project, inspection });
+    this.#checkedEvidence[project.id] = {
+      installedSha: inspection.installedSha,
+      internalName,
+    };
+    this.#setState(project.id, availability);
+    return availability;
   }
 
   async #persistIncompleteReceipt(

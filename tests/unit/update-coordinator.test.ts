@@ -349,6 +349,32 @@ describe("ExtensionUpdateCoordinator", () => {
     expect(host.calls.some(({ operation }) => operation === "applyUpdate")).toBe(false);
   });
 
+  it("publishes fresh attention evidence when local changes appear before execution", async () => {
+    const { coordinator, host, project } = setup();
+    await coordinator.check("alpha");
+    const selection = coordinator.prepare("alpha").selections[0];
+    vi.spyOn(host, "inspectUpdate").mockResolvedValue({
+      installedSha,
+      newestSha,
+      remoteUrl: project.install!.repositoryUrl,
+      branch: "main",
+      worktreeClean: false,
+      branchMatches: true,
+      exactUpdateSupported: true,
+      newestRelationship: "behind",
+      candidateRelationships: {},
+    });
+
+    await expect(coordinator.update(selection)).rejects.toThrow(
+      "This update choice is out of date. Check again.",
+    );
+    expect(coordinator.read().states.alpha).toEqual({
+      kind: "attention",
+      reason: "This extension has local changes. Manage it in SillyTavern.",
+    });
+    expect(host.calls.some(({ operation }) => operation === "applyUpdate")).toBe(false);
+  });
+
   it("updates an external extension exactly without adopting its ownership", async () => {
     const { coordinator, host, store } = setup();
     await coordinator.check("alpha");
@@ -418,6 +444,28 @@ describe("ExtensionUpdateCoordinator", () => {
       safeError: "SillyTavern did not complete the extension update.",
     });
     expect(JSON.stringify(receipt)).not.toContain("private host failure");
+  });
+
+  it("publishes fresh attention evidence after a rejected update request", async () => {
+    const { coordinator, host } = setup({
+      failures: { applyUpdate: new Error("private host failure") },
+    });
+    await coordinator.check("alpha");
+    const inspectUpdate = host.inspectUpdate.bind(host);
+    let inspections = 0;
+    vi.spyOn(host, "inspectUpdate").mockImplementation(async (input) => {
+      const inspection = await inspectUpdate(input);
+      inspections += 1;
+      return inspections === 2 ? { ...inspection, worktreeClean: false } : inspection;
+    });
+
+    const receipt = await coordinator.update(coordinator.prepare("alpha").selections[0]);
+
+    expect(receipt.status).toBe("failed");
+    expect(coordinator.read().states.alpha).toEqual({
+      kind: "attention",
+      reason: "This extension has local changes. Manage it in SillyTavern.",
+    });
   });
 
   it("verifies the installed commit when the host applies an update but loses its response", async () => {
