@@ -11,6 +11,7 @@ export default tseslint.config(
       "playwright-report/**",
       "artifacts/**",
       ".tmp/**",
+      ".worktrees/**",
       "vendor/**",
     ],
   },
