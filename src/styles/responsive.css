@@ -266,7 +266,7 @@
   }
 
   .tavernary-companion-results-toolbar {
-    gap: 0.5rem;
+    gap: 6px;
   }
 
   .tavernary-companion-results-toolbar output {
@@ -274,8 +274,11 @@
   }
 
   .tavernary-companion-results-toolbar select {
-    flex: 1 1 9.5rem;
+    flex: 0 1 120px;
+    inline-size: 120px;
     min-inline-size: 0;
+    padding-inline: 8px 22px;
+    font-size: 10px;
   }
 
   .tavernary-companion-project-card footer,
@@ -310,7 +313,7 @@
 
 @container tavernary-companion (max-width: 760px) {
   .tavernary-companion-project-results {
-    padding-block-start: 8px;
+    padding-block-start: 0;
   }
 
   .tavernary-companion-filter-surface__header {

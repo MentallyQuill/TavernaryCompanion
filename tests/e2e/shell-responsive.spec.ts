@@ -90,6 +90,55 @@ test("mobile follows Tavernary's compact catalog hierarchy", async ({ page }) =>
   ).toBe(1);
 });
 
+test("project disclosure, density, sort, and first card follow Tavernary's toolbar rhythm", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openHarness(page);
+
+  const disclosure = page.getByRole("link", {
+    name: "Safety: TavernKeeper scans are advisory, not a guarantee. Review a project carefully before installing it or providing credentials.",
+  });
+  await expect(disclosure).toHaveAttribute("href", "https://tavernary.org/about/#safety-security");
+  await expect(disclosure).toHaveCSS("font-size", "11px");
+  await expect(disclosure).toHaveCSS("font-family", /Inter/u);
+
+  const toolbar = page.locator(".tavernary-companion-results-toolbar");
+  const count = await toolbar.locator("output").boundingBox();
+  const densityControl = toolbar.getByRole("button", { name: "Use compact cards" });
+  const density = await densityControl.boundingBox();
+  const sort = await toolbar.getByRole("combobox", { name: "Sort projects" }).boundingBox();
+  const firstCard = await page.locator(".tavernary-companion-project-card").first().boundingBox();
+  expect(count).not.toBeNull();
+  expect(density).not.toBeNull();
+  expect(sort).not.toBeNull();
+  expect(firstCard).not.toBeNull();
+  expect(density!.x - (count!.x + count!.width)).toBeCloseTo(10, 0);
+  expect(sort!.x - (density!.x + density!.width)).toBeCloseTo(10, 0);
+  expect(density!.width).toBeCloseTo(30, 0);
+  expect(density!.height).toBeCloseTo(30, 0);
+  expect(sort!.width).toBeCloseTo(150, 0);
+  expect(sort!.height).toBeCloseTo(36, 0);
+  expect(firstCard!.y - (sort!.y + sort!.height)).toBeGreaterThanOrEqual(10);
+  expect(firstCard!.y - (sort!.y + sort!.height)).toBeLessThanOrEqual(16);
+
+  const standardHeight = firstCard!.height;
+  await densityControl.click();
+  const standardDensityControl = toolbar.getByRole("button", { name: "Use standard cards" });
+  await expect(standardDensityControl).toHaveAttribute("aria-pressed", "true");
+  await expect(page.locator(".tavernary-companion-project-results")).toHaveClass(/is-compact/u);
+  await expect(page.getByRole("button", { name: "Install Alpha" })).toBeVisible();
+  await standardDensityControl.evaluate((button) => button.blur());
+  await page.mouse.move(0, 0);
+  await expect(page.getByRole("tooltip")).toHaveCount(0);
+  await expect(page).toHaveScreenshot("compact-projects-1440x960.png");
+  const compactHeight = await page
+    .locator(".tavernary-companion-project-card")
+    .first()
+    .evaluate((card) => card.getBoundingClientRect().height);
+  expect(compactHeight).toBeLessThan(standardHeight);
+});
+
 test("shell is constrained by a narrower native popup content box", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await openHarness(page);
