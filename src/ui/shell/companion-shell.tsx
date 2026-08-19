@@ -2,7 +2,7 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 
 import type { CatalogSnapshot } from "../../catalog/catalog-client";
-import type { CatalogQuery } from "../../catalog/catalog-core";
+import { DEFAULT_COMPANION_QUERY, type CatalogQuery } from "../../catalog/catalog-core";
 import type { DiscoveryController } from "../../catalog/discovery-controller";
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
 import type { KitDiscoveryController } from "../../kits/kit-discovery-controller";
@@ -15,8 +15,8 @@ import { CatalogStatePanel } from "../catalog/catalog-state-panel";
 import { ProjectDetail } from "../projects/project-detail";
 import { ProjectsRoute } from "../projects/projects-route";
 import type { ShellController } from "./shell-controller";
+import { CatalogNavigation } from "./catalog-navigation";
 import { ShellHeader } from "./shell-header";
-import { RouteTabs } from "./route-tabs";
 
 interface ShellProjectStub {
   id: string;
@@ -135,7 +135,12 @@ export function CompanionShell({
         catalogRefreshing={catalogRefreshing}
         onRefreshCatalog={headerCatalogSnapshot ? () => void onRefreshCatalog() : undefined}
       />
-      <RouteTabs route={state.route} onNavigate={(route) => controller.navigate(route)} />
+      <CatalogNavigation
+        route={state.route}
+        query={discoveryState?.query ?? DEFAULT_COMPANION_QUERY}
+        onNavigate={(route) => controller.navigate(route)}
+        onQueryChange={updateProjectQuery}
+      />
       <main class="tavernary-companion-shell__content">
         <CatalogBoundary
           snapshot={catalogSnapshot}

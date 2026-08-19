@@ -40,8 +40,11 @@ describe("CompanionShell", () => {
     expect(screen.getByRole("img", { name: "Tavernary" })).toBeVisible();
     expect(screen.getByText("Where AI roleplay tools gather")).toBeVisible();
     expect(screen.getByText("Companion", { selector: "span" })).toBeVisible();
-    expect(screen.getByRole("navigation", { name: "Companion sections" })).toBeVisible();
-    expect(screen.getByRole("tab", { name: "Installed" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("navigation", { name: "Catalog categories" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Installed" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(screen.getByRole("main")).toHaveTextContent("Installed extensions");
   });
 
@@ -72,15 +75,19 @@ describe("CompanionShell", () => {
     expect(discovery.read().query.search).toBe("memory");
   });
 
-  it("navigates primary routes with the compact Browse selector", () => {
+  it("navigates primary routes with the compact Browse menu", () => {
     render(<CompanionShell controller={createShellController({ initialRoute: "projects" })} />);
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Browse Companion" }), {
-      target: { value: "kits" },
-    });
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Browse categories" }));
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Browse categories menu" })).getByRole("button", {
+        name: "Kits",
+      }),
+    );
 
     expect(screen.getByRole("heading", { name: "Kits" })).toBeVisible();
-    expect(screen.getByRole("combobox", { name: "Browse Companion" })).toHaveValue("kits");
+    expect(screen.queryByRole("group", { name: "Browse categories menu" })).not.toBeInTheDocument();
   });
 
   it("uses one browser Back event for the top detail and preserves the popup", () => {

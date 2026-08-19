@@ -1,4 +1,5 @@
 export type CategoryIconName =
+  | "all"
   | "frontend"
   | "preset"
   | "memory-retrieval"
@@ -7,7 +8,22 @@ export type CategoryIconName =
   | "rpg-systems"
   | "interface-workflow"
   | "developer-infrastructure"
-  | "community";
+  | "community"
+  | "search"
+  | "chevron"
+  | "filter"
+  | "filter-lines"
+  | "collapse"
+  | "close"
+  | "kit"
+  | "kit-builder"
+  | "add-to-kit"
+  | "duplicate"
+  | "copy-link"
+  | "report"
+  | "drag-handle"
+  | "caution"
+  | "remove";
 
 const strokeProps = {
   "aria-hidden": true,
@@ -19,6 +35,76 @@ const strokeProps = {
 };
 
 export function CategoryIcon({ name }: { name: string }): preact.JSX.Element {
+  if (name === "remove") {
+    return (
+      <svg aria-hidden="true" data-icon={name} viewBox="0 0 24 24" fill="currentColor">
+        <path
+          fillRule="evenodd"
+          d="M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM7.293 7.293a1 1 0 0 1 1.414 0L12 10.586l3.293-3.293a1 1 0 1 1 1.414 1.414L13.414 12l3.293 3.293a1 1 0 0 1-1.414 1.414L12 13.414l-3.293 3.293a1 1 0 0 1-1.414-1.414L10.586 12 7.293 8.707a1 1 0 0 1 0-1.414Z"
+        />
+      </svg>
+    );
+  }
+  if (name === "kit-builder") {
+    return (
+      <svg aria-hidden="true" data-icon={name} viewBox="0 0 1920 1920" fill="currentColor">
+        <path
+          fillRule="evenodd"
+          d="M1807.124.056V1920h-112.938V.056h112.938ZM1468.254 0v1919.944H282.407c-93.4 0-169.407-75.895-169.407-169.407V169.407C113 76.007 189.007 0 282.407 0h1185.847ZM830.607 661.138 588.242 903.503h654.137v112.938H588.242l242.365 242.477-79.847 79.847-378.793-378.793 378.793-378.68 79.847 79.846Z"
+        />
+      </svg>
+    );
+  }
+  if (name === "kit") {
+    return (
+      <svg
+        aria-hidden="true"
+        data-icon={name}
+        viewBox="3 3 26 26"
+        fill="currentColor"
+        stroke="none"
+      >
+        <path d="M29,5a2,2,0,0,0-2-2H5A2,2,0,0,0,3,5V27a2,2,0,0,0,2,2H27a2,2,0,0,0,2-2ZM27,5V9H5V5Zm0,22H5V23H27Zm0-6H5V17H27Zm0-6H5V11H27Z" />
+      </svg>
+    );
+  }
+  if (name === "add-to-kit") {
+    return (
+      <svg {...strokeProps} data-icon={name} viewBox="0 0 24 24">
+        <path d="M4 6h10v12H4zM17 8v8M13 12h8" />
+      </svg>
+    );
+  }
+  if (name === "duplicate") {
+    return (
+      <svg {...strokeProps} data-icon={name} viewBox="0 0 24 24">
+        <rect x="7" y="7" width="12" height="12" rx="2" />
+        <path d="M5 16H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1" />
+      </svg>
+    );
+  }
+  if (name === "copy-link") {
+    return (
+      <svg {...strokeProps} data-icon={name} viewBox="0 0 24 24">
+        <path d="M9 15 15 9M7.5 17.5l-1 1a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0M16.5 6.5l1-1a3.5 3.5 0 0 1 5 5l-4 4a3.5 3.5 0 0 1-5 0" />
+      </svg>
+    );
+  }
+  if (name === "report" || name === "caution") {
+    return (
+      <svg {...strokeProps} data-icon={name} viewBox="0 0 24 24">
+        <path d="M12 3 2.5 20h19L12 3Z" />
+        <path d="M12 9v5M12 17h.01" />
+      </svg>
+    );
+  }
+  if (name === "drag-handle") {
+    return (
+      <svg {...strokeProps} data-icon={name} viewBox="0 0 24 24">
+        <path d="M8 6h8M8 12h8M8 18h8" />
+      </svg>
+    );
+  }
   if (name === "frontend") {
     return (
       <svg {...strokeProps} data-icon={name} viewBox="0 0 24 24">
@@ -135,6 +221,42 @@ export function CategoryIcon({ name }: { name: string }): preact.JSX.Element {
         <circle cx="17" cy="8" r="3" />
         <circle cx="12" cy="17" r="3" />
         <path d="m9.8 7.3 4.3.4m-5.4 2 2.1 4.5m4.8-3.7-2.1 3.8" />
+      </svg>
+    );
+  }
+  if (name === "search") {
+    return (
+      <svg {...strokeProps} data-icon={name} viewBox="0 0 24 24">
+        <circle cx="11" cy="11" r="7" />
+        <path d="m20 20-4-4" />
+      </svg>
+    );
+  }
+  if (name === "chevron") {
+    return (
+      <svg {...strokeProps} data-icon={name} viewBox="0 0 24 24">
+        <path d="m6 9 6 6 6-6" />
+      </svg>
+    );
+  }
+  if (name === "filter" || name === "filter-lines") {
+    return (
+      <svg {...strokeProps} data-icon={name} viewBox="0 0 24 24">
+        <path d="M4 6h16M7 12h10M10 18h4" />
+      </svg>
+    );
+  }
+  if (name === "collapse") {
+    return (
+      <svg {...strokeProps} data-icon={name} viewBox="0 0 32 32">
+        <path d="M23 26l-7-7-7 7M9 6l7 7 7-7" />
+      </svg>
+    );
+  }
+  if (name === "close") {
+    return (
+      <svg {...strokeProps} data-icon={name} viewBox="0 0 24 24">
+        <path d="m6 6 12 12M18 6 6 18" />
       </svg>
     );
   }
