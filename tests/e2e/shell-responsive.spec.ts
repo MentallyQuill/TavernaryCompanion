@@ -45,9 +45,9 @@ test("200 percent text does not create horizontal overflow", async ({ page }) =>
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     ),
   ).toBe(0);
-  const browse = page.getByRole("combobox", { name: "Browse Companion" });
+  const browse = page.getByRole("button", { name: "Browse categories" });
   await expect(browse).toBeVisible();
-  expect(await browse.evaluate((select) => select.scrollWidth <= select.clientWidth)).toBe(true);
+  expect(await browse.evaluate((button) => button.scrollWidth <= button.clientWidth)).toBe(true);
   await expect(page.getByRole("button", { name: "Install Alpha" })).toBeVisible();
 });
 
@@ -56,8 +56,8 @@ test("mobile follows Tavernary's compact catalog hierarchy", async ({ page }) =>
   await openHarness(page);
 
   await expect(page.getByRole("searchbox", { name: "Search projects" })).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "Browse Companion" })).toBeVisible();
-  await expect(page.getByRole("tablist")).not.toBeVisible();
+  await expect(page.getByRole("button", { name: "Browse categories" })).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Catalog categories" })).not.toBeVisible();
   const toolbar = page.locator(".tavernary-companion-results-toolbar");
   await expect(toolbar).toHaveCSS("display", "flex");
   const count = await toolbar.locator("output").boundingBox();
@@ -141,7 +141,11 @@ for (const viewport of [
       await page.locator(".popup-content").evaluate((content) => {
         content.scrollTop = 64;
       });
-      await page.getByRole("combobox", { name: "Browse Companion" }).selectOption("kits");
+      await page.getByRole("button", { name: "Browse categories" }).click();
+      await page
+        .getByRole("group", { name: "Browse categories menu" })
+        .getByRole("button", { name: "Kits" })
+        .click();
       const header = await page.locator(".tavernary-companion-shell__header").boundingBox();
       expect(header).not.toBeNull();
       expect(header!.y).toBeGreaterThanOrEqual(dialog!.y);
@@ -168,17 +172,19 @@ test("full-catalog query update stays within the rendering budget", async ({ pag
   await expect(page.getByRole("button", { name: "Install Alpha" })).toBeVisible();
 });
 
-test("project detail back restores an expanded result and its focus", async ({ page }) => {
+test("Kit detail back restores the originating Kit and its focus", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await openHarness(page);
-  await page.getByRole("button", { name: "Show more projects" }).click();
-  await expect(page.locator(".tavernary-companion-project-card")).toHaveCount(60);
-
-  const originatingCard = page.locator(".tavernary-companion-project-card").nth(35);
-  const originatingDetails = originatingCard.getByRole("button", { name: /^View / });
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Kits" })
+    .click();
+  await page.getByRole("tab", { name: /Personal/ }).click();
+  const originatingDetails = page
+    .locator(".tavernary-companion-kit-card")
+    .first()
+    .getByRole("button", { name: "Details" });
   await originatingDetails.click();
   await page.getByRole("button", { name: "Back" }).click();
-
-  await expect(page.locator(".tavernary-companion-project-card")).toHaveCount(60);
   await expect(originatingDetails).toBeFocused();
 });
