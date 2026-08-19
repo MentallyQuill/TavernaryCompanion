@@ -149,15 +149,15 @@ var require_code = __commonJS({
       return c22.emptyStr() ? c1 : c1.emptyStr() ? c22 : str`${c1}${c22}`;
     }
     exports.strConcat = strConcat;
-    function interpolate(x2) {
-      return typeof x2 == "number" || typeof x2 == "boolean" || x2 === null ? x2 : safeStringify(Array.isArray(x2) ? x2.join(",") : x2);
+    function interpolate(x3) {
+      return typeof x3 == "number" || typeof x3 == "boolean" || x3 === null ? x3 : safeStringify(Array.isArray(x3) ? x3.join(",") : x3);
     }
-    function stringify(x2) {
-      return new _Code(safeStringify(x2));
+    function stringify(x3) {
+      return new _Code(safeStringify(x3));
     }
     exports.stringify = stringify;
-    function safeStringify(x2) {
-      return JSON.stringify(x2).replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
+    function safeStringify(x3) {
+      return JSON.stringify(x3).replace(/\u2028/g, "\\u2028").replace(/\u2029/g, "\\u2029");
     }
     exports.safeStringify = safeStringify;
     function getProperty(key) {
@@ -1020,8 +1020,8 @@ var require_codegen = __commonJS({
       for (const n2 in from)
         names[n2] = (names[n2] || 0) - (from[n2] || 0);
     }
-    function not(x2) {
-      return typeof x2 == "boolean" || typeof x2 == "number" || x2 === null ? !x2 : (0, code_1._)`!${par(x2)}`;
+    function not(x3) {
+      return typeof x3 == "boolean" || typeof x3 == "number" || x3 === null ? !x3 : (0, code_1._)`!${par(x3)}`;
     }
     exports.not = not;
     var andCode = mappend(exports.operators.AND);
@@ -1035,10 +1035,10 @@ var require_codegen = __commonJS({
     }
     exports.or = or;
     function mappend(op) {
-      return (x2, y3) => x2 === code_1.nil ? y3 : y3 === code_1.nil ? x2 : (0, code_1._)`${par(x2)} ${op} ${par(y3)}`;
+      return (x3, y3) => x3 === code_1.nil ? y3 : y3 === code_1.nil ? x3 : (0, code_1._)`${par(x3)} ${op} ${par(y3)}`;
     }
-    function par(x2) {
-      return x2 instanceof code_1.Name ? x2 : (0, code_1._)`(${x2})`;
+    function par(x3) {
+      return x3 instanceof code_1.Name ? x3 : (0, code_1._)`(${x3})`;
     }
   }
 });
@@ -1128,8 +1128,8 @@ var require_util = __commonJS({
     exports.unescapeJsonPointer = unescapeJsonPointer;
     function eachItem(xs, f4) {
       if (Array.isArray(xs)) {
-        for (const x2 of xs)
-          f4(x2);
+        for (const x3 of xs)
+          f4(x3);
       } else {
         f4(xs);
       }
@@ -1319,7 +1319,7 @@ var require_errors = __commonJS({
         gen.return(false);
       }
     }
-    var E2 = {
+    var E3 = {
       keyword: new codegen_1.Name("keyword"),
       schemaPath: new codegen_1.Name("schemaPath"),
       // also used in JTD errors
@@ -1353,20 +1353,20 @@ var require_errors = __commonJS({
       if (schemaPath) {
         schPath = (0, codegen_1.str)`${schPath}${(0, util_1.getErrorPath)(schemaPath, util_1.Type.Str)}`;
       }
-      return [E2.schemaPath, schPath];
+      return [E3.schemaPath, schPath];
     }
     function extraErrorProps(cxt, { params, message: message2 }, keyValues) {
       const { keyword, data, schemaValue, it } = cxt;
       const { opts, propertyName, topSchemaRef, schemaPath } = it;
-      keyValues.push([E2.keyword, keyword], [E2.params, typeof params == "function" ? params(cxt) : params || (0, codegen_1._)`{}`]);
+      keyValues.push([E3.keyword, keyword], [E3.params, typeof params == "function" ? params(cxt) : params || (0, codegen_1._)`{}`]);
       if (opts.messages) {
-        keyValues.push([E2.message, typeof message2 == "function" ? message2(cxt) : message2]);
+        keyValues.push([E3.message, typeof message2 == "function" ? message2(cxt) : message2]);
       }
       if (opts.verbose) {
-        keyValues.push([E2.schema, schemaValue], [E2.parentSchema, (0, codegen_1._)`${topSchemaRef}${schemaPath}`], [names_1.default.data, data]);
+        keyValues.push([E3.schema, schemaValue], [E3.parentSchema, (0, codegen_1._)`${topSchemaRef}${schemaPath}`], [names_1.default.data, data]);
       }
       if (propertyName)
-        keyValues.push([E2.propertyName, propertyName]);
+        keyValues.push([E3.propertyName, propertyName]);
     }
   }
 });
@@ -1430,8 +1430,8 @@ var require_rules = __commonJS({
     exports.getRules = exports.isJSONType = void 0;
     var _jsonTypes = ["string", "number", "integer", "boolean", "null", "object", "array"];
     var jsonTypes = new Set(_jsonTypes);
-    function isJSONType(x2) {
-      return typeof x2 == "string" && jsonTypes.has(x2);
+    function isJSONType(x3) {
+      return typeof x3 == "string" && jsonTypes.has(x3);
     }
     exports.isJSONType = isJSONType;
     function getRules() {
@@ -5025,8 +5025,8 @@ var require_uniqueItems = __commonJS({
     var util_1 = require_util();
     var equal_1 = require_equal();
     var error = {
-      message: ({ params: { i: i3, j: j3 } }) => (0, codegen_1.str)`must NOT have duplicate items (items ## ${j3} and ${i3} are identical)`,
-      params: ({ params: { i: i3, j: j3 } }) => (0, codegen_1._)`{i: ${i3}, j: ${j3}}`
+      message: ({ params: { i: i3, j: j4 } }) => (0, codegen_1.str)`must NOT have duplicate items (items ## ${j4} and ${i3} are identical)`,
+      params: ({ params: { i: i3, j: j4 } }) => (0, codegen_1._)`{i: ${i3}, j: ${j4}}`
     };
     var def = {
       keyword: "uniqueItems",
@@ -5044,15 +5044,15 @@ var require_uniqueItems = __commonJS({
         cxt.ok(valid);
         function validateUniqueItems() {
           const i3 = gen.let("i", (0, codegen_1._)`${data}.length`);
-          const j3 = gen.let("j");
-          cxt.setParams({ i: i3, j: j3 });
+          const j4 = gen.let("j");
+          cxt.setParams({ i: i3, j: j4 });
           gen.assign(valid, true);
-          gen.if((0, codegen_1._)`${i3} > 1`, () => (canOptimize() ? loopN : loopN2)(i3, j3));
+          gen.if((0, codegen_1._)`${i3} > 1`, () => (canOptimize() ? loopN : loopN2)(i3, j4));
         }
         function canOptimize() {
           return itemTypes.length > 0 && !itemTypes.some((t3) => t3 === "object" || t3 === "array");
         }
-        function loopN(i3, j3) {
+        function loopN(i3, j4) {
           const item = gen.name("item");
           const wrongType = (0, dataType_1.checkDataTypes)(itemTypes, item, it.opts.strictNumbers, dataType_1.DataType.Wrong);
           const indices = gen.const("indices", (0, codegen_1._)`{}`);
@@ -5062,16 +5062,16 @@ var require_uniqueItems = __commonJS({
             if (itemTypes.length > 1)
               gen.if((0, codegen_1._)`typeof ${item} == "string"`, (0, codegen_1._)`${item} += "_"`);
             gen.if((0, codegen_1._)`typeof ${indices}[${item}] == "number"`, () => {
-              gen.assign(j3, (0, codegen_1._)`${indices}[${item}]`);
+              gen.assign(j4, (0, codegen_1._)`${indices}[${item}]`);
               cxt.error();
               gen.assign(valid, false).break();
             }).code((0, codegen_1._)`${indices}[${item}] = ${i3}`);
           });
         }
-        function loopN2(i3, j3) {
+        function loopN2(i3, j4) {
           const eql = (0, util_1.useFunc)(gen, equal_1.default);
           const outer = gen.name("outer");
-          gen.label(outer).for((0, codegen_1._)`;${i3}--;`, () => gen.for((0, codegen_1._)`${j3} = ${i3}; ${j3}--;`, () => gen.if((0, codegen_1._)`${eql}(${data}[${i3}], ${data}[${j3}])`, () => {
+          gen.label(outer).for((0, codegen_1._)`;${i3}--;`, () => gen.for((0, codegen_1._)`${j4} = ${i3}; ${j4}--;`, () => gen.if((0, codegen_1._)`${eql}(${data}[${i3}], ${data}[${j4}])`, () => {
             cxt.error();
             gen.assign(valid, false).break(outer);
           })));
@@ -7281,8 +7281,8 @@ function H() {
   }
 }
 function L(n2, l3, u4, t3, i3, r3, o3, e3, f4, c3, a3) {
-  var s3, h3, p3, v3, y3, _3, g3 = t3 && t3.__k || w, m3 = l3.length;
-  for (f4 = T(u4, l3, g3, f4, m3), s3 = 0; s3 < m3; s3++) null != (p3 = u4.__k[s3]) && (h3 = -1 != p3.__i && g3[p3.__i] || d, p3.__i = s3, _3 = q(n2, p3, h3, i3, r3, o3, e3, f4, c3, a3), v3 = p3.__e, p3.ref && h3.ref != p3.ref && (h3.ref && J(h3.ref, null, p3), a3.push(p3.ref, p3.__c || v3, p3)), null == y3 && null != v3 && (y3 = v3), 4 & p3.__u ? (f4 = j(p3, f4, n2), h3.__e && (h3.__e = null)) : "function" == typeof p3.type && void 0 !== _3 ? f4 = _3 : v3 && (f4 = v3.nextSibling), p3.__u &= -7);
+  var s3, h3, p3, v3, y3, _3, g4 = t3 && t3.__k || w, m3 = l3.length;
+  for (f4 = T(u4, l3, g4, f4, m3), s3 = 0; s3 < m3; s3++) null != (p3 = u4.__k[s3]) && (h3 = -1 != p3.__i && g4[p3.__i] || d, p3.__i = s3, _3 = q(n2, p3, h3, i3, r3, o3, e3, f4, c3, a3), v3 = p3.__e, p3.ref && h3.ref != p3.ref && (h3.ref && J(h3.ref, null, p3), a3.push(p3.ref, p3.__c || v3, p3)), null == y3 && null != v3 && (y3 = v3), 4 & p3.__u ? (f4 = j(p3, f4, n2), h3.__e && (h3.__e = null)) : "function" == typeof p3.type && void 0 !== _3 ? f4 = _3 : v3 && (f4 = v3.nextSibling), p3.__u &= -7);
   return u4.__e = y3, f4;
 }
 function T(n2, l3, u4, t3, i3) {
@@ -7302,6 +7302,11 @@ function j(n2, l3, u4) {
     l3 = l3 && l3.nextSibling;
   } while (null != l3 && 8 == l3.nodeType);
   return l3;
+}
+function F(n2, l3) {
+  return l3 = l3 || [], null == n2 || "boolean" == typeof n2 || (g(n2) ? n2.some(function(n3) {
+    F(n3, l3);
+  }) : l3.push(n2)), l3;
 }
 function O(n2, l3, u4, t3) {
   var i3, r3, o3, e3 = n2.key, f4 = n2.type, c3 = l3[u4], a3 = null != c3 && 0 == (2 & c3.__u);
@@ -7343,35 +7348,35 @@ function V(n2) {
   };
 }
 function q(n2, u4, t3, i3, r3, o3, e3, f4, c3, a3) {
-  var s3, h3, p3, v3, y3, d3, _3, k3, x2, M, I2, P2, A3, H2, T3, j3, F = u4.type;
+  var s3, h3, p3, v3, y3, d3, _3, k3, x3, M3, I2, P4, A4, H3, T4, j4, F3 = u4.type;
   if (void 0 !== u4.constructor) return null;
   128 & t3.__u && (c3 = !!(32 & t3.__u), o3 = [f4 = u4.__e = t3.__e]), (s3 = l.__b) && s3(u4);
-  n: if ("function" == typeof F) {
+  n: if ("function" == typeof F3) {
     h3 = e3.length;
     try {
-      if (x2 = u4.props, M = F.prototype && F.prototype.render, I2 = (s3 = F.contextType) && i3[s3.__c], P2 = s3 ? I2 ? I2.props.value : s3.__ : i3, t3.__c ? k3 = (p3 = u4.__c = t3.__c).__ = p3.__E : (M ? u4.__c = p3 = new F(x2, P2) : (u4.__c = p3 = new C(x2, P2), p3.constructor = F, p3.render = Q), I2 && I2.sub(p3), p3.state || (p3.state = {}), p3.__n = i3, v3 = p3.__d = true, p3.__h = [], p3._sb = []), M && null == p3.__s && (p3.__s = p3.state), M && null != F.getDerivedStateFromProps && (p3.__s == p3.state && (p3.__s = m({}, p3.__s)), m(p3.__s, F.getDerivedStateFromProps(x2, p3.__s))), y3 = p3.props, d3 = p3.state, p3.__v = u4, v3) M && null == F.getDerivedStateFromProps && null != p3.componentWillMount && p3.componentWillMount(), M && null != p3.componentDidMount && p3.__h.push(p3.componentDidMount);
+      if (x3 = u4.props, M3 = F3.prototype && F3.prototype.render, I2 = (s3 = F3.contextType) && i3[s3.__c], P4 = s3 ? I2 ? I2.props.value : s3.__ : i3, t3.__c ? k3 = (p3 = u4.__c = t3.__c).__ = p3.__E : (M3 ? u4.__c = p3 = new F3(x3, P4) : (u4.__c = p3 = new C(x3, P4), p3.constructor = F3, p3.render = Q), I2 && I2.sub(p3), p3.state || (p3.state = {}), p3.__n = i3, v3 = p3.__d = true, p3.__h = [], p3._sb = []), M3 && null == p3.__s && (p3.__s = p3.state), M3 && null != F3.getDerivedStateFromProps && (p3.__s == p3.state && (p3.__s = m({}, p3.__s)), m(p3.__s, F3.getDerivedStateFromProps(x3, p3.__s))), y3 = p3.props, d3 = p3.state, p3.__v = u4, v3) M3 && null == F3.getDerivedStateFromProps && null != p3.componentWillMount && p3.componentWillMount(), M3 && null != p3.componentDidMount && p3.__h.push(p3.componentDidMount);
       else {
-        if (M && null == F.getDerivedStateFromProps && x2 !== y3 && null != p3.componentWillReceiveProps && p3.componentWillReceiveProps(x2, P2), u4.__v == t3.__v || !p3.__e && null != p3.shouldComponentUpdate && false === p3.shouldComponentUpdate(x2, p3.__s, P2)) {
-          u4.__v != t3.__v && (p3.props = x2, p3.state = p3.__s, p3.__d = false), u4.__e = t3.__e, u4.__k = t3.__k, u4.__k.some(function(n3) {
+        if (M3 && null == F3.getDerivedStateFromProps && x3 !== y3 && null != p3.componentWillReceiveProps && p3.componentWillReceiveProps(x3, P4), u4.__v == t3.__v || !p3.__e && null != p3.shouldComponentUpdate && false === p3.shouldComponentUpdate(x3, p3.__s, P4)) {
+          u4.__v != t3.__v && (p3.props = x3, p3.state = p3.__s, p3.__d = false), u4.__e = t3.__e, u4.__k = t3.__k, u4.__k.some(function(n3) {
             n3 && (n3.__ = u4);
           }), w.push.apply(p3.__h, p3._sb), p3._sb = [], p3.__h.length && e3.push(p3), f4 = $(t3);
           break n;
         }
-        null != p3.componentWillUpdate && p3.componentWillUpdate(x2, p3.__s, P2), M && null != p3.componentDidUpdate && p3.__h.push(function() {
+        null != p3.componentWillUpdate && p3.componentWillUpdate(x3, p3.__s, P4), M3 && null != p3.componentDidUpdate && p3.__h.push(function() {
           p3.componentDidUpdate(y3, d3, _3);
         });
       }
-      if (p3.context = P2, p3.props = x2, p3.__P = n2, p3.__e = false, A3 = l.__r, H2 = 0, M) p3.state = p3.__s, p3.__d = false, A3 && A3(u4), s3 = p3.render(p3.props, p3.state, p3.context), w.push.apply(p3.__h, p3._sb), p3._sb = [];
+      if (p3.context = P4, p3.props = x3, p3.__P = n2, p3.__e = false, A4 = l.__r, H3 = 0, M3) p3.state = p3.__s, p3.__d = false, A4 && A4(u4), s3 = p3.render(p3.props, p3.state, p3.context), w.push.apply(p3.__h, p3._sb), p3._sb = [];
       else do {
-        p3.__d = false, A3 && A3(u4), s3 = p3.render(p3.props, p3.state, p3.context), p3.state = p3.__s;
-      } while (p3.__d && ++H2 < 25);
-      p3.state = p3.__s, null != p3.getChildContext && (i3 = m(m({}, i3), p3.getChildContext())), M && !v3 && null != p3.getSnapshotBeforeUpdate && (_3 = p3.getSnapshotBeforeUpdate(y3, d3)), T3 = null != s3 && s3.type === S && null == s3.key ? E(s3.props.children) : s3, f4 = L(n2, g(T3) ? T3 : [T3], u4, t3, i3, r3, o3, e3, f4, c3, a3), p3.base = u4.__e, u4.__u &= -161, p3.__h.length && e3.push(p3), k3 && (p3.__E = p3.__ = null);
+        p3.__d = false, A4 && A4(u4), s3 = p3.render(p3.props, p3.state, p3.context), p3.state = p3.__s;
+      } while (p3.__d && ++H3 < 25);
+      p3.state = p3.__s, null != p3.getChildContext && (i3 = m(m({}, i3), p3.getChildContext())), M3 && !v3 && null != p3.getSnapshotBeforeUpdate && (_3 = p3.getSnapshotBeforeUpdate(y3, d3)), T4 = null != s3 && s3.type === S && null == s3.key ? E(s3.props.children) : s3, f4 = L(n2, g(T4) ? T4 : [T4], u4, t3, i3, r3, o3, e3, f4, c3, a3), p3.base = u4.__e, u4.__u &= -161, p3.__h.length && e3.push(p3), k3 && (p3.__E = p3.__ = null);
     } catch (n3) {
       if (e3.length = h3, u4.__v = null, c3 || null != o3) {
         if (n3.then) {
           for (u4.__u |= c3 ? 160 : 128; f4 && 8 == f4.nodeType && f4.nextSibling; ) f4 = f4.nextSibling;
           null != o3 && (o3[o3.indexOf(f4)] = null), u4.__e = f4;
-        } else if (null != o3) for (j3 = o3.length; j3--; ) b(o3[j3]);
+        } else if (null != o3) for (j4 = o3.length; j4--; ) b(o3[j4]);
       } else u4.__e = t3.__e;
       null == u4.__k && (u4.__k = t3.__k || []), n3.then || B(u4), l.__e(n3, u4, t3);
     }
@@ -7397,25 +7402,25 @@ function E(n2) {
   return "object" != typeof n2 || null == n2 || n2.__b > 0 ? n2 : g(n2) ? n2.map(E) : void 0 !== n2.constructor ? null : m({}, n2);
 }
 function G(u4, t3, i3, r3, o3, e3, f4, c3, a3) {
-  var s3, h3, p3, v3, y3, w3, _3, m3 = i3.props || d, k3 = t3.props, x2 = t3.type;
-  if ("svg" == x2 ? o3 = "http://www.w3.org/2000/svg" : "math" == x2 ? o3 = "http://www.w3.org/1998/Math/MathML" : o3 || (o3 = "http://www.w3.org/1999/xhtml"), null != e3) {
-    for (s3 = 0; s3 < e3.length; s3++) if ((y3 = e3[s3]) && "setAttribute" in y3 == !!x2 && (x2 ? y3.localName == x2 : 3 == y3.nodeType)) {
+  var s3, h3, p3, v3, y3, w3, _3, m3 = i3.props || d, k3 = t3.props, x3 = t3.type;
+  if ("svg" == x3 ? o3 = "http://www.w3.org/2000/svg" : "math" == x3 ? o3 = "http://www.w3.org/1998/Math/MathML" : o3 || (o3 = "http://www.w3.org/1999/xhtml"), null != e3) {
+    for (s3 = 0; s3 < e3.length; s3++) if ((y3 = e3[s3]) && "setAttribute" in y3 == !!x3 && (x3 ? y3.localName == x3 : 3 == y3.nodeType)) {
       u4 = y3, e3[s3] = null;
       break;
     }
   }
   if (null == u4) {
-    if (null == x2) return document.createTextNode(k3);
-    u4 = document.createElementNS(o3, x2, k3.is && k3), c3 && (l.__m && l.__m(t3, e3), c3 = false), e3 = null;
+    if (null == x3) return document.createTextNode(k3);
+    u4 = document.createElementNS(o3, x3, k3.is && k3), c3 && (l.__m && l.__m(t3, e3), c3 = false), e3 = null;
   }
-  if (null == x2) m3 === k3 || c3 && u4.data == k3 || (u4.data = k3);
+  if (null == x3) m3 === k3 || c3 && u4.data == k3 || (u4.data = k3);
   else {
-    if (e3 = "textarea" == x2 && null != k3.defaultValue ? null : e3 && n.call(u4.childNodes), !c3 && null != e3) for (m3 = {}, s3 = 0; s3 < u4.attributes.length; s3++) m3[(y3 = u4.attributes[s3]).name] = y3.value;
+    if (e3 = "textarea" == x3 && null != k3.defaultValue ? null : e3 && n.call(u4.childNodes), !c3 && null != e3) for (m3 = {}, s3 = 0; s3 < u4.attributes.length; s3++) m3[(y3 = u4.attributes[s3]).name] = y3.value;
     for (s3 in m3) y3 = m3[s3], "dangerouslySetInnerHTML" == s3 ? p3 = y3 : "children" == s3 || s3 in k3 || "value" == s3 && "defaultValue" in k3 || "checked" == s3 && "defaultChecked" in k3 || N(u4, s3, null, y3, o3);
     for (s3 in k3) y3 = k3[s3], "children" == s3 ? v3 = y3 : "dangerouslySetInnerHTML" == s3 ? h3 = y3 : "value" == s3 ? w3 = y3 : "checked" == s3 ? _3 = y3 : c3 && "function" != typeof y3 || m3[s3] === y3 || N(u4, s3, y3, m3[s3], o3);
     if (h3) c3 || p3 && (h3.__html == p3.__html || h3.__html == u4.innerHTML) || (u4.innerHTML = h3.__html), t3.__k = [];
-    else if (p3 && (u4.innerHTML = ""), L("template" == t3.type ? u4.content : u4, g(v3) ? v3 : [v3], t3, i3, r3, "foreignObject" == x2 ? "http://www.w3.org/1999/xhtml" : o3, e3, f4, e3 ? e3[0] : i3.__k && $(i3, 0), c3, a3), null != e3) for (s3 = e3.length; s3--; ) b(e3[s3]);
-    c3 && "textarea" != x2 || (s3 = "value", "progress" == x2 && null == w3 ? u4.removeAttribute("value") : null != w3 && (w3 !== u4[s3] || "progress" == x2 && !w3 || "option" == x2 && w3 != m3[s3]) && N(u4, s3, w3, m3[s3], o3), s3 = "checked", null != _3 && _3 != u4[s3] && N(u4, s3, _3, m3[s3], o3));
+    else if (p3 && (u4.innerHTML = ""), L("template" == t3.type ? u4.content : u4, g(v3) ? v3 : [v3], t3, i3, r3, "foreignObject" == x3 ? "http://www.w3.org/1999/xhtml" : o3, e3, f4, e3 ? e3[0] : i3.__k && $(i3, 0), c3, a3), null != e3) for (s3 = e3.length; s3--; ) b(e3[s3]);
+    c3 && "textarea" != x3 || (s3 = "value", "progress" == x3 && null == w3 ? u4.removeAttribute("value") : null != w3 && (w3 !== u4[s3] || "progress" == x3 && !w3 || "option" == x3 && w3 != m3[s3]) && N(u4, s3, w3, m3[s3], o3), s3 = "checked", null != _3 && _3 != u4[s3] && N(u4, s3, _3, m3[s3], o3));
   }
   return u4;
 }
@@ -8548,8 +8553,8 @@ var fuzzySearch = (node, query, maxDistance) => {
   const n2 = query.length + 1;
   const m3 = n2 + maxDistance;
   const matrix = new Uint8Array(m3 * n2).fill(maxDistance + 1);
-  for (let j3 = 0; j3 < n2; ++j3)
-    matrix[j3] = j3;
+  for (let j4 = 0; j4 < n2; ++j4)
+    matrix[j4] = j4;
   for (let i3 = 1; i3 < m3; ++i3)
     matrix[i3 * n2] = i3;
   recurse(node, query, maxDistance, results, matrix, 1, n2, "");
@@ -8572,12 +8577,12 @@ var recurse = (node, query, maxDistance, results, matrix, m3, n2, prefix) => {
         let minDistance = matrix[thisRowOffset];
         const jmin = Math.max(0, i3 - maxDistance - 1);
         const jmax = Math.min(n2 - 1, i3 + maxDistance);
-        for (let j3 = jmin; j3 < jmax; ++j3) {
-          const different = char !== query[j3];
-          const rpl = matrix[prevRowOffset + j3] + +different;
-          const del = matrix[prevRowOffset + j3 + 1] + 1;
-          const ins = matrix[thisRowOffset + j3] + 1;
-          const dist = matrix[thisRowOffset + j3 + 1] = Math.min(rpl, del, ins);
+        for (let j4 = jmin; j4 < jmax; ++j4) {
+          const different = char !== query[j4];
+          const rpl = matrix[prevRowOffset + j4] + +different;
+          const del = matrix[prevRowOffset + j4 + 1] + 1;
+          const ins = matrix[thisRowOffset + j4] + 1;
+          const dist = matrix[thisRowOffset + j4 + 1] = Math.min(rpl, del, ins);
           if (dist < minDistance)
             minDistance = dist;
         }
@@ -8676,9 +8681,9 @@ var SearchableMap = class _SearchableMap {
    * @see https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Map/forEach
    * @param fn  Iteration function
    */
-  forEach(fn) {
+  forEach(fn2) {
     for (const [key, value] of this) {
-      fn(key, value, this);
+      fn2(key, value, this);
     }
   }
   /**
@@ -8786,13 +8791,13 @@ var SearchableMap = class _SearchableMap {
    * @param fn  The function used to compute the new value from the current one
    * @return The {@link SearchableMap} itself, to allow chaining
    */
-  update(key, fn) {
+  update(key, fn2) {
     if (typeof key !== "string") {
       throw new Error("key must be a string");
     }
     this._size = void 0;
     const node = createPath(this._tree, key);
-    node.set(LEAF, fn(node.get(LEAF)));
+    node.set(LEAF, fn2(node.get(LEAF)));
     return this;
   }
   /**
@@ -11132,16 +11137,16 @@ function sha256Hex(value) {
       const sigma1 = rotateRight(recent, 17) ^ rotateRight(recent, 19) ^ recent >>> 10;
       words[index] = words[index - 16] + sigma0 + words[index - 7] + sigma1 >>> 0;
     }
-    let [a3, b2, c3, d3, e3, f4, g3, h3] = hash;
+    let [a3, b2, c3, d3, e3, f4, g4, h3] = hash;
     for (let index = 0; index < 64; index += 1) {
       const sum1 = rotateRight(e3, 6) ^ rotateRight(e3, 11) ^ rotateRight(e3, 25);
-      const choice = e3 & f4 ^ ~e3 & g3;
+      const choice = e3 & f4 ^ ~e3 & g4;
       const temp1 = h3 + sum1 + choice + ROUND_CONSTANTS[index] + words[index] >>> 0;
       const sum0 = rotateRight(a3, 2) ^ rotateRight(a3, 13) ^ rotateRight(a3, 22);
       const majority = a3 & b2 ^ a3 & c3 ^ b2 & c3;
       const temp2 = sum0 + majority >>> 0;
-      h3 = g3;
-      g3 = f4;
+      h3 = g4;
+      g4 = f4;
       f4 = e3;
       e3 = d3 + temp1 >>> 0;
       d3 = c3;
@@ -11155,7 +11160,7 @@ function sha256Hex(value) {
     hash[3] = hash[3] + d3 >>> 0;
     hash[4] = hash[4] + e3 >>> 0;
     hash[5] = hash[5] + f4 >>> 0;
-    hash[6] = hash[6] + g3 >>> 0;
+    hash[6] = hash[6] + g4 >>> 0;
     hash[7] = hash[7] + h3 >>> 0;
   }
   return hash.map((word) => word.toString(16).padStart(8, "0")).join("");
@@ -11612,6 +11617,12 @@ function actionFor(project2, context, installed) {
 function toProjectCardViewModel(project2, context) {
   const installed = installedState(project2.id, context.inventory);
   const now = context.now ?? project2.refreshedAt ?? project2.catalogedAt;
+  const primaryFunction = primaryFunctionLabel(project2.primaryFunction);
+  const latestSourceActivityLabel = relativeTime(project2.activity.latestSourceActivityAt, now);
+  const repositorySizeLabel = formatRepositorySize(project2.repositorySizeKb);
+  const presetVersion = project2.preset?.version ? formatVersion(project2.preset.version) : null;
+  const presetPublishedAt = project2.preset?.publishedAt ?? null;
+  const presetSize = formatFileSize(project2.preset?.artifactSizeBytes ?? null);
   return {
     id: project2.id,
     name: project2.name,
@@ -11624,12 +11635,12 @@ function toProjectCardViewModel(project2, context) {
     tagChips: project2.tags.map(({ label: label2, facet }) => ({ label: label2, facet })),
     licenseLabel: project2.license.label,
     licenseStatus: project2.license.status,
-    attributionLabel: project2.attribution ? `by ${project2.attribution.owner.login}` : null,
+    attributionLabel: project2.attribution ? attributionByline(project2.attribution) : null,
     primaryFunctionId: project2.primaryFunction,
-    primaryFunction: primaryFunctionLabel(project2.primaryFunction),
+    primaryFunction,
     activity: {
       latestSourceActivityAt: project2.activity.latestSourceActivityAt,
-      latestSourceActivityLabel: relativeTime(project2.activity.latestSourceActivityAt, now),
+      latestSourceActivityLabel,
       latestSourceActivityFreshness: freshnessPercent(project2.activity.latestSourceActivityAt, now),
       activeWeeks12: project2.activity.activeWeeks12,
       weeklyActivity: project2.activity.weeklyActivity,
@@ -11637,20 +11648,100 @@ function toProjectCardViewModel(project2, context) {
       dormant: project2.activity.dormant
     },
     communityAggregate: project2.community?.aggregate ?? null,
-    repositorySizeLabel: formatRepositorySize(project2.repositorySizeKb),
+    repositorySizeLabel,
     preset: project2.preset ? {
-      versionLabel: project2.preset.version ? formatVersion(project2.preset.version) : null,
+      versionLabel: presetVersion,
       publishedLabel: project2.preset.publishedAt ? `Published ${relativeTime(project2.preset.publishedAt, now)}` : null,
-      sizeLabel: formatFileSize(project2.preset.artifactSizeBytes),
+      sizeLabel: presetSize,
       modelFamilies: project2.preset.modelFamilies.map(({ label: label2 }) => label2),
       completionFormats: project2.preset.completionFormats.map(({ label: label2 }) => label2)
     } : null,
+    tooltips: {
+      type: typeTooltip(primaryFunction, project2.kind),
+      activity: activityTooltip(project2),
+      latestSourceActivity: latestSourceActivityTooltip(project2, latestSourceActivityLabel),
+      community: project2.community ? `${project2.community.aggregate} total: ${project2.community.stars} stars, ${project2.community.forks} forks, ${project2.community.watchers} watchers` : null,
+      repositorySize: repositorySizeLabel ? `${repositorySizeLabel.replace(" repo", "")} repository` : null,
+      attribution: project2.attribution ? attributionTooltip(project2.attribution) : null,
+      license: licenseTooltip(project2),
+      frontends: project2.frontends.map(({ description }) => description),
+      tags: project2.tags.map(({ description }) => description),
+      preset: project2.preset ? {
+        version: presetVersion ? `Preset version ${presetVersion}` : null,
+        published: presetPublishedAt ? `Published ${formatDate(presetPublishedAt)}` : null,
+        size: presetSize,
+        modelFamilies: project2.preset.modelFamilies.map(({ description }) => description),
+        completionFormats: project2.preset.completionFormats.map(
+          ({ description }) => description
+        )
+      } : null
+    },
     tavernKeeper: project2.tavernKeeper,
     installed: installed.ownership !== "absent",
     ownership: installed.ownership,
     kitSelectable: project2.id !== COMPANION_PROJECT_ID && project2.kind === "extension" && project2.frontends.some(({ id }) => id === "sillytavern") && Boolean(project2.install),
     action: actionFor(project2, context, installed)
   };
+}
+function typeTooltip(primaryFunction, kind) {
+  if (kind === "frontend" && primaryFunction.toLocaleLowerCase().startsWith("frontend")) {
+    return "Frontend";
+  }
+  return `${primaryFunction} ${{
+    frontend: "Frontend",
+    extension: "Extension",
+    preset: "System Preset"
+  }[kind]}`;
+}
+function licenseTooltip(project2) {
+  if (project2.license.status === "osi-approved") {
+    return `${project2.license.label} is OSI-approved`;
+  }
+  if (project2.license.status === "proprietary") return "Proprietary license";
+  if (project2.license.status === "pending") return "License pending verification";
+  return "No license detected";
+}
+function activityTooltip(project2) {
+  const activeWeeks = project2.activity.activeWeeks12;
+  if (activeWeeks === null || project2.activity.weeklyActivity === null)
+    return "Activity unavailable";
+  const summary = project2.activity.evidenceStatus === "provisional" ? `Approximate activity in ${activeWeeks} of the last 12 weeks; baseline pending` : `Source activity in ${activeWeeks} of the last 12 weeks`;
+  return project2.activity.evidenceStatus === "degraded" ? `${summary}; activity evidence is incomplete` : summary;
+}
+function latestSourceActivityTooltip(project2, relative) {
+  if (project2.activity.latestSourceActivityAt && relative) {
+    return `Last source activity ${formatDate(project2.activity.latestSourceActivityAt)} (${relative})`;
+  }
+  if (project2.activity.activeWeeks12 === null || project2.activity.weeklyActivity === null) {
+    return null;
+  }
+  if (project2.activity.evidenceStatus === "complete") {
+    return "No source activity in the last 12 weeks";
+  }
+  if (project2.activity.evidenceStatus === "provisional") {
+    return "Source activity baseline pending";
+  }
+  return "Source activity evidence incomplete";
+}
+function attributionByline(attribution) {
+  const count = attribution.humanContributorCount;
+  if (count === 0) return `by ${attribution.owner.login}`;
+  return `by ${attribution.owner.login}, plus ${count} ${count === 1 ? "contributor" : "contributors"}`;
+}
+function attributionTooltip(attribution) {
+  const provider = attribution.owner.provider === "github" ? "GitHub" : "Codeberg";
+  const parts = [`${provider} owner: ${attribution.owner.login}`];
+  const humans = attribution.contributors.filter(({ botOrAi }) => !botOrAi).map(({ login }) => login);
+  const botsOrAi = attribution.contributors.filter(({ botOrAi }) => botOrAi).map(({ login }) => login);
+  if (attribution.status === "pending") {
+    parts.push("Contributor data pending");
+  } else {
+    if (humans.length > 0) parts.push(`Contributors: ${humans.join(", ")}`);
+    if (botsOrAi.length > 0) parts.push(`Bots/AI: ${botsOrAi.join(", ")}`);
+    if (attribution.status === "stale") parts.push("Contributor data stale");
+    else if (attribution.status === "partial") parts.push("Contributor history still scanning");
+  }
+  return parts.join(" \xB7 ");
 }
 function projectDisplayName(name) {
   const withoutPrefix = name.replace(/^sillytavern[\s_-]+/i, "");
@@ -11683,6 +11774,12 @@ function formatFileSize(bytes) {
 }
 function formatVersion(version) {
   return /^\d+(?:\.\d+)*$/.test(version) ? `v${version}` : version;
+}
+function formatDate(timestamp) {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeZone: "UTC"
+  }).format(new Date(timestamp));
 }
 function primaryFunctionLabel(value) {
   const labels = {
@@ -14724,6 +14821,335 @@ function InstallIcon() {
   );
 }
 
+// node_modules/preact/compat/dist/compat.module.js
+function g3(n2, t3) {
+  for (var e3 in t3) n2[e3] = t3[e3];
+  return n2;
+}
+function E2(n2, t3) {
+  for (var e3 in n2) if ("__source" !== e3 && !(e3 in t3)) return true;
+  for (var r3 in t3) if ("__source" !== r3 && n2[r3] !== t3[r3]) return true;
+  return false;
+}
+function M2(n2, t3) {
+  this.props = n2, this.context = t3;
+}
+(M2.prototype = new C()).isPureReactComponent = true, M2.prototype.shouldComponentUpdate = function(n2, t3) {
+  return E2(this.props, n2) || E2(this.state, t3);
+};
+var T3 = l.__b;
+l.__b = function(n2) {
+  n2.type && n2.type.__f && n2.ref && (n2.props.ref = n2.ref, n2.ref = null), T3 && T3(n2);
+};
+var A3 = "undefined" != typeof Symbol && Symbol.for && Symbol.for("react.forward_ref") || 3911;
+var O2 = l.__e;
+l.__e = function(n2, t3, e3, r3) {
+  if (n2.then) {
+    for (var u4, o3 = t3; o3 = o3.__; ) if ((u4 = o3.__c) && u4.__c) return null == t3.__e && (t3.__e = e3.__e, t3.__k = e3.__k || []), u4.__c(n2, t3);
+  }
+  O2(n2, t3, e3, r3);
+};
+var U2 = l.unmount;
+function V2(n2, t3, e3) {
+  return n2 && (n2.__c && n2.__c.__H && (n2.__c.__H.__.forEach(function(n3) {
+    "function" == typeof n3.__c && n3.__c();
+  }), n2.__c.__H = null), null != (n2 = g3({}, n2)).__c && (n2.__c.__P === e3 && (n2.__c.__P = t3), n2.__c.__e = true, n2.__c = null), n2.__k = n2.__k && n2.__k.map(function(n3) {
+    return V2(n3, t3, e3);
+  })), n2;
+}
+function W2(n2, t3, e3) {
+  return n2 && e3 && (n2.__v = null, n2.__k = n2.__k && n2.__k.map(function(n3) {
+    return W2(n3, t3, e3);
+  }), n2.__c && n2.__c.__P === t3 && (n2.__e && e3.appendChild(n2.__e), n2.__c.__e = true, n2.__c.__P = e3)), n2;
+}
+function P3() {
+  this.__u = 0, this.o = null, this.__b = null;
+}
+function j3(n2) {
+  var t3 = n2.__ && n2.__.__c;
+  return t3 && t3.__a && t3.__a(n2);
+}
+function B3() {
+  this.i = null, this.l = null;
+}
+l.unmount = function(n2) {
+  var t3 = n2.__c;
+  t3 && (t3.__z = true), t3 && t3.__R && t3.__R(), t3 && 32 & n2.__u && (n2.type = null), U2 && U2(n2);
+}, (P3.prototype = new C()).__c = function(n2, t3) {
+  var e3 = t3.__c, r3 = this;
+  null == r3.o && (r3.o = []), r3.o.push(e3);
+  var u4 = j3(r3.__v), o3 = false, i3 = function() {
+    o3 || r3.__z || (o3 = true, e3.__R = null, u4 ? u4(f4) : f4());
+  };
+  e3.__R = i3;
+  var l3 = e3.__P;
+  e3.__P = null;
+  var f4 = function() {
+    if (!--r3.__u) {
+      if (r3.state.__a) {
+        var n3 = r3.state.__a;
+        r3.__v.__k[0] = W2(n3, n3.__c.__P, n3.__c.__O);
+      }
+      var t4;
+      for (r3.setState({ __a: r3.__b = null }); t4 = r3.o.pop(); ) t4.__P = l3, t4.forceUpdate();
+    }
+  };
+  r3.__u++ || 32 & t3.__u || r3.setState({ __a: r3.__b = r3.__v.__k[0] }), n2.then(i3, i3);
+}, P3.prototype.componentWillUnmount = function() {
+  this.o = [];
+}, P3.prototype.render = function(n2, e3) {
+  if (this.__b) {
+    if (this.__v.__k) {
+      var r3 = document.createElement("div"), o3 = this.__v.__k[0].__c;
+      this.__v.__k[0] = V2(this.__b, r3, o3.__O = o3.__P);
+    }
+    this.__b = null;
+  }
+  var i3 = e3.__a && k(S, null, n2.fallback);
+  return i3 && (i3.__u &= -33), [k(S, null, e3.__a ? null : n2.children), i3];
+};
+var H2 = function(n2, t3, e3) {
+  if (++e3[1] === e3[0] && n2.l.delete(t3), n2.props.revealOrder && ("t" !== n2.props.revealOrder[0] || !n2.l.size)) for (e3 = n2.i; e3; ) {
+    for (; e3.length > 3; ) e3.pop()();
+    if (e3[1] < e3[0]) break;
+    n2.i = e3 = e3[2];
+  }
+};
+function Z(n2) {
+  return this.getChildContext = function() {
+    return n2.context;
+  }, n2.children;
+}
+function Y(n2) {
+  var e3 = this, r3 = n2.h;
+  if (e3.componentWillUnmount = function() {
+    R(null, e3.v), e3.v = null, e3.h = null;
+  }, e3.h && e3.h !== r3 && e3.componentWillUnmount(), !e3.v) {
+    for (var u4 = e3.__v; null !== u4 && !u4.__m && null !== u4.__; ) u4 = u4.__;
+    e3.h = r3, e3.v = { nodeType: 1, parentNode: r3, childNodes: [], __k: { __m: u4.__m }, contains: function() {
+      return true;
+    }, namespaceURI: r3.namespaceURI, insertBefore: function(n3, t3) {
+      this.childNodes.push(n3), e3.h.insertBefore(n3, t3);
+    }, removeChild: function(n3) {
+      this.childNodes.splice(this.childNodes.indexOf(n3) >>> 1, 1), e3.h.removeChild(n3);
+    } };
+  }
+  R(k(Z, { context: e3.context }, n2.__v), e3.v);
+}
+function $2(n2, e3) {
+  var r3 = k(Y, { __v: n2, h: e3 });
+  return r3.containerInfo = e3, r3;
+}
+(B3.prototype = new C()).__a = function(n2) {
+  var t3 = this, e3 = j3(t3.__v), r3 = t3.l.get(n2);
+  return r3[0]++, function(u4) {
+    var o3 = function() {
+      t3.props.revealOrder ? (r3.push(u4), H2(t3, n2, r3)) : u4();
+    };
+    e3 ? e3(o3) : o3();
+  };
+}, B3.prototype.render = function(n2) {
+  this.i = null, this.l = /* @__PURE__ */ new Map();
+  var t3 = F(n2.children);
+  n2.revealOrder && "b" === n2.revealOrder[0] && t3.reverse();
+  for (var e3 = t3.length; e3--; ) this.l.set(t3[e3], this.i = [1, 0, this.i]);
+  return n2.children;
+}, B3.prototype.componentDidUpdate = B3.prototype.componentDidMount = function() {
+  var n2 = this;
+  this.l.forEach(function(t3, e3) {
+    H2(n2, e3, t3);
+  });
+};
+var q3 = "undefined" != typeof Symbol && Symbol.for && Symbol.for("react.element") || 60103;
+var G2 = /^(?:accent|alignment|arabic|baseline|cap|clip(?!PathU)|color|dominant|fill|flood|font|glyph(?!R)|horiz|image(!S)|letter|lighting|marker(?!H|W|U)|overline|paint|pointer|shape|stop|strikethrough|stroke|text(?!L)|transform|underline|unicode|units|v|vector|vert|word|writing|x(?!C))[A-Z]/;
+var J2 = /^on(Ani|Tra|Tou|BeforeInp|Compo)/;
+var K2 = /[A-Z0-9]/g;
+var Q2 = "undefined" != typeof document;
+var X2 = function(n2) {
+  return ("undefined" != typeof Symbol && "symbol" == typeof Symbol() ? /fil|che|rad/ : /fil|che|ra/).test(n2);
+};
+C.prototype.isReactComponent = true, ["componentWillMount", "componentWillReceiveProps", "componentWillUpdate"].forEach(function(t3) {
+  Object.defineProperty(C.prototype, t3, { configurable: true, get: function() {
+    return this["UNSAFE_" + t3];
+  }, set: function(n2) {
+    Object.defineProperty(this, t3, { configurable: true, writable: true, value: n2 });
+  } });
+});
+var en = l.event;
+l.event = function(n2) {
+  return en && (n2 = en(n2)), n2.persist = function() {
+  }, n2.isPropagationStopped = function() {
+    return this.cancelBubble;
+  }, n2.isDefaultPrevented = function() {
+    return this.defaultPrevented;
+  }, n2.nativeEvent = n2;
+};
+var rn;
+var un = { configurable: true, get: function() {
+  return this.class;
+} };
+var on = l.vnode;
+l.vnode = function(n2) {
+  "string" == typeof n2.type && (function(n3) {
+    var t3 = n3.props, e3 = n3.type, u4 = {}, o3 = -1 == e3.indexOf("-");
+    for (var i3 in t3) {
+      var l3 = t3[i3];
+      if (!("value" === i3 && "defaultValue" in t3 && null == l3 || Q2 && "children" === i3 && "noscript" === e3 || "class" === i3 || "className" === i3)) {
+        var f4 = i3.toLowerCase();
+        "defaultValue" === i3 && "value" in t3 && null == t3.value ? i3 = "value" : "download" === i3 && true === l3 ? l3 = "" : "translate" === f4 && "no" === l3 ? l3 = false : "o" === f4[0] && "n" === f4[1] ? "ondoubleclick" === f4 ? i3 = "ondblclick" : "onchange" !== f4 || "input" !== e3 && "textarea" !== e3 || X2(t3.type) ? "onfocus" === f4 ? i3 = "onfocusin" : "onblur" === f4 ? i3 = "onfocusout" : J2.test(i3) && (i3 = f4) : f4 = i3 = "oninput" : o3 && G2.test(i3) ? i3 = i3.replace(K2, "-$&").toLowerCase() : null === l3 && (l3 = void 0), "oninput" === f4 && u4[i3 = f4] && (i3 = "oninputCapture"), u4[i3] = l3;
+      }
+    }
+    "select" == e3 && (u4.multiple && Array.isArray(u4.value) && (u4.value = F(t3.children).forEach(function(n4) {
+      n4.props.selected = -1 != u4.value.indexOf(n4.props.value);
+    })), null != u4.defaultValue && (u4.value = F(t3.children).forEach(function(n4) {
+      n4.props.selected = u4.multiple ? -1 != u4.defaultValue.indexOf(n4.props.value) : u4.defaultValue == n4.props.value;
+    }))), t3.class && !t3.className ? (u4.class = t3.class, Object.defineProperty(u4, "className", un)) : t3.className && (u4.class = u4.className = t3.className), n3.props = u4;
+  })(n2), n2.$$typeof = q3, on && on(n2);
+};
+var ln = l.__r;
+l.__r = function(n2) {
+  ln && ln(n2), rn = n2.__c;
+};
+var fn = l.diffed;
+l.diffed = function(n2) {
+  fn && fn(n2);
+  var t3 = n2.props, e3 = n2.__e;
+  null != e3 && "textarea" === n2.type && "value" in t3 && t3.value !== e3.value && (e3.value = null == t3.value ? "" : t3.value), rn = null;
+};
+
+// src/ui/shared/tooltip.tsx
+var VIEWPORT_MARGIN = 8;
+var TOOLTIP_GAP = 8;
+function clamp(value, minimum, maximum) {
+  return Math.min(Math.max(value, minimum), maximum);
+}
+function tooltipPosition(trigger, tooltip) {
+  const left = clamp(
+    trigger.left + trigger.width / 2 - tooltip.width / 2,
+    VIEWPORT_MARGIN,
+    window.innerWidth - tooltip.width - VIEWPORT_MARGIN
+  );
+  const above = trigger.top - tooltip.height - TOOLTIP_GAP;
+  const below = trigger.bottom + TOOLTIP_GAP;
+  const preferredTop = above >= VIEWPORT_MARGIN ? above : below;
+  const top = clamp(
+    preferredTop,
+    VIEWPORT_MARGIN,
+    window.innerHeight - tooltip.height - VIEWPORT_MARGIN
+  );
+  return { left, top };
+}
+function Tooltip({
+  id,
+  label: label2,
+  children,
+  className = "",
+  style,
+  ariaLabel,
+  showOnAncestorFocus = false
+}) {
+  const triggerRef = A2(null);
+  const tooltipRef = A2(null);
+  const [open, setOpen] = d2(false);
+  const [position, setPosition] = d2(null);
+  const hide = q2(() => {
+    setOpen(false);
+    setPosition(null);
+  }, []);
+  const show = q2(() => {
+    if (window.matchMedia("(max-width: 760px)").matches) return;
+    setOpen(true);
+  }, []);
+  h2(() => {
+    if (!showOnAncestorFocus) return;
+    const trigger = triggerRef.current;
+    const focusTarget = trigger?.closest("a, button") ?? trigger?.closest(".tavernary-companion-project-card")?.querySelector(".tavernary-companion-project-card__hitarea");
+    if (!focusTarget) return;
+    focusTarget.addEventListener("focus", show);
+    focusTarget.addEventListener("blur", hide);
+    return () => {
+      focusTarget.removeEventListener("focus", show);
+      focusTarget.removeEventListener("blur", hide);
+    };
+  }, [hide, show, showOnAncestorFocus]);
+  const updatePosition = q2(() => {
+    if (!triggerRef.current || !tooltipRef.current) return;
+    setPosition(
+      tooltipPosition(
+        triggerRef.current.getBoundingClientRect(),
+        tooltipRef.current.getBoundingClientRect()
+      )
+    );
+  }, []);
+  _2(() => {
+    if (!open) return;
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+    };
+  }, [open, updatePosition]);
+  h2(() => {
+    if (!open) return;
+    const mobileQuery = window.matchMedia("(max-width: 760px)");
+    const dismissOnMobile = (event) => {
+      if (event.matches) hide();
+    };
+    const dismissOnEscape = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      event.stopImmediatePropagation();
+      hide();
+    };
+    mobileQuery.addEventListener("change", dismissOnMobile);
+    document.addEventListener("keydown", dismissOnEscape, true);
+    return () => {
+      mobileQuery.removeEventListener("change", dismissOnMobile);
+      document.removeEventListener("keydown", dismissOnEscape, true);
+    };
+  }, [hide, open]);
+  return /* @__PURE__ */ u3(S, { children: [
+    /* @__PURE__ */ u3(
+      "span",
+      {
+        ref: triggerRef,
+        class: `tavernary-companion-tooltip-anchor ${className}`.trim(),
+        style,
+        "aria-label": ariaLabel,
+        "aria-describedby": id,
+        role: ariaLabel ? "img" : void 0,
+        onPointerEnter: show,
+        onPointerLeave: hide,
+        onFocusCapture: show,
+        onBlurCapture: (event) => {
+          if (!event.currentTarget.contains(event.relatedTarget)) hide();
+        },
+        children
+      }
+    ),
+    open && typeof document !== "undefined" ? $2(
+      /* @__PURE__ */ u3(
+        "span",
+        {
+          ref: tooltipRef,
+          class: "tavernary-companion-tooltip-content",
+          id,
+          role: "tooltip",
+          style: {
+            ...position,
+            visibility: position ? "visible" : "hidden"
+          },
+          children: label2
+        }
+      ),
+      document.body
+    ) : null
+  ] });
+}
+
 // src/ui/projects/project-lifecycle-control.tsx
 function ProjectLifecycleControl({
   projectName,
@@ -14737,18 +15163,25 @@ function ProjectLifecycleControl({
   const label2 = `${action.label} ${projectName}`;
   return /* @__PURE__ */ u3(S, { children: [
     /* @__PURE__ */ u3(
-      "button",
+      Tooltip,
       {
-        type: "button",
-        class: `tavernary-companion-project-lifecycle${installed ? " is-installed" : ""}`,
-        "data-testid": "project-lifecycle-action",
-        "aria-label": label2,
-        "aria-describedby": disabled ? disabledReasonId : void 0,
-        "aria-pressed": installed,
-        title: action.label,
-        disabled,
-        onClick: () => onAction(action),
-        children: /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-lifecycle__face", "aria-hidden": "true", children: /* @__PURE__ */ u3(InstallIcon, {}) })
+        id: `${disabledReasonId}-lifecycle-action-tooltip`,
+        label: action.label,
+        className: "tavernary-companion-control-tooltip",
+        children: /* @__PURE__ */ u3(
+          "button",
+          {
+            type: "button",
+            class: `tavernary-companion-project-lifecycle${installed ? " is-installed" : ""}`,
+            "data-testid": "project-lifecycle-action",
+            "aria-label": label2,
+            "aria-describedby": disabled ? disabledReasonId : void 0,
+            "aria-pressed": installed,
+            disabled,
+            onClick: () => onAction(action),
+            children: /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-lifecycle__face", "aria-hidden": "true", children: /* @__PURE__ */ u3(InstallIcon, {}) })
+          }
+        )
       }
     ),
     disabled ? /* @__PURE__ */ u3("span", { id: disabledReasonId, class: "tavernary-companion-sr-only", children: "Another Companion operation is in progress." }) : null
@@ -16142,26 +16575,30 @@ function ActivityStrip({ weeks }) {
 }
 
 // src/ui/shared/activity-summary.tsx
-function ActivitySummary({ activity }) {
+function ActivitySummary({
+  projectId,
+  activity,
+  tooltip
+}) {
   if (activity.activeWeeks12 === null || activity.weeklyActivity === null) {
     return /* @__PURE__ */ u3(
-      "span",
+      Tooltip,
       {
-        class: "tavernary-companion-development-unavailable",
-        role: "img",
-        "aria-label": "Activity unavailable",
+        id: `${projectId}-activity`,
+        label: tooltip,
+        ariaLabel: tooltip,
+        className: "tavernary-companion-development-unavailable",
         children: "No data"
       }
     );
   }
-  const evidence = activity.evidenceStatus === "provisional" ? ", baseline pending" : activity.evidenceStatus === "degraded" ? ", evidence incomplete" : "";
-  const label2 = `Activity: ${activity.activeWeeks12} of 12 active weeks${evidence}${activity.dormant ? ", dormant" : ""}`;
   return /* @__PURE__ */ u3(
-    "span",
+    Tooltip,
     {
-      class: `tavernary-companion-activity-summary evidence-${activity.evidenceStatus}`,
-      role: "img",
-      "aria-label": label2,
+      id: `${projectId}-activity`,
+      label: tooltip,
+      ariaLabel: tooltip,
+      className: `tavernary-companion-activity-summary evidence-${activity.evidenceStatus}`,
       children: [
         /* @__PURE__ */ u3("b", { "aria-hidden": "true", children: "Activity" }),
         /* @__PURE__ */ u3(ActivityStrip, { weeks: activity.weeklyActivity })
@@ -16381,30 +16818,39 @@ function ProjectKitControl({
   selected,
   onToggle
 }) {
+  const tooltipId = g2();
+  const tooltipLabel = selected ? "Remove from selection" : "Add to Kit";
   return /* @__PURE__ */ u3(
-    "button",
+    Tooltip,
     {
-      type: "button",
-      class: "tavernary-companion-project-kit-control",
-      "aria-label": selected ? `Remove ${projectName} from selection` : `Add ${projectName} to Kit`,
-      "aria-pressed": selected,
-      title: selected ? "Remove from selection" : "Add to Kit",
-      onClick: () => onToggle(projectId),
-      children: /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-kit-control__face", "aria-hidden": "true", children: [
-        /* @__PURE__ */ u3(
-          "svg",
-          {
-            "data-kit-glyph": selected ? "remove" : "add",
-            viewBox: "0 0 12 12",
-            fill: "none",
-            stroke: "currentColor",
-            "stroke-width": "2",
-            "stroke-linecap": "round",
-            children: /* @__PURE__ */ u3("path", { d: selected ? "M1.5 6h9" : "M6 1.5v9M1.5 6h9" })
-          }
-        ),
-        /* @__PURE__ */ u3("small", { children: "Kit" })
-      ] })
+      id: `${tooltipId}-kit-action-tooltip`,
+      label: tooltipLabel,
+      className: "tavernary-companion-control-tooltip",
+      children: /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          class: "tavernary-companion-project-kit-control",
+          "aria-label": selected ? `Remove ${projectName} from selection` : `Add ${projectName} to Kit`,
+          "aria-pressed": selected,
+          onClick: () => onToggle(projectId),
+          children: /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-kit-control__face", "aria-hidden": "true", children: [
+            /* @__PURE__ */ u3(
+              "svg",
+              {
+                "data-kit-glyph": selected ? "remove" : "add",
+                viewBox: "0 0 12 12",
+                fill: "none",
+                stroke: "currentColor",
+                "stroke-width": "2",
+                "stroke-linecap": "round",
+                children: /* @__PURE__ */ u3("path", { d: selected ? "M1.5 6h9" : "M6 1.5v9M1.5 6h9" })
+              }
+            ),
+            /* @__PURE__ */ u3("small", { children: "Kit" })
+          ] })
+        }
+      )
     }
   );
 }
@@ -16427,7 +16873,7 @@ function TavernKeeperHistoryStrip({
       role: "group",
       "aria-label": "Recent TavernKeeper scan history",
       children: conclusions.map((conclusion) => {
-        const label2 = `TavernKeeper scan history: ${riskLabels[conclusion.riskLevel]} on ${formatDate(conclusion.assessedAt)} at commit ${conclusion.scannedSha.slice(0, 7)} under policy ${conclusion.scannerPolicyVersion}`;
+        const label2 = `TavernKeeper scan history: ${riskLabels[conclusion.riskLevel]} on ${formatDate2(conclusion.assessedAt)} at commit ${conclusion.scannedSha.slice(0, 7)} under policy ${conclusion.scannerPolicyVersion}`;
         return /* @__PURE__ */ u3(
           "a",
           {
@@ -16443,7 +16889,7 @@ function TavernKeeperHistoryStrip({
     }
   );
 }
-function formatDate(value) {
+function formatDate2(value) {
   return new Intl.DateTimeFormat("en-US", {
     day: "numeric",
     month: "long",
@@ -16453,216 +16899,32 @@ function formatDate(value) {
 }
 
 // src/ui/projects/tavernkeeper-scan-indicator.tsx
-var riskLabels2 = {
-  low: "Low concern",
-  material: "Material concern",
-  high: "Immediate danger"
-};
-var freshnessLabels = {
-  current: "current scan",
-  stale: "scan not current",
-  unavailable: "freshness unavailable",
-  unassessed: "not assessed",
-  unsupported: "unsupported source"
-};
-var dangerBasisLabels = {
-  malicious_or_compromised: "Credible malicious or compromised behavior",
-  critical_exploitable_vulnerability: "Critical, readily exploitable vulnerability",
-  mixed: "Malicious or compromised behavior and an exploitable vulnerability"
-};
-function TavernKeeperScanIndicator({
-  projectId,
-  status
-}) {
-  const [open, setOpen] = d2(false);
-  const trigger = A2(null);
-  const popover = A2(null);
-  const [popoverPosition, setPopoverPosition] = d2({});
-  const popoverId = `tavernkeeper-scan-${projectId}`;
-  const headingId = `${popoverId}-heading`;
-  const report2 = status.report;
-  h2(() => {
-    if (!open) return;
-    const closeFromPointer = (event) => {
-      const target = event.target;
-      if (!(target instanceof Node)) return;
-      if (trigger.current?.contains(target) || popover.current?.contains(target)) return;
-      setOpen(false);
-    };
-    const closeFromKeyboard = (event) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      setOpen(false);
-      trigger.current?.focus();
-    };
-    document.addEventListener("pointerdown", closeFromPointer);
-    document.addEventListener("keydown", closeFromKeyboard);
-    return () => {
-      document.removeEventListener("pointerdown", closeFromPointer);
-      document.removeEventListener("keydown", closeFromKeyboard);
-    };
-  }, [open]);
-  h2(() => {
-    if (!open) return;
-    const placePopover = () => {
-      const anchor = trigger.current?.getBoundingClientRect();
-      const panel = popover.current;
-      const root = trigger.current?.closest(".tavernary-companion-root")?.getBoundingClientRect();
-      if (!anchor || !panel || !root) return;
-      const margin = 9;
-      const gap = 8;
-      const width = Math.min(320, root.width - margin * 2);
-      const maxHeight = root.height - margin * 2;
-      const height = Math.min(panel.scrollHeight, maxHeight);
-      const preferredTop = anchor.bottom + gap;
-      const top = preferredTop + height <= root.bottom - margin ? preferredTop : Math.max(root.top + margin, anchor.top - height - gap);
-      const left = Math.min(
-        root.right - margin - width,
-        Math.max(root.left + margin, anchor.right - width)
-      );
-      setPopoverPosition({
-        inlineSize: `${width}px`,
-        insetBlockStart: `${top}px`,
-        insetInlineStart: `${left}px`,
-        maxBlockSize: `${maxHeight}px`
-      });
-    };
-    placePopover();
-    window.addEventListener("resize", placePopover);
-    window.addEventListener("scroll", placePopover, true);
-    return () => {
-      window.removeEventListener("resize", placePopover);
-      window.removeEventListener("scroll", placePopover, true);
-    };
-  }, [open]);
-  return /* @__PURE__ */ u3("span", { class: "tavernary-companion-tavernkeeper-control", children: [
-    /* @__PURE__ */ u3(
-      "button",
-      {
-        ref: trigger,
-        type: "button",
-        class: `tavernary-companion-tavernkeeper-trigger state-${status.state}`,
-        "aria-controls": popoverId,
-        "aria-expanded": open,
-        "aria-label": `TavernKeeper scan: ${statusLabel2(status)}`,
-        title: statusLabel2(status),
-        onClick: (event) => {
-          event.stopPropagation();
-          setOpen((value) => !value);
-        },
-        children: [
-          /* @__PURE__ */ u3(ScanIcon, {}),
-          status.freshness === "stale" ? /* @__PURE__ */ u3(ClockIcon, {}) : null
-        ]
-      }
-    ),
-    open ? /* @__PURE__ */ u3(
-      "section",
-      {
-        ref: popover,
-        id: popoverId,
-        class: "tavernary-companion-tavernkeeper-popover",
-        role: "dialog",
-        "aria-labelledby": headingId,
-        style: popoverPosition,
-        onClick: (event) => event.stopPropagation(),
-        children: [
-          /* @__PURE__ */ u3("header", { children: [
-            /* @__PURE__ */ u3("h2", { id: headingId, children: "TavernKeeper Scan Results" }),
-            report2 ? /* @__PURE__ */ u3("span", { class: `state-${status.state}`, children: [
-              /* @__PURE__ */ u3("strong", { children: riskLabels2[report2.riskLevel] }),
-              /* @__PURE__ */ u3("span", { children: freshnessLabels[status.freshness] })
-            ] }) : null
-          ] }),
-          report2 ? /* @__PURE__ */ u3(S, { children: [
-            /* @__PURE__ */ u3("h3", { children: report2.headline }),
-            /* @__PURE__ */ u3("p", { class: "tavernary-companion-tavernkeeper-summary", children: [
-              conciseSummary(report2.summary),
-              freshnessNotice(status)
-            ] }),
-            /* @__PURE__ */ u3(
-              "p",
-              {
-                class: "tavernary-companion-tavernkeeper-counts",
-                "aria-label": "Assessment finding counts",
-                children: [
-                  /* @__PURE__ */ u3("span", { children: countLabel(report2.minorCautions, "minor caution") }),
-                  /* @__PURE__ */ u3("span", { children: countLabel(report2.materialConcerns, "material concern") }),
-                  /* @__PURE__ */ u3("span", { children: countLabel(report2.highDanger, "high-danger finding") })
-                ]
-              }
-            ),
-            /* @__PURE__ */ u3("dl", { class: "tavernary-companion-tavernkeeper-details", children: [
-              report2.riskLevel === "high" && report2.dangerBasis !== "none" ? /* @__PURE__ */ u3("div", { children: [
-                /* @__PURE__ */ u3("dt", { children: "Danger basis" }),
-                /* @__PURE__ */ u3("dd", { children: dangerBasisLabels[report2.dangerBasis] })
-              ] }) : null,
-              /* @__PURE__ */ u3("div", { children: [
-                /* @__PURE__ */ u3("dt", { children: "Scanned" }),
-                /* @__PURE__ */ u3("dd", { children: [
-                  /* @__PURE__ */ u3("time", { dateTime: report2.scannedAt, children: formatDate2(report2.scannedAt) }),
-                  /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \xB7 " }),
-                  /* @__PURE__ */ u3(
-                    "a",
-                    {
-                      "aria-label": `Browse scanned source at commit ${report2.scannedSha}`,
-                      href: report2.treeUrl,
-                      rel: "noopener noreferrer",
-                      target: "_blank",
-                      children: [
-                        report2.scannedSha.slice(0, 7),
-                        /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \u2197" })
-                      ]
-                    }
-                  )
-                ] })
-              ] }),
-              /* @__PURE__ */ u3("div", { children: [
-                /* @__PURE__ */ u3("dt", { children: "Assessed" }),
-                /* @__PURE__ */ u3("dd", { children: [
-                  /* @__PURE__ */ u3("time", { dateTime: report2.assessedAt, children: formatDate2(report2.assessedAt) }),
-                  " by Tavernary"
-                ] })
-              ] })
-            ] }),
-            status.history.length >= 2 ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-tavernkeeper-recent", children: [
-              /* @__PURE__ */ u3("span", { children: "Recent scans" }),
-              /* @__PURE__ */ u3(TavernKeeperHistoryStrip, { history: status.history })
-            ] }) : null,
-            /* @__PURE__ */ u3("footer", { children: [
-              /* @__PURE__ */ u3("a", { href: report2.reportUrl, rel: "noopener noreferrer", target: "_blank", children: [
-                "View full report",
-                /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \u2197" })
-              ] }),
-              status.historyUrl ? /* @__PURE__ */ u3(
-                "a",
-                {
-                  href: externalTavernaryUrl(status.historyUrl),
-                  rel: "noopener noreferrer",
-                  target: "_blank",
-                  children: [
-                    "View scan history",
-                    /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \u2197" })
-                  ]
-                }
-              ) : null
-            ] })
-          ] }) : /* @__PURE__ */ u3("p", { class: "tavernary-companion-tavernkeeper-summary", children: emptyStateCopy(status) })
-        ]
-      }
-    ) : null
-  ] });
-}
-function statusLabel2(status) {
-  if (!status.report || !status.riskLevel) {
-    if (status.freshness === "unsupported") return "Scan unsupported";
-    if (status.freshness === "unavailable") return "Scan unavailable";
-    return "Not assessed";
+var encodedCitationPattern = /\s*\uE200cite\uE202[^\uE201]*\uE201/giu;
+var findingReferencePattern = /\s*\((?:V\d+\s+)?findings?\s+[^)]*\b[0-9a-f]{64}\b[^)]*\)/giu;
+var bracketedFindingReferencePattern = /\s*\[[0-9a-f]{64}(?:,\s*[0-9a-f]{64})*\]/giu;
+var danglingFindingReferencePattern = /\s*\[(?=[0-9a-f]{64}(?:,|$))[\s\S]*$/iu;
+var bareFindingReferencePattern = /(?:Findings:\s*)?(?:\[|\(|【)?[0-9a-f]{64}\b(?:\]|\)|】)?/giu;
+var invisibleFormattingPattern = /[\u200B-\u200D\u2060\uFEFF]/gu;
+function conciseAssessmentSummary(summary) {
+  const withoutArtifacts = summary.replace(encodedCitationPattern, "").replace(findingReferencePattern, "").replace(bracketedFindingReferencePattern, "").replace(danglingFindingReferencePattern, "").replace(bareFindingReferencePattern, "").replace(invisibleFormattingPattern, "");
+  let display = withoutArtifacts.replace(/\s+([,.;!?])/gu, "$1").replace(/\s+/gu, " ").trim();
+  if (withoutArtifacts !== summary && !/[.!?]["')\]]?$/u.test(display)) {
+    const lastCompleteSentence = Math.max(
+      display.lastIndexOf("."),
+      display.lastIndexOf("!"),
+      display.lastIndexOf("?")
+    );
+    if (lastCompleteSentence >= 0) display = display.slice(0, lastCompleteSentence + 1);
+    else if (display) display += ".";
   }
-  return `${riskLabels2[status.riskLevel]} \xB7 ${freshnessLabels[status.freshness]}`;
+  return display;
 }
-function emptyStateCopy(status) {
-  if (status.freshness === "unsupported") {
+function stateCopy(status) {
+  if (status.report) {
+    const freshness = status.freshness === "stale" ? " This assessment covers an older commit. An updated scan is pending." : status.freshness === "unavailable" ? " Tavernary cannot confirm the repository's current commit, so freshness is unavailable." : "";
+    return `${conciseAssessmentSummary(status.report.summary)}${freshness}`;
+  }
+  if (status.state === "unsupported") {
     return "TavernKeeper scanning is not supported for this project's source.";
   }
   if (status.freshness === "unavailable") {
@@ -16670,49 +16932,371 @@ function emptyStateCopy(status) {
   }
   return "This project hasn't been scanned by TavernKeeper.";
 }
-function freshnessNotice(status) {
-  if (status.freshness === "stale") {
-    return " This assessment covers an older commit. An updated scan is pending.";
-  }
-  if (status.freshness === "unavailable") {
-    return " Tavernary cannot confirm the repository's current commit, so freshness is unavailable.";
-  }
-  return "";
+var freshnessLabels = {
+  current: "current",
+  stale: "stale assessment",
+  unavailable: "freshness unavailable",
+  unassessed: "not assessed",
+  unsupported: "unsupported source"
+};
+var riskGradeLabels = {
+  low: "Low concern",
+  material: "Material concern",
+  high: "Immediate danger"
+};
+var dangerBasisLabels = {
+  malicious_or_compromised: "Credible malicious or compromised behavior",
+  critical_exploitable_vulnerability: "Critical, readily exploitable vulnerability",
+  mixed: "Malicious or compromised behavior and an exploitable vulnerability"
+};
+function countLabel(count, singular, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
 }
-function countLabel(count, singular) {
-  return `${count} ${count === 1 ? singular : `${singular}s`}`;
+function accessibleStatus(status) {
+  if (!status.report) {
+    if (status.freshness === "unsupported") return "Unsupported source.";
+    if (status.freshness === "unavailable") return "Not assessed; freshness unavailable.";
+    return "Not assessed.";
+  }
+  return `${riskGradeLabels[status.report.riskLevel]}; ${freshnessLabels[status.freshness]}.`;
 }
-function formatDate2(value) {
+var CLOSE_DELAY = 150;
+var VIEWPORT_MARGIN2 = 8;
+var POPOVER_GAP = 8;
+var activeDismiss = null;
+function clamp2(value, minimum, maximum) {
+  return Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
+}
+function viewportBounds() {
+  const viewport = window.visualViewport;
+  return viewport ? {
+    height: viewport.height,
+    left: viewport.offsetLeft,
+    top: viewport.offsetTop,
+    width: viewport.width
+  } : { height: window.innerHeight, left: 0, top: 0, width: window.innerWidth };
+}
+function popoverPosition(trigger, popover) {
+  const viewport = viewportBounds();
+  const left = clamp2(
+    trigger.left + trigger.width / 2 - popover.width / 2,
+    viewport.left + VIEWPORT_MARGIN2,
+    viewport.left + viewport.width - popover.width - VIEWPORT_MARGIN2
+  );
+  const above = trigger.top - popover.height - POPOVER_GAP;
+  const below = trigger.bottom + POPOVER_GAP;
+  const top = clamp2(
+    above >= viewport.top + VIEWPORT_MARGIN2 ? above : below,
+    viewport.top + VIEWPORT_MARGIN2,
+    viewport.top + viewport.height - popover.height - VIEWPORT_MARGIN2
+  );
+  return { left, top };
+}
+function formatDate3(scannedAt) {
   return new Intl.DateTimeFormat("en-US", {
     day: "numeric",
     month: "long",
     timeZone: "UTC",
     year: "numeric"
-  }).format(new Date(value));
+  }).format(new Date(scannedAt));
+}
+function TavernKeeperScanIndicator({
+  projectId,
+  status
+}) {
+  const [open, setOpen] = d2(false);
+  const [position, setPosition] = d2(null);
+  const triggerRef = A2(null);
+  const popoverRef = A2(null);
+  const firstLinkRef = A2(null);
+  const closeTimer = A2(null);
+  const pointerOpenState = A2(null);
+  const content = stateCopy(status);
+  const report2 = status.report;
+  const popoverId = `tavernkeeper-scan-${projectId}`;
+  const headingId = `${popoverId}-heading`;
+  const clearCloseTimer = q2(() => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }, []);
+  const closePopover = q2(() => {
+    clearCloseTimer();
+    setOpen(false);
+    setPosition(null);
+  }, [clearCloseTimer]);
+  const openPopover = q2(() => {
+    clearCloseTimer();
+    if (activeDismiss && activeDismiss !== closePopover) activeDismiss();
+    setOpen(true);
+  }, [clearCloseTimer, closePopover]);
+  const delayClose = q2(() => {
+    clearCloseTimer();
+    closeTimer.current = setTimeout(closePopover, CLOSE_DELAY);
+  }, [clearCloseTimer, closePopover]);
+  const openFromPointer = q2(
+    (event) => {
+      if (event.pointerType !== "touch") openPopover();
+    },
+    [openPopover]
+  );
+  const rememberPointerOpenState = q2(
+    (event) => {
+      pointerOpenState.current = event.pointerType === "touch" ? open : null;
+    },
+    [open]
+  );
+  const togglePopover = q2(() => {
+    const wasOpenBeforePointerFocus = pointerOpenState.current;
+    pointerOpenState.current = null;
+    if (wasOpenBeforePointerFocus === true) closePopover();
+    else openPopover();
+  }, [closePopover, openPopover]);
+  const containsInteractiveElement = q2((target) => {
+    if (!(target instanceof Node)) return false;
+    return Boolean(triggerRef.current?.contains(target) || popoverRef.current?.contains(target));
+  }, []);
+  const closeOnFocusExit = q2(
+    (event) => {
+      if (!containsInteractiveElement(event.relatedTarget)) closePopover();
+    },
+    [closePopover, containsInteractiveElement]
+  );
+  const focusFirstLink = q2(
+    (event) => {
+      if (event.key !== "Tab" || event.shiftKey || !open || !firstLinkRef.current) return;
+      event.preventDefault();
+      firstLinkRef.current.focus();
+    },
+    [open]
+  );
+  const focusTrigger = q2((event) => {
+    if (event.key !== "Tab" || !event.shiftKey) return;
+    event.preventDefault();
+    triggerRef.current?.focus();
+  }, []);
+  const updatePosition = q2(() => {
+    if (!triggerRef.current || !popoverRef.current) return;
+    setPosition(
+      popoverPosition(
+        triggerRef.current.getBoundingClientRect(),
+        popoverRef.current.getBoundingClientRect()
+      )
+    );
+  }, []);
+  h2(() => () => clearCloseTimer(), [clearCloseTimer]);
+  h2(() => {
+    if (!open) return;
+    activeDismiss = closePopover;
+    return () => {
+      if (activeDismiss === closePopover) activeDismiss = null;
+    };
+  }, [closePopover, open]);
+  _2(() => {
+    if (!open) return;
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, { capture: true, passive: true });
+    window.visualViewport?.addEventListener("resize", updatePosition);
+    window.visualViewport?.addEventListener("scroll", updatePosition);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+      window.visualViewport?.removeEventListener("resize", updatePosition);
+      window.visualViewport?.removeEventListener("scroll", updatePosition);
+    };
+  }, [open, updatePosition]);
+  h2(() => {
+    if (!open) return;
+    const dismissOnPointerDown = (event) => {
+      if (!containsInteractiveElement(event.target)) closePopover();
+    };
+    const dismissOnEscape = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        closePopover();
+        triggerRef.current?.focus();
+      }
+    };
+    const dismissOnFocus = (event) => {
+      if (!containsInteractiveElement(event.target)) closePopover();
+    };
+    document.addEventListener("pointerdown", dismissOnPointerDown);
+    document.addEventListener("keydown", dismissOnEscape, true);
+    document.addEventListener("focusin", dismissOnFocus);
+    return () => {
+      document.removeEventListener("pointerdown", dismissOnPointerDown);
+      document.removeEventListener("keydown", dismissOnEscape, true);
+      document.removeEventListener("focusin", dismissOnFocus);
+    };
+  }, [closePopover, containsInteractiveElement, open]);
+  return /* @__PURE__ */ u3(S, { children: [
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        "aria-controls": popoverId,
+        "aria-expanded": open,
+        "aria-label": `TavernKeeper scan: ${accessibleStatus(status)}`,
+        class: `tavernary-companion-tavernkeeper-trigger state-${status.state}`,
+        onBlur: closeOnFocusExit,
+        onClick: togglePopover,
+        onFocus: openPopover,
+        onKeyDown: focusFirstLink,
+        onMouseEnter: openPopover,
+        onMouseLeave: delayClose,
+        onPointerDown: rememberPointerOpenState,
+        onPointerEnter: openFromPointer,
+        onPointerLeave: delayClose,
+        ref: triggerRef,
+        type: "button",
+        children: [
+          /* @__PURE__ */ u3(ScanIcon, {}),
+          status.freshness === "stale" ? /* @__PURE__ */ u3(ClockIcon, {}) : null
+        ]
+      }
+    ),
+    open && typeof document !== "undefined" ? $2(
+      /* @__PURE__ */ u3(
+        "section",
+        {
+          "aria-labelledby": headingId,
+          class: "tavernary-companion-tavernkeeper-popover",
+          id: popoverId,
+          onBlurCapture: closeOnFocusExit,
+          onFocusCapture: openPopover,
+          onMouseEnter: openPopover,
+          onMouseLeave: delayClose,
+          onPointerEnter: openFromPointer,
+          onPointerLeave: delayClose,
+          ref: popoverRef,
+          role: "dialog",
+          style: {
+            ...position,
+            visibility: position ? "visible" : "hidden"
+          },
+          children: [
+            /* @__PURE__ */ u3("header", { class: "tavernary-companion-tavernkeeper-popover__header", children: [
+              /* @__PURE__ */ u3("h2", { id: headingId, children: "TavernKeeper Scan Results" }),
+              report2 ? /* @__PURE__ */ u3(
+                "span",
+                {
+                  class: `tavernary-companion-tavernkeeper-popover__status state-${status.state}`,
+                  children: [
+                    /* @__PURE__ */ u3("strong", { children: riskGradeLabels[report2.riskLevel] }),
+                    /* @__PURE__ */ u3("span", { children: freshnessLabels[status.freshness] })
+                  ]
+                }
+              ) : null
+            ] }),
+            report2 ? /* @__PURE__ */ u3(S, { children: [
+              /* @__PURE__ */ u3("p", { class: "tavernary-companion-tavernkeeper-summary", children: content }),
+              /* @__PURE__ */ u3(
+                "p",
+                {
+                  "aria-label": "Assessment finding counts",
+                  class: "tavernary-companion-tavernkeeper-counts",
+                  children: [
+                    /* @__PURE__ */ u3("span", { children: countLabel(report2.minorCautions, "minor caution") }),
+                    /* @__PURE__ */ u3("span", { children: countLabel(report2.materialConcerns, "material concern") }),
+                    /* @__PURE__ */ u3("span", { children: countLabel(report2.highDanger, "high-danger finding") })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ u3("dl", { class: "tavernary-companion-tavernkeeper-details", children: [
+                report2.riskLevel === "high" && report2.dangerBasis !== "none" ? /* @__PURE__ */ u3("div", { children: [
+                  /* @__PURE__ */ u3("dt", { children: "Danger basis" }),
+                  /* @__PURE__ */ u3("dd", { children: dangerBasisLabels[report2.dangerBasis] })
+                ] }) : null,
+                /* @__PURE__ */ u3("div", { children: [
+                  /* @__PURE__ */ u3("dt", { children: "Scanned" }),
+                  /* @__PURE__ */ u3("dd", { children: [
+                    /* @__PURE__ */ u3("time", { dateTime: report2.scannedAt, children: formatDate3(report2.scannedAt) }),
+                    /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \xB7 " }),
+                    /* @__PURE__ */ u3(
+                      "a",
+                      {
+                        "aria-label": `Browse scanned source at commit ${report2.scannedSha} on GitHub`,
+                        href: report2.treeUrl,
+                        onKeyDown: focusTrigger,
+                        ref: firstLinkRef,
+                        rel: "noopener noreferrer",
+                        target: "_blank",
+                        children: [
+                          report2.scannedSha.slice(0, 7),
+                          /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \u2197" })
+                        ]
+                      }
+                    )
+                  ] })
+                ] }),
+                /* @__PURE__ */ u3("div", { children: [
+                  /* @__PURE__ */ u3("dt", { children: "Assessed" }),
+                  /* @__PURE__ */ u3("dd", { children: [
+                    /* @__PURE__ */ u3("time", { dateTime: report2.assessedAt, children: formatDate3(report2.assessedAt) }),
+                    " by Tavernary"
+                  ] })
+                ] })
+              ] }),
+              status.history.length >= 2 ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-tavernkeeper-recent", children: [
+                /* @__PURE__ */ u3("span", { children: "Recent scans" }),
+                /* @__PURE__ */ u3(TavernKeeperHistoryStrip, { history: status.history })
+              ] }) : null,
+              /* @__PURE__ */ u3("footer", { class: "tavernary-companion-tavernkeeper-actions", children: [
+                /* @__PURE__ */ u3("a", { href: report2.reportUrl, rel: "noopener noreferrer", target: "_blank", children: [
+                  "View full report",
+                  /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \u2197" })
+                ] }),
+                status.historyUrl ? /* @__PURE__ */ u3(
+                  "a",
+                  {
+                    href: externalTavernaryUrl(status.historyUrl),
+                    rel: "noopener noreferrer",
+                    target: "_blank",
+                    children: [
+                      "View scan history",
+                      /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \u2192" })
+                    ]
+                  }
+                ) : null
+              ] })
+            ] }) : /* @__PURE__ */ u3("p", { class: "tavernary-companion-tavernkeeper-summary", children: content })
+          ]
+        }
+      ),
+      document.body
+    ) : null
+  ] });
 }
 function externalTavernaryUrl(value) {
   return new URL(value, "https://tavernary.org").href;
-}
-var encodedCitationPattern = /\s*\uE200cite\uE202[^\uE201]*\uE201/giu;
-var findingReferencePattern = /\s*\((?:V\d+\s+)?findings?\s+[^)]*\b[0-9a-f]{64}\b[^)]*\)/giu;
-var bracketedFindingReferencePattern = /\s*\[[0-9a-f]{64}(?:,\s*[0-9a-f]{64})*\]/giu;
-var invisibleFormattingPattern = /[\u200B-\u200D\u2060\uFEFF]/gu;
-function conciseSummary(summary) {
-  return summary.replace(encodedCitationPattern, "").replace(findingReferencePattern, "").replace(bracketedFindingReferencePattern, "").replace(invisibleFormattingPattern, "").replace(/\s+([,.;!?])/gu, "$1").replace(/\s+/gu, " ").trim();
 }
 function ScanIcon() {
   return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", "data-icon": "scan-fill", fill: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M4.257 5.671l2.137 2.137a7 7 0 1 0 1.414-1.414L5.67 4.257A9.959 9.959 0 0 1 12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12c0-2.401.846-4.605 2.257-6.329zm3.571 3.572L12 13.414 13.414 12 9.243 7.828a5 5 0 1 1-1.414 1.414z" }) });
 }
 function ClockIcon() {
-  return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", "data-icon": "clock", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ u3(
-    "path",
+  return /* @__PURE__ */ u3(
+    "svg",
     {
-      d: "M12 7V12L14.5 13.5M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z",
-      "stroke-linecap": "round",
-      "stroke-linejoin": "round",
-      "stroke-width": "2"
+      "aria-hidden": "true",
+      class: "tavernary-companion-tavernkeeper-freshness-clock",
+      "data-icon": "clock",
+      fill: "none",
+      stroke: "currentColor",
+      viewBox: "0 0 24 24",
+      children: /* @__PURE__ */ u3(
+        "path",
+        {
+          d: "M12 7V12L14.5 13.5M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+          "stroke-width": "2"
+        }
+      )
     }
-  ) });
+  );
 }
 
 // src/ui/projects/project-card.tsx
@@ -16728,11 +17312,19 @@ function ProjectCard({
   const managedInSillyTavern = selfProtected || project2.action.kind === "manage-in-sillytavern";
   const iconName = project2.kind === "extension" ? project2.primaryFunctionId : project2.kind;
   const hasActivityMetrics = project2.activity.activeWeeks12 !== null && project2.activity.weeklyActivity !== null;
+  const openRepositoryFromExposedContent = (event) => {
+    if (event.defaultPrevented || event.button !== 0) return;
+    const target = event.target;
+    if (!(target instanceof Element) || target.closest("a, button")) return;
+    const opened = window.open(project2.canonicalUrl, "_blank", "noopener,noreferrer");
+    if (opened) opened.opener = null;
+  };
   return /* @__PURE__ */ u3(
     "article",
     {
       class: `tavernary-companion-project-card kind-${project2.kind}${project2.installed ? " is-installed" : ""}`,
       "data-project-id": project2.id,
+      onClick: openRepositoryFromExposedContent,
       children: [
         /* @__PURE__ */ u3(
           "a",
@@ -16752,10 +17344,11 @@ function ProjectCard({
         ),
         /* @__PURE__ */ u3("header", { class: "tavernary-companion-project-card__top", children: [
           /* @__PURE__ */ u3(
-            "span",
+            Tooltip,
             {
-              class: "tavernary-companion-project-card__kind",
-              "aria-label": `${project2.primaryFunction} ${kindLabel(project2.kind)}`,
+              id: `${project2.id}-type`,
+              label: project2.tooltips.type,
+              className: "tavernary-companion-project-card__kind",
               children: [
                 /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-card__function-symbol", children: /* @__PURE__ */ u3(CategoryIcon, { name: iconName }) }),
                 kindLabel(project2.kind)
@@ -16763,52 +17356,160 @@ function ProjectCard({
             }
           ),
           project2.kind === "preset" ? project2.preset ? /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-card__development is-preset", children: [
-            project2.preset.versionLabel ? /* @__PURE__ */ u3("b", { class: "tavernary-companion-project-card__preset-version", children: project2.preset.versionLabel }) : null,
-            project2.preset.publishedLabel ? /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-card__preset-publication", children: project2.preset.publishedLabel }) : null,
-            project2.preset.sizeLabel ? /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-card__preset-size", children: project2.preset.sizeLabel }) : null
-          ] }) : null : /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-card__development", children: [
-            /* @__PURE__ */ u3(ActivitySummary, { activity: project2.activity }),
-            hasActivityMetrics && project2.activity.latestSourceActivityLabel ? /* @__PURE__ */ u3(
-              "b",
+            project2.preset.versionLabel ? /* @__PURE__ */ u3(
+              Tooltip,
               {
-                class: "tavernary-companion-project-card__activity-age",
+                id: `${project2.id}-preset-version`,
+                label: project2.tooltips.preset?.version ?? "",
+                className: "tavernary-companion-project-card__preset-version",
+                children: project2.preset.versionLabel
+              }
+            ) : null,
+            project2.preset.publishedLabel ? /* @__PURE__ */ u3(
+              Tooltip,
+              {
+                id: `${project2.id}-preset-publication`,
+                label: project2.tooltips.preset?.published ?? "",
+                className: "tavernary-companion-project-card__preset-publication",
+                children: project2.preset.publishedLabel
+              }
+            ) : null,
+            project2.preset.sizeLabel ? /* @__PURE__ */ u3(
+              Tooltip,
+              {
+                id: `${project2.id}-preset-size`,
+                label: project2.tooltips.preset?.size ?? "",
+                className: "tavernary-companion-project-card__preset-size",
+                children: project2.preset.sizeLabel
+              }
+            ) : null
+          ] }) : null : /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-card__development", children: [
+            /* @__PURE__ */ u3(
+              ActivitySummary,
+              {
+                projectId: project2.id,
+                activity: project2.activity,
+                tooltip: project2.tooltips.activity
+              }
+            ),
+            hasActivityMetrics && project2.activity.latestSourceActivityLabel ? /* @__PURE__ */ u3(
+              Tooltip,
+              {
+                id: `${project2.id}-commit`,
+                label: project2.tooltips.latestSourceActivity ?? "",
+                className: "tavernary-companion-project-card__activity-age",
                 style: {
                   "--tavernary-companion-commit-freshness": `${project2.activity.latestSourceActivityFreshness}%`
                 },
                 children: project2.activity.latestSourceActivityLabel
               }
-            ) : hasActivityMetrics ? /* @__PURE__ */ u3("b", { class: "tavernary-companion-project-card__activity-age no-source-activity", children: missingSourceActivityLabel(project2.activity.evidenceStatus) }) : null,
-            project2.communityAggregate !== null ? /* @__PURE__ */ u3(
-              "span",
+            ) : hasActivityMetrics ? /* @__PURE__ */ u3(
+              Tooltip,
               {
-                class: "tavernary-companion-project-card__community",
-                "aria-label": `Community activity: ${project2.communityAggregate}`,
+                id: `${project2.id}-commit`,
+                label: project2.tooltips.latestSourceActivity ?? "",
+                ariaLabel: project2.tooltips.latestSourceActivity ?? void 0,
+                className: "tavernary-companion-project-card__activity-age no-source-activity",
+                children: missingSourceActivityLabel(project2.activity.evidenceStatus)
+              }
+            ) : null,
+            project2.communityAggregate !== null ? /* @__PURE__ */ u3(
+              Tooltip,
+              {
+                id: `${project2.id}-community`,
+                label: project2.tooltips.community ?? "",
+                className: "tavernary-companion-project-card__community",
                 children: [
                   /* @__PURE__ */ u3(CategoryIcon, { name: "community" }),
                   /* @__PURE__ */ u3("b", { children: project2.communityAggregate })
                 ]
               }
             ) : null,
-            project2.repositorySizeLabel ? /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-card__repository-size", children: project2.repositorySizeLabel }) : null
+            project2.repositorySizeLabel ? /* @__PURE__ */ u3(
+              Tooltip,
+              {
+                id: `${project2.id}-repository-size`,
+                label: project2.tooltips.repositorySize ?? "",
+                className: "tavernary-companion-project-card__repository-size",
+                children: project2.repositorySizeLabel
+              }
+            ) : null
           ] })
         ] }),
         /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__title", children: [
-          /* @__PURE__ */ u3("h3", { children: project2.displayName }),
+          /* @__PURE__ */ u3("h3", { children: /* @__PURE__ */ u3(
+            Tooltip,
+            {
+              id: `${project2.id}-title`,
+              label: project2.summary,
+              className: "tavernary-companion-project-card__title-text",
+              showOnAncestorFocus: true,
+              children: project2.displayName
+            }
+          ) }),
           project2.tavernKeeper ? /* @__PURE__ */ u3(TavernKeeperScanIndicator, { projectId: project2.id, status: project2.tavernKeeper }) : null
         ] }),
-        project2.attributionLabel ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__attribution", children: project2.attributionLabel }) : null,
+        project2.attributionLabel ? /* @__PURE__ */ u3(
+          Tooltip,
+          {
+            id: `${project2.id}-attribution`,
+            label: project2.tooltips.attribution ?? "",
+            className: "tavernary-companion-project-card__attribution",
+            children: project2.attributionLabel
+          }
+        ) : null,
         /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__summary", children: project2.summary }),
         /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__bottom", children: [
           /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__chips", children: [
-            project2.frontends.map((frontend) => /* @__PURE__ */ u3("span", { class: "tavernary-companion-chip tavernary-companion-chip--frontend", children: frontend })),
-            project2.tagChips.map((tag2) => /* @__PURE__ */ u3("span", { class: `tavernary-companion-chip tavernary-companion-chip--tag tag-${tag2.facet}`, children: tag2.label })),
-            project2.preset?.modelFamilies.map((family) => /* @__PURE__ */ u3("span", { class: "tavernary-companion-chip", children: family })),
-            project2.preset?.completionFormats.map((format) => /* @__PURE__ */ u3("span", { class: "tavernary-companion-chip", children: format }))
+            project2.frontends.map((frontend, index) => /* @__PURE__ */ u3(
+              Tooltip,
+              {
+                id: `${project2.id}-frontend-${index}`,
+                label: project2.tooltips.frontends[index] ?? "",
+                className: "tavernary-companion-chip tavernary-companion-chip--frontend",
+                children: frontend
+              }
+            )),
+            project2.tagChips.map((tag2, index) => /* @__PURE__ */ u3(
+              Tooltip,
+              {
+                id: `${project2.id}-tag-${index}`,
+                label: project2.tooltips.tags[index] ?? "",
+                className: `tavernary-companion-chip tavernary-companion-chip--tag tag-${tag2.facet}`,
+                children: tag2.label
+              }
+            )),
+            project2.preset?.modelFamilies.map((family, index) => /* @__PURE__ */ u3(
+              Tooltip,
+              {
+                id: `${project2.id}-model-${index}`,
+                label: project2.tooltips.preset?.modelFamilies[index] ?? "",
+                className: "tavernary-companion-chip",
+                children: family
+              }
+            )),
+            project2.preset?.completionFormats.map((format, index) => /* @__PURE__ */ u3(
+              Tooltip,
+              {
+                id: `${project2.id}-completion-${index}`,
+                label: project2.tooltips.preset?.completionFormats[index] ?? "",
+                className: "tavernary-companion-chip",
+                children: format
+              }
+            ))
           ] }),
           project2.action.reason ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__reason", children: project2.action.reason }) : null,
           /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__utility", children: [
             /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__meta", children: [
-              /* @__PURE__ */ u3("span", { class: `tavernary-companion-license license-${project2.licenseStatus}`, children: project2.licenseLabel }),
+              /* @__PURE__ */ u3(
+                Tooltip,
+                {
+                  id: `${project2.id}-license`,
+                  label: project2.tooltips.license,
+                  className: `tavernary-companion-license license-${project2.licenseStatus}`,
+                  children: project2.licenseLabel
+                }
+              ),
               project2.installed ? /* @__PURE__ */ u3("span", { children: "Installed" }) : null
             ] }),
             /* @__PURE__ */ u3("footer", { children: [

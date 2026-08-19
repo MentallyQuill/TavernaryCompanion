@@ -1,5 +1,5 @@
 import { fireEvent, render, screen, within } from "@testing-library/preact";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { TavernKeeperCardStatus } from "../../src/catalog/catalog-core";
 import { TavernKeeperScanIndicator } from "../../src/ui/projects/tavernkeeper-scan-indicator";
@@ -46,7 +46,7 @@ describe("TavernKeeperScanIndicator", () => {
     render(<TavernKeeperScanIndicator projectId="alpha" status={status()} />);
 
     const trigger = screen.getByRole("button", {
-      name: "TavernKeeper scan: Low concern · current scan",
+      name: "TavernKeeper scan: Low concern; current.",
     });
     expect(trigger).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(trigger);
@@ -86,7 +86,7 @@ describe("TavernKeeperScanIndicator", () => {
         })}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "TavernKeeper scan: Scan unsupported" }));
+    fireEvent.click(screen.getByRole("button", { name: "TavernKeeper scan: Unsupported source." }));
     expect(screen.getByText(/scanning is not supported/)).toBeVisible();
 
     view.rerender(
@@ -100,13 +100,13 @@ describe("TavernKeeperScanIndicator", () => {
         })}
       />,
     );
-    expect(screen.getByRole("button", { name: "TavernKeeper scan: Not assessed" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "TavernKeeper scan: Not assessed." })).toBeVisible();
 
     view.rerender(
       <TavernKeeperScanIndicator projectId="alpha" status={status({ freshness: "stale" })} />,
     );
     const stale = screen.getByRole("button", {
-      name: "TavernKeeper scan: Low concern · scan not current",
+      name: "TavernKeeper scan: Low concern; stale assessment.",
     });
     fireEvent.click(stale);
     fireEvent.click(stale);
@@ -117,13 +117,17 @@ describe("TavernKeeperScanIndicator", () => {
   it("dismisses with Escape and restores focus to the scan trigger", () => {
     render(<TavernKeeperScanIndicator projectId="alpha" status={status()} />);
     const trigger = screen.getByRole("button", {
-      name: "TavernKeeper scan: Low concern · current scan",
+      name: "TavernKeeper scan: Low concern; current.",
     });
     fireEvent.click(trigger);
-    fireEvent.keyDown(document, { key: "Escape" });
+    const hostEscape = vi.fn();
+    window.addEventListener("keydown", hostEscape);
+    fireEvent.keyDown(trigger, { key: "Escape" });
 
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
     expect(trigger).toHaveFocus();
+    expect(hostEscape).not.toHaveBeenCalled();
+    window.removeEventListener("keydown", hostEscape);
   });
 
   it("links each recent conclusion to its exact report", () => {
@@ -145,7 +149,7 @@ describe("TavernKeeperScanIndicator", () => {
       />,
     );
     fireEvent.click(
-      screen.getByRole("button", { name: "TavernKeeper scan: Low concern · current scan" }),
+      screen.getByRole("button", { name: "TavernKeeper scan: Low concern; current." }),
     );
 
     const history = screen.getByRole("group", { name: "Recent TavernKeeper scan history" });
@@ -154,5 +158,32 @@ describe("TavernKeeperScanIndicator", () => {
       "href",
       "https://tavernary.org/security/tavernkeeper/history/source-alpha/",
     );
+  });
+
+  it("matches Tavernary hover, focus routing, and assessment copy", () => {
+    const dirty = status();
+    dirty.report = {
+      ...dirty.report!,
+      summary: `A complete sentence. Findings: ${"f".repeat(64)}`,
+    };
+    render(<TavernKeeperScanIndicator projectId="alpha" status={dirty} />);
+    const trigger = screen.getByRole("button", {
+      name: "TavernKeeper scan: Low concern; current.",
+    });
+
+    fireEvent.mouseEnter(trigger);
+    const dialog = screen.getByRole("dialog", { name: "TavernKeeper Scan Results" });
+    expect(dialog).toHaveTextContent("A complete sentence.");
+    expect(dialog).not.toHaveTextContent("Findings:");
+    expect(within(dialog).queryByRole("heading", { level: 3 })).not.toBeInTheDocument();
+    expect(within(dialog).getByText("current")).toBeVisible();
+
+    fireEvent.keyDown(trigger, { key: "Tab" });
+    expect(within(dialog).getByRole("link", { name: /Browse scanned source/ })).toHaveFocus();
+    fireEvent.keyDown(within(dialog).getByRole("link", { name: /Browse scanned source/ }), {
+      key: "Tab",
+      shiftKey: true,
+    });
+    expect(trigger).toHaveFocus();
   });
 });

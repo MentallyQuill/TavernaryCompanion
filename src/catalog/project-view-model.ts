@@ -43,6 +43,24 @@ export interface ProjectCardViewModel {
   licenseLabel: string;
   licenseStatus: CatalogProject["license"]["status"];
   attributionLabel: string | null;
+  tooltips: {
+    type: string;
+    activity: string;
+    latestSourceActivity: string | null;
+    community: string | null;
+    repositorySize: string | null;
+    attribution: string | null;
+    license: string;
+    frontends: string[];
+    tags: string[];
+    preset: {
+      version: string | null;
+      published: string | null;
+      size: string | null;
+      modelFamilies: string[];
+      completionFormats: string[];
+    } | null;
+  };
   primaryFunctionId: string;
   primaryFunction: string;
   activity: {
@@ -160,6 +178,12 @@ export function toProjectCardViewModel(
 ): ProjectCardViewModel {
   const installed = installedState(project.id, context.inventory);
   const now = context.now ?? project.refreshedAt ?? project.catalogedAt;
+  const primaryFunction = primaryFunctionLabel(project.primaryFunction);
+  const latestSourceActivityLabel = relativeTime(project.activity.latestSourceActivityAt, now);
+  const repositorySizeLabel = formatRepositorySize(project.repositorySizeKb);
+  const presetVersion = project.preset?.version ? formatVersion(project.preset.version) : null;
+  const presetPublishedAt = project.preset?.publishedAt ?? null;
+  const presetSize = formatFileSize(project.preset?.artifactSizeBytes ?? null);
   return {
     id: project.id,
     name: project.name,
@@ -172,12 +196,12 @@ export function toProjectCardViewModel(
     tagChips: project.tags.map(({ label, facet }) => ({ label, facet })),
     licenseLabel: project.license.label,
     licenseStatus: project.license.status,
-    attributionLabel: project.attribution ? `by ${project.attribution.owner.login}` : null,
+    attributionLabel: project.attribution ? attributionByline(project.attribution) : null,
     primaryFunctionId: project.primaryFunction,
-    primaryFunction: primaryFunctionLabel(project.primaryFunction),
+    primaryFunction,
     activity: {
       latestSourceActivityAt: project.activity.latestSourceActivityAt,
-      latestSourceActivityLabel: relativeTime(project.activity.latestSourceActivityAt, now),
+      latestSourceActivityLabel,
       latestSourceActivityFreshness: freshnessPercent(project.activity.latestSourceActivityAt, now),
       activeWeeks12: project.activity.activeWeeks12,
       weeklyActivity: project.activity.weeklyActivity,
@@ -185,18 +209,44 @@ export function toProjectCardViewModel(
       dormant: project.activity.dormant,
     },
     communityAggregate: project.community?.aggregate ?? null,
-    repositorySizeLabel: formatRepositorySize(project.repositorySizeKb),
+    repositorySizeLabel,
     preset: project.preset
       ? {
-          versionLabel: project.preset.version ? formatVersion(project.preset.version) : null,
+          versionLabel: presetVersion,
           publishedLabel: project.preset.publishedAt
             ? `Published ${relativeTime(project.preset.publishedAt, now)}`
             : null,
-          sizeLabel: formatFileSize(project.preset.artifactSizeBytes),
+          sizeLabel: presetSize,
           modelFamilies: project.preset.modelFamilies.map(({ label }) => label),
           completionFormats: project.preset.completionFormats.map(({ label }) => label),
         }
       : null,
+    tooltips: {
+      type: typeTooltip(primaryFunction, project.kind),
+      activity: activityTooltip(project),
+      latestSourceActivity: latestSourceActivityTooltip(project, latestSourceActivityLabel),
+      community: project.community
+        ? `${project.community.aggregate} total: ${project.community.stars} stars, ${project.community.forks} forks, ${project.community.watchers} watchers`
+        : null,
+      repositorySize: repositorySizeLabel
+        ? `${repositorySizeLabel.replace(" repo", "")} repository`
+        : null,
+      attribution: project.attribution ? attributionTooltip(project.attribution) : null,
+      license: licenseTooltip(project),
+      frontends: project.frontends.map(({ description }) => description),
+      tags: project.tags.map(({ description }) => description),
+      preset: project.preset
+        ? {
+            version: presetVersion ? `Preset version ${presetVersion}` : null,
+            published: presetPublishedAt ? `Published ${formatDate(presetPublishedAt)}` : null,
+            size: presetSize,
+            modelFamilies: project.preset.modelFamilies.map(({ description }) => description),
+            completionFormats: project.preset.completionFormats.map(
+              ({ description }) => description,
+            ),
+          }
+        : null,
+    },
     tavernKeeper: project.tavernKeeper,
     installed: installed.ownership !== "absent",
     ownership: installed.ownership,
@@ -207,6 +257,87 @@ export function toProjectCardViewModel(
       Boolean(project.install),
     action: actionFor(project, context, installed),
   };
+}
+
+function typeTooltip(primaryFunction: string, kind: CatalogProject["kind"]): string {
+  if (kind === "frontend" && primaryFunction.toLocaleLowerCase().startsWith("frontend")) {
+    return "Frontend";
+  }
+  return `${primaryFunction} ${
+    {
+      frontend: "Frontend",
+      extension: "Extension",
+      preset: "System Preset",
+    }[kind]
+  }`;
+}
+
+function licenseTooltip(project: CatalogProject): string {
+  if (project.license.status === "osi-approved") {
+    return `${project.license.label} is OSI-approved`;
+  }
+  if (project.license.status === "proprietary") return "Proprietary license";
+  if (project.license.status === "pending") return "License pending verification";
+  return "No license detected";
+}
+
+function activityTooltip(project: CatalogProject): string {
+  const activeWeeks = project.activity.activeWeeks12;
+  if (activeWeeks === null || project.activity.weeklyActivity === null)
+    return "Activity unavailable";
+  const summary =
+    project.activity.evidenceStatus === "provisional"
+      ? `Approximate activity in ${activeWeeks} of the last 12 weeks; baseline pending`
+      : `Source activity in ${activeWeeks} of the last 12 weeks`;
+  return project.activity.evidenceStatus === "degraded"
+    ? `${summary}; activity evidence is incomplete`
+    : summary;
+}
+
+function latestSourceActivityTooltip(
+  project: CatalogProject,
+  relative: string | null,
+): string | null {
+  if (project.activity.latestSourceActivityAt && relative) {
+    return `Last source activity ${formatDate(project.activity.latestSourceActivityAt)} (${relative})`;
+  }
+  if (project.activity.activeWeeks12 === null || project.activity.weeklyActivity === null) {
+    return null;
+  }
+  if (project.activity.evidenceStatus === "complete") {
+    return "No source activity in the last 12 weeks";
+  }
+  if (project.activity.evidenceStatus === "provisional") {
+    return "Source activity baseline pending";
+  }
+  return "Source activity evidence incomplete";
+}
+
+function attributionByline(attribution: NonNullable<CatalogProject["attribution"]>): string {
+  const count = attribution.humanContributorCount;
+  if (count === 0) return `by ${attribution.owner.login}`;
+  return `by ${attribution.owner.login}, plus ${count} ${count === 1 ? "contributor" : "contributors"}`;
+}
+
+function attributionTooltip(attribution: NonNullable<CatalogProject["attribution"]>): string {
+  const provider = attribution.owner.provider === "github" ? "GitHub" : "Codeberg";
+  const parts = [`${provider} owner: ${attribution.owner.login}`];
+  const humans = attribution.contributors
+    .filter(({ botOrAi }) => !botOrAi)
+    .map(({ login }) => login);
+  const botsOrAi = attribution.contributors
+    .filter(({ botOrAi }) => botOrAi)
+    .map(({ login }) => login);
+
+  if (attribution.status === "pending") {
+    parts.push("Contributor data pending");
+  } else {
+    if (humans.length > 0) parts.push(`Contributors: ${humans.join(", ")}`);
+    if (botsOrAi.length > 0) parts.push(`Bots/AI: ${botsOrAi.join(", ")}`);
+    if (attribution.status === "stale") parts.push("Contributor data stale");
+    else if (attribution.status === "partial") parts.push("Contributor history still scanning");
+  }
+  return parts.join(" · ");
 }
 
 function projectDisplayName(name: string): string {
@@ -246,6 +377,13 @@ function formatFileSize(bytes: number | null): string | null {
 
 function formatVersion(version: string): string {
   return /^\d+(?:\.\d+)*$/.test(version) ? `v${version}` : version;
+}
+
+function formatDate(timestamp: string): string {
+  return new Intl.DateTimeFormat("en-US", {
+    dateStyle: "medium",
+    timeZone: "UTC",
+  }).format(new Date(timestamp));
 }
 
 function primaryFunctionLabel(value: string): string {

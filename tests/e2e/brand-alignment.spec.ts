@@ -358,7 +358,7 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
   const functionIcon = identity.locator('[data-icon="memory-retrieval"]');
   await expect(functionIcon).toBeVisible();
   expect((await functionIcon.boundingBox())?.width).toBe(23);
-  const scan = card.getByRole("button", { name: "TavernKeeper scan: Not assessed" });
+  const scan = card.getByRole("button", { name: "TavernKeeper scan: Not assessed." });
   await expect(scan).toHaveCSS("color", "rgb(130, 144, 153)");
   await expect(scan.locator('[data-icon="scan-fill"]')).toBeVisible();
   expect((await scan.boundingBox())?.width).toBe(18);
@@ -371,6 +371,18 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
   await expect(card.getByText("Today")).toBeVisible();
   await expect(card.locator(".tavernary-companion-project-card__community")).toContainText("11");
   await expect(card.getByText("2.0 MB repo")).toBeVisible();
+  const [topBox, titleBox, activityBox, activityAgeBox, communityBox, repositoryBox] =
+    await Promise.all([
+      card.locator(".tavernary-companion-project-card__top").boundingBox(),
+      card.locator(".tavernary-companion-project-card__title").boundingBox(),
+      card.locator(".tavernary-companion-activity-summary").boundingBox(),
+      card.locator(".tavernary-companion-project-card__activity-age").boundingBox(),
+      card.locator(".tavernary-companion-project-card__community").boundingBox(),
+      card.locator(".tavernary-companion-project-card__repository-size").boundingBox(),
+    ]);
+  expect(titleBox!.y - (topBox!.y + topBox!.height)).toBeCloseTo(2, 0);
+  expect(activityAgeBox!.x - (activityBox!.x + activityBox!.width)).toBeCloseTo(5, 0);
+  expect(repositoryBox!.x - (communityBox!.x + communityBox!.width)).toBeCloseTo(5, 0);
   const summary = card.locator(".tavernary-companion-project-card__summary");
   await expect(summary).toHaveCSS("font-size", "11px");
   expect(
@@ -409,6 +421,7 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
   expect(kitGlyphBox).not.toBeNull();
   expect(kitLabelBox).not.toBeNull();
   expect(installBox!.x).toBeLessThan(kitBox!.x);
+  expect(kitBox!.x - (installBox!.x + installBox!.width)).toBeCloseTo(4, 0);
   await expect(lifecycle.locator('[data-icon="install"]')).toBeVisible();
   await expect(kitLabel).toBeVisible();
   expect(installBox!.width).toBe(34);
@@ -435,6 +448,32 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
   expect(kitLabelBox!.x + kitLabelBox!.width).toBeLessThanOrEqual(
     kitFaceBox!.x + kitFaceBox!.width,
   );
+  await expect(kitLabel).toHaveCSS("color", "rgb(22, 16, 8)");
+  await expect(kitFace).toHaveCSS("color", "rgb(22, 16, 8)");
+
+  await identity.hover();
+  const typeTooltip = page.getByRole("tooltip");
+  await expect(typeTooltip).toHaveText("Memory & Retrieval Extension");
+  await expect(typeTooltip).toHaveCSS("font-size", "9px");
+  await expect(typeTooltip).toHaveCSS("background-color", "rgb(13, 17, 23)");
+  expect(await typeTooltip.evaluate((element) => element.parentElement === document.body)).toBe(
+    true,
+  );
+  await page.keyboard.press("Escape");
+  await expect(typeTooltip).toHaveCount(0);
+
+  await lifecycle.focus();
+  await expect(page.getByRole("tooltip")).toHaveText("Install");
+  await page.keyboard.press("Escape");
+
+  await scan.hover();
+  const scanPanel = page.getByRole("dialog", { name: "TavernKeeper Scan Results" });
+  await expect(scanPanel).toBeVisible();
+  await expect(
+    scanPanel.getByText("This project hasn't been scanned by TavernKeeper."),
+  ).toBeVisible();
+  expect(await scanPanel.evaluate((element) => element.parentElement === document.body)).toBe(true);
+  await page.keyboard.press("Escape");
 
   await search.fill("Beta Preset");
   const preset = page.locator('[data-project-id="beta-preset"]');
@@ -493,7 +532,7 @@ test("TavernKeeper assessment stays compact, readable, and contained", async ({ 
     .getByRole("searchbox", { name: "Search projects" })
     .fill("Alpha");
 
-  const trigger = page.getByRole("button", { name: "TavernKeeper scan: Not assessed" });
+  const trigger = page.getByRole("button", { name: "TavernKeeper scan: Not assessed." });
   await trigger.click();
   const assessment = page.getByRole("dialog", { name: "TavernKeeper Scan Results" });
   await expect(assessment).toBeVisible();
@@ -502,11 +541,9 @@ test("TavernKeeper assessment stays compact, readable, and contained", async ({ 
   ).toBeVisible();
   await expect(assessment).toHaveCSS("text-align", "start");
   const box = await assessment.boundingBox();
-  const shell = await page.getByTestId("companion-shell").boundingBox();
   expect(box).not.toBeNull();
-  expect(shell).not.toBeNull();
-  expect(box!.x).toBeGreaterThanOrEqual(shell!.x + 8);
-  expect(box!.x + box!.width).toBeLessThanOrEqual(shell!.x + shell!.width - 8);
+  expect(box!.x).toBeGreaterThanOrEqual(8);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(390 - 8);
 
   await page.keyboard.press("Escape");
   await expect(assessment).toHaveCount(0);

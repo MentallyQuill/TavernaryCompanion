@@ -52,7 +52,7 @@ test("mobile TavernKeeper assessment matches the card grammar", async ({ page })
     .locator(".tavernary-companion-shell__header")
     .getByRole("searchbox", { name: "Search projects" })
     .fill("Alpha");
-  await page.getByRole("button", { name: "TavernKeeper scan: Not assessed" }).click();
+  await page.getByRole("button", { name: "TavernKeeper scan: Not assessed." }).click();
   await expect(page.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toBeVisible();
   await expect(page).toHaveScreenshot("tavernkeeper-390x844.png");
 });

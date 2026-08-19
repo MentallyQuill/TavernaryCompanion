@@ -1,7 +1,9 @@
 import { expect, test, type Locator, type Page } from "@playwright/test";
+import { readFile } from "node:fs/promises";
 
 const realHostUrl = process.env.REAL_SILLYTAVERN_URL;
 const realHostUser = process.env.REAL_SILLYTAVERN_USER ?? "companion-acceptance-v1";
+const realCatalogPath = process.env.REAL_SILLYTAVERN_CATALOG_PATH;
 
 test.describe("real SillyTavern acceptance", () => {
   test.skip(!realHostUrl, "Set REAL_SILLYTAVERN_URL to run against an installed extension.");
@@ -55,6 +57,81 @@ test.describe("real SillyTavern acceptance", () => {
       ),
     ).toBe(1);
 
+    const title = card.locator(".tavernary-companion-project-card__title-text");
+    await page.evaluate(() => {
+      (window as typeof window & { realHostWindowOpenCalls: number }).realHostWindowOpenCalls = 0;
+      window.open = () => {
+        (window as typeof window & { realHostWindowOpenCalls: number }).realHostWindowOpenCalls +=
+          1;
+        return null;
+      };
+    });
+    await expect(title).toHaveCSS("cursor", "pointer");
+    await title.hover();
+    const titleTooltip = page.getByRole("tooltip");
+    await expect(titleTooltip).toBeVisible();
+    await expect(titleTooltip).not.toBeEmpty();
+    expect(await titleTooltip.evaluate((element) => element.parentElement === document.body)).toBe(
+      true,
+    );
+    await page.keyboard.press("Escape");
+    await title.click();
+    expect(
+      await page.evaluate(
+        () =>
+          (window as typeof window & { realHostWindowOpenCalls: number }).realHostWindowOpenCalls,
+      ),
+    ).toBe(1);
+
+    const scan = card.getByRole("button", { name: /^TavernKeeper scan:/u });
+    await expect(scan).toHaveCSS("cursor", "pointer");
+    await scan.hover();
+    const scanPanel = page.getByRole("dialog", { name: "TavernKeeper Scan Results" });
+    await expect(scanPanel).toBeVisible();
+    expect(await scanPanel.evaluate((element) => element.parentElement === document.body)).toBe(
+      true,
+    );
+    await page.keyboard.press("Escape");
+
+    const [topBox, titleRowBox] = await Promise.all([
+      card.locator(".tavernary-companion-project-card__top").boundingBox(),
+      card.locator(".tavernary-companion-project-card__title").boundingBox(),
+    ]);
+    expect(titleRowBox!.y - (topBox!.y + topBox!.height)).toBeCloseTo(2, 0);
+
+    const activityCard = page
+      .locator(
+        ".tavernary-companion-project-card:has(.tavernary-companion-activity-summary):has(.tavernary-companion-project-card__activity-age)",
+      )
+      .first();
+    const [activityBox, activityAgeBox] = await Promise.all([
+      activityCard.locator(".tavernary-companion-activity-summary").boundingBox(),
+      activityCard.locator(".tavernary-companion-project-card__activity-age").boundingBox(),
+    ]);
+    expect(activityAgeBox!.x - (activityBox!.x + activityBox!.width)).toBeCloseTo(5, 0);
+
+    const repositoryCard = page
+      .locator(
+        ".tavernary-companion-project-card:has(.tavernary-companion-project-card__community):has(.tavernary-companion-project-card__repository-size)",
+      )
+      .first();
+    const [communityBox, repositoryBox] = await Promise.all([
+      repositoryCard.locator(".tavernary-companion-project-card__community").boundingBox(),
+      repositoryCard.locator(".tavernary-companion-project-card__repository-size").boundingBox(),
+    ]);
+    expect(repositoryBox!.x - (communityBox!.x + communityBox!.width)).toBeCloseTo(5, 0);
+
+    const actionCard = page
+      .locator(
+        ".tavernary-companion-project-card:has([data-testid='project-lifecycle-action']):has(.tavernary-companion-project-kit-control)",
+      )
+      .first();
+    const lifecycle = actionCard.locator("[data-testid='project-lifecycle-action']");
+    const kit = actionCard.locator(".tavernary-companion-project-kit-control");
+    const [lifecycleBox, kitBox] = await Promise.all([lifecycle.boundingBox(), kit.boundingBox()]);
+    expect(kitBox!.x - (lifecycleBox!.x + lifecycleBox!.width)).toBeCloseTo(4, 0);
+    await expect(kit.getByText("Kit", { exact: true })).toHaveCSS("color", "rgb(22, 16, 8)");
+
     const navigation = root.getByRole("navigation", { name: "Catalog categories" });
     await navigation.getByRole("button", { name: "Kits" }).click();
     await expect(root.getByRole("tab", { name: /Personal/u })).toHaveAttribute(
@@ -97,6 +174,17 @@ test.describe("real SillyTavern acceptance", () => {
 });
 
 async function openInstalledCompanion(page: Page): Promise<void> {
+  if (realCatalogPath) {
+    const catalog = await readFile(realCatalogPath, "utf8");
+    await page.route("https://tavernary.org/catalog/tavernary-catalog.json", async (route) => {
+      await route.fulfill({
+        body: catalog,
+        contentType: "application/json",
+        headers: { "Access-Control-Allow-Origin": "*" },
+        status: 200,
+      });
+    });
+  }
   await page.goto(realHostUrl!, { waitUntil: "domcontentloaded" });
   await page.waitForFunction(() =>
     Boolean(
