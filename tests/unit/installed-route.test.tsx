@@ -87,6 +87,13 @@ describe("InstalledRoute", () => {
     expect(screen.queryByRole("button", { name: "View Alpha" })).not.toBeInTheDocument();
   });
 
+  it("omits duplicate inventory details from condensed extension cards", () => {
+    render(<InstalledRoute sections={sections} onRefresh={vi.fn()} />);
+
+    expect(screen.getAllByText("Alpha")).toHaveLength(1);
+    expect(screen.queryByText("third-party/Mystery")).not.toBeInTheDocument();
+  });
+
   it("renders installed Kits before extension cards and toggles an extension in place", () => {
     const onToggleExtension = vi.fn();
     const onOpenKit = vi.fn();
