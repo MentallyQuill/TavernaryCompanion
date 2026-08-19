@@ -98,6 +98,7 @@ class DefaultDiscoveryController implements DiscoveryController {
     let projects: ProjectCardViewModel[] = [];
     let projectDetails: Record<string, ProjectDetailViewModel> = {};
     if (catalog) {
+      const now = this.#now();
       if (catalog !== this.#indexedCatalog) {
         this.#indexedCatalog = catalog;
         this.#index = this.#createIndex(
@@ -108,12 +109,13 @@ class DefaultDiscoveryController implements DiscoveryController {
       projects = selectProjects(
         [...catalog.projects],
         this.#query,
-        { now: this.#now(), tagVocabulary: catalog.tagVocabulary },
+        { now, tagVocabulary: catalog.tagVocabulary },
         searchResults,
       ).map((project) =>
         toProjectCardViewModel(project, {
           snapshot: this.#snapshot,
           inventory: this.#inventory,
+          now,
         }),
       );
       projectDetails = Object.fromEntries(
@@ -122,6 +124,7 @@ class DefaultDiscoveryController implements DiscoveryController {
           toProjectDetailViewModel(project, {
             snapshot: this.#snapshot,
             inventory: this.#inventory,
+            now,
             kits: catalog.kits,
           }),
         ]),

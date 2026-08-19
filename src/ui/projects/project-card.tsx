@@ -28,89 +28,171 @@ export function ProjectCard({
   const selfProtected =
     project.id === COMPANION_PROJECT_ID || project.action.kind === "current-extension";
   const compactInstall = project.action.kind === "install";
+  const iconName = project.kind === "extension" ? project.primaryFunctionId : project.kind;
+  const hasActivityMetrics =
+    project.activity.activeWeeks12 !== null && project.activity.weeklyActivity !== null;
   return (
-    <article class="tavernary-companion-project-card" data-project-id={project.id}>
+    <article
+      class={`tavernary-companion-project-card kind-${project.kind}`}
+      data-project-id={project.id}
+    >
       <header class="tavernary-companion-project-card__top">
-        <span class={`tavernary-companion-project-card__kind kind-${project.kind}`}>
-          <CategoryIcon kind={project.kind} />
+        <span
+          class="tavernary-companion-project-card__kind"
+          aria-label={`${project.primaryFunction} ${kindLabel(project.kind)}`}
+        >
+          <span class="tavernary-companion-project-card__function-symbol">
+            <CategoryIcon name={iconName} />
+          </span>
           {kindLabel(project.kind)}
         </span>
-        <ActivitySummary activity={project.activity} />
+        {project.kind === "preset" ? (
+          project.preset ? (
+            <span class="tavernary-companion-project-card__development is-preset">
+              {project.preset.versionLabel ? (
+                <b class="tavernary-companion-project-card__preset-version">
+                  {project.preset.versionLabel}
+                </b>
+              ) : null}
+              {project.preset.publishedLabel ? (
+                <span class="tavernary-companion-project-card__preset-publication">
+                  {project.preset.publishedLabel}
+                </span>
+              ) : null}
+              {project.preset.sizeLabel ? (
+                <span class="tavernary-companion-project-card__preset-size">
+                  {project.preset.sizeLabel}
+                </span>
+              ) : null}
+            </span>
+          ) : null
+        ) : (
+          <span class="tavernary-companion-project-card__development">
+            <ActivitySummary activity={project.activity} />
+            {hasActivityMetrics && project.activity.latestSourceActivityLabel ? (
+              <b
+                class="tavernary-companion-project-card__activity-age"
+                style={
+                  {
+                    "--tavernary-companion-commit-freshness": `${project.activity.latestSourceActivityFreshness}%`,
+                  } as preact.JSX.CSSProperties
+                }
+              >
+                {project.activity.latestSourceActivityLabel}
+              </b>
+            ) : hasActivityMetrics ? (
+              <b class="tavernary-companion-project-card__activity-age no-source-activity">
+                {missingSourceActivityLabel(project.activity.evidenceStatus)}
+              </b>
+            ) : null}
+            {project.communityAggregate !== null ? (
+              <span
+                class="tavernary-companion-project-card__community"
+                aria-label={`Community activity: ${project.communityAggregate}`}
+              >
+                <CategoryIcon name="community" />
+                <b>{project.communityAggregate}</b>
+              </span>
+            ) : null}
+            {project.repositorySizeLabel ? (
+              <span class="tavernary-companion-project-card__repository-size">
+                {project.repositorySizeLabel}
+              </span>
+            ) : null}
+          </span>
+        )}
       </header>
       <div class="tavernary-companion-project-card__title">
-        <h3>{project.name}</h3>
-        <AssessmentBadge status={project.tavernKeeper} />
+        <h3>{project.displayName}</h3>
+        {project.tavernKeeper ? <AssessmentBadge status={project.tavernKeeper} compact /> : null}
       </div>
       {project.attributionLabel ? (
         <p class="tavernary-companion-project-card__attribution">{project.attributionLabel}</p>
       ) : null}
       <p class="tavernary-companion-project-card__summary">{project.summary}</p>
-      <div class="tavernary-companion-project-card__chips">
-        {(project.frontends.length ? project.frontends : ["Frontend-neutral"]).map((frontend) => (
-          <span class="tavernary-companion-chip tavernary-companion-chip--frontend">
-            {frontend}
-          </span>
-        ))}
-        <span class="tavernary-companion-chip tavernary-companion-chip--function">
-          {project.primaryFunction}
-        </span>
-        {project.tags.slice(0, 3).map((tag) => (
-          <span class="tavernary-companion-chip">{tag}</span>
-        ))}
-      </div>
-      <div class="tavernary-companion-project-card__meta">
-        <span>{project.licenseLabel}</span>
-        {project.installed ? <span>Installed</span> : null}
-      </div>
-      {project.action.reason ? (
-        <p class="tavernary-companion-project-card__reason">{project.action.reason}</p>
-      ) : null}
-      <footer>
-        {kitSelectionActive && !selfProtected && project.kitSelectable ? (
-          <button
-            type="button"
-            class="tavernary-companion-button tavernary-companion-button--primary"
-            onClick={() => onToggleKitSelection?.(project.id)}
-          >
-            {selectedForKit ? "Remove from Kit" : "Add to Kit"}
-          </button>
+      <div class="tavernary-companion-project-card__bottom">
+        <div class="tavernary-companion-project-card__chips">
+          {project.frontends.map((frontend) => (
+            <span class="tavernary-companion-chip tavernary-companion-chip--frontend">
+              {frontend}
+            </span>
+          ))}
+          {project.tagChips.map((tag) => (
+            <span class={`tavernary-companion-chip tavernary-companion-chip--tag tag-${tag.facet}`}>
+              {tag.label}
+            </span>
+          ))}
+          {project.preset?.modelFamilies.map((family) => (
+            <span class="tavernary-companion-chip">{family}</span>
+          ))}
+          {project.preset?.completionFormats.map((format) => (
+            <span class="tavernary-companion-chip">{format}</span>
+          ))}
+        </div>
+        {project.action.reason ? (
+          <p class="tavernary-companion-project-card__reason">{project.action.reason}</p>
         ) : null}
-        <button
-          class="tavernary-companion-button tavernary-companion-button--secondary"
-          type="button"
-          data-focus-key={`project-${project.id}`}
-          onClick={onOpen}
-          aria-label={`View ${project.name} details`}
-        >
-          Details
-        </button>
-        {selfProtected ? (
-          <button type="button" onClick={onManageInSillyTavern}>
-            Manage in SillyTavern
-          </button>
-        ) : (
-          <button
-            type="button"
-            class={`tavernary-companion-project-card__primary tavernary-companion-button ${
-              compactInstall
-                ? "tavernary-companion-project-card__compact-action tavernary-companion-button--primary"
-                : project.action.kind === "view-project"
-                  ? "tavernary-companion-button--secondary"
-                  : "tavernary-companion-button--primary"
-            }`}
-            data-testid="project-primary-action"
-            aria-label={`${project.action.label} ${project.name}`}
-            onClick={() => onAction(project.action)}
-            disabled={lifecycleDisabled}
-          >
-            {compactInstall ? <span aria-hidden="true">+</span> : project.action.label}
-          </button>
-        )}
-      </footer>
+        <div class="tavernary-companion-project-card__utility">
+          <div class="tavernary-companion-project-card__meta">
+            <span class={`tavernary-companion-license license-${project.licenseStatus}`}>
+              {project.licenseLabel}
+            </span>
+            {project.installed ? <span>Installed</span> : null}
+          </div>
+          <footer>
+            {kitSelectionActive && !selfProtected && project.kitSelectable ? (
+              <button
+                type="button"
+                class="tavernary-companion-button tavernary-companion-button--primary"
+                onClick={() => onToggleKitSelection?.(project.id)}
+              >
+                {selectedForKit ? "Remove from Kit" : "Add to Kit"}
+              </button>
+            ) : null}
+            <button
+              class="tavernary-companion-button tavernary-companion-button--secondary"
+              type="button"
+              data-focus-key={`project-${project.id}`}
+              onClick={onOpen}
+              aria-label={`View ${project.displayName} details`}
+            >
+              Details
+            </button>
+            {selfProtected ? (
+              <button type="button" onClick={onManageInSillyTavern}>
+                Manage in SillyTavern
+              </button>
+            ) : (
+              <button
+                type="button"
+                class={`tavernary-companion-project-card__primary tavernary-companion-button ${
+                  compactInstall
+                    ? "tavernary-companion-project-card__compact-action tavernary-companion-button--primary"
+                    : project.action.kind === "view-project"
+                      ? "tavernary-companion-button--secondary"
+                      : "tavernary-companion-button--primary"
+                }`}
+                data-testid="project-primary-action"
+                aria-label={`${project.action.label} ${project.displayName}`}
+                onClick={() => onAction(project.action)}
+                disabled={lifecycleDisabled}
+              >
+                {compactInstall ? <span aria-hidden="true">+</span> : project.action.label}
+              </button>
+            )}
+          </footer>
+        </div>
+      </div>
     </article>
   );
 }
 
 function kindLabel(kind: ProjectCardViewModel["kind"]): string {
-  return { extension: "Extension", preset: "Preset", frontend: "Frontend" }[kind];
+  return { extension: "Extension", preset: "System Preset", frontend: "Frontend" }[kind];
+}
+
+function missingSourceActivityLabel(
+  evidenceStatus: ProjectCardViewModel["activity"]["evidenceStatus"],
+): string {
+  return { complete: "Quiet", provisional: "Pending", degraded: "Partial" }[evidenceStatus];
 }

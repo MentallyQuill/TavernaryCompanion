@@ -30,15 +30,137 @@ async function main() {
       aliases: [],
       applicable_kinds: ["extension"],
     },
+    {
+      id: "modular",
+      label: "Modular",
+      description: "Modular project architecture",
+      facet: "trait",
+      aliases: [],
+      applicable_kinds: ["extension", "preset", "frontend"],
+    },
   ];
-  catalog.projects = Array.from({ length: 437 }, (_, index) => {
+  catalog.projects = Array.from({ length: 438 }, (_, index) => {
+    const kind = index === 2 ? "preset" : index === 3 ? "frontend" : "extension";
     const project = catalogProjectFixture({
-      id: index === 0 ? "alpha" : index === 1 ? "writer-tool" : `project-${index + 1}`,
-      folderName: index === 0 ? "Alpha" : index === 1 ? "WriterTool" : `Project${index + 1}`,
+      id:
+        index === 0
+          ? "alpha"
+          : index === 1
+            ? "writer-tool"
+            : index === 2
+              ? "beta-preset"
+              : index === 3
+                ? "gamma-frontend"
+                : `project-${index + 1}`,
+      folderName:
+        index === 0
+          ? "Alpha"
+          : index === 1
+            ? "WriterTool"
+            : index === 2 || index === 3
+              ? null
+              : `Project${index + 1}`,
+      kind,
     });
-    project.name = index === 0 ? "Alpha" : index === 1 ? "Writer Tool" : `Project ${index + 1}`;
+    project.name =
+      index === 0
+        ? "Alpha"
+        : index === 1
+          ? "Writer Tool"
+          : index === 2
+            ? "Beta Preset"
+            : index === 3
+              ? "Gamma Frontend"
+              : `Project ${index + 1}`;
     project.summary =
       "A catalog extension with a concise, predictable summary for responsive testing.";
+    project.frontends = [{ id: "sillytavern", label: "SillyTavern", description: "SillyTavern" }];
+    project.search.kind = [kind];
+    project.activity.weeklyActivity = [
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      false,
+      true,
+    ];
+    if (index === 0) {
+      project.primaryFunction = "memory-retrieval";
+      project.search.primaryFunction = ["memory-retrieval"];
+      project.tags = [
+        { id: "memory", label: "Memory", description: "Memory tools", facet: "goal" },
+        { id: "modular", label: "Modular", description: "Modular project", facet: "trait" },
+      ];
+      project.search.tags = ["memory", "modular"];
+      project.activity.latestSourceActivityAt = "2026-08-18T00:00:00.000Z";
+      project.activity.activeWeeks12 = 6;
+      project.activity.weeklyActivity = [
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+        false,
+        true,
+      ];
+      project.community = { stars: 8, forks: 2, watchers: 1, aggregate: 11 };
+      project.repositorySizeKb = 2048;
+      project.attribution = {
+        owner: { provider: "github", login: "tavernary-author" },
+        contributors: [],
+        humanContributorCount: 1,
+        status: "current",
+      };
+      project.tavernKeeper = {
+        state: "gray",
+        riskLevel: null,
+        freshness: "unassessed",
+        currentSha: "a".repeat(40),
+        report: null,
+        history: [],
+        historyUrl: null,
+      };
+    } else if (index === 2) {
+      project.primaryFunction = "preset";
+      project.search.primaryFunction = ["preset"];
+      project.tags = [
+        { id: "modular", label: "Modular", description: "Modular project", facet: "trait" },
+      ];
+      project.search.tags = ["modular"];
+      project.preset = {
+        version: "1.2.0",
+        publishedAt: "2026-08-17T12:00:00.000Z",
+        artifactSizeBytes: 2048,
+        modelFamilies: [
+          { id: "model-agnostic", label: "Model-Agnostic", description: "Any model" },
+        ],
+        completionFormats: [
+          {
+            id: "chat-completion",
+            label: "Chat Completion",
+            description: "Chat completion",
+          },
+        ],
+      };
+    } else if (index === 3) {
+      project.primaryFunction = "frontend";
+      project.search.primaryFunction = ["frontend"];
+      project.tags = [
+        { id: "modular", label: "Modular", description: "Modular project", facet: "trait" },
+      ];
+      project.search.tags = ["modular"];
+    }
     return project;
   });
 

@@ -109,4 +109,12 @@ describe("DiscoveryController", () => {
     expect(controller.read().projects.map(({ id }) => id)).toEqual(before);
     expect(controller.read().projects[0]?.action.kind).toBe("uninstall");
   });
+
+  it("uses one clock reading for each internally consistent catalog computation", () => {
+    const now = vi.fn(() => "2026-08-18T12:00:00.000Z");
+
+    createDiscoveryController({ snapshot: snapshot(), inventory, now });
+
+    expect(now).toHaveBeenCalledOnce();
+  });
 });

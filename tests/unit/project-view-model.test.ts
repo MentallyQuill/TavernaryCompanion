@@ -29,6 +29,8 @@ function readySnapshot(canMutate = true): CatalogSnapshot {
 describe("project view models", () => {
   it("projects Tavernary card evidence and metadata", () => {
     const project = catalogProjectFixture();
+    project.name = "SillyTavern Alpha";
+    project.primaryFunction = "memory-retrieval";
     project.tags = [{ id: "memory", label: "Memory", description: "Memory tools", facet: "goal" }];
     project.activity.weeklyActivity = [
       false,
@@ -50,15 +52,66 @@ describe("project view models", () => {
       humanContributorCount: 1,
       status: "current",
     };
+    project.community = { stars: 8, forks: 2, watchers: 1, aggregate: 11 };
+    project.repositorySizeKb = 2048;
+    const view = toProjectCardViewModel(project, {
+      snapshot: readySnapshot(),
+      inventory: emptyInventory,
+      now: "2026-08-19T00:00:00.000Z",
+    });
+
+    expect(view.displayName).toBe("Alpha");
+    expect(view.primaryFunctionId).toBe("memory-retrieval");
+    expect(view.tagChips).toEqual([{ label: "Memory", facet: "goal" }]);
+    expect(view.licenseLabel).toBe("MIT");
+    expect(view.licenseStatus).toBe("osi-approved");
+    expect(view.attributionLabel).toBe("by tavernary-author");
+    expect(view.activity.weeklyActivity).toEqual(project.activity.weeklyActivity);
+    expect(view.activity.evidenceStatus).toBe("complete");
+    expect(view.activity.latestSourceActivityLabel).toBe("1d ago");
+    expect(view.activity.latestSourceActivityFreshness).toBeCloseTo(96.67, 1);
+    expect(view.communityAggregate).toBe(11);
+    expect(view.repositorySizeLabel).toBe("2.0 MB repo");
+  });
+
+  it("projects Tavernary preset development and compatibility metadata", () => {
+    const project = catalogProjectFixture({ kind: "preset", folderName: null });
+    project.primaryFunction = "preset";
+    project.preset = {
+      version: "1.2.0",
+      publishedAt: "2026-08-18T00:00:00.000Z",
+      artifactSizeBytes: 2048,
+      modelFamilies: [{ id: "model-agnostic", label: "Model-Agnostic", description: "Any model" }],
+      completionFormats: [
+        { id: "chat-completion", label: "Chat Completion", description: "Chat completion" },
+      ],
+    };
+
+    const view = toProjectCardViewModel(project, {
+      snapshot: readySnapshot(),
+      inventory: emptyInventory,
+      now: "2026-08-19T00:00:00.000Z",
+    });
+
+    expect(view.preset).toEqual({
+      versionLabel: "v1.2.0",
+      publishedLabel: "Published 1d ago",
+      sizeLabel: "2 KB file",
+      modelFamilies: ["Model-Agnostic"],
+      completionFormats: ["Chat Completion"],
+    });
+  });
+
+  it("treats missing activity evidence status as degraded", () => {
+    const project = catalogProjectFixture();
+    project.activity.evidenceStatus = null;
+
     const view = toProjectCardViewModel(project, {
       snapshot: readySnapshot(),
       inventory: emptyInventory,
     });
 
-    expect(view.tags).toEqual(["Memory"]);
-    expect(view.licenseLabel).toBe("MIT");
-    expect(view.attributionLabel).toBe("By tavernary-author");
-    expect(view.activity.weeklyActivity).toEqual(project.activity.weeklyActivity);
+    expect(view.activity.evidenceStatus).toBe("degraded");
   });
 
   it.each([

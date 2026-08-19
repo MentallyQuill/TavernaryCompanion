@@ -143,7 +143,11 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
   await openHarness(page);
   await expect(page.locator(".tavernary-companion-kit-card")).toHaveCount(0);
   await expect(page.locator(".tavernary-companion-installed-section")).toHaveCount(0);
-  const card = page.locator(".tavernary-companion-project-card").first();
+  const search = page
+    .locator(".tavernary-companion-shell__header")
+    .getByRole("searchbox", { name: "Search projects" });
+  await search.fill("Alpha");
+  const card = page.locator('[data-project-id="alpha"]');
   const primary = card.getByTestId("project-primary-action");
   const styles = await card.evaluate((element) => {
     const computed = getComputedStyle(element);
@@ -151,6 +155,7 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
       background: computed.backgroundColor,
       border: computed.borderTopColor,
       radius: computed.borderRadius,
+      padding: computed.padding,
       shadow: computed.boxShadow,
     };
   });
@@ -158,16 +163,97 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
     background: "rgb(24, 34, 40)",
     border: "rgb(43, 58, 64)",
     radius: "8px",
+    padding: "15px",
     shadow: "rgba(0, 0, 0, 0.24) 0px 1px 2px 0px, rgba(0, 0, 0, 0.12) 0px 4px 12px 0px",
   });
+  const identity = card.locator(".tavernary-companion-project-card__kind");
+  await expect(identity).toHaveCSS("color", "rgb(225, 138, 36)");
+  await expect(identity).toHaveCSS("font-size", "9px");
+  const functionIcon = identity.locator('[data-icon="memory-retrieval"]');
+  await expect(functionIcon).toBeVisible();
+  expect((await functionIcon.boundingBox())?.width).toBe(23);
+  const scan = card.getByRole("img", { name: "TavernKeeper scan: Not assessed" });
+  await expect(scan).toHaveCSS("color", "rgb(130, 144, 153)");
+  await expect(scan.locator('[data-icon="scan-fill"]')).toBeVisible();
+  expect((await scan.boundingBox())?.width).toBe(18);
   await expect(card.locator(".tavernary-companion-activity-strip i")).toHaveCount(12);
   await expect(card.locator(".tavernary-companion-activity-summary")).toHaveCSS("display", "flex");
+  await expect(card.locator(".tavernary-companion-activity-strip i.is-active").first()).toHaveCSS(
+    "background-color",
+    "rgb(230, 237, 243)",
+  );
+  await expect(card.getByText("Today")).toBeVisible();
+  await expect(card.locator(".tavernary-companion-project-card__community")).toContainText("11");
+  await expect(card.getByText("2.0 MB repo")).toBeVisible();
+  const summary = card.locator(".tavernary-companion-project-card__summary");
+  await expect(summary).toHaveCSS("font-size", "11px");
+  expect(
+    Number.parseFloat(await summary.evaluate((element) => getComputedStyle(element).lineHeight)),
+  ).toBeCloseTo(16.28, 1);
+  const frontendChip = card.locator(".tavernary-companion-chip--frontend");
+  await expect(frontendChip).toHaveCSS("color", "rgb(214, 40, 57)");
+  await expect(frontendChip).toHaveCSS("background-color", "rgb(24, 34, 40)");
+  await expect(frontendChip).toHaveCSS("border-radius", "4px");
+  await expect(frontendChip).toHaveCSS("font-size", "8px");
+  await expect(card.locator(".tavernary-companion-chip--tag").first()).toHaveCSS(
+    "color",
+    "rgb(168, 179, 186)",
+  );
+  await expect(card.locator(".license-osi-approved")).toHaveCSS("color", "rgb(87, 197, 163)");
   await expect(primary).toHaveCSS("background-color", "rgb(225, 138, 36)");
   const primaryBox = await primary.boundingBox();
   expect(primaryBox).not.toBeNull();
   expect(Math.abs(primaryBox!.width - primaryBox!.height)).toBeLessThanOrEqual(1);
   expect(primaryBox!.height).toBeGreaterThanOrEqual(36);
   expect(primaryBox!.height).toBeLessThanOrEqual(40);
+
+  await search.fill("Beta Preset");
+  const preset = page.locator('[data-project-id="beta-preset"]');
+  await expect(preset.locator(".tavernary-companion-project-card__kind")).toHaveCSS(
+    "color",
+    "rgb(87, 197, 163)",
+  );
+  await expect(preset.locator('[data-icon="preset"]')).toBeVisible();
+  await expect(preset.getByText("System Preset")).toBeVisible();
+  await expect(preset.getByText("v1.2.0")).toBeVisible();
+  await expect(preset.getByText("Model-Agnostic")).toBeVisible();
+  await expect(preset.getByText("Chat Completion")).toBeVisible();
+
+  await search.fill("Gamma Frontend");
+  await page.getByRole("checkbox", { name: "Frontend", exact: true }).check();
+  const frontend = page.locator('[data-project-id="gamma-frontend"]');
+  await expect(frontend).toBeVisible();
+  await expect(frontend.locator(".tavernary-companion-project-card__kind")).toHaveCSS(
+    "color",
+    "rgb(214, 40, 57)",
+  );
+  await expect(frontend.locator('[data-icon="frontend"]')).toBeVisible();
+});
+
+test("mobile project cards retain Tavernary geometry without horizontal overflow", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHarness(page);
+  await page
+    .locator(".tavernary-companion-shell__header")
+    .getByRole("searchbox", { name: "Search projects" })
+    .fill("Alpha");
+
+  const card = page.locator('[data-project-id="alpha"]');
+  const box = await card.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(12);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(378);
+  await expect(card.locator(".tavernary-companion-project-card__chips")).toHaveCSS(
+    "max-height",
+    "40px",
+  );
+  expect(
+    await page.evaluate(
+      () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
+    ),
+  ).toBe(0);
 });
 
 test("Kits and Installed reuse the Tavernary card and control system", async ({ page }) => {

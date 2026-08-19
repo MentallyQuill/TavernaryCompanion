@@ -6,14 +6,30 @@ interface ActivitySummaryProps {
 }
 
 export function ActivitySummary({ activity }: ActivitySummaryProps): preact.JSX.Element {
-  if (activity.activeWeeks12 === null) {
-    return <span>Activity unavailable</span>;
+  if (activity.activeWeeks12 === null || activity.weeklyActivity === null) {
+    return (
+      <span
+        class="tavernary-companion-development-unavailable"
+        role="img"
+        aria-label="Activity unavailable"
+      >
+        No data
+      </span>
+    );
   }
-  const label = `Activity: ${activity.activeWeeks12} of 12 active weeks${
-    activity.dormant ? ", dormant" : ""
-  }`;
+  const evidence =
+    activity.evidenceStatus === "provisional"
+      ? ", baseline pending"
+      : activity.evidenceStatus === "degraded"
+        ? ", evidence incomplete"
+        : "";
+  const label = `Activity: ${activity.activeWeeks12} of 12 active weeks${evidence}${activity.dormant ? ", dormant" : ""}`;
   return (
-    <span class="tavernary-companion-activity-summary" role="img" aria-label={label}>
+    <span
+      class={`tavernary-companion-activity-summary evidence-${activity.evidenceStatus}`}
+      role="img"
+      aria-label={label}
+    >
       <b aria-hidden="true">Activity</b>
       <ActivityStrip weeks={activity.weeklyActivity} />
     </span>

@@ -661,15 +661,26 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   min-inline-size: 0;
 }
 .tavernary-companion-project-card {
+  --kind-color: var(--tavernary-color-functional);
+  position: relative;
   display: flex;
+  height: 100%;
   flex-direction: column;
+  overflow: hidden;
   min-inline-size: 0;
-  min-block-size: 18rem;
-  padding: 1rem;
+  min-block-size: 248px;
+  padding: 15px;
   border: 1px solid var(--tavernary-color-border-default);
   border-radius: var(--tavernary-radius);
+  color: var(--tavernary-color-text-primary);
   background: var(--tavernary-color-bg-surface);
   box-shadow: var(--tavernary-shadow-card);
+}
+.tavernary-companion-project-card.kind-frontend {
+  --kind-color: var(--tavernary-color-frontend);
+}
+.tavernary-companion-project-card.kind-preset {
+  --kind-color: var(--tavernary-color-preset);
 }
 .tavernary-companion-project-results {
   min-inline-size: 0;
@@ -680,128 +691,294 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 }
 .tavernary-companion-project-card__top {
   display: flex;
-  align-items: center;
+  min-block-size: 48px;
+  flex-wrap: wrap;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 0.75rem;
-  color: var(--tavernary-color-text-secondary);
-  font-size: 0.72rem;
+  gap: 12px;
 }
 .tavernary-companion-project-card__kind {
-  display: inline-flex;
+  display: flex;
+  min-inline-size: 0;
+  flex: none;
   align-items: center;
-  gap: 0.35rem;
+  gap: 8px;
+  color: var(--kind-color);
+  font-size: 9px;
   font-weight: 700;
-  letter-spacing: 0.055em;
+  letter-spacing: 0.08em;
+  line-height: 1.3;
   text-transform: uppercase;
 }
-.tavernary-companion-project-card__kind svg {
-  inline-size: 1rem;
-  block-size: 1rem;
-  stroke-width: 1.8;
+.tavernary-companion-project-card__function-symbol {
+  display: grid;
+  inline-size: 23px;
+  block-size: 23px;
+  flex: none;
+  border: 0;
+  border-radius: 0;
+  color: var(--kind-color);
+  background: transparent;
+  place-items: center;
 }
-.tavernary-companion-project-card__kind.kind-frontend {
-  color: var(--tavernary-color-frontend-text);
+.tavernary-companion-project-card__function-symbol svg {
+  inline-size: 23px;
+  block-size: 23px;
 }
-.tavernary-companion-project-card__kind.kind-preset {
-  color: var(--tavernary-color-preset-text);
-}
-.tavernary-companion-project-card__kind.kind-extension {
-  color: var(--tavernary-color-functional-text);
+.tavernary-companion-project-card__development {
+  display: grid;
+  min-inline-size: 0;
+  flex: none;
+  grid-template-columns: auto auto;
+  align-items: center;
+  justify-content: end;
+  justify-items: end;
+  column-gap: 10px;
+  row-gap: 5px;
+  color: var(--tavernary-color-text-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
 }
 .tavernary-companion-activity-summary {
-  display: flex;
+  display: inline-flex;
+  grid-column: 1;
+  grid-row: 1;
   align-items: center;
-  justify-content: flex-end;
-  gap: 0.35rem;
+  gap: 5px;
+}
+.tavernary-companion-activity-summary > b {
+  color: var(--tavernary-color-text-secondary);
+  font-size: 10px;
 }
 .tavernary-companion-activity-strip {
-  display: flex;
-  align-items: end;
-  gap: 2px;
-  block-size: 12px;
+  display: grid;
+  inline-size: 43px;
+  block-size: 8px;
+  grid-template-columns: repeat(12, 1fr);
+  align-items: center;
+  gap: 1px;
 }
 .tavernary-companion-activity-strip i {
-  inline-size: 4px;
-  block-size: 4px;
+  inline-size: 100%;
+  block-size: 7px;
   border-radius: 1px;
   background: var(--tavernary-color-activity-dormant);
 }
 .tavernary-companion-activity-strip i.is-active {
-  block-size: 12px;
-  background: var(--tavernary-color-activity-current);
+  background: var(--tavernary-color-text-primary);
+}
+.tavernary-companion-activity-summary.evidence-provisional .tavernary-companion-activity-strip i.is-active {
+  background: var(--tavernary-color-activity-recent);
+}
+.tavernary-companion-activity-summary.evidence-degraded .tavernary-companion-activity-strip {
+  outline: 1px solid var(--tavernary-color-text-muted);
+  outline-offset: 2px;
+}
+.tavernary-companion-project-card__activity-age {
+  grid-column: 2;
+  grid-row: 1;
+  color: color-mix(in srgb, var(--tavernary-color-text-primary) var(--tavernary-companion-commit-freshness, 0%), var(--tavernary-color-activity-recent));
+  font-weight: 700;
+}
+.tavernary-companion-project-card__activity-age.no-source-activity {
+  max-inline-size: 112px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.tavernary-companion-development-unavailable {
+  display: inline-flex;
+  align-items: center;
+  color: var(--tavernary-color-text-muted);
+}
+.tavernary-companion-project-card__community {
+  display: inline-flex;
+  grid-column: 1;
+  grid-row: 2;
+  align-items: center;
+  justify-self: start;
+  gap: 3px;
+}
+.tavernary-companion-project-card__community svg {
+  inline-size: 13px;
+  block-size: 13px;
+}
+.tavernary-companion-project-card__community b {
+  font-size: 9px;
+}
+.tavernary-companion-project-card__repository-size {
+  grid-column: 2;
+  grid-row: 2;
+}
+.tavernary-companion-project-card__preset-version {
+  grid-column: 1;
+  grid-row: 1;
+  color: var(--tavernary-color-preset);
+  font-weight: 700;
+}
+.tavernary-companion-project-card__preset-publication {
+  grid-column: 2;
+  grid-row: 1;
+}
+.tavernary-companion-project-card__preset-size {
+  grid-column: 2;
+  grid-row: 2;
 }
 .tavernary-companion-project-card__title {
-  display: grid;
-  align-items: start;
-  justify-content: space-between;
-  gap: 0.65rem;
-  margin-block-start: 0.8rem;
+  display: flex;
+  min-inline-size: 0;
+  align-items: center;
+  gap: 4px;
+  margin: 10px 0 8px;
 }
 .tavernary-companion-project-card__title .tavernary-companion-assessment {
-  justify-self: start;
-  font-size: 0.74rem;
+  flex: none;
+  font-size: 9px;
 }
 .tavernary-companion-project-card h3 {
   min-inline-size: 0;
   margin: 0;
   color: var(--tavernary-color-heading);
-  font-size: 1.12rem;
-  overflow-wrap: anywhere;
+  font-family: inherit;
+  font-size: 17px;
+  font-weight: 720;
+  letter-spacing: -0.02em;
+  line-height: 1.3;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .tavernary-companion-project-card__reason {
+  margin: 0;
   color: var(--tavernary-color-text-muted);
-  font-size: 0.84rem;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.02em;
 }
 .tavernary-companion-project-card__attribution {
-  margin: -0.2rem 0 0;
+  display: block;
+  inline-size: max-content;
+  max-inline-size: 100%;
+  margin: -4px 0 8px;
+  overflow: hidden;
   color: var(--tavernary-color-text-muted);
-  font-size: 0.72rem;
-  font-weight: 600;
+  font-size: 10px;
+  font-weight: 500;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .tavernary-companion-project-card__summary {
   display: -webkit-box;
   overflow: hidden;
+  min-block-size: 65px;
+  margin: 0;
   -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  min-block-size: 2.7em;
+  -webkit-line-clamp: 4;
   color: var(--tavernary-color-text-secondary);
-  line-height: 1.35;
+  font-size: 11px;
+  line-height: 1.48;
+}
+.tavernary-companion-project-card__bottom {
+  display: flex;
+  min-inline-size: 0;
+  flex-direction: column;
+  align-items: stretch;
+  gap: 8px;
+  margin-block-start: auto;
+  padding-block-start: 11px;
+  border-block-start: 1px solid var(--tavernary-color-border-default);
 }
 .tavernary-companion-project-card__chips {
   display: flex;
+  min-inline-size: 0;
+  min-block-size: 40px;
+  max-block-size: 40px;
   flex-wrap: wrap;
-  gap: 0.35rem;
-  margin-block-start: auto;
+  align-content: flex-start;
+  gap: 4px;
+  overflow: hidden;
 }
 .tavernary-companion-chip {
-  padding: 0.2rem 0.45rem;
+  display: inline-flex;
+  align-items: center;
+  min-block-size: 0;
+  padding: 4px 6px;
   border: 1px solid var(--tavernary-color-border-strong);
-  border-radius: 999px;
+  border-radius: 4px;
   color: var(--tavernary-color-text-secondary);
-  background: var(--tavernary-color-bg-surface-raised);
-  font-size: 0.68rem;
+  background: var(--tavernary-color-bg-surface);
+  font-size: 8px;
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
 }
 .tavernary-companion-chip--frontend {
-  border-color: var(--tavernary-color-frontend-border);
-  color: var(--tavernary-color-frontend-text);
-  background: var(--tavernary-color-frontend-bg);
-}
-.tavernary-companion-chip--function {
-  border-color: var(--tavernary-color-functional-border);
-  color: var(--tavernary-color-functional-text);
-  background: var(--tavernary-color-functional-bg);
+  border-color: var(--tavernary-color-frontend);
+  color: var(--tavernary-color-frontend);
+  background: var(--tavernary-color-bg-surface);
 }
 .tavernary-companion-project-card__meta {
   display: flex;
-  justify-content: space-between;
-  margin-block-start: 0.65rem;
-  padding-block-start: 0.55rem;
-  border-block-start: 1px solid var(--tavernary-color-divider);
+  min-inline-size: 0;
+  align-items: center;
+  gap: 8px;
   color: var(--tavernary-color-text-muted);
-  font-size: 0.72rem;
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+.tavernary-companion-license {
+  display: inline-flex;
+  min-block-size: 0;
+  flex: 0 0 auto;
+  align-items: center;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  color: var(--tavernary-color-text-muted);
+  background: transparent;
+  font-size: 9px;
+  font-weight: 400;
+  line-height: 1;
+  white-space: nowrap;
+}
+.tavernary-companion-license.license-osi-approved,
+.tavernary-companion-license.license-pending {
+  color: var(--tavernary-color-license-open);
+}
+.tavernary-companion-license.license-proprietary {
+  color: var(--tavernary-color-license-proprietary);
+}
+.tavernary-companion-license.license-missing {
+  color: var(--tavernary-color-license-missing);
+  text-decoration: underline dotted;
+  text-underline-offset: 3px;
+}
+.tavernary-companion-project-card__utility {
+  display: flex;
+  min-inline-size: 0;
+  min-block-size: 36px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
 }
 .tavernary-companion-assessment {
   font-weight: 650;
+}
+.tavernary-companion-assessment--compact {
+  position: relative;
+  z-index: 2;
+  display: inline-grid;
+  inline-size: 18px;
+  block-size: 18px;
+  flex: none;
+  color: var(--tavernary-color-text-muted);
+  place-items: center;
+}
+.tavernary-companion-assessment--compact svg {
+  display: block;
+  inline-size: 16px;
+  block-size: 16px;
 }
 .tavernary-companion-assessment.is-teal {
   color: var(--tavernary-companion-low);
@@ -814,9 +991,11 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 }
 .tavernary-companion-project-card footer {
   display: flex;
-  justify-content: space-between;
+  min-inline-size: 0;
+  align-items: center;
+  justify-content: flex-end;
   gap: var(--tavernary-companion-space-2);
-  margin-block-start: var(--tavernary-companion-space-3);
+  margin: 0;
 }
 .tavernary-companion-project-card__primary {
   margin-inline-start: auto;

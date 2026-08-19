@@ -7091,10 +7091,10 @@ function createDefaultProfileState() {
 // src/state/state-migrations.ts
 var UnsupportedProfileStateError = class extends Error {
   formatVersion;
-  constructor(formatVersion) {
-    super(`Profile state format ${formatVersion} is newer than this Companion supports.`);
+  constructor(formatVersion2) {
+    super(`Profile state format ${formatVersion2} is newer than this Companion supports.`);
     this.name = "UnsupportedProfileStateError";
-    this.formatVersion = formatVersion;
+    this.formatVersion = formatVersion2;
   }
 };
 function migrateProfileState(value) {
@@ -11433,28 +11433,77 @@ function actionFor(project2, context, ownership) {
 }
 function toProjectCardViewModel(project2, context) {
   const ownership = installedOwnership(project2.id, context.inventory);
+  const now = context.now ?? project2.refreshedAt ?? project2.catalogedAt;
   return {
     id: project2.id,
     name: project2.name,
+    displayName: projectDisplayName(project2.name),
     summary: project2.summary,
     kind: project2.kind,
     frontends: project2.frontends.map(({ label: label2 }) => label2),
     tags: project2.tags.map(({ label: label2 }) => label2),
+    tagChips: project2.tags.map(({ label: label2, facet }) => ({ label: label2, facet })),
     licenseLabel: project2.license.label,
-    attributionLabel: project2.attribution ? `By ${project2.attribution.owner.login}` : null,
+    licenseStatus: project2.license.status,
+    attributionLabel: project2.attribution ? `by ${project2.attribution.owner.login}` : null,
+    primaryFunctionId: project2.primaryFunction,
     primaryFunction: primaryFunctionLabel(project2.primaryFunction),
     activity: {
       latestSourceActivityAt: project2.activity.latestSourceActivityAt,
+      latestSourceActivityLabel: relativeTime(project2.activity.latestSourceActivityAt, now),
+      latestSourceActivityFreshness: freshnessPercent(project2.activity.latestSourceActivityAt, now),
       activeWeeks12: project2.activity.activeWeeks12,
       weeklyActivity: project2.activity.weeklyActivity,
+      evidenceStatus: project2.activity.evidenceStatus ?? "degraded",
       dormant: project2.activity.dormant
     },
+    communityAggregate: project2.community?.aggregate ?? null,
+    repositorySizeLabel: formatRepositorySize(project2.repositorySizeKb),
+    preset: project2.preset ? {
+      versionLabel: project2.preset.version ? formatVersion(project2.preset.version) : null,
+      publishedLabel: project2.preset.publishedAt ? `Published ${relativeTime(project2.preset.publishedAt, now)}` : null,
+      sizeLabel: formatFileSize(project2.preset.artifactSizeBytes),
+      modelFamilies: project2.preset.modelFamilies.map(({ label: label2 }) => label2),
+      completionFormats: project2.preset.completionFormats.map(({ label: label2 }) => label2)
+    } : null,
     tavernKeeper: project2.tavernKeeper,
     installed: ownership !== "absent",
     ownership,
     kitSelectable: project2.id !== COMPANION_PROJECT_ID && project2.kind === "extension" && project2.frontends.some(({ id }) => id === "sillytavern") && Boolean(project2.install),
     action: actionFor(project2, context, ownership)
   };
+}
+function projectDisplayName(name) {
+  const withoutPrefix = name.replace(/^sillytavern[\s_-]+/i, "");
+  return withoutPrefix || name;
+}
+function relativeTime(timestamp, now) {
+  if (!timestamp) return null;
+  const days = daysSince(timestamp, now);
+  if (days === 0) return "Today";
+  if (days === 1) return "1d ago";
+  if (days < 30) return `${days}d ago`;
+  if (days < 365) return `${Math.floor(days / 30)}mo ago`;
+  return `${Math.floor(days / 365)}y ago`;
+}
+function daysSince(timestamp, now) {
+  const dayMs = 24 * 60 * 60 * 1e3;
+  return Math.max(0, Math.floor((new Date(now).getTime() - new Date(timestamp).getTime()) / dayMs));
+}
+function freshnessPercent(timestamp, now) {
+  if (!timestamp) return 0;
+  return Math.max(0, Math.min(100, 100 - daysSince(timestamp, now) / 30 * 100));
+}
+function formatRepositorySize(kilobytes) {
+  if (kilobytes === null) return null;
+  return kilobytes >= 1024 ? `${(kilobytes / 1024).toFixed(1)} MB repo` : `${kilobytes} KB repo`;
+}
+function formatFileSize(bytes) {
+  if (bytes === null) return null;
+  return bytes >= 1024 ? `${Math.round(bytes / 1024)} KB file` : `${bytes} B file`;
+}
+function formatVersion(version) {
+  return /^\d+(?:\.\d+)*$/.test(version) ? `v${version}` : version;
 }
 function primaryFunctionLabel(value) {
   const labels = {
@@ -11530,6 +11579,7 @@ var DefaultDiscoveryController = class {
     let projects = [];
     let projectDetails = {};
     if (catalog) {
+      const now = this.#now();
       if (catalog !== this.#indexedCatalog) {
         this.#indexedCatalog = catalog;
         this.#index = this.#createIndex(
@@ -11540,12 +11590,13 @@ var DefaultDiscoveryController = class {
       projects = selectProjects(
         [...catalog.projects],
         this.#query,
-        { now: this.#now(), tagVocabulary: catalog.tagVocabulary },
+        { now, tagVocabulary: catalog.tagVocabulary },
         searchResults
       ).map(
         (project2) => toProjectCardViewModel(project2, {
           snapshot: this.#snapshot,
-          inventory: this.#inventory
+          inventory: this.#inventory,
+          now
         })
       );
       projectDetails = Object.fromEntries(
@@ -11554,6 +11605,7 @@ var DefaultDiscoveryController = class {
           toProjectDetailViewModel(project2, {
             snapshot: this.#snapshot,
             inventory: this.#inventory,
+            now,
             kits: catalog.kits
           })
         ])
@@ -15037,38 +15089,65 @@ function ActivityStrip({ weeks }) {
 
 // src/ui/shared/activity-summary.tsx
 function ActivitySummary({ activity }) {
-  if (activity.activeWeeks12 === null) {
-    return /* @__PURE__ */ u3("span", { children: "Activity unavailable" });
+  if (activity.activeWeeks12 === null || activity.weeklyActivity === null) {
+    return /* @__PURE__ */ u3(
+      "span",
+      {
+        class: "tavernary-companion-development-unavailable",
+        role: "img",
+        "aria-label": "Activity unavailable",
+        children: "No data"
+      }
+    );
   }
-  const label2 = `Activity: ${activity.activeWeeks12} of 12 active weeks${activity.dormant ? ", dormant" : ""}`;
-  return /* @__PURE__ */ u3("span", { class: "tavernary-companion-activity-summary", role: "img", "aria-label": label2, children: [
-    /* @__PURE__ */ u3("b", { "aria-hidden": "true", children: "Activity" }),
-    /* @__PURE__ */ u3(ActivityStrip, { weeks: activity.weeklyActivity })
-  ] });
+  const evidence = activity.evidenceStatus === "provisional" ? ", baseline pending" : activity.evidenceStatus === "degraded" ? ", evidence incomplete" : "";
+  const label2 = `Activity: ${activity.activeWeeks12} of 12 active weeks${evidence}${activity.dormant ? ", dormant" : ""}`;
+  return /* @__PURE__ */ u3(
+    "span",
+    {
+      class: `tavernary-companion-activity-summary evidence-${activity.evidenceStatus}`,
+      role: "img",
+      "aria-label": label2,
+      children: [
+        /* @__PURE__ */ u3("b", { "aria-hidden": "true", children: "Activity" }),
+        /* @__PURE__ */ u3(ActivityStrip, { weeks: activity.weeklyActivity })
+      ]
+    }
+  );
 }
 
 // src/ui/shared/assessment-badge.tsx
-function AssessmentBadge({ status }) {
-  if (!status || status.freshness === "unassessed") {
-    return /* @__PURE__ */ u3("span", { class: "tavernary-companion-assessment is-neutral", children: "Not assessed" });
+function AssessmentBadge({
+  status,
+  compact = false
+}) {
+  const label2 = assessmentLabel(status);
+  const state = status?.state ?? "neutral";
+  if (compact) {
+    return /* @__PURE__ */ u3(
+      "span",
+      {
+        class: `tavernary-companion-assessment tavernary-companion-assessment--compact is-${state}`,
+        role: "img",
+        "aria-label": `TavernKeeper scan: ${label2}`,
+        title: label2,
+        children: /* @__PURE__ */ u3("svg", { "aria-hidden": "true", "data-icon": "scan-fill", fill: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M4.257 5.671l2.137 2.137a7 7 0 1 0 1.414-1.414L5.67 4.257A9.959 9.959 0 0 1 12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12c0-2.401.846-4.605 2.257-6.329zm3.571 3.572L12 13.414 13.414 12 9.243 7.828a5 5 0 1 1-1.414 1.414z" }) })
+      }
+    );
   }
-  if (status.freshness === "unsupported") {
-    return /* @__PURE__ */ u3("span", { class: "tavernary-companion-assessment is-neutral", children: "Scan unsupported" });
-  }
-  if (!status.riskLevel) {
-    return /* @__PURE__ */ u3("span", { class: "tavernary-companion-assessment is-neutral", children: "Scan unavailable" });
-  }
+  return /* @__PURE__ */ u3("span", { class: `tavernary-companion-assessment is-${state}`, children: label2 });
+}
+function assessmentLabel(status) {
+  if (!status || status.freshness === "unassessed") return "Not assessed";
+  if (status.freshness === "unsupported") return "Scan unsupported";
+  if (!status.riskLevel) return "Scan unavailable";
   const concern = {
     low: "Low concern",
     material: "Potential concerns",
     high: "High concern"
   }[status.riskLevel];
   const freshness = status.freshness === "current" ? "current scan" : "scan not current";
-  return /* @__PURE__ */ u3("span", { class: `tavernary-companion-assessment is-${status.state}`, children: [
-    concern,
-    " \xB7 ",
-    freshness
-  ] });
+  return `${concern} \xB7 ${freshness}`;
 }
 
 // src/ui/projects/project-evidence.tsx
@@ -15407,20 +15486,137 @@ function toggle(values, id) {
 }
 
 // src/ui/shared/category-icon.tsx
-function CategoryIcon({ kind }) {
-  if (kind === "frontend") {
-    return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", children: [
+var strokeProps = {
+  "aria-hidden": true,
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.8,
+  strokeLinecap: "round",
+  strokeLinejoin: "round"
+};
+function CategoryIcon({ name }) {
+  if (name === "frontend") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
       /* @__PURE__ */ u3("rect", { x: "3", y: "4", width: "18", height: "16", rx: "2" }),
       /* @__PURE__ */ u3("path", { d: "M3 8h18M8 8v12M11 12h6M11 16h4" })
     ] });
   }
-  if (kind === "preset") {
-    return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", children: [
-      /* @__PURE__ */ u3("circle", { cx: "12", cy: "12", r: "3" }),
-      /* @__PURE__ */ u3("path", { d: "M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2" })
+  if (name === "preset") {
+    return /* @__PURE__ */ u3(
+      "svg",
+      {
+        "aria-hidden": "true",
+        "data-icon": name,
+        viewBox: "0 0 24 24",
+        fill: "currentColor",
+        stroke: "none",
+        children: [
+          /* @__PURE__ */ u3(
+            "path",
+            {
+              fillRule: "evenodd",
+              clipRule: "evenodd",
+              d: "M12.0002 8C9.79111 8 8.00024 9.79086 8.00024 12C8.00024 14.2091 9.79111 16 12.0002 16C14.2094 16 16.0002 14.2091 16.0002 12C16.0002 9.79086 14.2094 8 12.0002 8ZM10.0002 12C10.0002 10.8954 10.8957 10 12.0002 10C13.1048 10 14.0002 10.8954 14.0002 12C14.0002 13.1046 13.1048 14 12.0002 14C10.8957 14 10.0002 13.1046 10.0002 12Z"
+            }
+          ),
+          /* @__PURE__ */ u3(
+            "path",
+            {
+              fillRule: "evenodd",
+              clipRule: "evenodd",
+              d: "M11.2867 0.5C9.88583 0.5 8.6461 1.46745 8.37171 2.85605L8.29264 3.25622C8.10489 4.20638 7.06195 4.83059 6.04511 4.48813L5.64825 4.35447C4.32246 3.90796 2.83873 4.42968 2.11836 5.63933L1.40492 6.83735C0.67773 8.05846 0.954349 9.60487 2.03927 10.5142L2.35714 10.7806C3.12939 11.4279 3.12939 12.5721 2.35714 13.2194L2.03927 13.4858C0.954349 14.3951 0.67773 15.9415 1.40492 17.1626L2.11833 18.3606C2.83872 19.5703 4.3225 20.092 5.64831 19.6455L6.04506 19.5118C7.06191 19.1693 8.1049 19.7935 8.29264 20.7437L8.37172 21.1439C8.6461 22.5325 9.88584 23.5 11.2867 23.5H12.7136C14.1146 23.5 15.3543 22.5325 15.6287 21.1438L15.7077 20.7438C15.8954 19.7936 16.9384 19.1693 17.9553 19.5118L18.3521 19.6455C19.6779 20.092 21.1617 19.5703 21.8821 18.3606L22.5955 17.1627C23.3227 15.9416 23.046 14.3951 21.9611 13.4858L21.6432 13.2194C20.8709 12.5722 20.8709 11.4278 21.6432 10.7806L21.9611 10.5142C23.046 9.60489 23.3227 8.05845 22.5955 6.83732L21.8821 5.63932C21.1617 4.42968 19.678 3.90795 18.3522 4.35444L17.9552 4.48814C16.9384 4.83059 15.8954 4.20634 15.7077 3.25617L15.6287 2.85616C15.3543 1.46751 14.1146 0.5 12.7136 0.5H11.2867ZM10.3338 3.24375C10.4149 2.83334 10.7983 2.5 11.2867 2.5H12.7136C13.2021 2.5 13.5855 2.83336 13.6666 3.24378L13.7456 3.64379C14.1791 5.83811 16.4909 7.09167 18.5935 6.38353L18.9905 6.24984C19.4495 6.09527 19.9394 6.28595 20.1637 6.66264L20.8771 7.86064C21.0946 8.22587 21.0208 8.69271 20.6764 8.98135L20.3586 9.24773C18.6325 10.6943 18.6325 13.3057 20.3586 14.7523L20.6764 15.0186C21.0208 15.3073 21.0946 15.7741 20.8771 16.1394L20.1637 17.3373C19.9394 17.714 19.4495 17.9047 18.9905 17.7501L18.5936 17.6164C16.4909 16.9082 14.1791 18.1618 13.7456 20.3562L13.6666 20.7562C13.5855 21.1666 13.2021 21.5 12.7136 21.5H11.2867C10.7983 21.5 10.4149 21.1667 10.3338 20.7562L10.2547 20.356C9.82113 18.1617 7.50931 16.9082 5.40665 17.6165L5.0099 17.7501C4.55092 17.9047 4.06104 17.714 3.83671 17.3373L3.1233 16.1393C2.9058 15.7741 2.97959 15.3073 3.32398 15.0186L3.64185 14.7522C5.36782 13.3056 5.36781 10.6944 3.64185 9.24779L3.32398 8.98137C2.97959 8.69273 2.9058 8.2259 3.1233 7.86067L3.83674 6.66266C4.06106 6.28596 4.55093 6.09528 5.0099 6.24986L5.40676 6.38352C7.50938 7.09166 9.82112 5.83819 10.2547 3.64392L10.3338 3.24375Z"
+            }
+          )
+        ]
+      }
+    );
+  }
+  if (name === "memory-retrieval") {
+    return /* @__PURE__ */ u3(
+      "svg",
+      {
+        "aria-hidden": "true",
+        "data-icon": name,
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: "1.91",
+        strokeMiterlimit: "10",
+        children: [
+          /* @__PURE__ */ u3("path", { d: "M12,4.36V20.59a1.92,1.92,0,0,1-1.91,1.91,1.93,1.93,0,0,1-1.91-1.91v0a2.45,2.45,0,0,1-.48,0,3.35,3.35,0,0,1-3.34-3.34,3.19,3.19,0,0,1,.08-.7A4.29,4.29,0,0,1,3.6,8.79,3.24,3.24,0,0,1,3.41,7.7,3.34,3.34,0,0,1,6.27,4.4v0a2.87,2.87,0,0,1,5.73,0Z" }),
+          /* @__PURE__ */ u3("path", { d: "M6.75,11.05a3.35,3.35,0,0,1,0-6.69" }),
+          /* @__PURE__ */ u3("path", { d: "M8.18,13.91h0A3.82,3.82,0,0,1,12,17.73h0" }),
+          /* @__PURE__ */ u3("path", { d: "M9.14,7.23h0A2.86,2.86,0,0,0,12,4.36h0" }),
+          /* @__PURE__ */ u3("path", { d: "M12,4.36V20.59a1.92,1.92,0,0,0,1.91,1.91,1.93,1.93,0,0,0,1.91-1.91v0a2.45,2.45,0,0,0,.48,0,3.35,3.35,0,0,0,3.34-3.34,3.19,3.19,0,0,0-.08-.7,4.29,4.29,0,0,0,.84-7.76,3.24,3.24,0,0,0,.19-1.09,3.34,3.34,0,0,0-2.86-3.3v0a2.87,2.87,0,0,0-5.73,0Z" }),
+          /* @__PURE__ */ u3("path", { d: "M17.25,11.05a3.35,3.35,0,0,0,0-6.69" }),
+          /* @__PURE__ */ u3("path", { d: "M15.82,13.91h0A3.82,3.82,0,0,0,12,17.73h0" }),
+          /* @__PURE__ */ u3("path", { d: "M14.86,7.23h0A2.86,2.86,0,0,1,12,4.36h0" })
+        ]
+      }
+    );
+  }
+  if (name === "generation-reasoning") {
+    return /* @__PURE__ */ u3(
+      "svg",
+      {
+        "aria-hidden": "true",
+        "data-icon": name,
+        viewBox: "0 0 487.6 487.6",
+        fill: "currentColor",
+        stroke: "none",
+        children: /* @__PURE__ */ u3("path", { d: "M453.8,20.525H173.1c-18.6,0-33.8,15.2-33.8,33.8v117.4H19.5c-10.8,0-19.5,8.7-19.5,19.5v186.8c0,10.8,8.7,19.5,19.5,19.5h27.7v64.6c0,4.4,5.3,6.6,8.4,3.5l68.1-68.1h195.4c10.8,0,19.5-8.7,19.5-19.5v-114.9h11.2l59.3,59.3c3.8,3.8,8.8,5.9,14.2,5.9c5.1,0,10-1.9,13.8-5.4c4-3.8,6.3-9.1,6.3-14.7v-45.1h10.4c18.6,0,33.8-15.2,33.8-33.8v-175C487.6,35.725,472.5,20.525,453.8,20.525z M127.7,215.425h151.7v20.2H127.7V215.425z M58.9,215.425h45.7v20.2H58.9V215.425z M58.9,254.725h104.8v20.2H58.9V254.725z M58.9,294.025h151.7v20.2H58.9V294.025z M163.7,353.525H58.9v-20.2h104.8V353.525z M279.7,353.525h-92.9v-20.2h92.9V353.525z M233.7,314.225v-20.2h45.7v20.2H233.7z M279.7,274.925h-92.9v-20.2h92.9V274.925z M456.7,229.325c0,1.6-1.3,2.8-2.8,2.8h-41.5v49.8l-49.8-49.8h-23.9v-41c0-10.8-8.7-19.5-19.5-19.5h-149v-117.3c0-1.6,1.3-2.8,2.8-2.8h280.8c1.6,0,2.8,1.3,2.8,2.8v175H456.7z" })
+      }
+    );
+  }
+  if (name === "character-worldbuilding") {
+    return /* @__PURE__ */ u3(
+      "svg",
+      {
+        "aria-hidden": "true",
+        "data-icon": name,
+        viewBox: "0 0 512 512",
+        fill: "currentColor",
+        stroke: "none",
+        children: /* @__PURE__ */ u3("path", { d: "M512 0C460.22 3.56 96.44 38.2 71.01 287.61c-3.09 26.66-4.84 53.44-5.99 80.24l178.87-178.69c6.25-6.25 16.4-6.25 22.65 0s6.25 16.38 0 22.63L7.04 471.03c-9.38 9.37-9.38 24.57 0 33.94 9.38 9.37 24.59 9.37 33.98 0l57.13-57.07c42.09-.14 84.15-2.53 125.96-7.36 53.48-5.44 97.02-26.47 132.58-56.54H255.74l146.79-48.88c11.25-14.89 21.37-30.71 30.45-47.12h-81.14l106.54-53.21C500.29 132.86 510.19 26.26 512 0z" })
+      }
+    );
+  }
+  if (name === "rpg-systems") {
+    return /* @__PURE__ */ u3(
+      "svg",
+      {
+        "aria-hidden": "true",
+        "data-icon": name,
+        viewBox: "-16 0 512 512",
+        fill: "currentColor",
+        stroke: "none",
+        children: /* @__PURE__ */ u3("path", { d: "M106.75 215.06L1.2 370.95c-3.08 5 .1 11.5 5.93 12.14l208.26 22.07-108.64-190.1zM7.41 315.43L82.7 193.08 6.06 147.1c-2.67-1.6-6.06.32-6.06 3.43v162.81c0 4.03 5.29 5.53 7.41 2.09zM18.25 423.6l194.4 87.66c5.3 2.45 11.35-1.43 11.35-7.26v-65.67l-203.55-22.3c-4.45-.5-6.23 5.59-2.2 7.57zm81.22-257.78L179.4 22.88c4.34-7.06-3.59-15.25-10.78-11.14L17.81 110.35c-2.47 1.62-2.39 5.26.13 6.78l81.53 48.69zM240 176h109.21L253.63 7.62C250.5 2.54 245.25 0 240 0s-10.5 2.54-13.63 7.62L130.79 176H240zm233.94-28.9l-76.64 45.99 75.29 122.35c2.11 3.44 7.41 1.94 7.41-2.1V150.53c0-3.11-3.39-5.03-6.06-3.43zm-93.41 18.72l81.53-48.7c2.53-1.52 2.6-5.16.13-6.78l-150.81-98.6c-7.19-4.11-15.12 4.08-10.78 11.14l79.93 142.94zm79.02 250.21L256 438.32v65.67c0 5.84 6.05 9.71 11.35 7.26l194.4-87.66c4.03-1.97 2.25-8.06-2.2-7.56zm-86.3-200.97l-108.63 190.1 208.26-22.07c5.83-.65 9.01-7.14 5.93-12.14L373.25 215.06zM240 208H139.57L240 383.75 340.43 208H240z" })
+      }
+    );
+  }
+  if (name === "interface-workflow") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
+      /* @__PURE__ */ u3("path", { d: "M4 6h5m4 0h7M4 12h10m4 0h2M4 18h2m4 0h10" }),
+      /* @__PURE__ */ u3("circle", { cx: "11", cy: "6", r: "2" }),
+      /* @__PURE__ */ u3("circle", { cx: "16", cy: "12", r: "2" }),
+      /* @__PURE__ */ u3("circle", { cx: "8", cy: "18", r: "2" })
     ] });
   }
-  return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", fill: "none", stroke: "currentColor", children: /* @__PURE__ */ u3("path", { d: "M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5h-5z" }) });
+  if (name === "developer-infrastructure") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
+      /* @__PURE__ */ u3("path", { d: "m7 3 5 3-5 3-5-3 5-3Zm10 0 5 3-5 3-5-3 5-3ZM7 12l5 3-5 3-5-3 5-3Zm10 0 5 3-5 3-5-3 5-3Z" }),
+      /* @__PURE__ */ u3("path", { d: "M7 9v3m10-3v3m-5-6v9" })
+    ] });
+  }
+  if (name === "community") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
+      /* @__PURE__ */ u3("circle", { cx: "7", cy: "7", r: "3" }),
+      /* @__PURE__ */ u3("circle", { cx: "17", cy: "8", r: "3" }),
+      /* @__PURE__ */ u3("circle", { cx: "12", cy: "17", r: "3" }),
+      /* @__PURE__ */ u3("path", { d: "m9.8 7.3 4.3.4m-5.4 2 2.1 4.5m4.8-3.7-2.1 3.8" })
+    ] });
+  }
+  return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5H5z" }) });
 }
 
 // src/ui/projects/project-card.tsx
@@ -15436,68 +15632,120 @@ function ProjectCard({
 }) {
   const selfProtected = project2.id === COMPANION_PROJECT_ID || project2.action.kind === "current-extension";
   const compactInstall = project2.action.kind === "install";
-  return /* @__PURE__ */ u3("article", { class: "tavernary-companion-project-card", "data-project-id": project2.id, children: [
-    /* @__PURE__ */ u3("header", { class: "tavernary-companion-project-card__top", children: [
-      /* @__PURE__ */ u3("span", { class: `tavernary-companion-project-card__kind kind-${project2.kind}`, children: [
-        /* @__PURE__ */ u3(CategoryIcon, { kind: project2.kind }),
-        kindLabel(project2.kind)
-      ] }),
-      /* @__PURE__ */ u3(ActivitySummary, { activity: project2.activity })
-    ] }),
-    /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__title", children: [
-      /* @__PURE__ */ u3("h3", { children: project2.name }),
-      /* @__PURE__ */ u3(AssessmentBadge, { status: project2.tavernKeeper })
-    ] }),
-    project2.attributionLabel ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__attribution", children: project2.attributionLabel }) : null,
-    /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__summary", children: project2.summary }),
-    /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__chips", children: [
-      (project2.frontends.length ? project2.frontends : ["Frontend-neutral"]).map((frontend) => /* @__PURE__ */ u3("span", { class: "tavernary-companion-chip tavernary-companion-chip--frontend", children: frontend })),
-      /* @__PURE__ */ u3("span", { class: "tavernary-companion-chip tavernary-companion-chip--function", children: project2.primaryFunction }),
-      project2.tags.slice(0, 3).map((tag2) => /* @__PURE__ */ u3("span", { class: "tavernary-companion-chip", children: tag2 }))
-    ] }),
-    /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__meta", children: [
-      /* @__PURE__ */ u3("span", { children: project2.licenseLabel }),
-      project2.installed ? /* @__PURE__ */ u3("span", { children: "Installed" }) : null
-    ] }),
-    project2.action.reason ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__reason", children: project2.action.reason }) : null,
-    /* @__PURE__ */ u3("footer", { children: [
-      kitSelectionActive && !selfProtected && project2.kitSelectable ? /* @__PURE__ */ u3(
-        "button",
-        {
-          type: "button",
-          class: "tavernary-companion-button tavernary-companion-button--primary",
-          onClick: () => onToggleKitSelection?.(project2.id),
-          children: selectedForKit ? "Remove from Kit" : "Add to Kit"
-        }
-      ) : null,
-      /* @__PURE__ */ u3(
-        "button",
-        {
-          class: "tavernary-companion-button tavernary-companion-button--secondary",
-          type: "button",
-          "data-focus-key": `project-${project2.id}`,
-          onClick: onOpen,
-          "aria-label": `View ${project2.name} details`,
-          children: "Details"
-        }
-      ),
-      selfProtected ? /* @__PURE__ */ u3("button", { type: "button", onClick: onManageInSillyTavern, children: "Manage in SillyTavern" }) : /* @__PURE__ */ u3(
-        "button",
-        {
-          type: "button",
-          class: `tavernary-companion-project-card__primary tavernary-companion-button ${compactInstall ? "tavernary-companion-project-card__compact-action tavernary-companion-button--primary" : project2.action.kind === "view-project" ? "tavernary-companion-button--secondary" : "tavernary-companion-button--primary"}`,
-          "data-testid": "project-primary-action",
-          "aria-label": `${project2.action.label} ${project2.name}`,
-          onClick: () => onAction(project2.action),
-          disabled: lifecycleDisabled,
-          children: compactInstall ? /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: "+" }) : project2.action.label
-        }
-      )
-    ] })
-  ] });
+  const iconName = project2.kind === "extension" ? project2.primaryFunctionId : project2.kind;
+  const hasActivityMetrics = project2.activity.activeWeeks12 !== null && project2.activity.weeklyActivity !== null;
+  return /* @__PURE__ */ u3(
+    "article",
+    {
+      class: `tavernary-companion-project-card kind-${project2.kind}`,
+      "data-project-id": project2.id,
+      children: [
+        /* @__PURE__ */ u3("header", { class: "tavernary-companion-project-card__top", children: [
+          /* @__PURE__ */ u3(
+            "span",
+            {
+              class: "tavernary-companion-project-card__kind",
+              "aria-label": `${project2.primaryFunction} ${kindLabel(project2.kind)}`,
+              children: [
+                /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-card__function-symbol", children: /* @__PURE__ */ u3(CategoryIcon, { name: iconName }) }),
+                kindLabel(project2.kind)
+              ]
+            }
+          ),
+          project2.kind === "preset" ? project2.preset ? /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-card__development is-preset", children: [
+            project2.preset.versionLabel ? /* @__PURE__ */ u3("b", { class: "tavernary-companion-project-card__preset-version", children: project2.preset.versionLabel }) : null,
+            project2.preset.publishedLabel ? /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-card__preset-publication", children: project2.preset.publishedLabel }) : null,
+            project2.preset.sizeLabel ? /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-card__preset-size", children: project2.preset.sizeLabel }) : null
+          ] }) : null : /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-card__development", children: [
+            /* @__PURE__ */ u3(ActivitySummary, { activity: project2.activity }),
+            hasActivityMetrics && project2.activity.latestSourceActivityLabel ? /* @__PURE__ */ u3(
+              "b",
+              {
+                class: "tavernary-companion-project-card__activity-age",
+                style: {
+                  "--tavernary-companion-commit-freshness": `${project2.activity.latestSourceActivityFreshness}%`
+                },
+                children: project2.activity.latestSourceActivityLabel
+              }
+            ) : hasActivityMetrics ? /* @__PURE__ */ u3("b", { class: "tavernary-companion-project-card__activity-age no-source-activity", children: missingSourceActivityLabel(project2.activity.evidenceStatus) }) : null,
+            project2.communityAggregate !== null ? /* @__PURE__ */ u3(
+              "span",
+              {
+                class: "tavernary-companion-project-card__community",
+                "aria-label": `Community activity: ${project2.communityAggregate}`,
+                children: [
+                  /* @__PURE__ */ u3(CategoryIcon, { name: "community" }),
+                  /* @__PURE__ */ u3("b", { children: project2.communityAggregate })
+                ]
+              }
+            ) : null,
+            project2.repositorySizeLabel ? /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-card__repository-size", children: project2.repositorySizeLabel }) : null
+          ] })
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__title", children: [
+          /* @__PURE__ */ u3("h3", { children: project2.displayName }),
+          project2.tavernKeeper ? /* @__PURE__ */ u3(AssessmentBadge, { status: project2.tavernKeeper, compact: true }) : null
+        ] }),
+        project2.attributionLabel ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__attribution", children: project2.attributionLabel }) : null,
+        /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__summary", children: project2.summary }),
+        /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__bottom", children: [
+          /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__chips", children: [
+            project2.frontends.map((frontend) => /* @__PURE__ */ u3("span", { class: "tavernary-companion-chip tavernary-companion-chip--frontend", children: frontend })),
+            project2.tagChips.map((tag2) => /* @__PURE__ */ u3("span", { class: `tavernary-companion-chip tavernary-companion-chip--tag tag-${tag2.facet}`, children: tag2.label })),
+            project2.preset?.modelFamilies.map((family) => /* @__PURE__ */ u3("span", { class: "tavernary-companion-chip", children: family })),
+            project2.preset?.completionFormats.map((format) => /* @__PURE__ */ u3("span", { class: "tavernary-companion-chip", children: format }))
+          ] }),
+          project2.action.reason ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__reason", children: project2.action.reason }) : null,
+          /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__utility", children: [
+            /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__meta", children: [
+              /* @__PURE__ */ u3("span", { class: `tavernary-companion-license license-${project2.licenseStatus}`, children: project2.licenseLabel }),
+              project2.installed ? /* @__PURE__ */ u3("span", { children: "Installed" }) : null
+            ] }),
+            /* @__PURE__ */ u3("footer", { children: [
+              kitSelectionActive && !selfProtected && project2.kitSelectable ? /* @__PURE__ */ u3(
+                "button",
+                {
+                  type: "button",
+                  class: "tavernary-companion-button tavernary-companion-button--primary",
+                  onClick: () => onToggleKitSelection?.(project2.id),
+                  children: selectedForKit ? "Remove from Kit" : "Add to Kit"
+                }
+              ) : null,
+              /* @__PURE__ */ u3(
+                "button",
+                {
+                  class: "tavernary-companion-button tavernary-companion-button--secondary",
+                  type: "button",
+                  "data-focus-key": `project-${project2.id}`,
+                  onClick: onOpen,
+                  "aria-label": `View ${project2.displayName} details`,
+                  children: "Details"
+                }
+              ),
+              selfProtected ? /* @__PURE__ */ u3("button", { type: "button", onClick: onManageInSillyTavern, children: "Manage in SillyTavern" }) : /* @__PURE__ */ u3(
+                "button",
+                {
+                  type: "button",
+                  class: `tavernary-companion-project-card__primary tavernary-companion-button ${compactInstall ? "tavernary-companion-project-card__compact-action tavernary-companion-button--primary" : project2.action.kind === "view-project" ? "tavernary-companion-button--secondary" : "tavernary-companion-button--primary"}`,
+                  "data-testid": "project-primary-action",
+                  "aria-label": `${project2.action.label} ${project2.displayName}`,
+                  onClick: () => onAction(project2.action),
+                  disabled: lifecycleDisabled,
+                  children: compactInstall ? /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: "+" }) : project2.action.label
+                }
+              )
+            ] })
+          ] })
+        ] })
+      ]
+    }
+  );
 }
 function kindLabel(kind) {
-  return { extension: "Extension", preset: "Preset", frontend: "Frontend" }[kind];
+  return { extension: "Extension", preset: "System Preset", frontend: "Frontend" }[kind];
+}
+function missingSourceActivityLabel(evidenceStatus) {
+  return { complete: "Quiet", provisional: "Pending", degraded: "Partial" }[evidenceStatus];
 }
 
 // src/ui/projects/project-grid.tsx
