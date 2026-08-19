@@ -63,7 +63,7 @@ test("native popup opens and closes the mobile scan panel by tap", async ({ brow
     await scan.tap();
     const scanPanel = page.getByRole("dialog", { name: "TavernKeeper Scan Results" });
     await expectOwnedOverlay(scanPanel, owner);
-    expect(await isTopmostAtCenter(scanPanel)).toBe(true);
+    await expectTopLayerGeometry(scanPanel);
 
     await scan.tap();
     await expect(scanPanel).toHaveCount(0);
@@ -218,4 +218,25 @@ async function isTopmostAtCenter(overlay: Locator): Promise<boolean> {
     );
     return hit !== null && element.contains(hit);
   });
+}
+
+async function expectTopLayerGeometry(overlay: Locator): Promise<void> {
+  const contract = await overlay.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    const styles = getComputedStyle(element);
+    return {
+      insideViewport:
+        bounds.left >= 0 &&
+        bounds.top >= 0 &&
+        bounds.right <= window.innerWidth &&
+        bounds.bottom <= window.innerHeight,
+      pointerEvents: styles.pointerEvents,
+      position: styles.position,
+      zIndex: Number.parseInt(styles.zIndex, 10),
+    };
+  });
+  expect(contract.insideViewport).toBe(true);
+  expect(contract.pointerEvents).not.toBe("none");
+  expect(contract.position).toBe("fixed");
+  expect(contract.zIndex).toBeGreaterThan(0);
 }

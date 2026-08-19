@@ -148,7 +148,6 @@ export function TavernKeeperScanIndicator({
   const [position, setPosition] = useState<preact.JSX.CSSProperties | null>(null);
   const triggerRef = useRef<HTMLButtonElement>(null);
   const popoverRef = useRef<HTMLElement>(null);
-  const portalTargetRef = useRef<Element | null>(null);
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const pointerOpenState = useRef<boolean | null>(null);
@@ -166,20 +165,15 @@ export function TavernKeeperScanIndicator({
 
   const closePopover = useCallback(() => {
     clearCloseTimer();
-    portalTargetRef.current = null;
     setOpen(false);
     setPosition(null);
   }, [clearCloseTimer]);
 
-  const openPopover = useCallback(
-    (source: Element | null) => {
-      clearCloseTimer();
-      if (activeDismiss && activeDismiss !== closePopover) activeDismiss();
-      portalTargetRef.current = resolveOverlayPortalTarget(source ?? triggerRef.current);
-      setOpen(true);
-    },
-    [clearCloseTimer, closePopover],
-  );
+  const openPopover = useCallback(() => {
+    clearCloseTimer();
+    if (activeDismiss && activeDismiss !== closePopover) activeDismiss();
+    setOpen(true);
+  }, [clearCloseTimer, closePopover]);
 
   const delayClose = useCallback(() => {
     clearCloseTimer();
@@ -188,7 +182,7 @@ export function TavernKeeperScanIndicator({
 
   const openFromPointer = useCallback(
     (event: preact.JSX.TargetedPointerEvent<HTMLElement>) => {
-      if (event.pointerType !== "touch") openPopover(event.currentTarget);
+      if (event.pointerType !== "touch") openPopover();
     },
     [openPopover],
   );
@@ -200,15 +194,12 @@ export function TavernKeeperScanIndicator({
     [open],
   );
 
-  const togglePopover = useCallback(
-    (event: preact.JSX.TargetedMouseEvent<HTMLButtonElement>) => {
-      const wasOpenBeforePointerFocus = pointerOpenState.current;
-      pointerOpenState.current = null;
-      if (wasOpenBeforePointerFocus === true) closePopover();
-      else openPopover(event.currentTarget);
-    },
-    [closePopover, openPopover],
-  );
+  const togglePopover = useCallback(() => {
+    const wasOpenBeforePointerFocus = pointerOpenState.current;
+    pointerOpenState.current = null;
+    if (wasOpenBeforePointerFocus === true) closePopover();
+    else openPopover();
+  }, [closePopover, openPopover]);
 
   const containsInteractiveElement = useCallback((target: EventTarget | null) => {
     if (!(target instanceof Node)) return false;
@@ -308,9 +299,9 @@ export function TavernKeeperScanIndicator({
         class={`tavernary-companion-tavernkeeper-trigger state-${status.state}`}
         onBlur={closeOnFocusExit}
         onClick={togglePopover}
-        onFocus={(event) => openPopover(event.currentTarget)}
+        onFocus={openPopover}
         onKeyDown={focusFirstLink}
-        onMouseEnter={(event) => openPopover(event.currentTarget)}
+        onMouseEnter={openPopover}
         onMouseLeave={delayClose}
         onPointerDown={rememberPointerOpenState}
         onPointerEnter={openFromPointer}
@@ -328,8 +319,8 @@ export function TavernKeeperScanIndicator({
               class="tavernary-companion-tavernkeeper-popover"
               id={popoverId}
               onBlurCapture={closeOnFocusExit}
-              onFocusCapture={(event) => openPopover(event.currentTarget)}
-              onMouseEnter={(event) => openPopover(event.currentTarget)}
+              onFocusCapture={openPopover}
+              onMouseEnter={openPopover}
               onMouseLeave={delayClose}
               onPointerEnter={openFromPointer}
               onPointerLeave={delayClose}
@@ -420,7 +411,7 @@ export function TavernKeeperScanIndicator({
                 <p class="tavernary-companion-tavernkeeper-summary">{content}</p>
               )}
             </section>,
-            portalTargetRef.current ?? resolveOverlayPortalTarget(triggerRef.current),
+            resolveOverlayPortalTarget(triggerRef.current),
           )
         : null}
     </>
