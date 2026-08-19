@@ -45,19 +45,44 @@ test("200 percent text does not create horizontal overflow", async ({ page }) =>
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,
     ),
   ).toBe(0);
-  expect(
-    await page.getByRole("tab").evaluateAll((tabs) =>
-      tabs.map((tab) => ({
-        label: tab.textContent?.trim(),
-        fits: tab.scrollWidth <= tab.clientWidth,
-      })),
-    ),
-  ).toEqual([
-    { label: "Projects", fits: true },
-    { label: "Kits", fits: true },
-    { label: "Installed", fits: true },
-  ]);
+  const browse = page.getByRole("combobox", { name: "Browse Companion" });
+  await expect(browse).toBeVisible();
+  expect(await browse.evaluate((select) => select.scrollWidth <= select.clientWidth)).toBe(true);
   await expect(page.getByRole("button", { name: "Install Alpha" })).toBeVisible();
+});
+
+test("mobile follows Tavernary's compact catalog hierarchy", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHarness(page);
+
+  await expect(page.getByRole("searchbox", { name: "Search projects" })).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Browse Companion" })).toBeVisible();
+  await expect(page.getByRole("tablist")).not.toBeVisible();
+  const toolbar = page.locator(".tavernary-companion-results-toolbar");
+  await expect(toolbar).toHaveCSS("display", "flex");
+  const count = await toolbar.locator("output").boundingBox();
+  const sort = await toolbar.getByRole("combobox", { name: "Sort projects" }).boundingBox();
+  expect(count).not.toBeNull();
+  expect(sort).not.toBeNull();
+  expect(sort!.x - (count!.x + count!.width)).toBeGreaterThanOrEqual(8);
+  expect(
+    await page
+      .locator(".tavernary-companion-catalog-advisory")
+      .evaluate((element) => Number.parseFloat(getComputedStyle(element).fontSize)),
+  ).toBeLessThanOrEqual(13);
+  const firstCard = await page.locator(".tavernary-companion-project-card").first().boundingBox();
+  expect(firstCard).not.toBeNull();
+  expect(firstCard!.y).toBeLessThanOrEqual(400);
+  expect(firstCard!.x).toBeGreaterThanOrEqual(12);
+  expect(firstCard!.x).toBeLessThanOrEqual(16);
+  expect(firstCard!.x + firstCard!.width).toBeLessThanOrEqual(378);
+  expect(
+    await page
+      .locator(".tavernary-companion-project-grid")
+      .evaluate(
+        (grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length,
+      ),
+  ).toBe(1);
 });
 
 test("shell is constrained by a narrower native popup content box", async ({ page }) => {
@@ -111,7 +136,7 @@ for (const viewport of [
       await page.locator(".popup-content").evaluate((content) => {
         content.scrollTop = 64;
       });
-      await page.getByRole("tab", { name: "Kits" }).click();
+      await page.getByRole("combobox", { name: "Browse Companion" }).selectOption("kits");
       const header = await page.locator(".tavernary-companion-shell__header").boundingBox();
       expect(header).not.toBeNull();
       expect(header!.y).toBeGreaterThanOrEqual(dialog!.y);

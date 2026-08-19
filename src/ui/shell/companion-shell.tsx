@@ -126,8 +126,7 @@ export function CompanionShell({
           !detail && state.route === "projects" && discoveryState
             ? {
                 value: discoveryState.query.search,
-                onChange: (search) =>
-                  updateProjectQuery({ ...discoveryState.query, search }),
+                onChange: (search) => updateProjectQuery({ ...discoveryState.query, search }),
               }
             : undefined
         }
@@ -146,7 +145,7 @@ export function CompanionShell({
           onOpenTavernary={onOpenTavernary}
         >
           {!detail && state.route === "projects" ? (
-            <section aria-labelledby="tavernary-companion-projects-heading">
+            <>
               {discovery && discoveryState ? (
                 <ProjectsRoute
                   state={discoveryState}
@@ -204,7 +203,7 @@ export function CompanionShell({
                   })}
                 </>
               )}
-            </section>
+            </>
           ) : null}
           {!detail && state.route === "kits" ? (
             <section aria-labelledby="tavernary-companion-kits-heading">

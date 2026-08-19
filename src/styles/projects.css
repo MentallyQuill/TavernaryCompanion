@@ -4,8 +4,55 @@
   block-size: 100%;
   min-block-size: 0;
   overflow: auto;
-  padding: 0 1.25rem 1.25rem;
+  padding: 0.75rem 1.25rem 1.25rem;
   background: var(--tavernary-color-bg-canvas);
+}
+
+.tavernary-companion-catalog-state > .tavernary-companion-projects-route {
+  margin: 0;
+}
+
+.tavernary-companion-catalog-advisory {
+  margin: 0 0 0.65rem;
+  color: var(--tavernary-color-text-secondary);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.tavernary-companion-results-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.5rem;
+  margin-block-end: 0.65rem;
+}
+
+.tavernary-companion-results-toolbar output {
+  color: var(--tavernary-color-heading);
+  font-size: 1.25rem;
+  font-weight: 750;
+}
+
+.tavernary-companion-results-toolbar select,
+.tavernary-companion-results-toolbar button {
+  min-block-size: 36px;
+}
+
+.tavernary-companion-results-toolbar select {
+  padding: 0.35rem 0.65rem;
+  border-color: var(--tavernary-color-control-border);
+  color: var(--tavernary-color-text-primary);
+  background: var(--tavernary-color-control-bg);
+}
+
+.tavernary-companion-results-toolbar__clear {
+  border-color: transparent;
+  color: var(--tavernary-color-text-secondary);
+  background: transparent;
+}
+
+.tavernary-companion-select-kit {
+  margin-inline-start: auto;
 }
 
 .tavernary-companion-projects-route > header {
@@ -53,30 +100,11 @@
   font-size: 0.82rem;
 }
 
-.tavernary-companion-search-toolbar {
-  position: sticky;
-  z-index: 4;
-  inset-block-start: 0;
-  display: grid;
-  grid-template-columns: minmax(12rem, 1fr) minmax(10rem, auto) auto;
-  align-items: end;
-  gap: var(--tavernary-companion-space-2);
-  padding-block: 0.55rem;
-  background: var(--tavernary-color-bg-canvas);
-}
-
-.tavernary-companion-search-toolbar label,
 .tavernary-companion-filter-panel label {
   display: flex;
   gap: 0.45rem;
 }
 
-.tavernary-companion-search-toolbar label {
-  flex-direction: column;
-}
-
-.tavernary-companion-search-toolbar input,
-.tavernary-companion-search-toolbar select,
 .tavernary-companion-filter-panel select {
   inline-size: 100%;
   min-block-size: 2.4rem;
@@ -94,7 +122,7 @@
   display: flex;
   flex-wrap: wrap;
   gap: var(--tavernary-companion-space-1);
-  padding-block-end: 0.6rem;
+  padding-block-end: 0.65rem;
 }
 
 .tavernary-companion-filter-chips button {

@@ -1,12 +1,12 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 
-import type { CatalogQuery } from "../../catalog/catalog-core";
+import { DEFAULT_COMPANION_QUERY, type CatalogQuery } from "../../catalog/catalog-core";
 import type { DiscoveryState } from "../../catalog/discovery-controller";
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
 import { ActiveFilterChips } from "./active-filter-chips";
 import { FilterPanel, type ProjectFacets } from "./filter-panel";
 import { ProjectGrid } from "./project-grid";
-import { SearchToolbar } from "./search-toolbar";
+import { ProjectResultsToolbar } from "./project-results-toolbar";
 import { KitSelectionDock } from "../kits/kit-selection-dock";
 
 interface ProjectsRouteProps {
@@ -82,48 +82,47 @@ export function ProjectsRoute({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [filtersOpen]);
-  const isDefaultScope =
-    state.query.frontends.length === 1 &&
-    state.query.frontends[0] === "sillytavern" &&
-    state.query.kinds.length === 2 &&
-    state.query.kinds.includes("extension") &&
-    state.query.kinds.includes("preset");
+  const hasChangedFilters =
+    !sameValues(state.query.frontends, DEFAULT_COMPANION_QUERY.frontends) ||
+    !sameValues(state.query.kinds, DEFAULT_COMPANION_QUERY.kinds) ||
+    state.query.category !== DEFAULT_COMPANION_QUERY.category ||
+    state.query.tags.length > 0 ||
+    (state.query.modelFamilies?.length ?? 0) > 0 ||
+    (state.query.completionFormats?.length ?? 0) > 0 ||
+    state.query.development.length > 0 ||
+    state.query.licenses.length > 0 ||
+    state.query.view !== DEFAULT_COMPANION_QUERY.view;
+  const clearFilters = () =>
+    onQueryChange({
+      ...structuredClone(DEFAULT_COMPANION_QUERY),
+      search: state.query.search,
+      sort: state.query.sort,
+    });
   return (
-    <section class="tavernary-companion-projects-route" aria-labelledby="projects-heading">
-      <header>
-        <div>
-          <h2 id="projects-heading">Projects</h2>
-          <button type="button" disabled={kitSelectionActive} onClick={onBeginKitSelection}>
-            Select for Kit
-          </button>
-        </div>
-        {isDefaultScope ? (
-          <p>
-            Showing SillyTavern extensions and presets. Clear filters to explore all Tavernary
-            projects.
-          </p>
-        ) : null}
-      </header>
-      <SearchToolbar
+    <section class="tavernary-companion-projects-route" aria-label="Projects">
+      <p class="tavernary-companion-catalog-advisory">
+        TavernKeeper provides evidence, not a guarantee of safety. Review projects before
+        installing.
+      </p>
+      <ProjectResultsToolbar
         query={state.query}
         resultCount={state.projects.length}
+        filtersOpen={filtersOpen}
+        filterTrigger={filterTrigger}
+        kitSelectionActive={kitSelectionActive}
+        showClearFilters={hasChangedFilters}
         onQueryChange={onQueryChange}
+        onOpenFilters={() => setFiltersOpen(true)}
+        onClearFilters={clearFilters}
+        onBeginKitSelection={onBeginKitSelection}
       />
-      <button
-        ref={filterTrigger}
-        type="button"
-        class="tavernary-companion-filter-trigger"
-        aria-label="Filters"
-        aria-expanded={filtersOpen}
-        onClick={() => setFiltersOpen(true)}
-      >
-        Filters
-      </button>
-      <ActiveFilterChips query={state.query} facets={facets} onQueryChange={onQueryChange} />
+      {hasChangedFilters ? (
+        <ActiveFilterChips query={state.query} facets={facets} onQueryChange={onQueryChange} />
+      ) : null}
       <div class="tavernary-companion-projects-route__workspace">
         <div
           ref={filterSurface}
-          role="dialog"
+          role={filtersOpen ? "dialog" : undefined}
           aria-label="Project filters"
           aria-modal={filtersOpen || undefined}
           class={`tavernary-companion-filter-surface${filtersOpen ? " is-open" : ""}`}
@@ -155,4 +154,8 @@ export function ProjectsRoute({
       ) : null}
     </section>
   );
+}
+
+function sameValues(left: readonly string[], right: readonly string[]): boolean {
+  return left.length === right.length && left.every((value) => right.includes(value));
 }
