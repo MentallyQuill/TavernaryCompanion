@@ -57,7 +57,7 @@ interface CompanionShellProps {
 
 const noRefresh = () => undefined;
 const noAction = () => undefined;
-const INITIAL_PROJECT_COUNT = 30;
+const INITIAL_PROJECT_COUNT = 60;
 
 export function CompanionShell({
   controller,

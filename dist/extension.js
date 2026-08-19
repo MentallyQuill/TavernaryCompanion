@@ -17546,7 +17546,7 @@ function missingSourceActivityLabel(evidenceStatus) {
 }
 
 // src/ui/projects/project-grid.tsx
-var PROJECT_BATCH_SIZE = 30;
+var PROJECT_BATCH_SIZE = 60;
 function ProjectGrid({
   projects,
   onProjectAction,
@@ -18128,7 +18128,7 @@ function ShellHeader({
 // src/ui/shell/companion-shell.tsx
 var noRefresh = () => void 0;
 var noAction = () => void 0;
-var INITIAL_PROJECT_COUNT = 30;
+var INITIAL_PROJECT_COUNT = 60;
 function CompanionShell({
   controller,
   discovery,

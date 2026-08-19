@@ -2,7 +2,7 @@ import type { ProjectCardViewModel, ProjectPrimaryAction } from "../../catalog/p
 import { useEffect, useState } from "preact/hooks";
 import { ProjectCard } from "./project-card";
 
-const PROJECT_BATCH_SIZE = 30;
+const PROJECT_BATCH_SIZE = 60;
 
 interface ProjectGridProps {
   projects: ProjectCardViewModel[];

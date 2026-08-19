@@ -64,6 +64,32 @@ describe("CompanionShell", () => {
     expect(discovery.read().query.search).toBe("memory");
   });
 
+  it("shows projects in batches of 60 before asking the user to show more", () => {
+    const catalog = catalogFixture();
+    catalog.projects = Array.from({ length: 121 }, (_, index) =>
+      catalogProjectFixture({ id: `project-${index + 1}`, folderName: `Project-${index + 1}` }),
+    );
+    const discovery = createDiscoveryController({
+      snapshot: {
+        state: "ready-current",
+        canMutate: true,
+        checkedAt: null,
+        catalog,
+      },
+      inventory: emptyInventory,
+    });
+    render(
+      <CompanionShell
+        controller={createShellController({ initialRoute: "projects" })}
+        discovery={discovery}
+      />,
+    );
+
+    expect(document.querySelectorAll(".tavernary-companion-project-card")).toHaveLength(60);
+    fireEvent.click(screen.getByRole("button", { name: "Show more projects" }));
+    expect(document.querySelectorAll(".tavernary-companion-project-card")).toHaveLength(120);
+  });
+
   it("starts Kit selection from the card plus and selects that project immediately", () => {
     const catalog = catalogFixture();
     const project = catalogProjectFixture();

@@ -337,7 +337,7 @@ for (const viewport of [
 test("full-catalog query update stays within the rendering budget", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await openHarness(page);
-  expect(await page.locator(".tavernary-companion-project-card").count()).toBeLessThanOrEqual(30);
+  expect(await page.locator(".tavernary-companion-project-card").count()).toBe(60);
   await expect(page.getByText("437 projects")).toBeVisible();
   await expect(page.getByRole("button", { name: "Show more projects" })).toBeVisible();
   expect(await page.locator(".tavernary-companion-project-detail").count()).toBe(0);
