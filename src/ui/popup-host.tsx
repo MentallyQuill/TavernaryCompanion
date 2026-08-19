@@ -26,7 +26,6 @@ import type { KitPlan, KitOperation } from "../kits/kit-plan";
 import { prepareImportedKit } from "../kits/kit-portability";
 import type { KitReceipt } from "../kits/kit-receipt";
 import { KitStore } from "../kits/kit-store";
-import type { PersonalKitV1 } from "../kits/kit-types";
 import {
   toPersonalKitInspector,
   toPublishedKitInspector,
@@ -40,7 +39,7 @@ import { fingerprintKitTopology } from "../kits/kit-validation";
 import { UNSANDBOXED_CODE_DISCLOSURE } from "../trust/trust-copy";
 import { exportKitFile } from "./kits/kit-export-action";
 import { KitEditor } from "./kits/kit-editor";
-import type { KitDraftState } from "../kits/kit-draft";
+import { addDraftMember, createKitDraft, type KitDraftState } from "../kits/kit-draft";
 import { KitImportDialog } from "./kits/kit-import-dialog";
 import { KitOperationTray } from "./kits/kit-operation-tray";
 import { KitPreflightDialog } from "./kits/kit-preflight-dialog";
@@ -114,8 +113,8 @@ export function CompanionPopupHost({
   );
   const [pendingKitPlan, setPendingKitPlan] = useState<Readonly<KitPlan> | null>(null);
   const [kitDisclosurePlan, setKitDisclosurePlan] = useState<Readonly<KitPlan> | null>(null);
-  const [kitEditorSource, setKitEditorSource] = useState<PersonalKitV1 | "new" | null>(null);
-  const [kitEditorSeed, setKitEditorSeed] = useState<string[]>([]);
+  const [kitDraft, setKitDraft] = useState<KitDraftState | null>(null);
+  const [kitBuilderCollapsed, setKitBuilderCollapsed] = useState(true);
   const [importingKit, setImportingKit] = useState(false);
   const [kitInspectors, setKitInspectors] = useState<Record<string, KitInspectorViewModel>>({});
   const [installedKitCards, setInstalledKitCards] = useState<InstalledKitViewModel[]>([]);
@@ -310,8 +309,8 @@ export function CompanionPopupHost({
         projectIds: draft.projectIds,
       });
     }
-    setKitEditorSource(null);
-    setKitEditorSeed([]);
+    setKitDraft(null);
+    setKitBuilderCollapsed(true);
     await syncKits();
   };
   const runtimeCatalog = runtime?.catalog.read();
@@ -342,19 +341,24 @@ export function CompanionPopupHost({
         installedKits={installedKitCards}
         onKitAction={requestKitAction}
         onNewKit={() => {
-          setKitEditorSeed([]);
-          setKitEditorSource("new");
+          setKitDraft((current) => current ?? createKitDraft());
+          setKitBuilderCollapsed(false);
         }}
         onCreateKitFromSelection={(projectIds) => {
-          setKitEditorSeed([...projectIds]);
-          setKitEditorSource("new");
+          setKitDraft((current) =>
+            projectIds.reduce(
+              (next, projectId) => addDraftMember(next, projectId),
+              current ?? createKitDraft(),
+            ),
+          );
+          if (!kitDraft) setKitBuilderCollapsed(true);
         }}
         onImportKit={() => setImportingKit(true)}
         onEditKit={(id) => {
           const kit = runtime?.kits.readDefinition(id);
           if (kit) {
-            setKitEditorSeed([]);
-            setKitEditorSource(kit);
+            setKitDraft(createKitDraft(kit));
+            setKitBuilderCollapsed(false);
           }
         }}
         onCopyKit={(id) => {
@@ -383,19 +387,27 @@ export function CompanionPopupHost({
             .catch(() => setOperationError("Uninstall the Kit before removing it."))
         }
         activeKitId={runtime?.kits.readActiveId() ?? null}
+        kitBuilder={
+          kitEditorProjects ? (
+            <KitEditor
+              draft={kitDraft}
+              projects={kitEditorProjects}
+              collapsed={kitBuilderCollapsed}
+              onStart={() => {
+                setKitDraft((current) => current ?? createKitDraft());
+                setKitBuilderCollapsed(false);
+              }}
+              onUpdate={setKitDraft}
+              onCollapse={() => setKitBuilderCollapsed(true)}
+              onDiscard={() => {
+                setKitDraft(null);
+                setKitBuilderCollapsed(true);
+              }}
+              onSave={(draft) => void saveKitDraft(draft)}
+            />
+          ) : null
+        }
       />
-      {kitEditorSource && kitEditorProjects ? (
-        <KitEditor
-          source={kitEditorSource === "new" ? undefined : kitEditorSource}
-          initialProjectIds={kitEditorSource === "new" ? kitEditorSeed : []}
-          projects={kitEditorProjects}
-          onCancel={() => {
-            setKitEditorSource(null);
-            setKitEditorSeed([]);
-          }}
-          onSave={(draft) => void saveKitDraft(draft)}
-        />
-      ) : null}
       {importingKit && runtime ? (
         <KitImportDialog
           projects={kitEditorProjects ?? []}

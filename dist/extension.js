@@ -24,9 +24,9 @@ var __toESM = (mod, isNodeMode, target) => (target = mod != null ? __create(__ge
   mod
 ));
 
-// ../../node_modules/ajv/dist/compile/codegen/code.js
+// node_modules/ajv/dist/compile/codegen/code.js
 var require_code = __commonJS({
-  "../../node_modules/ajv/dist/compile/codegen/code.js"(exports) {
+  "node_modules/ajv/dist/compile/codegen/code.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.regexpCode = exports.getEsmExportName = exports.getProperty = exports.safeStringify = exports.stringify = exports.strConcat = exports.addCodeArg = exports.str = exports._ = exports.nil = exports._Code = exports.Name = exports.IDENTIFIER = exports._CodeOrName = void 0;
@@ -178,9 +178,9 @@ var require_code = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/codegen/scope.js
+// node_modules/ajv/dist/compile/codegen/scope.js
 var require_scope = __commonJS({
-  "../../node_modules/ajv/dist/compile/codegen/scope.js"(exports) {
+  "node_modules/ajv/dist/compile/codegen/scope.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.ValueScope = exports.ValueScopeName = exports.Scope = exports.varKinds = exports.UsedValueState = void 0;
@@ -323,9 +323,9 @@ var require_scope = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/codegen/index.js
+// node_modules/ajv/dist/compile/codegen/index.js
 var require_codegen = __commonJS({
-  "../../node_modules/ajv/dist/compile/codegen/index.js"(exports) {
+  "node_modules/ajv/dist/compile/codegen/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.or = exports.and = exports.not = exports.CodeGen = exports.operators = exports.varKinds = exports.ValueScopeName = exports.ValueScope = exports.Scope = exports.Name = exports.regexpCode = exports.stringify = exports.getProperty = exports.nil = exports.strConcat = exports.str = exports._ = void 0;
@@ -1043,9 +1043,9 @@ var require_codegen = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/util.js
+// node_modules/ajv/dist/compile/util.js
 var require_util = __commonJS({
-  "../../node_modules/ajv/dist/compile/util.js"(exports) {
+  "node_modules/ajv/dist/compile/util.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.checkStrictMode = exports.getErrorPath = exports.Type = exports.useFunc = exports.setEvaluated = exports.evaluatedPropsToName = exports.mergeEvaluated = exports.eachItem = exports.unescapeJsonPointer = exports.escapeJsonPointer = exports.escapeFragment = exports.unescapeFragment = exports.schemaRefOrVal = exports.schemaHasRulesButRef = exports.schemaHasRules = exports.checkUnknownRules = exports.alwaysValidSchema = exports.toHash = void 0;
@@ -1210,9 +1210,9 @@ var require_util = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/names.js
+// node_modules/ajv/dist/compile/names.js
 var require_names = __commonJS({
-  "../../node_modules/ajv/dist/compile/names.js"(exports) {
+  "node_modules/ajv/dist/compile/names.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -1249,9 +1249,9 @@ var require_names = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/errors.js
+// node_modules/ajv/dist/compile/errors.js
 var require_errors = __commonJS({
-  "../../node_modules/ajv/dist/compile/errors.js"(exports) {
+  "node_modules/ajv/dist/compile/errors.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.extendErrors = exports.resetErrorsCount = exports.reportExtraError = exports.reportError = exports.keyword$DataError = exports.keywordError = void 0;
@@ -1371,9 +1371,9 @@ var require_errors = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/validate/boolSchema.js
+// node_modules/ajv/dist/compile/validate/boolSchema.js
 var require_boolSchema = __commonJS({
-  "../../node_modules/ajv/dist/compile/validate/boolSchema.js"(exports) {
+  "node_modules/ajv/dist/compile/validate/boolSchema.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.boolOrEmptySchema = exports.topBoolOrEmptySchema = void 0;
@@ -1422,9 +1422,9 @@ var require_boolSchema = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/rules.js
+// node_modules/ajv/dist/compile/rules.js
 var require_rules = __commonJS({
-  "../../node_modules/ajv/dist/compile/rules.js"(exports) {
+  "node_modules/ajv/dist/compile/rules.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.getRules = exports.isJSONType = void 0;
@@ -1453,9 +1453,9 @@ var require_rules = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/validate/applicability.js
+// node_modules/ajv/dist/compile/validate/applicability.js
 var require_applicability = __commonJS({
-  "../../node_modules/ajv/dist/compile/validate/applicability.js"(exports) {
+  "node_modules/ajv/dist/compile/validate/applicability.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.shouldUseRule = exports.shouldUseGroup = exports.schemaHasRulesForType = void 0;
@@ -1476,9 +1476,9 @@ var require_applicability = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/validate/dataType.js
+// node_modules/ajv/dist/compile/validate/dataType.js
 var require_dataType = __commonJS({
-  "../../node_modules/ajv/dist/compile/validate/dataType.js"(exports) {
+  "node_modules/ajv/dist/compile/validate/dataType.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.reportTypeError = exports.checkDataTypes = exports.checkDataType = exports.coerceAndCheckDataType = exports.getJSONTypes = exports.getSchemaTypes = exports.DataType = void 0;
@@ -1660,9 +1660,9 @@ var require_dataType = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/validate/defaults.js
+// node_modules/ajv/dist/compile/validate/defaults.js
 var require_defaults = __commonJS({
-  "../../node_modules/ajv/dist/compile/validate/defaults.js"(exports) {
+  "node_modules/ajv/dist/compile/validate/defaults.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.assignDefaults = void 0;
@@ -1697,9 +1697,9 @@ var require_defaults = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/code.js
+// node_modules/ajv/dist/vocabularies/code.js
 var require_code2 = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/code.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/code.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.validateUnion = exports.validateArray = exports.usePattern = exports.callValidateCode = exports.schemaProperties = exports.allSchemaProperties = exports.noPropertyInData = exports.propertyInData = exports.isOwnProperty = exports.hasPropFunc = exports.reportMissingProp = exports.checkMissingProp = exports.checkReportMissingProp = void 0;
@@ -1830,9 +1830,9 @@ var require_code2 = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/validate/keyword.js
+// node_modules/ajv/dist/compile/validate/keyword.js
 var require_keyword = __commonJS({
-  "../../node_modules/ajv/dist/compile/validate/keyword.js"(exports) {
+  "node_modules/ajv/dist/compile/validate/keyword.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.validateKeywordUsage = exports.validSchemaType = exports.funcKeywordCode = exports.macroKeywordCode = void 0;
@@ -1948,9 +1948,9 @@ var require_keyword = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/validate/subschema.js
+// node_modules/ajv/dist/compile/validate/subschema.js
 var require_subschema = __commonJS({
-  "../../node_modules/ajv/dist/compile/validate/subschema.js"(exports) {
+  "node_modules/ajv/dist/compile/validate/subschema.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.extendSubschemaMode = exports.extendSubschemaData = exports.getSubschema = void 0;
@@ -2031,9 +2031,9 @@ var require_subschema = __commonJS({
   }
 });
 
-// ../../node_modules/fast-deep-equal/index.js
+// node_modules/fast-deep-equal/index.js
 var require_fast_deep_equal = __commonJS({
-  "../../node_modules/fast-deep-equal/index.js"(exports, module) {
+  "node_modules/fast-deep-equal/index.js"(exports, module) {
     "use strict";
     module.exports = function equal(a3, b2) {
       if (a3 === b2) return true;
@@ -2066,9 +2066,9 @@ var require_fast_deep_equal = __commonJS({
   }
 });
 
-// ../../node_modules/json-schema-traverse/index.js
+// node_modules/json-schema-traverse/index.js
 var require_json_schema_traverse = __commonJS({
-  "../../node_modules/json-schema-traverse/index.js"(exports, module) {
+  "node_modules/json-schema-traverse/index.js"(exports, module) {
     "use strict";
     var traverse = module.exports = function(schema, opts, cb) {
       if (typeof opts == "function") {
@@ -2154,9 +2154,9 @@ var require_json_schema_traverse = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/resolve.js
+// node_modules/ajv/dist/compile/resolve.js
 var require_resolve = __commonJS({
-  "../../node_modules/ajv/dist/compile/resolve.js"(exports) {
+  "node_modules/ajv/dist/compile/resolve.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.getSchemaRefs = exports.resolveUrl = exports.normalizeId = exports._getFullPath = exports.getFullPath = exports.inlineRef = void 0;
@@ -2310,9 +2310,9 @@ var require_resolve = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/validate/index.js
+// node_modules/ajv/dist/compile/validate/index.js
 var require_validate = __commonJS({
-  "../../node_modules/ajv/dist/compile/validate/index.js"(exports) {
+  "node_modules/ajv/dist/compile/validate/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.getData = exports.KeywordCxt = exports.validateFunctionCode = void 0;
@@ -2818,9 +2818,9 @@ var require_validate = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/runtime/validation_error.js
+// node_modules/ajv/dist/runtime/validation_error.js
 var require_validation_error = __commonJS({
-  "../../node_modules/ajv/dist/runtime/validation_error.js"(exports) {
+  "node_modules/ajv/dist/runtime/validation_error.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var ValidationError = class extends Error {
@@ -2834,9 +2834,9 @@ var require_validation_error = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/ref_error.js
+// node_modules/ajv/dist/compile/ref_error.js
 var require_ref_error = __commonJS({
-  "../../node_modules/ajv/dist/compile/ref_error.js"(exports) {
+  "node_modules/ajv/dist/compile/ref_error.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var resolve_1 = require_resolve();
@@ -2851,9 +2851,9 @@ var require_ref_error = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/compile/index.js
+// node_modules/ajv/dist/compile/index.js
 var require_compile = __commonJS({
-  "../../node_modules/ajv/dist/compile/index.js"(exports) {
+  "node_modules/ajv/dist/compile/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.resolveSchema = exports.getCompilingSchema = exports.resolveRef = exports.compileSchema = exports.SchemaEnv = void 0;
@@ -3075,9 +3075,9 @@ var require_compile = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/refs/data.json
+// node_modules/ajv/dist/refs/data.json
 var require_data = __commonJS({
-  "../../node_modules/ajv/dist/refs/data.json"(exports, module) {
+  "node_modules/ajv/dist/refs/data.json"(exports, module) {
     module.exports = {
       $id: "https://raw.githubusercontent.com/ajv-validator/ajv/master/lib/refs/data.json#",
       description: "Meta-schema for $data reference (JSON AnySchema extension proposal)",
@@ -3094,9 +3094,9 @@ var require_data = __commonJS({
   }
 });
 
-// ../../node_modules/fast-uri/lib/utils.js
+// node_modules/fast-uri/lib/utils.js
 var require_utils = __commonJS({
-  "../../node_modules/fast-uri/lib/utils.js"(exports, module) {
+  "node_modules/fast-uri/lib/utils.js"(exports, module) {
     "use strict";
     var isUUID = RegExp.prototype.test.bind(/^[\da-f]{8}-[\da-f]{4}-[\da-f]{4}-[\da-f]{4}-[\da-f]{12}$/iu);
     var isIPv4 = RegExp.prototype.test.bind(/^(?:(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]\d|\d)\.){3}(?:25[0-5]|2[0-4]\d|1\d{2}|[1-9]\d|\d)$/u);
@@ -3407,9 +3407,9 @@ var require_utils = __commonJS({
   }
 });
 
-// ../../node_modules/fast-uri/lib/schemes.js
+// node_modules/fast-uri/lib/schemes.js
 var require_schemes = __commonJS({
-  "../../node_modules/fast-uri/lib/schemes.js"(exports, module) {
+  "node_modules/fast-uri/lib/schemes.js"(exports, module) {
     "use strict";
     var { isUUID } = require_utils();
     var URN_REG = /([\da-z][\d\-a-z]{0,31}):((?:[\w!$'()*+,\-.:;=@]|%[\da-f]{2})+)/iu;
@@ -3617,9 +3617,9 @@ var require_schemes = __commonJS({
   }
 });
 
-// ../../node_modules/fast-uri/index.js
+// node_modules/fast-uri/index.js
 var require_fast_uri = __commonJS({
-  "../../node_modules/fast-uri/index.js"(exports, module) {
+  "node_modules/fast-uri/index.js"(exports, module) {
     "use strict";
     var { normalizeIPv6, removeDotSegments, recomposeAuthority, normalizePercentEncoding, normalizePathEncoding, escapePreservingEscapes, reescapeHostDelimiters, isIPv4, nonSimpleDomain } = require_utils();
     var { SCHEMES, getSchemeHandler } = require_schemes();
@@ -3929,9 +3929,9 @@ var require_fast_uri = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/runtime/uri.js
+// node_modules/ajv/dist/runtime/uri.js
 var require_uri = __commonJS({
-  "../../node_modules/ajv/dist/runtime/uri.js"(exports) {
+  "node_modules/ajv/dist/runtime/uri.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var uri = require_fast_uri();
@@ -3940,9 +3940,9 @@ var require_uri = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/core.js
+// node_modules/ajv/dist/core.js
 var require_core = __commonJS({
-  "../../node_modules/ajv/dist/core.js"(exports) {
+  "node_modules/ajv/dist/core.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.CodeGen = exports.Name = exports.nil = exports.stringify = exports.str = exports._ = exports.KeywordCxt = void 0;
@@ -4551,9 +4551,9 @@ var require_core = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/core/id.js
+// node_modules/ajv/dist/vocabularies/core/id.js
 var require_id = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/core/id.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/core/id.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var def = {
@@ -4566,9 +4566,9 @@ var require_id = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/core/ref.js
+// node_modules/ajv/dist/vocabularies/core/ref.js
 var require_ref = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/core/ref.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/core/ref.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.callRef = exports.getValidate = void 0;
@@ -4688,9 +4688,9 @@ var require_ref = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/core/index.js
+// node_modules/ajv/dist/vocabularies/core/index.js
 var require_core2 = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/core/index.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/core/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var id_1 = require_id();
@@ -4709,9 +4709,9 @@ var require_core2 = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/validation/limitNumber.js
+// node_modules/ajv/dist/vocabularies/validation/limitNumber.js
 var require_limitNumber = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/validation/limitNumber.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/validation/limitNumber.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -4741,9 +4741,9 @@ var require_limitNumber = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/validation/multipleOf.js
+// node_modules/ajv/dist/vocabularies/validation/multipleOf.js
 var require_multipleOf = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/validation/multipleOf.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/validation/multipleOf.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -4769,9 +4769,9 @@ var require_multipleOf = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/runtime/ucs2length.js
+// node_modules/ajv/dist/runtime/ucs2length.js
 var require_ucs2length = __commonJS({
-  "../../node_modules/ajv/dist/runtime/ucs2length.js"(exports) {
+  "node_modules/ajv/dist/runtime/ucs2length.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     function ucs2length(str) {
@@ -4795,9 +4795,9 @@ var require_ucs2length = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/validation/limitLength.js
+// node_modules/ajv/dist/vocabularies/validation/limitLength.js
 var require_limitLength = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/validation/limitLength.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/validation/limitLength.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -4827,9 +4827,9 @@ var require_limitLength = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/validation/pattern.js
+// node_modules/ajv/dist/vocabularies/validation/pattern.js
 var require_pattern = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/validation/pattern.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/validation/pattern.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var code_1 = require_code2();
@@ -4864,9 +4864,9 @@ var require_pattern = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/validation/limitProperties.js
+// node_modules/ajv/dist/vocabularies/validation/limitProperties.js
 var require_limitProperties = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/validation/limitProperties.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/validation/limitProperties.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -4893,9 +4893,9 @@ var require_limitProperties = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/validation/required.js
+// node_modules/ajv/dist/vocabularies/validation/required.js
 var require_required = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/validation/required.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/validation/required.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var code_1 = require_code2();
@@ -4975,9 +4975,9 @@ var require_required = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/validation/limitItems.js
+// node_modules/ajv/dist/vocabularies/validation/limitItems.js
 var require_limitItems = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/validation/limitItems.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/validation/limitItems.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -5004,9 +5004,9 @@ var require_limitItems = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/runtime/equal.js
+// node_modules/ajv/dist/runtime/equal.js
 var require_equal = __commonJS({
-  "../../node_modules/ajv/dist/runtime/equal.js"(exports) {
+  "node_modules/ajv/dist/runtime/equal.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var equal = require_fast_deep_equal();
@@ -5015,9 +5015,9 @@ var require_equal = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/validation/uniqueItems.js
+// node_modules/ajv/dist/vocabularies/validation/uniqueItems.js
 var require_uniqueItems = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/validation/uniqueItems.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/validation/uniqueItems.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var dataType_1 = require_dataType();
@@ -5082,9 +5082,9 @@ var require_uniqueItems = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/validation/const.js
+// node_modules/ajv/dist/vocabularies/validation/const.js
 var require_const = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/validation/const.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/validation/const.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -5111,9 +5111,9 @@ var require_const = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/validation/enum.js
+// node_modules/ajv/dist/vocabularies/validation/enum.js
 var require_enum = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/validation/enum.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/validation/enum.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -5160,9 +5160,9 @@ var require_enum = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/validation/index.js
+// node_modules/ajv/dist/vocabularies/validation/index.js
 var require_validation = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/validation/index.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/validation/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var limitNumber_1 = require_limitNumber();
@@ -5198,9 +5198,9 @@ var require_validation = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/additionalItems.js
+// node_modules/ajv/dist/vocabularies/applicator/additionalItems.js
 var require_additionalItems = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/additionalItems.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/additionalItems.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.validateAdditionalItems = void 0;
@@ -5251,9 +5251,9 @@ var require_additionalItems = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/items.js
+// node_modules/ajv/dist/vocabularies/applicator/items.js
 var require_items = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/items.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/items.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.validateTuple = void 0;
@@ -5308,9 +5308,9 @@ var require_items = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/prefixItems.js
+// node_modules/ajv/dist/vocabularies/applicator/prefixItems.js
 var require_prefixItems = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/prefixItems.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/prefixItems.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var items_1 = require_items();
@@ -5325,9 +5325,9 @@ var require_prefixItems = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/items2020.js
+// node_modules/ajv/dist/vocabularies/applicator/items2020.js
 var require_items2020 = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/items2020.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/items2020.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -5360,9 +5360,9 @@ var require_items2020 = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/contains.js
+// node_modules/ajv/dist/vocabularies/applicator/contains.js
 var require_contains = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/contains.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/contains.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -5454,9 +5454,9 @@ var require_contains = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/dependencies.js
+// node_modules/ajv/dist/vocabularies/applicator/dependencies.js
 var require_dependencies = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/dependencies.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/dependencies.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.validateSchemaDeps = exports.validatePropertyDeps = exports.error = void 0;
@@ -5548,9 +5548,9 @@ var require_dependencies = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/propertyNames.js
+// node_modules/ajv/dist/vocabularies/applicator/propertyNames.js
 var require_propertyNames = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/propertyNames.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/propertyNames.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -5591,9 +5591,9 @@ var require_propertyNames = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js
+// node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js
 var require_additionalProperties = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/additionalProperties.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var code_1 = require_code2();
@@ -5697,9 +5697,9 @@ var require_additionalProperties = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/properties.js
+// node_modules/ajv/dist/vocabularies/applicator/properties.js
 var require_properties = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/properties.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/properties.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var validate_1 = require_validate();
@@ -5755,9 +5755,9 @@ var require_properties = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/patternProperties.js
+// node_modules/ajv/dist/vocabularies/applicator/patternProperties.js
 var require_patternProperties = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/patternProperties.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/patternProperties.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var code_1 = require_code2();
@@ -5829,9 +5829,9 @@ var require_patternProperties = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/not.js
+// node_modules/ajv/dist/vocabularies/applicator/not.js
 var require_not = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/not.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/not.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var util_1 = require_util();
@@ -5860,9 +5860,9 @@ var require_not = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/anyOf.js
+// node_modules/ajv/dist/vocabularies/applicator/anyOf.js
 var require_anyOf = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/anyOf.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/anyOf.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var code_1 = require_code2();
@@ -5877,9 +5877,9 @@ var require_anyOf = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/oneOf.js
+// node_modules/ajv/dist/vocabularies/applicator/oneOf.js
 var require_oneOf = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/oneOf.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/oneOf.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -5935,9 +5935,9 @@ var require_oneOf = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/allOf.js
+// node_modules/ajv/dist/vocabularies/applicator/allOf.js
 var require_allOf = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/allOf.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/allOf.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var util_1 = require_util();
@@ -5962,9 +5962,9 @@ var require_allOf = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/if.js
+// node_modules/ajv/dist/vocabularies/applicator/if.js
 var require_if = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/if.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/if.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -6031,9 +6031,9 @@ var require_if = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/thenElse.js
+// node_modules/ajv/dist/vocabularies/applicator/thenElse.js
 var require_thenElse = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/thenElse.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/thenElse.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var util_1 = require_util();
@@ -6049,9 +6049,9 @@ var require_thenElse = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/applicator/index.js
+// node_modules/ajv/dist/vocabularies/applicator/index.js
 var require_applicator = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/applicator/index.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/applicator/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var additionalItems_1 = require_additionalItems();
@@ -6097,9 +6097,9 @@ var require_applicator = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/format/format.js
+// node_modules/ajv/dist/vocabularies/format/format.js
 var require_format = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/format/format.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/format/format.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -6187,9 +6187,9 @@ var require_format = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/format/index.js
+// node_modules/ajv/dist/vocabularies/format/index.js
 var require_format2 = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/format/index.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/format/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var format_1 = require_format();
@@ -6198,9 +6198,9 @@ var require_format2 = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/metadata.js
+// node_modules/ajv/dist/vocabularies/metadata.js
 var require_metadata = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/metadata.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/metadata.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.contentVocabulary = exports.metadataVocabulary = void 0;
@@ -6221,9 +6221,9 @@ var require_metadata = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/draft7.js
+// node_modules/ajv/dist/vocabularies/draft7.js
 var require_draft7 = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/draft7.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/draft7.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var core_1 = require_core2();
@@ -6243,9 +6243,9 @@ var require_draft7 = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/discriminator/types.js
+// node_modules/ajv/dist/vocabularies/discriminator/types.js
 var require_types = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/discriminator/types.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/discriminator/types.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.DiscrError = void 0;
@@ -6257,9 +6257,9 @@ var require_types = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/vocabularies/discriminator/index.js
+// node_modules/ajv/dist/vocabularies/discriminator/index.js
 var require_discriminator = __commonJS({
-  "../../node_modules/ajv/dist/vocabularies/discriminator/index.js"(exports) {
+  "node_modules/ajv/dist/vocabularies/discriminator/index.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var codegen_1 = require_codegen();
@@ -6362,9 +6362,9 @@ var require_discriminator = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/refs/json-schema-draft-07.json
+// node_modules/ajv/dist/refs/json-schema-draft-07.json
 var require_json_schema_draft_07 = __commonJS({
-  "../../node_modules/ajv/dist/refs/json-schema-draft-07.json"(exports, module) {
+  "node_modules/ajv/dist/refs/json-schema-draft-07.json"(exports, module) {
     module.exports = {
       $schema: "http://json-schema.org/draft-07/schema#",
       $id: "http://json-schema.org/draft-07/schema#",
@@ -6519,9 +6519,9 @@ var require_json_schema_draft_07 = __commonJS({
   }
 });
 
-// ../../node_modules/ajv/dist/ajv.js
+// node_modules/ajv/dist/ajv.js
 var require_ajv = __commonJS({
-  "../../node_modules/ajv/dist/ajv.js"(exports, module) {
+  "node_modules/ajv/dist/ajv.js"(exports, module) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.MissingRefError = exports.ValidationError = exports.CodeGen = exports.Name = exports.nil = exports.stringify = exports.str = exports._ = exports.KeywordCxt = exports.Ajv = void 0;
@@ -6589,9 +6589,9 @@ var require_ajv = __commonJS({
   }
 });
 
-// ../../node_modules/ajv-formats/dist/formats.js
+// node_modules/ajv-formats/dist/formats.js
 var require_formats = __commonJS({
-  "../../node_modules/ajv-formats/dist/formats.js"(exports) {
+  "node_modules/ajv-formats/dist/formats.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.formatNames = exports.fastFormats = exports.fullFormats = void 0;
@@ -6792,9 +6792,9 @@ var require_formats = __commonJS({
   }
 });
 
-// ../../node_modules/ajv-formats/dist/limit.js
+// node_modules/ajv-formats/dist/limit.js
 var require_limit = __commonJS({
-  "../../node_modules/ajv-formats/dist/limit.js"(exports) {
+  "node_modules/ajv-formats/dist/limit.js"(exports) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     exports.formatLimitDefinition = void 0;
@@ -6864,9 +6864,9 @@ var require_limit = __commonJS({
   }
 });
 
-// ../../node_modules/ajv-formats/dist/index.js
+// node_modules/ajv-formats/dist/index.js
 var require_dist = __commonJS({
-  "../../node_modules/ajv-formats/dist/index.js"(exports, module) {
+  "node_modules/ajv-formats/dist/index.js"(exports, module) {
     "use strict";
     Object.defineProperty(exports, "__esModule", { value: true });
     var formats_1 = require_formats();
@@ -7360,7 +7360,7 @@ var ProfileStore = class {
   }
 };
 
-// ../../node_modules/preact/dist/preact.module.js
+// node_modules/preact/dist/preact.module.js
 var n;
 var l;
 var u;
@@ -7622,7 +7622,7 @@ n = w.slice, l = { __e: function(n2, l3, u4, t3) {
   return n2.__v.__b - l3.__v.__b;
 }, H.__r = 0, f = Math.random().toString(8), c = "__d" + f, a = "__a" + f, s = /(PointerCapture)$|Capture$/i, h = 0, p = V(false), v = V(true), y = 0;
 
-// ../../node_modules/preact/hooks/dist/hooks.module.js
+// node_modules/preact/hooks/dist/hooks.module.js
 var t2;
 var r2;
 var u2;
@@ -8631,7 +8631,7 @@ function matchesCompletionFormats(selected, available) {
   return selected.length === 0 || selected.some((format) => available.includes(format));
 }
 
-// ../../node_modules/minisearch/dist/es/index.js
+// node_modules/minisearch/dist/es/index.js
 var ENTRIES = "ENTRIES";
 var KEYS = "KEYS";
 var VALUES = "VALUES";
@@ -14371,11 +14371,6 @@ function moveDraftMember(draft, projectId, direction) {
   [ids[index], ids[target]] = [ids[target], ids[index]];
   return updateKitDraft(draft, { projectIds: ids });
 }
-function selectableKitProjects(projects) {
-  return projects.filter(
-    (project2) => project2.id !== COMPANION_PROJECT_ID && project2.kind === "extension" && project2.frontends.some(({ id }) => id === "sillytavern") && project2.install
-  );
-}
 function validateDraft(draft) {
   const issues = [];
   if (!draft.title.trim()) issues.push("Title is required.");
@@ -14386,7 +14381,7 @@ function validateDraft(draft) {
   return { ...draft, title: draft.title, description: draft.description, issues };
 }
 
-// ../../node_modules/preact/jsx-runtime/dist/jsxRuntime.module.js
+// node_modules/preact/jsx-runtime/dist/jsxRuntime.module.js
 var f3 = 0;
 function u3(e3, t3, n2, o3, i3, u4) {
   t3 || (t3 = {});
@@ -14395,6 +14390,612 @@ function u3(e3, t3, n2, o3, i3, u4) {
   var l3 = { type: e3, props: p3, key: n2, ref: a3, __k: null, __: null, __b: 0, __e: null, __c: null, constructor: void 0, __v: --f3, __i: -1, __u: 0, __source: i3, __self: u4 };
   if ("function" == typeof e3 && (a3 = e3.defaultProps)) for (c3 in a3) void 0 === p3[c3] && (p3[c3] = a3[c3]);
   return l.vnode && l.vnode(l3), l3;
+}
+
+// src/ui/shared/category-icon.tsx
+var strokeProps = {
+  "aria-hidden": true,
+  fill: "none",
+  stroke: "currentColor",
+  strokeWidth: 1.8,
+  strokeLinecap: "round",
+  strokeLinejoin: "round"
+};
+function CategoryIcon({ name }) {
+  if (name === "remove") {
+    return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", "data-icon": name, viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ u3(
+      "path",
+      {
+        fillRule: "evenodd",
+        d: "M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM7.293 7.293a1 1 0 0 1 1.414 0L12 10.586l3.293-3.293a1 1 0 1 1 1.414 1.414L13.414 12l3.293 3.293a1 1 0 0 1-1.414 1.414L12 13.414l-3.293 3.293a1 1 0 0 1-1.414-1.414L10.586 12 7.293 8.707a1 1 0 0 1 0-1.414Z"
+      }
+    ) });
+  }
+  if (name === "kit-builder") {
+    return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", "data-icon": name, viewBox: "0 0 1920 1920", fill: "currentColor", children: /* @__PURE__ */ u3(
+      "path",
+      {
+        fillRule: "evenodd",
+        d: "M1807.124.056V1920h-112.938V.056h112.938ZM1468.254 0v1919.944H282.407c-93.4 0-169.407-75.895-169.407-169.407V169.407C113 76.007 189.007 0 282.407 0h1185.847ZM830.607 661.138 588.242 903.503h654.137v112.938H588.242l242.365 242.477-79.847 79.847-378.793-378.793 378.793-378.68 79.847 79.846Z"
+      }
+    ) });
+  }
+  if (name === "kit") {
+    return /* @__PURE__ */ u3(
+      "svg",
+      {
+        "aria-hidden": "true",
+        "data-icon": name,
+        viewBox: "3 3 26 26",
+        fill: "currentColor",
+        stroke: "none",
+        children: /* @__PURE__ */ u3("path", { d: "M29,5a2,2,0,0,0-2-2H5A2,2,0,0,0,3,5V27a2,2,0,0,0,2,2H27a2,2,0,0,0,2-2ZM27,5V9H5V5Zm0,22H5V23H27Zm0-6H5V17H27Zm0-6H5V11H27Z" })
+      }
+    );
+  }
+  if (name === "add-to-kit") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M4 6h10v12H4zM17 8v8M13 12h8" }) });
+  }
+  if (name === "duplicate") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
+      /* @__PURE__ */ u3("rect", { x: "7", y: "7", width: "12", height: "12", rx: "2" }),
+      /* @__PURE__ */ u3("path", { d: "M5 16H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1" })
+    ] });
+  }
+  if (name === "copy-link") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M9 15 15 9M7.5 17.5l-1 1a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0M16.5 6.5l1-1a3.5 3.5 0 0 1 5 5l-4 4a3.5 3.5 0 0 1-5 0" }) });
+  }
+  if (name === "report" || name === "caution") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
+      /* @__PURE__ */ u3("path", { d: "M12 3 2.5 20h19L12 3Z" }),
+      /* @__PURE__ */ u3("path", { d: "M12 9v5M12 17h.01" })
+    ] });
+  }
+  if (name === "drag-handle") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M8 6h8M8 12h8M8 18h8" }) });
+  }
+  if (name === "frontend") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
+      /* @__PURE__ */ u3("rect", { x: "3", y: "4", width: "18", height: "16", rx: "2" }),
+      /* @__PURE__ */ u3("path", { d: "M3 8h18M8 8v12M11 12h6M11 16h4" })
+    ] });
+  }
+  if (name === "preset") {
+    return /* @__PURE__ */ u3(
+      "svg",
+      {
+        "aria-hidden": "true",
+        "data-icon": name,
+        viewBox: "0 0 24 24",
+        fill: "currentColor",
+        stroke: "none",
+        children: [
+          /* @__PURE__ */ u3(
+            "path",
+            {
+              fillRule: "evenodd",
+              clipRule: "evenodd",
+              d: "M12.0002 8C9.79111 8 8.00024 9.79086 8.00024 12C8.00024 14.2091 9.79111 16 12.0002 16C14.2094 16 16.0002 14.2091 16.0002 12C16.0002 9.79086 14.2094 8 12.0002 8ZM10.0002 12C10.0002 10.8954 10.8957 10 12.0002 10C13.1048 10 14.0002 10.8954 14.0002 12C14.0002 13.1046 13.1048 14 12.0002 14C10.8957 14 10.0002 13.1046 10.0002 12Z"
+            }
+          ),
+          /* @__PURE__ */ u3(
+            "path",
+            {
+              fillRule: "evenodd",
+              clipRule: "evenodd",
+              d: "M11.2867 0.5C9.88583 0.5 8.6461 1.46745 8.37171 2.85605L8.29264 3.25622C8.10489 4.20638 7.06195 4.83059 6.04511 4.48813L5.64825 4.35447C4.32246 3.90796 2.83873 4.42968 2.11836 5.63933L1.40492 6.83735C0.67773 8.05846 0.954349 9.60487 2.03927 10.5142L2.35714 10.7806C3.12939 11.4279 3.12939 12.5721 2.35714 13.2194L2.03927 13.4858C0.954349 14.3951 0.67773 15.9415 1.40492 17.1626L2.11833 18.3606C2.83872 19.5703 4.3225 20.092 5.64831 19.6455L6.04506 19.5118C7.06191 19.1693 8.1049 19.7935 8.29264 20.7437L8.37172 21.1439C8.6461 22.5325 9.88584 23.5 11.2867 23.5H12.7136C14.1146 23.5 15.3543 22.5325 15.6287 21.1438L15.7077 20.7438C15.8954 19.7936 16.9384 19.1693 17.9553 19.5118L18.3521 19.6455C19.6779 20.092 21.1617 19.5703 21.8821 18.3606L22.5955 17.1627C23.3227 15.9416 23.046 14.3951 21.9611 13.4858L21.6432 13.2194C20.8709 12.5722 20.8709 11.4278 21.6432 10.7806L21.9611 10.5142C23.046 9.60489 23.3227 8.05845 22.5955 6.83732L21.8821 5.63932C21.1617 4.42968 19.678 3.90795 18.3522 4.35444L17.9552 4.48814C16.9384 4.83059 15.8954 4.20634 15.7077 3.25617L15.6287 2.85616C15.3543 1.46751 14.1146 0.5 12.7136 0.5H11.2867ZM10.3338 3.24375C10.4149 2.83334 10.7983 2.5 11.2867 2.5H12.7136C13.2021 2.5 13.5855 2.83336 13.6666 3.24378L13.7456 3.64379C14.1791 5.83811 16.4909 7.09167 18.5935 6.38353L18.9905 6.24984C19.4495 6.09527 19.9394 6.28595 20.1637 6.66264L20.8771 7.86064C21.0946 8.22587 21.0208 8.69271 20.6764 8.98135L20.3586 9.24773C18.6325 10.6943 18.6325 13.3057 20.3586 14.7523L20.6764 15.0186C21.0208 15.3073 21.0946 15.7741 20.8771 16.1394L20.1637 17.3373C19.9394 17.714 19.4495 17.9047 18.9905 17.7501L18.5936 17.6164C16.4909 16.9082 14.1791 18.1618 13.7456 20.3562L13.6666 20.7562C13.5855 21.1666 13.2021 21.5 12.7136 21.5H11.2867C10.7983 21.5 10.4149 21.1667 10.3338 20.7562L10.2547 20.356C9.82113 18.1617 7.50931 16.9082 5.40665 17.6165L5.0099 17.7501C4.55092 17.9047 4.06104 17.714 3.83671 17.3373L3.1233 16.1393C2.9058 15.7741 2.97959 15.3073 3.32398 15.0186L3.64185 14.7522C5.36782 13.3056 5.36781 10.6944 3.64185 9.24779L3.32398 8.98137C2.97959 8.69273 2.9058 8.2259 3.1233 7.86067L3.83674 6.66266C4.06106 6.28596 4.55093 6.09528 5.0099 6.24986L5.40676 6.38352C7.50938 7.09166 9.82112 5.83819 10.2547 3.64392L10.3338 3.24375Z"
+            }
+          )
+        ]
+      }
+    );
+  }
+  if (name === "memory-retrieval") {
+    return /* @__PURE__ */ u3(
+      "svg",
+      {
+        "aria-hidden": "true",
+        "data-icon": name,
+        viewBox: "0 0 24 24",
+        fill: "none",
+        stroke: "currentColor",
+        strokeWidth: "1.91",
+        strokeMiterlimit: "10",
+        children: [
+          /* @__PURE__ */ u3("path", { d: "M12,4.36V20.59a1.92,1.92,0,0,1-1.91,1.91,1.93,1.93,0,0,1-1.91-1.91v0a2.45,2.45,0,0,1-.48,0,3.35,3.35,0,0,1-3.34-3.34,3.19,3.19,0,0,1,.08-.7A4.29,4.29,0,0,1,3.6,8.79,3.24,3.24,0,0,1,3.41,7.7,3.34,3.34,0,0,1,6.27,4.4v0a2.87,2.87,0,0,1,5.73,0Z" }),
+          /* @__PURE__ */ u3("path", { d: "M6.75,11.05a3.35,3.35,0,0,1,0-6.69" }),
+          /* @__PURE__ */ u3("path", { d: "M8.18,13.91h0A3.82,3.82,0,0,1,12,17.73h0" }),
+          /* @__PURE__ */ u3("path", { d: "M9.14,7.23h0A2.86,2.86,0,0,0,12,4.36h0" }),
+          /* @__PURE__ */ u3("path", { d: "M12,4.36V20.59a1.92,1.92,0,0,0,1.91,1.91,1.93,1.93,0,0,0,1.91-1.91v0a2.45,2.45,0,0,0,.48,0,3.35,3.35,0,0,0,3.34-3.34,3.19,3.19,0,0,0-.08-.7,4.29,4.29,0,0,0,.84-7.76,3.24,3.24,0,0,0,.19-1.09,3.34,3.34,0,0,0-2.86-3.3v0a2.87,2.87,0,0,0-5.73,0Z" }),
+          /* @__PURE__ */ u3("path", { d: "M17.25,11.05a3.35,3.35,0,0,0,0-6.69" }),
+          /* @__PURE__ */ u3("path", { d: "M15.82,13.91h0A3.82,3.82,0,0,0,12,17.73h0" }),
+          /* @__PURE__ */ u3("path", { d: "M14.86,7.23h0A2.86,2.86,0,0,1,12,4.36h0" })
+        ]
+      }
+    );
+  }
+  if (name === "generation-reasoning") {
+    return /* @__PURE__ */ u3(
+      "svg",
+      {
+        "aria-hidden": "true",
+        "data-icon": name,
+        viewBox: "0 0 487.6 487.6",
+        fill: "currentColor",
+        stroke: "none",
+        children: /* @__PURE__ */ u3("path", { d: "M453.8,20.525H173.1c-18.6,0-33.8,15.2-33.8,33.8v117.4H19.5c-10.8,0-19.5,8.7-19.5,19.5v186.8c0,10.8,8.7,19.5,19.5,19.5h27.7v64.6c0,4.4,5.3,6.6,8.4,3.5l68.1-68.1h195.4c10.8,0,19.5-8.7,19.5-19.5v-114.9h11.2l59.3,59.3c3.8,3.8,8.8,5.9,14.2,5.9c5.1,0,10-1.9,13.8-5.4c4-3.8,6.3-9.1,6.3-14.7v-45.1h10.4c18.6,0,33.8-15.2,33.8-33.8v-175C487.6,35.725,472.5,20.525,453.8,20.525z M127.7,215.425h151.7v20.2H127.7V215.425z M58.9,215.425h45.7v20.2H58.9V215.425z M58.9,254.725h104.8v20.2H58.9V254.725z M58.9,294.025h151.7v20.2H58.9V294.025z M163.7,353.525H58.9v-20.2h104.8V353.525z M279.7,353.525h-92.9v-20.2h92.9V353.525z M233.7,314.225v-20.2h45.7v20.2H233.7z M279.7,274.925h-92.9v-20.2h92.9V274.925z M456.7,229.325c0,1.6-1.3,2.8-2.8,2.8h-41.5v49.8l-49.8-49.8h-23.9v-41c0-10.8-8.7-19.5-19.5-19.5h-149v-117.3c0-1.6,1.3-2.8,2.8-2.8h280.8c1.6,0,2.8,1.3,2.8,2.8v175H456.7z" })
+      }
+    );
+  }
+  if (name === "character-worldbuilding") {
+    return /* @__PURE__ */ u3(
+      "svg",
+      {
+        "aria-hidden": "true",
+        "data-icon": name,
+        viewBox: "0 0 512 512",
+        fill: "currentColor",
+        stroke: "none",
+        children: /* @__PURE__ */ u3("path", { d: "M512 0C460.22 3.56 96.44 38.2 71.01 287.61c-3.09 26.66-4.84 53.44-5.99 80.24l178.87-178.69c6.25-6.25 16.4-6.25 22.65 0s6.25 16.38 0 22.63L7.04 471.03c-9.38 9.37-9.38 24.57 0 33.94 9.38 9.37 24.59 9.37 33.98 0l57.13-57.07c42.09-.14 84.15-2.53 125.96-7.36 53.48-5.44 97.02-26.47 132.58-56.54H255.74l146.79-48.88c11.25-14.89 21.37-30.71 30.45-47.12h-81.14l106.54-53.21C500.29 132.86 510.19 26.26 512 0z" })
+      }
+    );
+  }
+  if (name === "rpg-systems") {
+    return /* @__PURE__ */ u3(
+      "svg",
+      {
+        "aria-hidden": "true",
+        "data-icon": name,
+        viewBox: "-16 0 512 512",
+        fill: "currentColor",
+        stroke: "none",
+        children: /* @__PURE__ */ u3("path", { d: "M106.75 215.06L1.2 370.95c-3.08 5 .1 11.5 5.93 12.14l208.26 22.07-108.64-190.1zM7.41 315.43L82.7 193.08 6.06 147.1c-2.67-1.6-6.06.32-6.06 3.43v162.81c0 4.03 5.29 5.53 7.41 2.09zM18.25 423.6l194.4 87.66c5.3 2.45 11.35-1.43 11.35-7.26v-65.67l-203.55-22.3c-4.45-.5-6.23 5.59-2.2 7.57zm81.22-257.78L179.4 22.88c4.34-7.06-3.59-15.25-10.78-11.14L17.81 110.35c-2.47 1.62-2.39 5.26.13 6.78l81.53 48.69zM240 176h109.21L253.63 7.62C250.5 2.54 245.25 0 240 0s-10.5 2.54-13.63 7.62L130.79 176H240zm233.94-28.9l-76.64 45.99 75.29 122.35c2.11 3.44 7.41 1.94 7.41-2.1V150.53c0-3.11-3.39-5.03-6.06-3.43zm-93.41 18.72l81.53-48.7c2.53-1.52 2.6-5.16.13-6.78l-150.81-98.6c-7.19-4.11-15.12 4.08-10.78 11.14l79.93 142.94zm79.02 250.21L256 438.32v65.67c0 5.84 6.05 9.71 11.35 7.26l194.4-87.66c4.03-1.97 2.25-8.06-2.2-7.56zm-86.3-200.97l-108.63 190.1 208.26-22.07c5.83-.65 9.01-7.14 5.93-12.14L373.25 215.06zM240 208H139.57L240 383.75 340.43 208H240z" })
+      }
+    );
+  }
+  if (name === "interface-workflow") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
+      /* @__PURE__ */ u3("path", { d: "M4 6h5m4 0h7M4 12h10m4 0h2M4 18h2m4 0h10" }),
+      /* @__PURE__ */ u3("circle", { cx: "11", cy: "6", r: "2" }),
+      /* @__PURE__ */ u3("circle", { cx: "16", cy: "12", r: "2" }),
+      /* @__PURE__ */ u3("circle", { cx: "8", cy: "18", r: "2" })
+    ] });
+  }
+  if (name === "developer-infrastructure") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
+      /* @__PURE__ */ u3("path", { d: "m7 3 5 3-5 3-5-3 5-3Zm10 0 5 3-5 3-5-3 5-3ZM7 12l5 3-5 3-5-3 5-3Zm10 0 5 3-5 3-5-3 5-3Z" }),
+      /* @__PURE__ */ u3("path", { d: "M7 9v3m10-3v3m-5-6v9" })
+    ] });
+  }
+  if (name === "community") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
+      /* @__PURE__ */ u3("circle", { cx: "7", cy: "7", r: "3" }),
+      /* @__PURE__ */ u3("circle", { cx: "17", cy: "8", r: "3" }),
+      /* @__PURE__ */ u3("circle", { cx: "12", cy: "17", r: "3" }),
+      /* @__PURE__ */ u3("path", { d: "m9.8 7.3 4.3.4m-5.4 2 2.1 4.5m4.8-3.7-2.1 3.8" })
+    ] });
+  }
+  if (name === "search") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
+      /* @__PURE__ */ u3("circle", { cx: "11", cy: "11", r: "7" }),
+      /* @__PURE__ */ u3("path", { d: "m20 20-4-4" })
+    ] });
+  }
+  if (name === "chevron") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "m6 9 6 6 6-6" }) });
+  }
+  if (name === "filter" || name === "filter-lines") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M4 6h16M7 12h10M10 18h4" }) });
+  }
+  if (name === "collapse") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 32 32", children: /* @__PURE__ */ u3("path", { d: "M23 26l-7-7-7 7M9 6l7 7 7-7" }) });
+  }
+  if (name === "close") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "m6 6 12 12M18 6 6 18" }) });
+  }
+  return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5H5z" }) });
+}
+
+// src/ui/kits/kit-member-row.tsx
+function KitMemberRow({
+  id,
+  name,
+  kind = "extension",
+  onDragStart,
+  onMove,
+  onRemove
+}) {
+  return /* @__PURE__ */ u3("li", { class: "tavernary-companion-kit-builder-row", "data-project-id": id, "data-kind": kind, children: [
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        type: "button",
+        class: "tavernary-companion-kit-drag-handle",
+        "aria-label": `Drag ${name} to reorder`,
+        onPointerDown: onDragStart,
+        onKeyDown: (event) => {
+          if (!event.altKey || event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+          event.preventDefault();
+          onMove(event.key === "ArrowUp" ? -1 : 1);
+        },
+        children: /* @__PURE__ */ u3(CategoryIcon, { name: "drag-handle" })
+      }
+    ),
+    /* @__PURE__ */ u3("span", { class: "tavernary-companion-kit-builder-row__identity", children: [
+      /* @__PURE__ */ u3("strong", { children: name }),
+      /* @__PURE__ */ u3("small", { children: kind })
+    ] }),
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        type: "button",
+        class: "tavernary-companion-kit-builder-remove",
+        "aria-label": `Remove ${name} from Kit`,
+        "aria-pressed": "true",
+        onClick: onRemove,
+        children: /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: "\u2212" })
+      }
+    )
+  ] });
+}
+
+// src/ui/kits/kit-editor.tsx
+function KitEditor({
+  draft,
+  projects,
+  collapsed,
+  onStart,
+  onUpdate,
+  onCollapse,
+  onDiscard,
+  onSave
+}) {
+  const [compact, setCompact] = d2(false);
+  const [confirmDiscard, setConfirmDiscard] = d2(false);
+  const [submitAttempted, setSubmitAttempted] = d2(false);
+  const panelRef = A2(null);
+  const stackRef = A2(null);
+  const dragCleanupRef = A2(() => void 0);
+  const titleRef = A2(null);
+  const formId = g2();
+  const titleCountId = `${formId}-title-count`;
+  const titleErrorId = `${formId}-title-error`;
+  const descriptionCountId = `${formId}-description-count`;
+  const count = draft?.projectIds.length ?? 0;
+  const projectCount = `${count} ${count === 1 ? "project" : "projects"}`;
+  const titleIssue = draft?.issues.find((issue) => issue.startsWith("Title"));
+  const compositionIssues = draft?.issues.filter((issue) => issue !== titleIssue) ?? [];
+  h2(() => {
+    const root = panelRef.current?.closest(".tavernary-companion-root");
+    const sync = () => {
+      const width = root?.clientWidth || window.innerWidth;
+      setCompact(width <= 760);
+    };
+    sync();
+    if (!root || typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(sync);
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, []);
+  h2(() => {
+    if (!compact || collapsed) return;
+    const panel = panelRef.current;
+    const root = panel?.closest(".tavernary-companion-root");
+    const background = root ? Array.from(
+      root.querySelectorAll(
+        ".tavernary-companion-shell__header, .tavernary-companion-category-navigation, .tavernary-companion-shell__content"
+      )
+    ) : [];
+    const priorInert = background.map((element) => ({ element, inert: element.inert }));
+    for (const element of background) element.inert = true;
+    panel?.querySelector("h2")?.focus({ preventScroll: true });
+    const controls = () => panel?.querySelectorAll(
+      'button:not([disabled]), input:not([disabled]), textarea:not([disabled]), [tabindex="0"]'
+    ) ?? [];
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCollapse();
+        return;
+      }
+      const focusable = controls();
+      if (event.key !== "Tab" || focusable.length === 0) return;
+      const first = focusable[0];
+      const last2 = focusable[focusable.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last2.focus();
+      } else if (!event.shiftKey && document.activeElement === last2) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      for (const { element, inert } of priorInert) element.inert = inert;
+    };
+  }, [collapsed, compact, onCollapse]);
+  h2(() => {
+    if (!draft) {
+      setConfirmDiscard(false);
+      setSubmitAttempted(false);
+    }
+  }, [draft]);
+  h2(() => () => dragCleanupRef.current(), []);
+  const beginPointerReorder = (currentDraft, projectId, event) => {
+    if (event.button !== 0) return;
+    dragCleanupRef.current();
+    event.preventDefault();
+    const sourceIndex = currentDraft.projectIds.indexOf(projectId);
+    if (sourceIndex < 0) return;
+    const pointerId = event.pointerId;
+    const originY = event.clientY;
+    const handle = event.currentTarget;
+    const row = handle.closest("[data-project-id]");
+    let targetIndex = sourceIndex;
+    let dragging = false;
+    const cleanup2 = () => {
+      window.removeEventListener("pointermove", move);
+      window.removeEventListener("pointerup", finish);
+      window.removeEventListener("pointercancel", cancel);
+      row?.classList.remove("dragging");
+      if (handle.hasPointerCapture(pointerId)) handle.releasePointerCapture(pointerId);
+      dragCleanupRef.current = () => void 0;
+    };
+    const move = (pointerEvent) => {
+      if (pointerEvent.pointerId !== pointerId) return;
+      if (!dragging && Math.abs(pointerEvent.clientY - originY) < 5) return;
+      if (!dragging) {
+        dragging = true;
+        handle.setPointerCapture(pointerId);
+        row?.classList.add("dragging");
+      }
+      pointerEvent.preventDefault();
+      const rows = Array.from(
+        stackRef.current?.querySelectorAll("[data-project-id]") ?? []
+      );
+      const firstBelowPointer = rows.findIndex((candidate) => {
+        const rect = candidate.getBoundingClientRect();
+        return pointerEvent.clientY < rect.top + rect.height / 2;
+      });
+      targetIndex = firstBelowPointer < 0 ? rows.length - 1 : firstBelowPointer;
+    };
+    const finish = (pointerEvent) => {
+      if (pointerEvent.pointerId !== pointerId) return;
+      if (dragging && targetIndex !== sourceIndex) {
+        const projectIds = [...currentDraft.projectIds];
+        const [moved] = projectIds.splice(sourceIndex, 1);
+        projectIds.splice(targetIndex, 0, moved);
+        onUpdate(updateKitDraft(currentDraft, { projectIds }));
+      }
+      cleanup2();
+    };
+    const cancel = (pointerEvent) => {
+      if (pointerEvent.pointerId === pointerId) cleanup2();
+    };
+    dragCleanupRef.current = cleanup2;
+    window.addEventListener("pointermove", move, { passive: false });
+    window.addEventListener("pointerup", finish);
+    window.addEventListener("pointercancel", cancel);
+  };
+  if (compact && collapsed && !draft) return null;
+  if (collapsed) {
+    if (compact && draft) {
+      return /* @__PURE__ */ u3(
+        "aside",
+        {
+          ref: panelRef,
+          class: "tavernary-companion-kit-draft-pill-container",
+          "aria-label": "Kit draft",
+          children: /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              class: "tavernary-companion-kit-draft-pill",
+              "aria-label": "Open Kit Builder",
+              onClick: onStart,
+              children: [
+                /* @__PURE__ */ u3(CategoryIcon, { name: "kit" }),
+                /* @__PURE__ */ u3("span", { children: "Kit draft" }),
+                /* @__PURE__ */ u3("small", { children: projectCount })
+              ]
+            }
+          )
+        }
+      );
+    }
+    return /* @__PURE__ */ u3(
+      "aside",
+      {
+        ref: panelRef,
+        class: "tavernary-companion-kit-builder-panel collapsed",
+        "aria-label": "Kit Builder",
+        children: /* @__PURE__ */ u3(
+          "button",
+          {
+            type: "button",
+            class: "tavernary-companion-kit-builder-rail",
+            "aria-label": "Open Kit Builder",
+            onClick: onStart,
+            children: [
+              /* @__PURE__ */ u3(CategoryIcon, { name: "kit-builder" }),
+              /* @__PURE__ */ u3("span", { class: "tavernary-companion-kit-builder-rail__label", children: "Kit Builder" }),
+              /* @__PURE__ */ u3("small", { children: [
+                projectCount,
+                " in draft"
+              ] })
+            ]
+          }
+        )
+      }
+    );
+  }
+  if (!draft) return null;
+  const byId = new Map(projects.map((project2) => [project2.id, project2]));
+  return /* @__PURE__ */ u3(
+    "aside",
+    {
+      ref: panelRef,
+      class: "tavernary-companion-kit-builder-panel",
+      "aria-label": "Kit Builder",
+      role: compact ? "dialog" : "complementary",
+      "aria-modal": compact || void 0,
+      "data-layout": compact ? "mobile" : "desktop",
+      children: [
+        /* @__PURE__ */ u3("header", { class: "tavernary-companion-kit-builder-panel__header", children: [
+          /* @__PURE__ */ u3("h2", { tabIndex: -1, children: "Kit Builder" }),
+          /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              class: "tavernary-companion-kit-builder-collapse",
+              "aria-label": compact ? "Close Kit Builder" : "Collapse Kit Builder",
+              onClick: onCollapse,
+              children: /* @__PURE__ */ u3(CategoryIcon, { name: compact ? "close" : "kit-builder" })
+            }
+          )
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-builder-panel__body", children: [
+          /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-builder-heading", children: [
+            /* @__PURE__ */ u3("h2", { children: draft.sourceId ? "Edit Kit" : "Create Kit" }),
+            /* @__PURE__ */ u3(
+              "button",
+              {
+                type: "button",
+                class: "tavernary-companion-kit-discard",
+                "aria-label": "Discard draft",
+                onClick: () => setConfirmDiscard(true),
+                children: /* @__PURE__ */ u3(CategoryIcon, { name: "remove" })
+              }
+            )
+          ] }),
+          /* @__PURE__ */ u3(
+            "form",
+            {
+              class: "tavernary-companion-kit-builder",
+              onSubmit: (event) => {
+                event.preventDefault();
+                if (draft.issues.length === 0) {
+                  onSave(draft);
+                  return;
+                }
+                setSubmitAttempted(true);
+                queueMicrotask(() => titleRef.current?.focus());
+              },
+              children: [
+                /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-builder-field", children: [
+                  /* @__PURE__ */ u3("label", { for: `${formId}-title`, children: "Title" }),
+                  /* @__PURE__ */ u3(
+                    "input",
+                    {
+                      ref: titleRef,
+                      id: `${formId}-title`,
+                      type: "text",
+                      maxLength: 60,
+                      value: draft.title,
+                      "aria-describedby": `${titleCountId}${submitAttempted && titleIssue ? ` ${titleErrorId}` : ""}`,
+                      "aria-invalid": submitAttempted && Boolean(titleIssue) || void 0,
+                      onInput: (event) => onUpdate(updateKitDraft(draft, { title: event.currentTarget.value }))
+                    }
+                  ),
+                  /* @__PURE__ */ u3("small", { id: titleCountId, children: [
+                    draft.title.length,
+                    "/60 characters"
+                  ] }),
+                  submitAttempted && titleIssue ? /* @__PURE__ */ u3("span", { id: titleErrorId, class: "tavernary-companion-kit-builder-field-error", children: titleIssue }) : null
+                ] }),
+                /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-builder-field", children: [
+                  /* @__PURE__ */ u3("label", { for: `${formId}-description`, children: "Description" }),
+                  /* @__PURE__ */ u3(
+                    "textarea",
+                    {
+                      id: `${formId}-description`,
+                      maxLength: 600,
+                      value: draft.description,
+                      "aria-describedby": descriptionCountId,
+                      onInput: (event) => onUpdate(updateKitDraft(draft, { description: event.currentTarget.value }))
+                    }
+                  ),
+                  /* @__PURE__ */ u3("small", { id: descriptionCountId, children: [
+                    draft.description.length,
+                    "/600 characters"
+                  ] })
+                ] }),
+                /* @__PURE__ */ u3(
+                  "section",
+                  {
+                    class: "tavernary-companion-kit-composition",
+                    "aria-labelledby": `${formId}-frontend`,
+                    children: [
+                      /* @__PURE__ */ u3("h3", { id: `${formId}-frontend`, children: "Frontend" }),
+                      /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-frontend-slot", children: [
+                        /* @__PURE__ */ u3(CategoryIcon, { name: "frontend" }),
+                        /* @__PURE__ */ u3("strong", { children: "SillyTavern" })
+                      ] })
+                    ]
+                  }
+                ),
+                /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-composition", "aria-labelledby": `${formId}-stack`, children: [
+                  /* @__PURE__ */ u3("h3", { id: `${formId}-stack`, children: "Extensions & Presets" }),
+                  /* @__PURE__ */ u3(
+                    "ol",
+                    {
+                      ref: stackRef,
+                      class: "tavernary-companion-kit-builder-stack",
+                      "aria-label": "Ordered Kit projects",
+                      children: [
+                        draft.projectIds.length === 0 ? /* @__PURE__ */ u3("li", { class: "tavernary-companion-kit-builder-empty", children: "Add projects from the catalog" }) : null,
+                        draft.projectIds.map((id) => {
+                          const project2 = byId.get(id);
+                          return /* @__PURE__ */ u3(
+                            KitMemberRow,
+                            {
+                              id,
+                              name: project2?.name ?? id,
+                              kind: project2?.kind ?? "extension",
+                              onDragStart: (event) => beginPointerReorder(draft, id, event),
+                              onMove: (direction) => onUpdate(moveDraftMember(draft, id, direction)),
+                              onRemove: () => onUpdate(
+                                updateKitDraft(draft, {
+                                  projectIds: draft.projectIds.filter((candidate) => candidate !== id)
+                                })
+                              )
+                            },
+                            id
+                          );
+                        })
+                      ]
+                    }
+                  )
+                ] }),
+                submitAttempted && compositionIssues.length ? /* @__PURE__ */ u3("ul", { class: "tavernary-companion-kit-builder-errors", "aria-label": "Kit validation", children: compositionIssues.map((issue) => /* @__PURE__ */ u3("li", { children: issue }, issue)) }) : null,
+                /* @__PURE__ */ u3("footer", { class: "tavernary-companion-kit-builder-footer", children: [
+                  /* @__PURE__ */ u3("span", { children: projectCount }),
+                  /* @__PURE__ */ u3(
+                    "button",
+                    {
+                      type: "submit",
+                      class: "tavernary-companion-button tavernary-companion-button--primary",
+                      children: "Save Kit"
+                    }
+                  )
+                ] })
+              ]
+            }
+          )
+        ] }),
+        confirmDiscard ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-discard-backdrop", children: /* @__PURE__ */ u3("section", { role: "alertdialog", "aria-label": "Discard Kit changes?", children: [
+          /* @__PURE__ */ u3("h2", { children: "Discard Kit changes?" }),
+          /* @__PURE__ */ u3("p", { children: "Your unsaved changes will be lost." }),
+          /* @__PURE__ */ u3("div", { children: [
+            /* @__PURE__ */ u3("button", { type: "button", onClick: () => setConfirmDiscard(false), children: "Keep editing" }),
+            /* @__PURE__ */ u3("button", { type: "button", onClick: onDiscard, children: "Discard changes" })
+          ] })
+        ] }) }) : null
+      ]
+    }
+  );
 }
 
 // src/ui/lifecycle/dialog-frame.tsx
@@ -14441,154 +15042,6 @@ function DialogFrame({
       children
     }
   ) });
-}
-
-// src/ui/kits/kit-member-picker.tsx
-function KitMemberPicker({
-  projects,
-  selected,
-  onAdd
-}) {
-  const options = selectableKitProjects(projects).filter(({ id }) => !selected.includes(id));
-  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-member-picker", children: [
-    /* @__PURE__ */ u3("h3", { children: "Add extensions" }),
-    options.length ? /* @__PURE__ */ u3("ul", { children: options.map((project2) => /* @__PURE__ */ u3("li", { children: [
-      /* @__PURE__ */ u3("span", { children: project2.name }),
-      /* @__PURE__ */ u3("button", { type: "button", onClick: () => onAdd(project2.id), children: "Add" })
-    ] }, project2.id)) }) : /* @__PURE__ */ u3("p", { children: "No eligible extensions remain." })
-  ] });
-}
-
-// src/ui/kits/kit-member-row.tsx
-function KitMemberRow({
-  id,
-  name,
-  first,
-  last: last2,
-  onMove,
-  onRemove
-}) {
-  return /* @__PURE__ */ u3("li", { "data-project-id": id, children: [
-    /* @__PURE__ */ u3("span", { children: name }),
-    /* @__PURE__ */ u3("div", { children: [
-      /* @__PURE__ */ u3(
-        "button",
-        {
-          type: "button",
-          disabled: first,
-          "aria-label": `Move ${name} up`,
-          onClick: () => onMove(-1),
-          children: "\u2191"
-        }
-      ),
-      /* @__PURE__ */ u3(
-        "button",
-        {
-          type: "button",
-          disabled: last2,
-          "aria-label": `Move ${name} down`,
-          onClick: () => onMove(1),
-          children: "\u2193"
-        }
-      ),
-      /* @__PURE__ */ u3("button", { type: "button", "aria-label": `Remove ${name}`, onClick: onRemove, children: "Remove" })
-    ] })
-  ] });
-}
-
-// src/ui/kits/kit-editor.tsx
-function KitEditor({
-  source,
-  projects,
-  onSave,
-  onCancel,
-  initialProjectIds = []
-}) {
-  const [draft, setDraft] = d2(() => {
-    const created = createKitDraft(source);
-    return source || initialProjectIds.length === 0 ? created : updateKitDraft(created, { projectIds: [...initialProjectIds] });
-  });
-  const [confirmDiscard, setConfirmDiscard] = d2(false);
-  const requestCancel = () => {
-    if (draft.dirty) setConfirmDiscard(true);
-    else onCancel();
-  };
-  const byId = T2(() => new Map(projects.map((project2) => [project2.id, project2])), [projects]);
-  return /* @__PURE__ */ u3(DialogFrame, { label: source ? "Edit personal Kit" : "New personal Kit", onCancel: requestCancel, children: [
-    /* @__PURE__ */ u3(
-      "form",
-      {
-        onSubmit: (event) => {
-          event.preventDefault();
-          if (!draft.issues.length) onSave(draft);
-        },
-        children: [
-          /* @__PURE__ */ u3("label", { children: [
-            "Title",
-            /* @__PURE__ */ u3(
-              "input",
-              {
-                value: draft.title,
-                onInput: (event) => setDraft(updateKitDraft(draft, { title: event.currentTarget.value }))
-              }
-            )
-          ] }),
-          /* @__PURE__ */ u3("label", { children: [
-            "Description",
-            /* @__PURE__ */ u3(
-              "textarea",
-              {
-                value: draft.description,
-                onInput: (event) => setDraft(updateKitDraft(draft, { description: event.currentTarget.value }))
-              }
-            )
-          ] }),
-          /* @__PURE__ */ u3("p", { children: [
-            "Frontend: ",
-            /* @__PURE__ */ u3("strong", { children: "SillyTavern" })
-          ] }),
-          /* @__PURE__ */ u3("section", { children: [
-            /* @__PURE__ */ u3("h3", { children: "Kit members" }),
-            draft.projectIds.length ? /* @__PURE__ */ u3("ol", { children: draft.projectIds.map((id, index) => /* @__PURE__ */ u3(
-              KitMemberRow,
-              {
-                id,
-                name: byId.get(id)?.name ?? id,
-                first: index === 0,
-                last: index === draft.projectIds.length - 1,
-                onMove: (direction) => setDraft(moveDraftMember(draft, id, direction)),
-                onRemove: () => setDraft(
-                  updateKitDraft(draft, {
-                    projectIds: draft.projectIds.filter((candidate) => candidate !== id)
-                  })
-                )
-              },
-              id
-            )) }) : /* @__PURE__ */ u3("p", { children: "No extensions selected yet." })
-          ] }),
-          /* @__PURE__ */ u3(
-            KitMemberPicker,
-            {
-              projects,
-              selected: draft.projectIds,
-              onAdd: (id) => setDraft(addDraftMember(draft, id))
-            }
-          ),
-          draft.issues.length ? /* @__PURE__ */ u3("ul", { role: "alert", children: draft.issues.map((issue) => /* @__PURE__ */ u3("li", { children: issue }, issue)) }) : null,
-          /* @__PURE__ */ u3("footer", { children: [
-            /* @__PURE__ */ u3("button", { type: "button", onClick: requestCancel, children: "Cancel" }),
-            /* @__PURE__ */ u3("button", { type: "submit", disabled: draft.issues.length > 0, children: "Save Kit" })
-          ] })
-        ]
-      }
-    ),
-    confirmDiscard ? /* @__PURE__ */ u3("section", { role: "alertdialog", "aria-label": "Discard Kit changes?", children: [
-      /* @__PURE__ */ u3("h3", { children: "Discard Kit changes?" }),
-      /* @__PURE__ */ u3("p", { children: "Your unsaved changes will be lost." }),
-      /* @__PURE__ */ u3("button", { type: "button", onClick: () => setConfirmDiscard(false), children: "Keep editing" }),
-      /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Discard changes" })
-    ] }) : null
-  ] });
 }
 
 // src/ui/kits/kit-import-dialog.tsx
@@ -14902,7 +15355,7 @@ function stepLabel(id) {
   }[id];
 }
 
-// ../../node_modules/preact/compat/dist/compat.module.js
+// node_modules/preact/compat/dist/compat.module.js
 function g3(n2, t3) {
   for (var e3 in t3) n2[e3] = t3[e3];
   return n2;
@@ -17009,210 +17462,6 @@ function ActivitySummary({
   );
 }
 
-// src/ui/shared/category-icon.tsx
-var strokeProps = {
-  "aria-hidden": true,
-  fill: "none",
-  stroke: "currentColor",
-  strokeWidth: 1.8,
-  strokeLinecap: "round",
-  strokeLinejoin: "round"
-};
-function CategoryIcon({ name }) {
-  if (name === "remove") {
-    return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", "data-icon": name, viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ u3(
-      "path",
-      {
-        fillRule: "evenodd",
-        d: "M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM7.293 7.293a1 1 0 0 1 1.414 0L12 10.586l3.293-3.293a1 1 0 1 1 1.414 1.414L13.414 12l3.293 3.293a1 1 0 0 1-1.414 1.414L12 13.414l-3.293 3.293a1 1 0 0 1-1.414-1.414L10.586 12 7.293 8.707a1 1 0 0 1 0-1.414Z"
-      }
-    ) });
-  }
-  if (name === "kit-builder") {
-    return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", "data-icon": name, viewBox: "0 0 1920 1920", fill: "currentColor", children: /* @__PURE__ */ u3(
-      "path",
-      {
-        fillRule: "evenodd",
-        d: "M1807.124.056V1920h-112.938V.056h112.938ZM1468.254 0v1919.944H282.407c-93.4 0-169.407-75.895-169.407-169.407V169.407C113 76.007 189.007 0 282.407 0h1185.847ZM830.607 661.138 588.242 903.503h654.137v112.938H588.242l242.365 242.477-79.847 79.847-378.793-378.793 378.793-378.68 79.847 79.846Z"
-      }
-    ) });
-  }
-  if (name === "kit") {
-    return /* @__PURE__ */ u3(
-      "svg",
-      {
-        "aria-hidden": "true",
-        "data-icon": name,
-        viewBox: "3 3 26 26",
-        fill: "currentColor",
-        stroke: "none",
-        children: /* @__PURE__ */ u3("path", { d: "M29,5a2,2,0,0,0-2-2H5A2,2,0,0,0,3,5V27a2,2,0,0,0,2,2H27a2,2,0,0,0,2-2ZM27,5V9H5V5Zm0,22H5V23H27Zm0-6H5V17H27Zm0-6H5V11H27Z" })
-      }
-    );
-  }
-  if (name === "add-to-kit") {
-    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M4 6h10v12H4zM17 8v8M13 12h8" }) });
-  }
-  if (name === "duplicate") {
-    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
-      /* @__PURE__ */ u3("rect", { x: "7", y: "7", width: "12", height: "12", rx: "2" }),
-      /* @__PURE__ */ u3("path", { d: "M5 16H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1" })
-    ] });
-  }
-  if (name === "copy-link") {
-    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M9 15 15 9M7.5 17.5l-1 1a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0M16.5 6.5l1-1a3.5 3.5 0 0 1 5 5l-4 4a3.5 3.5 0 0 1-5 0" }) });
-  }
-  if (name === "report" || name === "caution") {
-    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
-      /* @__PURE__ */ u3("path", { d: "M12 3 2.5 20h19L12 3Z" }),
-      /* @__PURE__ */ u3("path", { d: "M12 9v5M12 17h.01" })
-    ] });
-  }
-  if (name === "drag-handle") {
-    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M8 6h8M8 12h8M8 18h8" }) });
-  }
-  if (name === "frontend") {
-    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
-      /* @__PURE__ */ u3("rect", { x: "3", y: "4", width: "18", height: "16", rx: "2" }),
-      /* @__PURE__ */ u3("path", { d: "M3 8h18M8 8v12M11 12h6M11 16h4" })
-    ] });
-  }
-  if (name === "preset") {
-    return /* @__PURE__ */ u3(
-      "svg",
-      {
-        "aria-hidden": "true",
-        "data-icon": name,
-        viewBox: "0 0 24 24",
-        fill: "currentColor",
-        stroke: "none",
-        children: [
-          /* @__PURE__ */ u3(
-            "path",
-            {
-              fillRule: "evenodd",
-              clipRule: "evenodd",
-              d: "M12.0002 8C9.79111 8 8.00024 9.79086 8.00024 12C8.00024 14.2091 9.79111 16 12.0002 16C14.2094 16 16.0002 14.2091 16.0002 12C16.0002 9.79086 14.2094 8 12.0002 8ZM10.0002 12C10.0002 10.8954 10.8957 10 12.0002 10C13.1048 10 14.0002 10.8954 14.0002 12C14.0002 13.1046 13.1048 14 12.0002 14C10.8957 14 10.0002 13.1046 10.0002 12Z"
-            }
-          ),
-          /* @__PURE__ */ u3(
-            "path",
-            {
-              fillRule: "evenodd",
-              clipRule: "evenodd",
-              d: "M11.2867 0.5C9.88583 0.5 8.6461 1.46745 8.37171 2.85605L8.29264 3.25622C8.10489 4.20638 7.06195 4.83059 6.04511 4.48813L5.64825 4.35447C4.32246 3.90796 2.83873 4.42968 2.11836 5.63933L1.40492 6.83735C0.67773 8.05846 0.954349 9.60487 2.03927 10.5142L2.35714 10.7806C3.12939 11.4279 3.12939 12.5721 2.35714 13.2194L2.03927 13.4858C0.954349 14.3951 0.67773 15.9415 1.40492 17.1626L2.11833 18.3606C2.83872 19.5703 4.3225 20.092 5.64831 19.6455L6.04506 19.5118C7.06191 19.1693 8.1049 19.7935 8.29264 20.7437L8.37172 21.1439C8.6461 22.5325 9.88584 23.5 11.2867 23.5H12.7136C14.1146 23.5 15.3543 22.5325 15.6287 21.1438L15.7077 20.7438C15.8954 19.7936 16.9384 19.1693 17.9553 19.5118L18.3521 19.6455C19.6779 20.092 21.1617 19.5703 21.8821 18.3606L22.5955 17.1627C23.3227 15.9416 23.046 14.3951 21.9611 13.4858L21.6432 13.2194C20.8709 12.5722 20.8709 11.4278 21.6432 10.7806L21.9611 10.5142C23.046 9.60489 23.3227 8.05845 22.5955 6.83732L21.8821 5.63932C21.1617 4.42968 19.678 3.90795 18.3522 4.35444L17.9552 4.48814C16.9384 4.83059 15.8954 4.20634 15.7077 3.25617L15.6287 2.85616C15.3543 1.46751 14.1146 0.5 12.7136 0.5H11.2867ZM10.3338 3.24375C10.4149 2.83334 10.7983 2.5 11.2867 2.5H12.7136C13.2021 2.5 13.5855 2.83336 13.6666 3.24378L13.7456 3.64379C14.1791 5.83811 16.4909 7.09167 18.5935 6.38353L18.9905 6.24984C19.4495 6.09527 19.9394 6.28595 20.1637 6.66264L20.8771 7.86064C21.0946 8.22587 21.0208 8.69271 20.6764 8.98135L20.3586 9.24773C18.6325 10.6943 18.6325 13.3057 20.3586 14.7523L20.6764 15.0186C21.0208 15.3073 21.0946 15.7741 20.8771 16.1394L20.1637 17.3373C19.9394 17.714 19.4495 17.9047 18.9905 17.7501L18.5936 17.6164C16.4909 16.9082 14.1791 18.1618 13.7456 20.3562L13.6666 20.7562C13.5855 21.1666 13.2021 21.5 12.7136 21.5H11.2867C10.7983 21.5 10.4149 21.1667 10.3338 20.7562L10.2547 20.356C9.82113 18.1617 7.50931 16.9082 5.40665 17.6165L5.0099 17.7501C4.55092 17.9047 4.06104 17.714 3.83671 17.3373L3.1233 16.1393C2.9058 15.7741 2.97959 15.3073 3.32398 15.0186L3.64185 14.7522C5.36782 13.3056 5.36781 10.6944 3.64185 9.24779L3.32398 8.98137C2.97959 8.69273 2.9058 8.2259 3.1233 7.86067L3.83674 6.66266C4.06106 6.28596 4.55093 6.09528 5.0099 6.24986L5.40676 6.38352C7.50938 7.09166 9.82112 5.83819 10.2547 3.64392L10.3338 3.24375Z"
-            }
-          )
-        ]
-      }
-    );
-  }
-  if (name === "memory-retrieval") {
-    return /* @__PURE__ */ u3(
-      "svg",
-      {
-        "aria-hidden": "true",
-        "data-icon": name,
-        viewBox: "0 0 24 24",
-        fill: "none",
-        stroke: "currentColor",
-        strokeWidth: "1.91",
-        strokeMiterlimit: "10",
-        children: [
-          /* @__PURE__ */ u3("path", { d: "M12,4.36V20.59a1.92,1.92,0,0,1-1.91,1.91,1.93,1.93,0,0,1-1.91-1.91v0a2.45,2.45,0,0,1-.48,0,3.35,3.35,0,0,1-3.34-3.34,3.19,3.19,0,0,1,.08-.7A4.29,4.29,0,0,1,3.6,8.79,3.24,3.24,0,0,1,3.41,7.7,3.34,3.34,0,0,1,6.27,4.4v0a2.87,2.87,0,0,1,5.73,0Z" }),
-          /* @__PURE__ */ u3("path", { d: "M6.75,11.05a3.35,3.35,0,0,1,0-6.69" }),
-          /* @__PURE__ */ u3("path", { d: "M8.18,13.91h0A3.82,3.82,0,0,1,12,17.73h0" }),
-          /* @__PURE__ */ u3("path", { d: "M9.14,7.23h0A2.86,2.86,0,0,0,12,4.36h0" }),
-          /* @__PURE__ */ u3("path", { d: "M12,4.36V20.59a1.92,1.92,0,0,0,1.91,1.91,1.93,1.93,0,0,0,1.91-1.91v0a2.45,2.45,0,0,0,.48,0,3.35,3.35,0,0,0,3.34-3.34,3.19,3.19,0,0,0-.08-.7,4.29,4.29,0,0,0,.84-7.76,3.24,3.24,0,0,0,.19-1.09,3.34,3.34,0,0,0-2.86-3.3v0a2.87,2.87,0,0,0-5.73,0Z" }),
-          /* @__PURE__ */ u3("path", { d: "M17.25,11.05a3.35,3.35,0,0,0,0-6.69" }),
-          /* @__PURE__ */ u3("path", { d: "M15.82,13.91h0A3.82,3.82,0,0,0,12,17.73h0" }),
-          /* @__PURE__ */ u3("path", { d: "M14.86,7.23h0A2.86,2.86,0,0,1,12,4.36h0" })
-        ]
-      }
-    );
-  }
-  if (name === "generation-reasoning") {
-    return /* @__PURE__ */ u3(
-      "svg",
-      {
-        "aria-hidden": "true",
-        "data-icon": name,
-        viewBox: "0 0 487.6 487.6",
-        fill: "currentColor",
-        stroke: "none",
-        children: /* @__PURE__ */ u3("path", { d: "M453.8,20.525H173.1c-18.6,0-33.8,15.2-33.8,33.8v117.4H19.5c-10.8,0-19.5,8.7-19.5,19.5v186.8c0,10.8,8.7,19.5,19.5,19.5h27.7v64.6c0,4.4,5.3,6.6,8.4,3.5l68.1-68.1h195.4c10.8,0,19.5-8.7,19.5-19.5v-114.9h11.2l59.3,59.3c3.8,3.8,8.8,5.9,14.2,5.9c5.1,0,10-1.9,13.8-5.4c4-3.8,6.3-9.1,6.3-14.7v-45.1h10.4c18.6,0,33.8-15.2,33.8-33.8v-175C487.6,35.725,472.5,20.525,453.8,20.525z M127.7,215.425h151.7v20.2H127.7V215.425z M58.9,215.425h45.7v20.2H58.9V215.425z M58.9,254.725h104.8v20.2H58.9V254.725z M58.9,294.025h151.7v20.2H58.9V294.025z M163.7,353.525H58.9v-20.2h104.8V353.525z M279.7,353.525h-92.9v-20.2h92.9V353.525z M233.7,314.225v-20.2h45.7v20.2H233.7z M279.7,274.925h-92.9v-20.2h92.9V274.925z M456.7,229.325c0,1.6-1.3,2.8-2.8,2.8h-41.5v49.8l-49.8-49.8h-23.9v-41c0-10.8-8.7-19.5-19.5-19.5h-149v-117.3c0-1.6,1.3-2.8,2.8-2.8h280.8c1.6,0,2.8,1.3,2.8,2.8v175H456.7z" })
-      }
-    );
-  }
-  if (name === "character-worldbuilding") {
-    return /* @__PURE__ */ u3(
-      "svg",
-      {
-        "aria-hidden": "true",
-        "data-icon": name,
-        viewBox: "0 0 512 512",
-        fill: "currentColor",
-        stroke: "none",
-        children: /* @__PURE__ */ u3("path", { d: "M512 0C460.22 3.56 96.44 38.2 71.01 287.61c-3.09 26.66-4.84 53.44-5.99 80.24l178.87-178.69c6.25-6.25 16.4-6.25 22.65 0s6.25 16.38 0 22.63L7.04 471.03c-9.38 9.37-9.38 24.57 0 33.94 9.38 9.37 24.59 9.37 33.98 0l57.13-57.07c42.09-.14 84.15-2.53 125.96-7.36 53.48-5.44 97.02-26.47 132.58-56.54H255.74l146.79-48.88c11.25-14.89 21.37-30.71 30.45-47.12h-81.14l106.54-53.21C500.29 132.86 510.19 26.26 512 0z" })
-      }
-    );
-  }
-  if (name === "rpg-systems") {
-    return /* @__PURE__ */ u3(
-      "svg",
-      {
-        "aria-hidden": "true",
-        "data-icon": name,
-        viewBox: "-16 0 512 512",
-        fill: "currentColor",
-        stroke: "none",
-        children: /* @__PURE__ */ u3("path", { d: "M106.75 215.06L1.2 370.95c-3.08 5 .1 11.5 5.93 12.14l208.26 22.07-108.64-190.1zM7.41 315.43L82.7 193.08 6.06 147.1c-2.67-1.6-6.06.32-6.06 3.43v162.81c0 4.03 5.29 5.53 7.41 2.09zM18.25 423.6l194.4 87.66c5.3 2.45 11.35-1.43 11.35-7.26v-65.67l-203.55-22.3c-4.45-.5-6.23 5.59-2.2 7.57zm81.22-257.78L179.4 22.88c4.34-7.06-3.59-15.25-10.78-11.14L17.81 110.35c-2.47 1.62-2.39 5.26.13 6.78l81.53 48.69zM240 176h109.21L253.63 7.62C250.5 2.54 245.25 0 240 0s-10.5 2.54-13.63 7.62L130.79 176H240zm233.94-28.9l-76.64 45.99 75.29 122.35c2.11 3.44 7.41 1.94 7.41-2.1V150.53c0-3.11-3.39-5.03-6.06-3.43zm-93.41 18.72l81.53-48.7c2.53-1.52 2.6-5.16.13-6.78l-150.81-98.6c-7.19-4.11-15.12 4.08-10.78 11.14l79.93 142.94zm79.02 250.21L256 438.32v65.67c0 5.84 6.05 9.71 11.35 7.26l194.4-87.66c4.03-1.97 2.25-8.06-2.2-7.56zm-86.3-200.97l-108.63 190.1 208.26-22.07c5.83-.65 9.01-7.14 5.93-12.14L373.25 215.06zM240 208H139.57L240 383.75 340.43 208H240z" })
-      }
-    );
-  }
-  if (name === "interface-workflow") {
-    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
-      /* @__PURE__ */ u3("path", { d: "M4 6h5m4 0h7M4 12h10m4 0h2M4 18h2m4 0h10" }),
-      /* @__PURE__ */ u3("circle", { cx: "11", cy: "6", r: "2" }),
-      /* @__PURE__ */ u3("circle", { cx: "16", cy: "12", r: "2" }),
-      /* @__PURE__ */ u3("circle", { cx: "8", cy: "18", r: "2" })
-    ] });
-  }
-  if (name === "developer-infrastructure") {
-    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
-      /* @__PURE__ */ u3("path", { d: "m7 3 5 3-5 3-5-3 5-3Zm10 0 5 3-5 3-5-3 5-3ZM7 12l5 3-5 3-5-3 5-3Zm10 0 5 3-5 3-5-3 5-3Z" }),
-      /* @__PURE__ */ u3("path", { d: "M7 9v3m10-3v3m-5-6v9" })
-    ] });
-  }
-  if (name === "community") {
-    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
-      /* @__PURE__ */ u3("circle", { cx: "7", cy: "7", r: "3" }),
-      /* @__PURE__ */ u3("circle", { cx: "17", cy: "8", r: "3" }),
-      /* @__PURE__ */ u3("circle", { cx: "12", cy: "17", r: "3" }),
-      /* @__PURE__ */ u3("path", { d: "m9.8 7.3 4.3.4m-5.4 2 2.1 4.5m4.8-3.7-2.1 3.8" })
-    ] });
-  }
-  if (name === "search") {
-    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
-      /* @__PURE__ */ u3("circle", { cx: "11", cy: "11", r: "7" }),
-      /* @__PURE__ */ u3("path", { d: "m20 20-4-4" })
-    ] });
-  }
-  if (name === "chevron") {
-    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "m6 9 6 6 6-6" }) });
-  }
-  if (name === "filter" || name === "filter-lines") {
-    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M4 6h16M7 12h10M10 18h4" }) });
-  }
-  if (name === "collapse") {
-    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 32 32", children: /* @__PURE__ */ u3("path", { d: "M23 26l-7-7-7 7M9 6l7 7 7-7" }) });
-  }
-  if (name === "close") {
-    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "m6 6 12 12M18 6 6 18" }) });
-  }
-  return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5H5z" }) });
-}
-
 // src/ui/projects/project-kit-control.tsx
 function ProjectKitControl({
   projectId,
@@ -18069,17 +18318,27 @@ function ProjectResultsToolbar({
 // src/ui/kits/kit-selection-dock.tsx
 function KitSelectionDock({
   count,
-  onReview,
+  onAdd,
   onCancel
 }) {
-  return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-kit-selection-dock", role: "status", children: [
-    /* @__PURE__ */ u3("span", { children: [
-      count,
-      " selected"
-    ] }),
-    /* @__PURE__ */ u3("button", { type: "button", disabled: count === 0, onClick: onReview, children: "Review Kit" }),
-    /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" })
-  ] });
+  const projectLabel = `${count} ${count === 1 ? "project" : "projects"}`;
+  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-selection-dock", "aria-label": `${projectLabel} selected`, children: /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-selection-actions", children: [
+    /* @__PURE__ */ u3("button", { type: "button", class: "tavernary-companion-kit-selection-cancel", onClick: onCancel, children: "Cancel" }),
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        type: "button",
+        class: "tavernary-companion-kit-selection-add",
+        "aria-label": `Add ${projectLabel} to Kit`,
+        disabled: count === 0,
+        onClick: onAdd,
+        children: [
+          "Add to Kit",
+          /* @__PURE__ */ u3("span", { class: "selection-count", "aria-hidden": "true", children: count })
+        ]
+      }
+    )
+  ] }) });
 }
 
 // src/ui/projects/projects-route.tsx
@@ -18115,7 +18374,7 @@ function ProjectsRoute({
   kitSelectionActive = false,
   selectedKitProjectIds = [],
   onToggleKitSelection,
-  onReviewKitSelection,
+  onAddKitSelection,
   onCancelKitSelection,
   visibleProjectCount,
   onVisibleProjectCountChange
@@ -18327,7 +18586,7 @@ function ProjectsRoute({
           KitSelectionDock,
           {
             count: selectedKitProjectIds.length,
-            onReview: () => onReviewKitSelection?.(),
+            onAdd: () => onAddKitSelection?.(),
             onCancel: () => onCancelKitSelection?.()
           }
         ) : null
@@ -18610,6 +18869,7 @@ function CompanionShell({
   onDuplicateKit,
   onRemoveKit,
   onCreateKitFromSelection,
+  kitBuilder,
   activeKitId = null,
   catalogSnapshot,
   catalogRefreshing = false,
@@ -18669,104 +18929,107 @@ function CompanionShell({
             onQueryChange: updateProjectQuery
           }
         ),
-        /* @__PURE__ */ u3("main", { class: "tavernary-companion-shell__content", children: /* @__PURE__ */ u3(
-          CatalogBoundary,
-          {
-            snapshot: catalogSnapshot,
-            onRefresh: onRefreshCatalog,
-            onUpdateCompanion,
-            onUseCached: onUseCachedCatalog,
-            onOpenTavernary,
-            children: [
-              !detail && state.route === "projects" ? /* @__PURE__ */ u3(S, { children: discovery && discoveryState ? /* @__PURE__ */ u3(
-                ProjectsRoute,
-                {
-                  state: discoveryState,
-                  facets: facets ?? discoveryState.facets,
-                  onQueryChange: updateProjectQuery,
-                  onProjectAction: (id, action) => onProjectAction?.(id, action),
-                  onManageInSillyTavern: onOpenExtensionManager,
-                  lifecycleDisabled,
-                  kitSelectionActive: kitSelection !== null,
-                  selectedKitProjectIds: kitSelection ?? [],
-                  onToggleKitSelection: (projectId) => setKitSelection((current) => {
-                    if (!current) return [projectId];
-                    return current.includes(projectId) ? current.filter((id) => id !== projectId) : [...current, projectId];
-                  }),
-                  onReviewKitSelection: () => {
-                    if (!kitSelection?.length) return;
-                    onCreateKitFromSelection?.(kitSelection);
-                    setKitSelection(null);
-                  },
-                  onCancelKitSelection: () => setKitSelection(null),
-                  visibleProjectCount,
-                  onVisibleProjectCountChange: setVisibleProjectCount
-                }
-              ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-projects-heading", children: "Projects" }) }) : null,
-              !detail && state.route === "kits" ? /* @__PURE__ */ u3(S, { children: kitDiscovery ? /* @__PURE__ */ u3(
-                KitsRoute,
-                {
-                  controller: kitDiscovery,
-                  lifecycleDisabled,
-                  onOpenKit: (id) => controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` }),
-                  onAction: (id, action) => {
-                    if (action.kind === "review" || action.kind === "view") {
-                      controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` });
-                    } else {
-                      onKitAction?.(id, action);
-                    }
-                  },
-                  onNewKit,
-                  onImport: onImportKit,
-                  switcherKits: Object.values(kitInspectors),
-                  activeKitId,
-                  onActivate: (id) => onKitAction?.(id, { kind: "activate", label: "Activate" }),
-                  onDeactivate: () => {
-                    if (activeKitId)
-                      onKitAction?.(activeKitId, { kind: "deactivate", label: "Deactivate" });
-                  }
-                }
-              ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-kits-heading", children: "Kits" }) }) : null,
-              !detail && state.route === "installed" ? /* @__PURE__ */ u3(S, { children: discoveryState ? /* @__PURE__ */ u3(
-                InstalledRoute,
-                {
-                  sections: discoveryState.installedSections,
-                  kits: installedKits,
-                  activeKitId,
-                  refreshing: inventoryRefreshing,
-                  togglingInternalName,
-                  onRefresh: onRefreshInventory,
-                  onAction: (id, action) => onProjectAction?.(id, action),
-                  onManage: onOpenExtensionManager,
-                  onOpenKit: (id) => controller.openDetail({ kind: "kit", id, focusKey: `installed-kit-${id}` }),
-                  onUninstallKit,
-                  onToggleExtension,
-                  lifecycleDisabled
-                }
-              ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-installed-heading", children: "Installed extensions" }) }) : null,
-              detail ? /* @__PURE__ */ u3("section", { "aria-label": "kit detail", children: [
-                /* @__PURE__ */ u3("button", { type: "button", onClick: () => restoreAfterBack(controller), children: "Back" }),
-                kitInspectors[detail.id] ? /* @__PURE__ */ u3(
-                  KitInspector,
+        /* @__PURE__ */ u3("div", { class: "tavernary-companion-shell__workspace", "data-testid": "companion-workspace", children: [
+          /* @__PURE__ */ u3("main", { class: "tavernary-companion-shell__content", children: /* @__PURE__ */ u3(
+            CatalogBoundary,
+            {
+              snapshot: catalogSnapshot,
+              onRefresh: onRefreshCatalog,
+              onUpdateCompanion,
+              onUseCached: onUseCachedCatalog,
+              onOpenTavernary,
+              children: [
+                !detail && state.route === "projects" ? /* @__PURE__ */ u3(S, { children: discovery && discoveryState ? /* @__PURE__ */ u3(
+                  ProjectsRoute,
                   {
-                    kit: kitInspectors[detail.id],
-                    disabled: lifecycleDisabled,
-                    onAction: (action) => onKitAction?.(detail.id, action),
-                    onEdit: () => onEditKit?.(detail.id),
-                    onCopy: () => onCopyKit?.(detail.id),
-                    onExport: () => onExportKit?.(detail.id),
-                    onUninstall: () => onUninstallKit?.(detail.id),
-                    onDuplicate: () => onDuplicateKit?.(detail.id),
-                    onRemove: () => {
-                      onRemoveKit?.(detail.id);
-                      restoreAfterBack(controller);
+                    state: discoveryState,
+                    facets: facets ?? discoveryState.facets,
+                    onQueryChange: updateProjectQuery,
+                    onProjectAction: (id, action) => onProjectAction?.(id, action),
+                    onManageInSillyTavern: onOpenExtensionManager,
+                    lifecycleDisabled,
+                    kitSelectionActive: kitSelection !== null,
+                    selectedKitProjectIds: kitSelection ?? [],
+                    onToggleKitSelection: (projectId) => setKitSelection((current) => {
+                      if (!current) return [projectId];
+                      return current.includes(projectId) ? current.filter((id) => id !== projectId) : [...current, projectId];
+                    }),
+                    onAddKitSelection: () => {
+                      if (!kitSelection?.length) return;
+                      onCreateKitFromSelection?.(kitSelection);
+                      setKitSelection(null);
+                    },
+                    onCancelKitSelection: () => setKitSelection(null),
+                    visibleProjectCount,
+                    onVisibleProjectCountChange: setVisibleProjectCount
+                  }
+                ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-projects-heading", children: "Projects" }) }) : null,
+                !detail && state.route === "kits" ? /* @__PURE__ */ u3(S, { children: kitDiscovery ? /* @__PURE__ */ u3(
+                  KitsRoute,
+                  {
+                    controller: kitDiscovery,
+                    lifecycleDisabled,
+                    onOpenKit: (id) => controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` }),
+                    onAction: (id, action) => {
+                      if (action.kind === "review" || action.kind === "view") {
+                        controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` });
+                      } else {
+                        onKitAction?.(id, action);
+                      }
+                    },
+                    onNewKit,
+                    onImport: onImportKit,
+                    switcherKits: Object.values(kitInspectors),
+                    activeKitId,
+                    onActivate: (id) => onKitAction?.(id, { kind: "activate", label: "Activate" }),
+                    onDeactivate: () => {
+                      if (activeKitId)
+                        onKitAction?.(activeKitId, { kind: "deactivate", label: "Deactivate" });
                     }
                   }
-                ) : /* @__PURE__ */ u3("h2", { children: detail.id })
-              ] }) : null
-            ]
-          }
-        ) })
+                ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-kits-heading", children: "Kits" }) }) : null,
+                !detail && state.route === "installed" ? /* @__PURE__ */ u3(S, { children: discoveryState ? /* @__PURE__ */ u3(
+                  InstalledRoute,
+                  {
+                    sections: discoveryState.installedSections,
+                    kits: installedKits,
+                    activeKitId,
+                    refreshing: inventoryRefreshing,
+                    togglingInternalName,
+                    onRefresh: onRefreshInventory,
+                    onAction: (id, action) => onProjectAction?.(id, action),
+                    onManage: onOpenExtensionManager,
+                    onOpenKit: (id) => controller.openDetail({ kind: "kit", id, focusKey: `installed-kit-${id}` }),
+                    onUninstallKit,
+                    onToggleExtension,
+                    lifecycleDisabled
+                  }
+                ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-installed-heading", children: "Installed extensions" }) }) : null,
+                detail ? /* @__PURE__ */ u3("section", { "aria-label": "kit detail", children: [
+                  /* @__PURE__ */ u3("button", { type: "button", onClick: () => restoreAfterBack(controller), children: "Back" }),
+                  kitInspectors[detail.id] ? /* @__PURE__ */ u3(
+                    KitInspector,
+                    {
+                      kit: kitInspectors[detail.id],
+                      disabled: lifecycleDisabled,
+                      onAction: (action) => onKitAction?.(detail.id, action),
+                      onEdit: () => onEditKit?.(detail.id),
+                      onCopy: () => onCopyKit?.(detail.id),
+                      onExport: () => onExportKit?.(detail.id),
+                      onUninstall: () => onUninstallKit?.(detail.id),
+                      onDuplicate: () => onDuplicateKit?.(detail.id),
+                      onRemove: () => {
+                        onRemoveKit?.(detail.id);
+                        restoreAfterBack(controller);
+                      }
+                    }
+                  ) : /* @__PURE__ */ u3("h2", { children: detail.id })
+                ] }) : null
+              ]
+            }
+          ) }),
+          kitBuilder
+        ] })
       ]
     }
   );
@@ -18936,8 +19199,8 @@ function CompanionPopupHost({
   );
   const [pendingKitPlan, setPendingKitPlan] = d2(null);
   const [kitDisclosurePlan, setKitDisclosurePlan] = d2(null);
-  const [kitEditorSource, setKitEditorSource] = d2(null);
-  const [kitEditorSeed, setKitEditorSeed] = d2([]);
+  const [kitDraft, setKitDraft] = d2(null);
+  const [kitBuilderCollapsed, setKitBuilderCollapsed] = d2(true);
   const [importingKit, setImportingKit] = d2(false);
   const [kitInspectors, setKitInspectors] = d2({});
   const [installedKitCards, setInstalledKitCards] = d2([]);
@@ -19113,8 +19376,8 @@ function CompanionPopupHost({
         projectIds: draft.projectIds
       });
     }
-    setKitEditorSource(null);
-    setKitEditorSeed([]);
+    setKitDraft(null);
+    setKitBuilderCollapsed(true);
     await syncKits();
   };
   const runtimeCatalog = runtime?.catalog.read();
@@ -19142,19 +19405,24 @@ function CompanionPopupHost({
         installedKits: installedKitCards,
         onKitAction: requestKitAction,
         onNewKit: () => {
-          setKitEditorSeed([]);
-          setKitEditorSource("new");
+          setKitDraft((current) => current ?? createKitDraft());
+          setKitBuilderCollapsed(false);
         },
         onCreateKitFromSelection: (projectIds) => {
-          setKitEditorSeed([...projectIds]);
-          setKitEditorSource("new");
+          setKitDraft(
+            (current) => projectIds.reduce(
+              (next, projectId) => addDraftMember(next, projectId),
+              current ?? createKitDraft()
+            )
+          );
+          if (!kitDraft) setKitBuilderCollapsed(true);
         },
         onImportKit: () => setImportingKit(true),
         onEditKit: (id) => {
           const kit2 = runtime?.kits.readDefinition(id);
           if (kit2) {
-            setKitEditorSeed([]);
-            setKitEditorSource(kit2);
+            setKitDraft(createKitDraft(kit2));
+            setKitBuilderCollapsed(false);
           }
         },
         onCopyKit: (id) => {
@@ -19169,22 +19437,28 @@ function CompanionPopupHost({
         onUninstallKit: (id) => requestKitAction(id, "uninstall"),
         onDuplicateKit: (id) => void runtime?.kits.duplicate(id).then(() => syncKits()).catch(() => setOperationError("The personal Kit could not be duplicated.")),
         onRemoveKit: (id) => void runtime?.kits.removeDefinition(id).then(() => syncKits()).catch(() => setOperationError("Uninstall the Kit before removing it.")),
-        activeKitId: runtime?.kits.readActiveId() ?? null
+        activeKitId: runtime?.kits.readActiveId() ?? null,
+        kitBuilder: kitEditorProjects ? /* @__PURE__ */ u3(
+          KitEditor,
+          {
+            draft: kitDraft,
+            projects: kitEditorProjects,
+            collapsed: kitBuilderCollapsed,
+            onStart: () => {
+              setKitDraft((current) => current ?? createKitDraft());
+              setKitBuilderCollapsed(false);
+            },
+            onUpdate: setKitDraft,
+            onCollapse: () => setKitBuilderCollapsed(true),
+            onDiscard: () => {
+              setKitDraft(null);
+              setKitBuilderCollapsed(true);
+            },
+            onSave: (draft) => void saveKitDraft(draft)
+          }
+        ) : null
       }
     ),
-    kitEditorSource && kitEditorProjects ? /* @__PURE__ */ u3(
-      KitEditor,
-      {
-        source: kitEditorSource === "new" ? void 0 : kitEditorSource,
-        initialProjectIds: kitEditorSource === "new" ? kitEditorSeed : [],
-        projects: kitEditorProjects,
-        onCancel: () => {
-          setKitEditorSource(null);
-          setKitEditorSeed([]);
-        },
-        onSave: (draft) => void saveKitDraft(draft)
-      }
-    ) : null,
     importingKit && runtime ? /* @__PURE__ */ u3(
       KitImportDialog,
       {
