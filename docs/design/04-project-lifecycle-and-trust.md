@@ -47,11 +47,11 @@ Every installation with a latest available TavernKeeper assessment of **Material
 
 Approved base copy:
 
-> TavernKeeper's latest assessment identified potential security concerns in this project. Extensions can run code inside SillyTavern. You are responsible for deciding whether to trust and install this project. Review the TavernKeeper assessment and the project before continuing.
+> TavernKeeper’s latest assessment identified potential security concerns in this project. Extensions can run code inside SillyTavern. Responsibility for safety falls upon you. Review the scan and project before continuing.
 
 Actions:
 
-- **Review assessment**
+- **Scan Review**
 - **Cancel**
 - **Install anyway**
 

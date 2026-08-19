@@ -1,0 +1,11 @@
+{
+  "display_name": "Tavernary Harmless Acceptance Fixture",
+  "loading_order": 999,
+  "requires": [],
+  "optional": [],
+  "js": "index.js",
+  "css": "style.css",
+  "author": "Tavernary test fixture",
+  "version": "1.0.0",
+  "homePage": "https://example.invalid/tavernary-harmless-fixture"
+}

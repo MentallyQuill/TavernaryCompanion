@@ -1,0 +1,2 @@
+vendor/tavernary-core/** -text
+vendor/tavernary-core.lock.json text eol=lf

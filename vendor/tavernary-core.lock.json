@@ -1,0 +1,112 @@
+{
+  "schemaVersion": 1,
+  "repository": "https://github.com/MentallyQuill/Tavernary.git",
+  "commit": "17a6188d2a765bc6ce91a9ab8e643d3e1f4585b4",
+  "sourcePath": "packages/catalog-core",
+  "files": [
+    {
+      "path": "fixtures/catalog-core-behavior-v1.json",
+      "sha256": "37f42a23ceccf5a70d780bc68ae1f9b634390ea7d2b9c56004c1f6575ddbb183"
+    },
+    {
+      "path": "fixtures/catalog-v7-invalid-install-url.json",
+      "sha256": "a8ab4325bb2d0c0d85b1877837cd49433eb4d1ea10623b1bbc5b84c71286e4ef"
+    },
+    {
+      "path": "fixtures/catalog-v7-valid.json",
+      "sha256": "c8de19f217a21f91f05e04675c67b51edafc954099777aee19e85a089f8bdcdf"
+    },
+    {
+      "path": "package.json",
+      "sha256": "4336860bdf47e5e898327f02a59c814d42eb13eced278d51026eec8e5d99dd2c"
+    },
+    {
+      "path": "src/activity.ts",
+      "sha256": "ad51abb81824693e132cc7416ebb53781a1eb42c271a4811fac3854378aebefa"
+    },
+    {
+      "path": "src/catalog-license.ts",
+      "sha256": "203eab000bfaf655c310f0dd89027b1ee529b44492aa6a6dcdbac989e61f52f3"
+    },
+    {
+      "path": "src/catalog-schema.ts",
+      "sha256": "98afedf54682bb67862b818b73fb8a9d5d16be31333687238897545fc21e825d"
+    },
+    {
+      "path": "src/catalog-tag-filter.ts",
+      "sha256": "a5ce80cb71ffb76b013382af6e63f8a0c615fadc17609aaf9bc1a24af03191dc"
+    },
+    {
+      "path": "src/catalog-types.ts",
+      "sha256": "92e3b61f4c819245f27dc0296713187536b08d19a74bb0073c3492af381258a0"
+    },
+    {
+      "path": "src/catalog-v7-schema.ts",
+      "sha256": "54366f09c18918bc7dfda3935d900bd430e56173209258ec1f34a88ff9493b70"
+    },
+    {
+      "path": "src/index.ts",
+      "sha256": "2081e4955ff81604e436952f6351dfa19c62e556f3cce36ff9c130bb5be4cd2b"
+    },
+    {
+      "path": "src/install-contract.ts",
+      "sha256": "0a28ec22f8b5fc5a1c36ae08a0551594ca465b5d9278fbf9ef151cbf88c494e4"
+    },
+    {
+      "path": "src/kit-query.ts",
+      "sha256": "bb1c54a7f8f2b2a3b56c18d340441860c50f4d0bdb056e4ee9ffbc06426529f5"
+    },
+    {
+      "path": "src/kit-selectors.ts",
+      "sha256": "9c088d9903769f6c4d528c498d34bd09f5bd9c66ec99548e54a9dcf43669d88f"
+    },
+    {
+      "path": "src/kit-types.ts",
+      "sha256": "8e2a6d545a0f43c247428fbac1c25521046f1f06aba9db487bc2ae5c2c3c9c52"
+    },
+    {
+      "path": "src/preset-compatibility.ts",
+      "sha256": "1379821260165d3f12ae7b43234b3209068619e4aa8df7e8ea22c2928d79c821"
+    },
+    {
+      "path": "src/project-query.ts",
+      "sha256": "b0c0dad82d0a2451bd75bdac1bf7372e7c5e3a614a7d058a09e2adb2f46e96d4"
+    },
+    {
+      "path": "src/project-search.ts",
+      "sha256": "6de72fb57cffc2ce075522da56b8479d82835678dbfcbe29982d98cb479a1e0f"
+    },
+    {
+      "path": "src/project-selectors.ts",
+      "sha256": "7de235d7fa2db5697a7daf5f5a1eb9e598d8d129fcc048b6e0ae25f04b733660"
+    },
+    {
+      "path": "src/search-normalization.ts",
+      "sha256": "4b6125dccdc11909dbf1a8769c4109f3118ac19fe32af1496c74e8237b233baa"
+    },
+    {
+      "path": "src/search-types.ts",
+      "sha256": "0346bce8d2546f387bad7712ca52395297a210053e1a3c5c1b762a48605878d1"
+    },
+    {
+      "path": "src/tag-vocabulary.ts",
+      "sha256": "4abec06d3ea4c9e5253f8a13669d50d7068f3afd7aac056257633c47ca9845f2"
+    },
+    {
+      "path": "src/tavernkeeper.ts",
+      "sha256": "ab4cb5d659584021a826158e684976e50714f1cd2cb9505e8ea312fd09b4a3b5"
+    },
+    {
+      "path": "tests/catalog-schema.test.ts",
+      "sha256": "6b12fe633652cec518a8167b0a99a9a031d23d09f3f2513d2c0392d978842104"
+    },
+    {
+      "path": "tests/contract-fixtures.test.ts",
+      "sha256": "7f13a12907bcb300f128dabc07bd2c1f5e5b2b3cf316d2f7fc77760cc6fa54df"
+    },
+    {
+      "path": "tsconfig.json",
+      "sha256": "1259890f9ad20c75b6309e8be5c1e60646a48c465d22a94310502e005d7b27c2"
+    }
+  ]
+}
