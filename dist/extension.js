@@ -15173,6 +15173,7 @@ function TrustDisclosureDialog({
 
 // src/ui/shared/install-icon.tsx
 var INSTALL_PATH = "M9 2v2H5l-.001 10h14L19 4h-4V2h5a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h5zm9.999 14h-14L5 20h14l-.001-4zM17 17v2h-2v-2h2zM13 2v5h3l-4 4-4-4h3V2h2z";
+var UNINSTALL_PATH = "M8 2v2H5l-.001 10h14L19 4h-3V2h4a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h4zm10.999 14h-14L5 20h14l-.001-4zM17 17v2h-2v-2h2zM12 2l4 4h-3v5h-2V6H8l4-4z";
 function InstallIcon() {
   return /* @__PURE__ */ u3(
     "svg",
@@ -15185,6 +15186,24 @@ function InstallIcon() {
       children: /* @__PURE__ */ u3("path", { d: INSTALL_PATH })
     }
   );
+}
+function UninstallIcon() {
+  return /* @__PURE__ */ u3(
+    "svg",
+    {
+      "aria-hidden": "true",
+      "data-icon": "uninstall",
+      "data-testid": "uninstall-icon",
+      fill: "currentColor",
+      viewBox: "0 0 24 24",
+      children: /* @__PURE__ */ u3("path", { d: UNINSTALL_PATH })
+    }
+  );
+}
+
+// src/ui/shared/overlay-portal.ts
+function resolveOverlayPortalTarget(source) {
+  return source?.closest("dialog[open]") ?? document.body;
 }
 
 // src/ui/shared/tooltip.tsx
@@ -15315,7 +15334,7 @@ function Tooltip({
           children: label2
         }
       ),
-      document.body
+      resolveOverlayPortalTarget(triggerRef.current)
     ) : null
   ] });
 }
@@ -15349,7 +15368,7 @@ function ProjectLifecycleControl({
             "aria-pressed": installed,
             disabled,
             onClick: () => onAction(action),
-            children: /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-lifecycle__face", "aria-hidden": "true", children: /* @__PURE__ */ u3(InstallIcon, {}) })
+            children: /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-lifecycle__face", "aria-hidden": "true", children: installed ? /* @__PURE__ */ u3(UninstallIcon, {}) : /* @__PURE__ */ u3(InstallIcon, {}) })
           }
         )
       }
@@ -16354,22 +16373,23 @@ function CatalogFreshness({
   now = (/* @__PURE__ */ new Date()).toISOString(),
   refreshing = false
 }) {
-  const label2 = refreshing ? "Checking for updates" : freshnessLabel(snapshot, now);
-  return /* @__PURE__ */ u3("span", { class: "tavernary-companion-catalog-freshness", "data-state": snapshot.state, children: label2 });
+  const label2 = refreshing ? "Checking catalog\u2026" : freshnessLabel(snapshot);
+  const title = "catalog" in snapshot ? `Catalog published ${relativeAge(snapshot.catalog.generatedAt, now)}` : void 0;
+  return /* @__PURE__ */ u3("span", { class: "tavernary-companion-catalog-freshness", "data-state": snapshot.state, title, children: label2 });
 }
-function freshnessLabel(snapshot, now) {
+function freshnessLabel(snapshot) {
   switch (snapshot.state) {
     case "empty-loading":
-      return "Checking for updates";
+      return "Checking catalog\u2026";
     case "ready-current":
-      return `Updated ${relativeAge(snapshot.catalog.generatedAt, now)}`;
+      return "Catalog up to date";
     case "ready-stale":
-      return "Saved catalog may be outdated";
+      return "Catalog may be old";
     case "ready-offline":
-      return "Using saved catalog \u2014 offline";
+      return "Cached \xB7 offline";
     case "incompatible-with-cache":
     case "incompatible-empty":
-      return "Companion update required";
+      return "Update required";
     case "error-empty":
       return "Catalog unavailable";
   }
@@ -17436,7 +17456,7 @@ function TavernKeeperScanIndicator({
           ]
         }
       ),
-      document.body
+      resolveOverlayPortalTarget(triggerRef.current)
     ) : null
   ] });
 }
@@ -17719,6 +17739,7 @@ function missingSourceActivityLabel(evidenceStatus) {
 var PROJECT_BATCH_SIZE = 60;
 function ProjectGrid({
   projects,
+  density = "standard",
   onProjectAction,
   onManageInSillyTavern,
   lifecycleDisabled,
@@ -17740,37 +17761,44 @@ function ProjectGrid({
   if (projects.length === 0) {
     return /* @__PURE__ */ u3("p", { children: "No projects match the current filters." });
   }
-  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-project-results", "aria-label": "Project results", children: [
-    /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-grid", children: projects.slice(0, visibleCount).map((project2) => /* @__PURE__ */ u3(
-      ProjectCard,
-      {
-        project: project2,
-        onAction: (action) => onProjectAction(project2.id, action),
-        onManageInSillyTavern,
-        lifecycleDisabled,
-        selectedForKit: selectedKitProjectIds.includes(project2.id),
-        onToggleKitSelection
-      },
-      project2.id
-    )) }),
-    visibleCount < projects.length ? /* @__PURE__ */ u3(
-      "button",
-      {
-        type: "button",
-        class: "tavernary-companion-project-results__more tavernary-companion-button tavernary-companion-button--secondary",
-        "aria-label": "Show more projects",
-        onClick: showMore,
-        children: "Show more"
-      }
-    ) : null
-  ] });
+  return /* @__PURE__ */ u3(
+    "section",
+    {
+      class: `tavernary-companion-project-results${density === "compact" ? " is-compact" : ""}`,
+      "aria-label": "Project results",
+      children: [
+        /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-grid", children: projects.slice(0, visibleCount).map((project2) => /* @__PURE__ */ u3(
+          ProjectCard,
+          {
+            project: project2,
+            onAction: (action) => onProjectAction(project2.id, action),
+            onManageInSillyTavern,
+            lifecycleDisabled,
+            selectedForKit: selectedKitProjectIds.includes(project2.id),
+            onToggleKitSelection
+          },
+          project2.id
+        )) }),
+        visibleCount < projects.length ? /* @__PURE__ */ u3(
+          "button",
+          {
+            type: "button",
+            class: "tavernary-companion-project-results__more tavernary-companion-button tavernary-companion-button--secondary",
+            "aria-label": "Show more projects",
+            onClick: showMore,
+            children: "Show more"
+          }
+        ) : null
+      ]
+    }
+  );
 }
 
 // src/ui/projects/project-results-toolbar.tsx
 var sorts = [
-  { id: "recent", label: "Recently active" },
-  { id: "date-added", label: "Date added" },
-  { id: "sustained", label: "Sustained activity" },
+  { id: "recent", label: "Recent Activity" },
+  { id: "date-added", label: "Date Added" },
+  { id: "sustained", label: "Sustained Activity" },
   { id: "popularity", label: "Popularity" },
   { id: "alphabetical", label: "Alphabetical" },
   { id: "relevance", label: "Relevance" }
@@ -17780,6 +17808,7 @@ function ProjectResultsToolbar({
   resultCount,
   onQueryChange
 }) {
+  const densityAction = query.density === "standard" ? "Use compact cards" : "Use standard cards";
   return /* @__PURE__ */ u3("div", { class: "tavernary-companion-results-toolbar", children: [
     /* @__PURE__ */ u3("output", { "aria-live": "polite", children: [
       resultCount,
@@ -17787,8 +17816,31 @@ function ProjectResultsToolbar({
       resultCount === 1 ? "project" : "projects"
     ] }),
     /* @__PURE__ */ u3(
+      Tooltip,
+      {
+        id: "tavernary-companion-density-tooltip",
+        label: densityAction,
+        className: "tavernary-companion-control-tooltip",
+        children: /* @__PURE__ */ u3(
+          "button",
+          {
+            class: "tavernary-companion-density-toggle",
+            type: "button",
+            "aria-label": densityAction,
+            "aria-pressed": query.density === "compact",
+            onClick: () => onQueryChange({
+              ...query,
+              density: query.density === "standard" ? "compact" : "standard"
+            }),
+            children: /* @__PURE__ */ u3(CategoryIcon, { name: "collapse" })
+          }
+        )
+      }
+    ),
+    /* @__PURE__ */ u3(
       "select",
       {
+        class: "tavernary-companion-project-sort",
         "aria-label": "Sort projects",
         value: query.sort,
         onChange: (event) => onQueryChange({ ...query, sort: event.currentTarget.value }),
@@ -18004,7 +18056,15 @@ function ProjectsRoute({
           ),
           /* @__PURE__ */ u3("main", { class: "tavernary-companion-projects-route__main", children: [
             /* @__PURE__ */ u3("div", { class: "tavernary-companion-filter-bar", children: [
-              /* @__PURE__ */ u3("p", { class: "tavernary-companion-catalog-advisory", children: "TavernKeeper provides evidence, not a guarantee of safety. Review projects before installing." }),
+              /* @__PURE__ */ u3("p", { class: "tavernary-companion-catalog-advisory", children: /* @__PURE__ */ u3(
+                "a",
+                {
+                  href: "https://tavernary.org/about/#safety-security",
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                  children: "Safety: TavernKeeper scans are advisory, not a guarantee. Review a project carefully before installing it or providing credentials."
+                }
+              ) }),
               /* @__PURE__ */ u3(
                 "button",
                 {
@@ -18040,6 +18100,7 @@ function ProjectsRoute({
                 lifecycleDisabled,
                 selectedKitProjectIds,
                 onToggleKitSelection,
+                density: state.query.density,
                 visibleCount: visibleProjectCount,
                 onVisibleCountChange: onVisibleProjectCountChange
               }
@@ -18254,7 +18315,7 @@ function ShellHeader({
         href: "https://tavernary.org/",
         target: "_blank",
         rel: "noopener noreferrer",
-        "aria-label": "Open Tavernary.org in a new tab",
+        "aria-label": "Tavernary Companion \u2014 open Tavernary.org in a new tab",
         children: [
           /* @__PURE__ */ u3("span", { class: "tavernary-companion-brand__mark", role: "img", "aria-label": "Tavernary" }),
           /* @__PURE__ */ u3("div", { class: "tavernary-companion-brand__copy", children: /* @__PURE__ */ u3("h1", { id: "tavernary-companion-heading", "aria-label": "Tavernary Companion", children: [

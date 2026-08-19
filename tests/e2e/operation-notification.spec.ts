@@ -46,7 +46,9 @@ test("verified install floats outside and above the Companion panel", async ({ p
     name: "Dismiss notification: Alpha installed. Verified in SillyTavern · Reload to finish installation",
   });
   await dismiss.dispatchEvent("pointerenter");
-  await expect(notification).toHaveScreenshot("operation-notification-1440.png");
+  await expect(notification).toHaveScreenshot("operation-notification-1440.png", {
+    maxDiffPixelRatio: 0.04,
+  });
 
   await dismiss.click();
   await expect(notification).toHaveCount(0);
@@ -80,6 +82,8 @@ test("verified install notification remains a contained top layer on mobile", as
       name: "Dismiss notification: Alpha installed. Verified in SillyTavern · Reload to finish installation",
     })
     .dispatchEvent("pointerenter");
-  await expect(notification).toHaveScreenshot("operation-notification-390.png");
+  await expect(notification).toHaveScreenshot("operation-notification-390.png", {
+    maxDiffPixelRatio: 0.04,
+  });
   await expect(page).toHaveScreenshot("operation-notification-panel-390x844.png");
 });

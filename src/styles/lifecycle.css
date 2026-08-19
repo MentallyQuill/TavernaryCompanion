@@ -80,7 +80,7 @@
 .tavernary-companion-operation-notification {
   position: fixed;
   z-index: 2147483000;
-  inline-size: max-content;
+  inline-size: min(28rem, calc(100vw - 16px));
   box-sizing: border-box;
   color: var(--tavernary-color-text-primary);
   font-family: "Inter Variable", Inter, system-ui, sans-serif;

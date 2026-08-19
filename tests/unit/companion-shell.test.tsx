@@ -21,6 +21,19 @@ afterEach(() => {
 });
 
 describe("CompanionShell", () => {
+  it("links the brand to Tavernary.org in a new tab", () => {
+    render(<CompanionShell controller={createShellController({ initialRoute: "projects" })} />);
+
+    const brandLink = screen.getByRole("link", {
+      name: "Tavernary Companion — open Tavernary.org in a new tab",
+    });
+    expect(brandLink).toHaveAttribute("href", "https://tavernary.org/");
+    expect(brandLink).toHaveAttribute("target", "_blank");
+    expect(brandLink).toHaveAttribute("rel", "noopener noreferrer");
+    expect(within(brandLink).getByRole("img", { name: "Tavernary" })).toBeVisible();
+    expect(within(brandLink).getByRole("heading", { name: "Tavernary Companion" })).toBeVisible();
+  });
+
   it("renders semantic routes and restores the active route from state", () => {
     const controller = createShellController({ initialRoute: "installed" });
     render(<CompanionShell controller={controller} />);

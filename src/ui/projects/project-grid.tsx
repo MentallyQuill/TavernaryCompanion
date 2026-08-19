@@ -6,6 +6,7 @@ const PROJECT_BATCH_SIZE = 60;
 
 interface ProjectGridProps {
   projects: ProjectCardViewModel[];
+  density?: "standard" | "compact";
   onProjectAction(id: string, action: ProjectPrimaryAction): void;
   onManageInSillyTavern?(): void;
   lifecycleDisabled?: boolean;
@@ -17,6 +18,7 @@ interface ProjectGridProps {
 
 export function ProjectGrid({
   projects,
+  density = "standard",
   onProjectAction,
   onManageInSillyTavern,
   lifecycleDisabled,
@@ -39,7 +41,10 @@ export function ProjectGrid({
     return <p>No projects match the current filters.</p>;
   }
   return (
-    <section class="tavernary-companion-project-results" aria-label="Project results">
+    <section
+      class={`tavernary-companion-project-results${density === "compact" ? " is-compact" : ""}`}
+      aria-label="Project results"
+    >
       <div class="tavernary-companion-project-grid">
         {projects.slice(0, visibleCount).map((project) => (
           <ProjectCard

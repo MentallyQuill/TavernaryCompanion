@@ -2,6 +2,76 @@ import { expect, test, type Locator, type Page } from "@playwright/test";
 
 import { openHarness } from "./harness";
 
+test("native popup keeps every card tooltip and the desktop scan panel in its top layer", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openHarness(page);
+  const owner = await promoteHarnessToNativeModal(page);
+  const alpha = page.locator('.tavernary-companion-project-card[data-project-id="alpha"]');
+
+  await alpha.locator(".tavernary-companion-project-card__kind").hover();
+  await expectOwnedOverlay(
+    page.getByRole("tooltip", { name: "Memory & Retrieval Extension" }),
+    owner,
+  );
+
+  const install = alpha.getByRole("button", { name: "Install Alpha" });
+  await install.hover();
+  await expectOwnedOverlay(page.getByRole("tooltip", { name: "Install" }), owner);
+
+  const kit = alpha.getByRole("button", { name: "Add Alpha to Kit" });
+  await kit.hover();
+  await expectOwnedOverlay(page.getByRole("tooltip", { name: "Add to Kit" }), owner);
+  await kit.click();
+  const removeFromKit = alpha.getByRole("button", { name: "Remove Alpha from selection" });
+  await page.getByRole("button", { name: "Refresh catalog" }).hover();
+  await removeFromKit.hover();
+  await expectOwnedOverlay(page.getByRole("tooltip", { name: "Remove from selection" }), owner);
+
+  const scan = alpha.getByRole("button", { name: /^TavernKeeper scan:/u });
+  await scan.scrollIntoViewIfNeeded();
+  await scan.hover();
+  const scanPanel = page.getByRole("dialog", { name: "TavernKeeper Scan Results" });
+  await expectOwnedOverlay(scanPanel, owner);
+  expect(await isTopmostAtCenter(scanPanel)).toBe(true);
+  await page.keyboard.press("Escape");
+
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Installed" })
+    .click();
+  const uninstall = page.getByRole("button", { name: "Uninstall Writer Tool" });
+  await uninstall.hover();
+  await expectOwnedOverlay(page.getByRole("tooltip", { name: "Uninstall" }), owner);
+});
+
+test("native popup opens and closes the mobile scan panel by tap", async ({ browser }) => {
+  const context = await browser.newContext({
+    hasTouch: true,
+    isMobile: true,
+    viewport: { width: 390, height: 844 },
+  });
+  const page = await context.newPage();
+  try {
+    await openHarness(page);
+    const owner = await promoteHarnessToNativeModal(page);
+    const scan = page
+      .locator('.tavernary-companion-project-card[data-project-id="alpha"]')
+      .getByRole("button", { name: /^TavernKeeper scan:/u });
+
+    await scan.tap();
+    const scanPanel = page.getByRole("dialog", { name: "TavernKeeper Scan Results" });
+    await expectOwnedOverlay(scanPanel, owner);
+    expect(await isTopmostAtCenter(scanPanel)).toBe(true);
+
+    await scan.tap();
+    await expect(scanPanel).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
+
 test("card body and title open the repository while nested controls keep their own hit targets", async ({
   page,
 }) => {
@@ -105,4 +175,47 @@ function repositoryClicks(page: Page): Promise<number> {
     () =>
       (window as typeof window & { companionRepositoryClicks: number }).companionRepositoryClicks,
   );
+}
+
+async function promoteHarnessToNativeModal(page: Page): Promise<Locator> {
+  await page.evaluate(() => {
+    const root = document.querySelector(".tavernary-companion-root");
+    if (!root) throw new Error("Companion root was not found.");
+    const dialog = document.createElement("dialog");
+    dialog.className = "popup wide_dialogue_popup large_dialogue_popup transparent_dialogue_popup";
+    const body = document.createElement("div");
+    body.className = "popup-body";
+    const content = document.createElement("div");
+    content.className = "popup-content";
+    content.append(root);
+    body.append(content);
+    dialog.append(body);
+    document.body.append(dialog);
+    dialog.showModal();
+  });
+  return page.locator("dialog.popup");
+}
+
+async function expectOwnedOverlay(overlay: Locator, owner: Locator): Promise<void> {
+  await expect(overlay).toBeVisible();
+  const ownerElement = await owner.elementHandle();
+  await expect
+    .poll(() =>
+      overlay.evaluate(
+        (element, expectedOwner) => element.parentElement === expectedOwner,
+        ownerElement,
+      ),
+    )
+    .toBe(true);
+}
+
+async function isTopmostAtCenter(overlay: Locator): Promise<boolean> {
+  return overlay.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(
+      bounds.left + bounds.width / 2,
+      bounds.top + bounds.height / 2,
+    );
+    return hit !== null && element.contains(hit);
+  });
 }

@@ -42,6 +42,23 @@ function status(overrides: Partial<TavernKeeperCardStatus> = {}): TavernKeeperCa
 }
 
 describe("TavernKeeperScanIndicator", () => {
+  it("ports the scan panel into the owning native dialog", () => {
+    const owner = document.createElement("dialog");
+    owner.setAttribute("open", "");
+    const container = document.createElement("div");
+    owner.append(container);
+    document.body.append(owner);
+    render(<TavernKeeperScanIndicator projectId="alpha" status={status()} />, { container });
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "TavernKeeper scan: Low concern; current." }),
+    );
+
+    expect(screen.getByRole("dialog", { name: "TavernKeeper Scan Results" }).parentElement).toBe(
+      owner,
+    );
+  });
+
   it("opens the current assessment with literal evidence and safe source links", () => {
     render(<TavernKeeperScanIndicator projectId="alpha" status={status()} />);
 

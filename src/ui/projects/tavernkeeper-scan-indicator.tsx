@@ -2,6 +2,7 @@ import { createPortal } from "preact/compat";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 
 import type { TavernKeeperCardStatus } from "../../catalog/catalog-core";
+import { resolveOverlayPortalTarget } from "../shared/overlay-portal";
 import { TavernKeeperHistoryStrip } from "./tavernkeeper-history-strip";
 
 const encodedCitationPattern = /\s*\uE200cite\uE202[^\uE201]*\uE201/giu;
@@ -410,7 +411,7 @@ export function TavernKeeperScanIndicator({
                 <p class="tavernary-companion-tavernkeeper-summary">{content}</p>
               )}
             </section>,
-            document.body,
+            resolveOverlayPortalTarget(triggerRef.current),
           )
         : null}
     </>

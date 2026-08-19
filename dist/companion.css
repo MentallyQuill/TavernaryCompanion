@@ -555,6 +555,10 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   block-size: 16px;
   flex: none;
 }
+.tavernary-companion-category-navigation button > span:last-child,
+.tavernary-companion-category-navigation button[data-category=developer-infrastructure] svg {
+  transform: translateY(1px);
+}
 .tavernary-companion-category-navigation button[data-category=frontend] svg {
   color: var(--tavernary-color-frontend);
 }
@@ -603,8 +607,20 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 .tavernary-companion-catalog-advisory {
   margin: 0;
   color: var(--tavernary-color-text-secondary);
-  font-size: 0.78rem;
-  line-height: 1.35;
+  font-family: inherit;
+  font-size: 11px;
+  line-height: 1.45;
+}
+.tavernary-companion-catalog-advisory a {
+  color: var(--tavernary-color-text-secondary);
+  text-decoration: underline;
+  text-decoration-color: var(--tavernary-color-divider);
+  text-underline-offset: 2px;
+}
+.tavernary-companion-catalog-advisory a:hover,
+.tavernary-companion-catalog-advisory a:focus-visible {
+  color: var(--tavernary-color-link-hover);
+  text-decoration-color: currentcolor;
 }
 .tavernary-companion-filter-bar {
   margin-block-end: 0.65rem;
@@ -630,6 +646,28 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   border-color: var(--tavernary-color-control-border);
   color: var(--tavernary-color-text-primary);
   background: var(--tavernary-color-control-bg);
+}
+.tavernary-companion-root .tavernary-companion-density-toggle {
+  display: grid;
+  inline-size: 30px;
+  min-inline-size: 30px;
+  block-size: 30px;
+  min-block-size: 30px;
+  padding: 0;
+  border: 1px solid var(--tavernary-color-border-default);
+  border-radius: 6px;
+  color: var(--tavernary-color-text-muted);
+  background: var(--tavernary-color-bg-sidebar);
+  place-content: center;
+}
+.tavernary-companion-density-toggle svg {
+  inline-size: 16px;
+  block-size: 16px;
+}
+.tavernary-companion-root .tavernary-companion-density-toggle:hover,
+.tavernary-companion-root .tavernary-companion-density-toggle[aria-pressed=true] {
+  border-color: var(--tavernary-color-border-strong);
+  color: var(--tavernary-color-text-primary);
 }
 .tavernary-companion-projects-route > header {
   padding-block: 0.25rem 0.6rem;
@@ -1144,20 +1182,26 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   padding-block: 10px 4px;
 }
 .tavernary-companion-results-toolbar {
-  min-block-size: 50px;
+  min-block-size: 0;
   align-items: center;
-  padding-block: 4px 10px;
+  gap: 10px;
+  padding-block: 0 14px;
 }
 .tavernary-companion-results-toolbar output {
   font-size: 20px;
   line-height: 1.2;
 }
 .tavernary-companion-results-toolbar select {
-  margin-inline-start: auto;
-  block-size: 34px;
-  min-block-size: 34px;
-  border-radius: 6px;
+  inline-size: 150px;
+  min-inline-size: 150px;
+  block-size: 36px;
+  min-block-size: 36px;
+  padding: 0 31px 0 10px;
+  border-radius: 7px;
+  font-family: inherit;
   font-size: 11px;
+  font-weight: 400;
+  line-height: 1;
 }
 .tavernary-companion-filter-chips {
   gap: 6px;
@@ -1425,7 +1469,46 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 }
 .tavernary-companion-project-results {
   min-inline-size: 0;
-  padding: 20px 22px 60px;
+  padding: 0 22px 60px;
+}
+.tavernary-companion-project-results.is-compact .tavernary-companion-project-grid {
+  grid-template-columns: repeat(auto-fill, minmax(255px, 1fr));
+  align-items: start;
+}
+.tavernary-companion-project-results.is-compact .tavernary-companion-project-card {
+  height: auto;
+  min-block-size: 0;
+  padding: 11px 12px;
+}
+.tavernary-companion-project-results.is-compact .tavernary-companion-project-card__top {
+  min-block-size: 20px;
+  align-items: center;
+}
+.tavernary-companion-project-results.is-compact .tavernary-companion-project-card__function-symbol {
+  inline-size: 17px;
+  block-size: 17px;
+}
+.tavernary-companion-project-results.is-compact .tavernary-companion-project-card__function-symbol svg {
+  inline-size: 15px;
+  block-size: 15px;
+}
+.tavernary-companion-project-results.is-compact :is(.tavernary-companion-project-card__community, .tavernary-companion-project-card__repository-size, .tavernary-companion-project-card__preset-size, .tavernary-companion-project-card__attribution, .tavernary-companion-project-card__chips, .tavernary-companion-project-card__reason, .tavernary-companion-project-card__meta) {
+  display: none;
+}
+.tavernary-companion-project-results.is-compact .tavernary-companion-project-card__title {
+  margin-block-start: 8px;
+}
+.tavernary-companion-project-results.is-compact .tavernary-companion-project-card__title h3 {
+  min-inline-size: 0;
+  font-size: 15px;
+}
+.tavernary-companion-project-results.is-compact .tavernary-companion-project-card__summary {
+  display: block;
+  min-block-size: 0;
+  margin: 4px 0 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .tavernary-companion-project-grid {
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2317,14 +2400,17 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
     font-size: 0.78rem;
   }
   .tavernary-companion-results-toolbar {
-    gap: 0.5rem;
+    gap: 6px;
   }
   .tavernary-companion-results-toolbar output {
     font-size: 1.2rem;
   }
   .tavernary-companion-results-toolbar select {
-    flex: 1 1 9.5rem;
+    flex: 0 1 120px;
+    inline-size: 120px;
     min-inline-size: 0;
+    padding-inline: 8px 22px;
+    font-size: 10px;
   }
   .tavernary-companion-project-card footer,
   .tavernary-companion-installed-section li {
@@ -2354,7 +2440,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 }
 @container tavernary-companion (max-width: 760px) {
   .tavernary-companion-project-results {
-    padding-block-start: 8px;
+    padding-block-start: 0;
   }
   .tavernary-companion-filter-surface__header {
     min-block-size: 0;
@@ -2592,7 +2678,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 .tavernary-companion-operation-notification {
   position: fixed;
   z-index: 2147483000;
-  inline-size: max-content;
+  inline-size: min(28rem, calc(100vw - 16px));
   box-sizing: border-box;
   color: var(--tavernary-color-text-primary);
   font-family:
