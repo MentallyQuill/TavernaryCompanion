@@ -7076,6 +7076,92 @@ var SillyTavernHostAdapter = class {
     if (body.currentCommitHash === "" || body.currentCommitHash === null) return null;
     return parseCommitSha(body.currentCommitHash, "readRevision");
   }
+  async inspectUpdate(input) {
+    const repositoryUrl = parseRepositoryUrl(input.repositoryUrl, "inspectUpdate");
+    const candidateShas = input.candidateShas.map((sha) => parseCommitSha(sha, "inspectUpdate"));
+    let response;
+    try {
+      response = await this.#dependencies.fetch("/api/extensions/update-status", {
+        method: "POST",
+        headers: this.#dependencies.getRequestHeaders(),
+        body: JSON.stringify({
+          extensionName: input.internalName.replace(/^third-party\//, ""),
+          global: input.type === "global",
+          repositoryUrl,
+          branch: input.branch,
+          candidateShas
+        })
+      });
+    } catch (cause) {
+      throw new HostOperationError(
+        "inspectUpdate",
+        "SillyTavern could not reach the extension update service.",
+        { cause }
+      );
+    }
+    if (response.status === 404) {
+      throw new HostOperationError(
+        "inspectUpdate",
+        "This version of SillyTavern cannot check updates safely.",
+        { status: 404 }
+      );
+    }
+    if (!response.ok) {
+      throw await responseError(
+        "inspectUpdate",
+        "SillyTavern could not check extension updates.",
+        response
+      );
+    }
+    const body = await readJsonObject(response, "inspectUpdate");
+    const relationships = parseCandidateRelationships(body.candidateRelationships);
+    if (typeof body.remoteUrl !== "string" || typeof body.branch !== "string" || typeof body.worktreeClean !== "boolean" || typeof body.branchMatches !== "boolean" || typeof body.exactUpdateSupported !== "boolean") {
+      throw new HostOperationError(
+        "inspectUpdate",
+        "SillyTavern returned invalid extension update evidence."
+      );
+    }
+    return {
+      installedSha: parseCommitSha(body.installedSha, "inspectUpdate"),
+      newestSha: parseCommitSha(body.newestSha, "inspectUpdate"),
+      remoteUrl: body.remoteUrl,
+      branch: body.branch,
+      worktreeClean: body.worktreeClean,
+      branchMatches: body.branchMatches,
+      exactUpdateSupported: body.exactUpdateSupported,
+      newestRelationship: parseRevisionRelationship(body.newestRelationship),
+      candidateRelationships: relationships
+    };
+  }
+  async applyUpdate(input) {
+    const repositoryUrl = parseRepositoryUrl(input.repositoryUrl, "update");
+    const expectedCurrentSha = parseCommitSha(input.expectedCurrentSha, "update");
+    const targetSha = parseCommitSha(input.targetSha, "update");
+    let response;
+    try {
+      response = await this.#dependencies.fetch("/api/extensions/update-to", {
+        method: "POST",
+        headers: this.#dependencies.getRequestHeaders(),
+        body: JSON.stringify({
+          extensionName: input.internalName.replace(/^third-party\//, ""),
+          global: input.type === "global",
+          repositoryUrl,
+          branch: input.branch,
+          expectedCurrentSha,
+          targetSha
+        })
+      });
+    } catch (cause) {
+      throw new HostOperationError(
+        "update",
+        "SillyTavern could not reach the extension update service.",
+        { cause }
+      );
+    }
+    if (!response.ok) {
+      throw await responseError("update", "SillyTavern could not update the extension.", response);
+    }
+  }
   async remove(input) {
     let response;
     try {
@@ -7202,6 +7288,29 @@ function parseRepositoryUrl(input, operation) {
     throw new HostOperationError(operation, "Extension repositories require an HTTP or HTTPS URL.");
   }
   return url.href;
+}
+function parseRevisionRelationship(value) {
+  if (value === "equal" || value === "behind" || value === "ahead" || value === "diverged") {
+    return value;
+  }
+  throw new HostOperationError(
+    "inspectUpdate",
+    "SillyTavern returned invalid extension update evidence."
+  );
+}
+function parseCandidateRelationships(value) {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    throw new HostOperationError(
+      "inspectUpdate",
+      "SillyTavern returned invalid extension update evidence."
+    );
+  }
+  return Object.fromEntries(
+    Object.entries(value).map(([sha, relationship]) => [
+      parseCommitSha(sha, "inspectUpdate"),
+      parseRevisionRelationship(relationship)
+    ])
+  );
 }
 function sanitizeResponseDetails(input) {
   return Array.from(input).filter((character) => {
@@ -17102,7 +17211,8 @@ function OperationTray({
   error,
   onDismissReceipt,
   onDismissError,
-  onRetryError
+  onRetryError,
+  onReload
 }) {
   if (error) {
     return /* @__PURE__ */ u3(
@@ -17125,6 +17235,27 @@ function OperationTray({
     ] });
   }
   if (receipt) {
+    if (receipt.kind === "update" && receipt.status === "succeeded") {
+      return /* @__PURE__ */ u3(
+        "aside",
+        {
+          class: "tavernary-companion-operation-tray tavernary-companion-update-reload",
+          role: "status",
+          "aria-label": "Update complete",
+          "aria-live": "polite",
+          children: [
+            /* @__PURE__ */ u3("p", { children: [
+              /* @__PURE__ */ u3("strong", { children: [
+                receipt.projectName,
+                " updated."
+              ] }),
+              " Reload to apply updates."
+            ] }),
+            /* @__PURE__ */ u3("button", { type: "button", onClick: onReload, children: "Reload now" })
+          ]
+        }
+      );
+    }
     if (receipt.status === "succeeded") {
       return /* @__PURE__ */ u3(OperationSuccessNotification, { receipt, onDismiss: onDismissReceipt });
     }
@@ -17420,7 +17551,10 @@ function InstalledSection({
   section,
   memberships = /* @__PURE__ */ new Map(),
   togglingInternalName = null,
+  updateStates = {},
   onAction,
+  onRetryUpdate,
+  onUpdate,
   onManage,
   onToggleExtension,
   lifecycleDisabled
@@ -17437,7 +17571,10 @@ function InstalledSection({
         sectionId: section.id,
         kitTitles: memberships.get(row.id) ?? [],
         toggling: togglingInternalName === row.internalName,
+        updateState: updateStates[row.id],
         onAction,
+        onRetryUpdate,
+        onUpdate,
         onManage,
         onToggleExtension,
         lifecycleDisabled
@@ -17451,7 +17588,10 @@ function InstalledCard({
   sectionId,
   kitTitles,
   toggling,
+  updateState,
   onAction,
+  onRetryUpdate,
+  onUpdate,
   onManage,
   onToggleExtension,
   lifecycleDisabled
@@ -17464,7 +17604,15 @@ function InstalledCard({
       children: [
         /* @__PURE__ */ u3("header", { children: [
           /* @__PURE__ */ u3("span", { children: sectionLabel(sectionId) }),
-          row.enabled !== null ? /* @__PURE__ */ u3("strong", { children: row.enabled ? "Enabled" : "Disabled" }) : null
+          updateState && updateState.kind !== "idle" ? /* @__PURE__ */ u3(
+            "strong",
+            {
+              class: `tavernary-companion-installed-update-status is-${updateState.kind}`,
+              role: "status",
+              title: updateState.kind === "attention" ? updateState.reason : void 0,
+              children: updateStatusLabel(updateState)
+            }
+          ) : row.enabled !== null ? /* @__PURE__ */ u3("strong", { children: row.enabled ? "Enabled" : "Disabled" }) : null
         ] }),
         /* @__PURE__ */ u3("h4", { children: row.canonicalUrl ? /* @__PURE__ */ u3("a", { href: row.canonicalUrl, target: "_blank", rel: "noopener noreferrer", children: row.name }) : row.name }),
         kitTitles.length ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-memberships", children: [
@@ -17488,6 +17636,27 @@ function InstalledCard({
               ]
             }
           ) : null,
+          updateState?.kind === "available" ? /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              class: "tavernary-companion-installed-update-button",
+              "aria-label": `Update ${row.name}`,
+              disabled: lifecycleDisabled,
+              onClick: (event) => onUpdate?.(row.id, event.currentTarget),
+              children: "Update"
+            }
+          ) : null,
+          updateState?.kind === "error" ? /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              "aria-label": `Retry updates for ${row.name}`,
+              disabled: lifecycleDisabled,
+              onClick: () => onRetryUpdate?.(row.id),
+              children: "Retry"
+            }
+          ) : null,
           unknown ? /* @__PURE__ */ u3(
             "button",
             {
@@ -17509,6 +17678,15 @@ function InstalledCard({
       ]
     }
   );
+}
+function updateStatusLabel(state) {
+  return {
+    checking: "Checking\u2026",
+    current: "Up to date",
+    available: "Update available",
+    attention: "Needs attention",
+    error: "Could not check"
+  }[state.kind];
 }
 function sectionLabel(id) {
   return {
@@ -17534,7 +17712,11 @@ function InstalledRoute({
   activeKitId = null,
   refreshing = false,
   togglingInternalName = null,
+  updateStates = {},
   onRefresh,
+  onCheckUpdates,
+  onRetryUpdate,
+  onUpdate,
   onAction,
   onManage,
   onOpenKit,
@@ -17547,6 +17729,7 @@ function InstalledRoute({
   }, [onRefresh]);
   const populatedSections = sections.filter((section) => section.rows.length > 0);
   const installedKits = kits;
+  const checkingUpdates = Object.values(updateStates).some(({ kind }) => kind === "checking");
   const installedCount = populatedSections.reduce(
     (total, section) => total + section.rows.length,
     0
@@ -17568,7 +17751,17 @@ function InstalledRoute({
         " installed ",
         installedCount === 1 ? "extension" : "extensions"
       ] }),
-      refreshing ? /* @__PURE__ */ u3("p", { role: "status", children: "Updating installed extensions\u2026" }) : null
+      refreshing ? /* @__PURE__ */ u3("p", { role: "status", children: "Updating installed extensions\u2026" }) : null,
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          "aria-label": checkingUpdates ? "Checking for updates" : "Check for updates",
+          disabled: checkingUpdates,
+          onClick: () => void onCheckUpdates?.(),
+          children: checkingUpdates ? "Checking\u2026" : "Check again"
+        }
+      )
     ] }),
     installedKits.length ? /* @__PURE__ */ u3(
       "section",
@@ -17625,7 +17818,10 @@ function InstalledRoute({
         section,
         memberships,
         togglingInternalName,
+        updateStates,
         onAction,
+        onRetryUpdate,
+        onUpdate,
         onManage,
         onToggleExtension,
         lifecycleDisabled
@@ -20237,6 +20433,10 @@ function CompanionShell({
   facets,
   onProjectAction,
   onRefreshInventory = noRefresh,
+  updateStates = {},
+  onCheckUpdates,
+  onRetryUpdate,
+  onUpdateExtension,
   inventoryRefreshing = false,
   togglingInternalName = null,
   onToggleExtension,
@@ -20381,8 +20581,12 @@ function CompanionShell({
                     kits: installedKits,
                     activeKitId,
                     refreshing: inventoryRefreshing,
+                    updateStates,
                     togglingInternalName,
                     onRefresh: onRefreshInventory,
+                    onCheckUpdates,
+                    onRetryUpdate,
+                    onUpdate: onUpdateExtension,
                     onAction: (id, action, anchor) => onProjectAction?.(id, action, anchor),
                     onManage: onOpenExtensionManager,
                     onOpenKit: (id) => controller.openDetail({ kind: "kit", id, focusKey: `installed-kit-${id}` }),
@@ -20542,6 +20746,572 @@ function createShellController(options) {
   return new DefaultShellController(options);
 }
 
+// src/updates/update-targets.ts
+function bindUpdateSelection({
+  project: project2,
+  catalogGeneratedAt,
+  internalName,
+  installedSha,
+  target
+}) {
+  if (!project2.install) throw new Error("This project cannot be updated.");
+  return {
+    target: structuredClone(target),
+    binding: {
+      projectId: project2.id,
+      catalogGeneratedAt,
+      internalName,
+      installedSha,
+      repositoryUrl: project2.install.repositoryUrl,
+      branch: project2.install.branch,
+      requestedSha: target.requestedSha
+    }
+  };
+}
+function matchesUpdateBinding(selection, current) {
+  return selection.binding.installedSha === current.installedSha && selection.binding.catalogGeneratedAt === current.catalogGeneratedAt && selection.binding.projectId === current.project.id && selection.binding.internalName === current.internalName && current.project.install !== null && sameRepositoryUrl(selection.binding.repositoryUrl, current.project.install.repositoryUrl) && selection.binding.branch === current.project.install.branch;
+}
+function deriveUpdateAvailability({
+  project: project2,
+  inspection
+}) {
+  if (!project2.install || !sameRepositoryUrl(project2.install.repositoryUrl, inspection.remoteUrl)) {
+    return {
+      kind: "attention",
+      reason: "This extension comes from a different repository. Manage it in SillyTavern."
+    };
+  }
+  if (!inspection.worktreeClean) {
+    return {
+      kind: "attention",
+      reason: "This extension has local changes. Manage it in SillyTavern."
+    };
+  }
+  if (!inspection.branchMatches) {
+    return {
+      kind: "attention",
+      reason: "This extension is on another branch. Manage it in SillyTavern."
+    };
+  }
+  if (inspection.newestRelationship === "diverged") {
+    return {
+      kind: "attention",
+      reason: "This extension has diverged history. Manage it in SillyTavern."
+    };
+  }
+  if (inspection.newestRelationship === "ahead") {
+    return {
+      kind: "attention",
+      reason: "This extension is ahead of the catalog branch. Manage it in SillyTavern."
+    };
+  }
+  if (!inspection.exactUpdateSupported && (inspection.newestRelationship === "behind" || Object.values(inspection.candidateRelationships).includes("behind"))) {
+    return {
+      kind: "attention",
+      reason: "Update SillyTavern to update this extension safely."
+    };
+  }
+  const targets = [];
+  const report2 = project2.tavernKeeper?.report;
+  if (report2 && inspection.exactUpdateSupported && inspection.candidateRelationships[report2.scannedSha.toLowerCase()] === "behind") {
+    targets.push({
+      kind: "checked",
+      requestedSha: report2.scannedSha.toLowerCase(),
+      checkedAt: report2.scannedAt,
+      reportId: report2.reportId,
+      reportUrl: report2.reportUrl
+    });
+  }
+  if (inspection.newestRelationship === "behind" && !targets.some(({ requestedSha }) => requestedSha === inspection.newestSha.toLowerCase())) {
+    targets.push({
+      kind: "newest",
+      requestedSha: inspection.newestSha.toLowerCase(),
+      resolvedAt: (/* @__PURE__ */ new Date()).toISOString()
+    });
+  }
+  const alreadyScanned = report2 && inspection.candidateRelationships[report2.scannedSha.toLowerCase()] === "equal";
+  return targets.length === 0 ? { kind: "current" } : {
+    kind: "available",
+    notice: alreadyScanned ? "You already have the latest scanned version." : null,
+    targets
+  };
+}
+function sameRepositoryUrl(left, right) {
+  return repositoryIdentity(left) !== null && repositoryIdentity(left) === repositoryIdentity(right);
+}
+function repositoryIdentity(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+  const path = url.pathname.replace(/\/+$/u, "").replace(/\.git$/iu, "");
+  if (!path) return null;
+  return `${url.protocol}//${url.host.toLowerCase()}${path}`;
+}
+
+// src/updates/update-coordinator.ts
+var DefaultExtensionUpdateCoordinator = class {
+  #host;
+  #getSnapshot;
+  #getInventory;
+  #lock;
+  #store;
+  #confirm;
+  #now;
+  #createId;
+  #subscribers = /* @__PURE__ */ new Set();
+  #snapshot = { states: {} };
+  #checkedEvidence = {};
+  #generation = 0;
+  constructor(options) {
+    this.#host = options.host;
+    this.#getSnapshot = options.getSnapshot;
+    this.#getInventory = options.getInventory;
+    this.#lock = options.lock;
+    this.#store = options.store;
+    this.#confirm = options.confirm;
+    this.#now = options.now ?? (() => (/* @__PURE__ */ new Date()).toISOString());
+    this.#createId = options.createId ?? (() => crypto.randomUUID());
+  }
+  read() {
+    return structuredClone(this.#snapshot);
+  }
+  subscribe(subscriber) {
+    this.#subscribers.add(subscriber);
+    return () => this.#subscribers.delete(subscriber);
+  }
+  async check(projectId) {
+    if (projectId === COMPANION_PROJECT_ID) return;
+    const generation = this.#generation;
+    this.#setState(projectId, { kind: "checking" });
+    const snapshot = this.#getSnapshot();
+    const inventory = this.#getInventory();
+    const catalog = "catalog" in snapshot ? snapshot.catalog : null;
+    const project2 = catalog?.projects.find(({ id }) => id === projectId) ?? null;
+    const entry = [...inventory.managed, ...inventory.external].find(
+      (candidate) => candidate.project.id === projectId
+    );
+    if (!project2?.install || !entry || entry.extension.type !== "local") {
+      this.#setState(projectId, { kind: "current" });
+      return;
+    }
+    const scannedSha = project2.tavernKeeper?.report?.scannedSha;
+    const candidateShas = typeof scannedSha === "string" && isFullCommitSha(scannedSha) ? [scannedSha.toLowerCase()] : [];
+    try {
+      const inspection = await this.#host.inspectUpdate({
+        internalName: entry.extension.internalName,
+        type: entry.extension.type,
+        repositoryUrl: project2.install.repositoryUrl,
+        branch: project2.install.branch,
+        candidateShas
+      });
+      if (generation !== this.#generation) return;
+      this.#checkedEvidence[projectId] = {
+        installedSha: inspection.installedSha,
+        internalName: entry.extension.internalName
+      };
+      this.#setState(projectId, deriveUpdateAvailability({ project: project2, inspection }));
+    } catch (error) {
+      if (generation !== this.#generation) return;
+      delete this.#checkedEvidence[projectId];
+      if (error instanceof HostOperationError && error.operation === "inspectUpdate" && error.status === 404) {
+        this.#setState(projectId, {
+          kind: "attention",
+          reason: "Update SillyTavern to check this extension safely."
+        });
+        return;
+      }
+      this.#setState(projectId, {
+        kind: "error",
+        reason: "Could not check for updates."
+      });
+    }
+  }
+  async checkAll() {
+    const inventory = this.#getInventory();
+    const projectIds = [
+      ...new Set(
+        [...inventory.managed, ...inventory.external].filter(({ extension }) => extension.type === "local").filter(({ project: project2 }) => project2.id !== COMPANION_PROJECT_ID).map(({ project: project2 }) => project2.id)
+      )
+    ];
+    let nextIndex = 0;
+    const worker = async () => {
+      while (nextIndex < projectIds.length) {
+        const projectId = projectIds[nextIndex];
+        nextIndex += 1;
+        await this.check(projectId);
+      }
+    };
+    await Promise.all(Array.from({ length: Math.min(3, projectIds.length) }, async () => worker()));
+  }
+  invalidate() {
+    this.#generation += 1;
+    this.#snapshot = { states: {} };
+    this.#checkedEvidence = {};
+    const snapshot = this.read();
+    for (const subscriber of this.#subscribers) subscriber(snapshot);
+  }
+  prepare(projectId) {
+    const state = this.#snapshot.states[projectId];
+    const evidence = this.#checkedEvidence[projectId];
+    const snapshot = this.#getSnapshot();
+    const catalog = "catalog" in snapshot ? snapshot.catalog : null;
+    const project2 = catalog?.projects.find(({ id }) => id === projectId) ?? null;
+    if (state?.kind !== "available" || !evidence || !catalog || !project2) {
+      throw new Error("Check this extension for updates again.");
+    }
+    return {
+      notice: state.notice,
+      selections: state.targets.map(
+        (target) => bindUpdateSelection({
+          project: project2,
+          catalogGeneratedAt: catalog.generatedAt,
+          internalName: evidence.internalName,
+          installedSha: evidence.installedSha,
+          target
+        })
+      )
+    };
+  }
+  update(selection) {
+    return this.#lock.runExclusive(
+      `update:${selection.binding.projectId}`,
+      async ({ setPhase }) => {
+        const startedAt = this.#now();
+        const receiptId = this.#createId();
+        const snapshot = this.#getSnapshot();
+        const inventory = this.#getInventory();
+        const catalog = "catalog" in snapshot ? snapshot.catalog : null;
+        const project2 = catalog?.projects.find(({ id }) => id === selection.binding.projectId) ?? null;
+        const entry = [...inventory.managed, ...inventory.external].find(
+          (candidate) => candidate.project.id === selection.binding.projectId
+        );
+        if (!catalog || !project2?.install || !entry || entry.extension.type !== "local") {
+          throw new Error("This update choice is out of date. Check again.");
+        }
+        const scannedSha = project2.tavernKeeper?.report?.scannedSha;
+        const candidateShas = typeof scannedSha === "string" && isFullCommitSha(scannedSha) ? [scannedSha.toLowerCase()] : [];
+        const inspection = await this.#host.inspectUpdate({
+          internalName: entry.extension.internalName,
+          type: entry.extension.type,
+          repositoryUrl: project2.install.repositoryUrl,
+          branch: project2.install.branch,
+          candidateShas
+        });
+        if (!matchesUpdateBinding(selection, {
+          project: project2,
+          catalogGeneratedAt: catalog.generatedAt,
+          internalName: entry.extension.internalName,
+          installedSha: inspection.installedSha
+        })) {
+          throw new Error("This update choice is out of date. Check again.");
+        }
+        const availability = deriveUpdateAvailability({ project: project2, inspection });
+        if (availability.kind !== "available" || !availability.targets.some(
+          (target) => target.kind === selection.target.kind && target.requestedSha === selection.target.requestedSha
+        )) {
+          throw new Error("This update choice is out of date. Check again.");
+        }
+        const state = this.#store.read();
+        const prompts = selectTrustPrompts({
+          trustAcknowledgedAt: state.trustAcknowledgedAt,
+          target: selection.target,
+          assessment: project2.tavernKeeper ? {
+            riskLevel: project2.tavernKeeper.riskLevel,
+            scannedSha: project2.tavernKeeper.report?.scannedSha ?? null,
+            reportUrl: project2.tavernKeeper.report?.reportUrl ?? null
+          } : null
+        });
+        let disclosureAccepted = false;
+        setPhase("awaiting-confirmation");
+        for (const prompt of prompts) {
+          if (!await this.#confirm(prompt, project2)) {
+            const receipt2 = createReceipt({
+              id: receiptId,
+              kind: "update",
+              projectId: project2.id,
+              projectName: project2.name,
+              startedAt,
+              finishedAt: this.#now(),
+              status: "cancelled",
+              safeError: null,
+              reloadRequired: false
+            });
+            await this.#store.update((draft) => {
+              draft.operationReceipt = structuredClone(receipt2);
+            });
+            return receipt2;
+          }
+          if (prompt.kind === "unsandboxed-disclosure") disclosureAccepted = true;
+        }
+        setPhase("host-request");
+        try {
+          await this.#host.applyUpdate({
+            internalName: entry.extension.internalName,
+            type: entry.extension.type,
+            repositoryUrl: project2.install.repositoryUrl,
+            branch: project2.install.branch,
+            expectedCurrentSha: selection.binding.installedSha,
+            targetSha: selection.target.requestedSha
+          });
+        } catch {
+          const receipt2 = createReceipt({
+            id: receiptId,
+            kind: "update",
+            projectId: project2.id,
+            projectName: project2.name,
+            startedAt,
+            finishedAt: this.#now(),
+            status: "failed",
+            completedThrough: "requested",
+            failedAt: "host-accepted",
+            safeError: "SillyTavern did not complete the extension update.",
+            reloadRequired: false
+          });
+          await this.#store.update((draft) => {
+            if (disclosureAccepted && !draft.trustAcknowledgedAt) {
+              draft.trustAcknowledgedAt = this.#now();
+            }
+            draft.operationReceipt = structuredClone(receipt2);
+          });
+          return receipt2;
+        }
+        setPhase("verifying");
+        const discovered = await this.#host.discover();
+        const verifiedExtension = discovered.find(
+          (candidate) => candidate.internalName === entry.extension.internalName && candidate.folderName.toLocaleLowerCase("en-US") === entry.extension.folderName.toLocaleLowerCase("en-US") && candidate.type === entry.extension.type
+        );
+        const installedSha = verifiedExtension ? await this.#host.readLocalRevision({
+          internalName: verifiedExtension.internalName,
+          type: verifiedExtension.type
+        }) : null;
+        const provenance = {
+          targetKind: selection.target.kind,
+          requestedSha: selection.target.requestedSha,
+          installedSha,
+          catalogGeneratedAt: catalog.generatedAt,
+          tavernKeeperReportId: selection.target.kind === "checked" ? selection.target.reportId : null
+        };
+        if (!verifiedExtension || installedSha !== selection.target.requestedSha) {
+          delete this.#checkedEvidence[project2.id];
+          this.#setState(project2.id, {
+            kind: "attention",
+            reason: "The installed version did not match the selected update. Manage it in SillyTavern."
+          });
+          const receipt2 = createReceipt({
+            id: receiptId,
+            kind: "update",
+            projectId: project2.id,
+            projectName: project2.name,
+            startedAt,
+            finishedAt: this.#now(),
+            status: "verification-failed",
+            completedThrough: "host-accepted",
+            failedAt: "verified",
+            safeError: "SillyTavern did not report the selected extension version after updating.",
+            reloadRequired: false,
+            installProvenance: provenance,
+            tavernKeeperReportUrl: selection.target.kind === "checked" ? selection.target.reportUrl : null
+          });
+          await this.#store.update((draft) => {
+            if (disclosureAccepted && !draft.trustAcknowledgedAt) {
+              draft.trustAcknowledgedAt = this.#now();
+            }
+            draft.operationReceipt = structuredClone(receipt2);
+          });
+          return receipt2;
+        }
+        const receipt = createReceipt({
+          id: receiptId,
+          kind: "update",
+          projectId: project2.id,
+          projectName: project2.name,
+          startedAt,
+          finishedAt: this.#now(),
+          status: "succeeded",
+          completedThrough: "recorded",
+          safeError: null,
+          reloadRequired: true,
+          installProvenance: provenance,
+          tavernKeeperReportUrl: selection.target.kind === "checked" ? selection.target.reportUrl : null
+        });
+        setPhase("recording");
+        await this.#store.update((draft) => {
+          const managed = draft.managedExtensions[project2.id];
+          if (managed && typeof managed === "object" && !Array.isArray(managed)) {
+            managed.provenance = structuredClone(provenance);
+          }
+          if (disclosureAccepted && !draft.trustAcknowledgedAt) {
+            draft.trustAcknowledgedAt = this.#now();
+          }
+          draft.operationReceipt = structuredClone(receipt);
+        });
+        await this.check(project2.id);
+        return receipt;
+      }
+    );
+  }
+  #setState(projectId, state) {
+    this.#snapshot.states[projectId] = structuredClone(state);
+    const snapshot = this.read();
+    for (const subscriber of this.#subscribers) subscriber(snapshot);
+  }
+};
+function createExtensionUpdateCoordinator(options) {
+  return new DefaultExtensionUpdateCoordinator(options);
+}
+
+// src/ui/installed/update-version-chooser.tsx
+var VIEWPORT_MARGIN5 = 8;
+var ANCHOR_GAP2 = 8;
+function UpdateVersionChooser({
+  projectId,
+  projectName,
+  anchor,
+  choice,
+  onSelect,
+  onCancel
+}) {
+  const surfaceRef = A2(null);
+  const firstChoiceRef = A2(null);
+  const settled = A2(false);
+  const [position, setPosition] = d2({
+    left: VIEWPORT_MARGIN5,
+    top: VIEWPORT_MARGIN5,
+    visibility: "hidden"
+  });
+  const headingId = `update-version-${projectId}-heading`;
+  const cancel = q2(() => {
+    if (settled.current) return;
+    settled.current = true;
+    onCancel();
+    const restoreFocus = () => {
+      if (anchor.isConnected) anchor.focus({ preventScroll: true });
+    };
+    restoreFocus();
+    queueMicrotask(restoreFocus);
+  }, [anchor, onCancel]);
+  const select = q2(
+    (selection) => {
+      if (settled.current) return;
+      settled.current = true;
+      onSelect(selection);
+    },
+    [onSelect]
+  );
+  const updatePosition = q2(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    setPosition(positionChooser2(anchor.getBoundingClientRect(), surface.getBoundingClientRect()));
+  }, [anchor]);
+  _2(() => {
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updatePosition);
+    observer?.observe(anchor);
+    if (surfaceRef.current) observer?.observe(surfaceRef.current);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+      observer?.disconnect();
+    };
+  }, [anchor, updatePosition]);
+  h2(() => {
+    const dismissOutside = (event) => {
+      const target = event.target;
+      if (!(target instanceof Node) || surfaceRef.current?.contains(target)) return;
+      cancel();
+    };
+    const dismissEscape = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      cancel();
+    };
+    document.addEventListener("pointerdown", dismissOutside);
+    document.addEventListener("keydown", dismissEscape, true);
+    firstChoiceRef.current?.focus({ preventScroll: true });
+    return () => {
+      document.removeEventListener("pointerdown", dismissOutside);
+      document.removeEventListener("keydown", dismissEscape, true);
+    };
+  }, [cancel]);
+  if (typeof document === "undefined") return null;
+  return $2(
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-install-version-chooser-backdrop", children: /* @__PURE__ */ u3(
+      "section",
+      {
+        ref: surfaceRef,
+        class: "tavernary-companion-install-version-chooser",
+        role: "dialog",
+        "aria-labelledby": headingId,
+        style: { position: "fixed", ...position },
+        children: [
+          /* @__PURE__ */ u3("h2", { id: headingId, children: [
+            "Update ",
+            projectName
+          ] }),
+          choice.notice ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-install-version-chooser__notice", role: "status", children: choice.notice }) : null,
+          choice.selections.map((selection, index) => {
+            const checked = selection.target.kind === "checked";
+            const descriptionId = `${headingId}-${selection.target.kind}-description`;
+            return /* @__PURE__ */ u3(
+              "button",
+              {
+                ref: index === 0 ? firstChoiceRef : void 0,
+                type: "button",
+                "aria-label": checked ? "Latest scanned version" : "Newest version",
+                "aria-describedby": descriptionId,
+                onClick: () => select(selection),
+                children: [
+                  /* @__PURE__ */ u3("strong", { children: checked ? "Latest scanned version" : "Newest version" }),
+                  /* @__PURE__ */ u3("span", { id: descriptionId, children: checked ? "The latest version scanned by TavernKeeper." : "The latest version from the creator. It may include changes TavernKeeper hasn't checked yet." })
+                ]
+              },
+              `${selection.target.kind}-${selection.target.requestedSha}`
+            );
+          }),
+          /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              class: "tavernary-companion-install-version-chooser__cancel",
+              onClick: cancel,
+              children: "Cancel"
+            }
+          )
+        ]
+      }
+    ) }),
+    resolveOverlayPortalTarget(anchor)
+  );
+}
+function positionChooser2(anchor, chooser) {
+  const width = Math.min(360, Math.max(0, window.innerWidth - VIEWPORT_MARGIN5 * 2));
+  const measuredWidth = Math.min(chooser.width || width, width);
+  const measuredHeight = Math.min(chooser.height, window.innerHeight - VIEWPORT_MARGIN5 * 2);
+  const left = clamp4(
+    anchor.right - measuredWidth,
+    VIEWPORT_MARGIN5,
+    window.innerWidth - measuredWidth - VIEWPORT_MARGIN5
+  );
+  const below = anchor.bottom + ANCHOR_GAP2;
+  const above = anchor.top - measuredHeight - ANCHOR_GAP2;
+  const top = clamp4(
+    below + measuredHeight <= window.innerHeight - VIEWPORT_MARGIN5 ? below : above,
+    VIEWPORT_MARGIN5,
+    window.innerHeight - measuredHeight - VIEWPORT_MARGIN5
+  );
+  return { left, top, width, visibility: "visible" };
+}
+function clamp4(value, minimum, maximum) {
+  return Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
+}
+
 // src/ui/popup-host.tsx
 var emptyInventory = { managed: [], external: [], unknown: [], missingManaged: [] };
 function CompanionPopupHost({
@@ -20580,6 +21350,9 @@ function CompanionPopupHost({
   const [receipt, setReceipt] = d2(
     parseReceipt(store?.read().operationReceipt)
   );
+  const [updateSnapshot, setUpdateSnapshot] = d2(
+    runtime?.updates.read() ?? { states: {} }
+  );
   const [kitReceipt, setKitReceipt] = d2(
     parseKitReceipt(store?.read().operationReceipt)
   );
@@ -20594,6 +21367,7 @@ function CompanionPopupHost({
   const [preparingInstall, setPreparingInstall] = d2(false);
   const [preparingKitPlan, setPreparingKitPlan] = d2(false);
   const [pendingInstallChoice, setPendingInstallChoice] = d2(null);
+  const [pendingUpdateChoice, setPendingUpdateChoice] = d2(null);
   const localInstallFallbacks = T2(() => new InstallTargetFallbackBroker(), []);
   const installFallbacks = runtime?.installFallbacks ?? localInstallFallbacks;
   const [pendingInstallFallback, setPendingInstallFallback] = d2(installFallbacks.read());
@@ -20623,7 +21397,7 @@ function CompanionPopupHost({
     setInstalledKitCards(presentation.installedKits);
   }, [runtime, store]);
   const refreshInventory = q2(async () => {
-    if (!runtime || !host || !store) return;
+    if (!runtime || !host || !store) return false;
     setOperationError(null);
     setInventoryRefreshing(true);
     try {
@@ -20636,9 +21410,12 @@ function CompanionPopupHost({
       });
       runtime.kitContext.inventory = inventory;
       runtime.discovery.setInventory(inventory);
+      runtime.updates.invalidate();
       await syncKits();
+      return true;
     } catch {
       setOperationError("Could not refresh installed extensions. Try again.");
+      return false;
     } finally {
       setInventoryRefreshing(false);
     }
@@ -20660,6 +21437,7 @@ function CompanionPopupHost({
       if ("catalog" in snapshot) void refreshInventory();
     });
     const unsubscribeLock = runtime.lifecycle.lock.subscribe(setActiveOperation);
+    const unsubscribeUpdates = runtime.updates.subscribe(setUpdateSnapshot);
     const unsubscribePrompts = runtime.prompts.subscribe(setPendingPrompt);
     const unsubscribeStore = store?.subscribe((state) => {
       setReceipt(parseReceipt(state.operationReceipt));
@@ -20680,12 +21458,23 @@ function CompanionPopupHost({
     return () => {
       unsubscribeCatalog();
       unsubscribeLock();
+      unsubscribeUpdates();
       unsubscribePrompts();
       unsubscribeStore?.();
       runtime.prompts.cancel();
       window.removeEventListener("focus", onFocus);
     };
   }, [refreshInventory, runtime, store, syncKits]);
+  const refreshInstalled = q2(async () => {
+    if (!runtime) return;
+    if (!await refreshInventory()) return;
+    await runtime.updates.checkAll();
+  }, [refreshInventory, runtime]);
+  const checkAllUpdates = q2(async () => {
+    if (!runtime) return;
+    setOperationError(null);
+    await runtime.updates.checkAll();
+  }, [runtime]);
   const executeInstallSelection = async (projectId, projectName, anchor, selection, allowUnavailableFallback = true) => {
     if (!runtime) return;
     try {
@@ -20745,6 +21534,29 @@ function CompanionPopupHost({
   };
   const showOperationError = (error) => {
     setOperationError(error instanceof Error ? error.message : "The operation could not finish.");
+  };
+  const requestUpdate = (projectId, projectName, anchor) => {
+    if (!runtime) return;
+    setOperationError(null);
+    try {
+      setPendingUpdateChoice({
+        projectId,
+        projectName,
+        anchor,
+        choice: runtime.updates.prepare(projectId)
+      });
+    } catch (error) {
+      showOperationError(error);
+    }
+  };
+  const executeUpdateSelection = async (selection) => {
+    if (!runtime) return;
+    try {
+      const result2 = await runtime.updates.update(selection);
+      setReceipt(result2);
+    } catch (error) {
+      showOperationError(error);
+    }
   };
   const toggleExtension = async (projectId, internalName, enabled) => {
     if (!host) return;
@@ -20849,13 +21661,21 @@ function CompanionPopupHost({
         inventoryRefreshing,
         togglingInternalName,
         onRefreshCatalog: refreshCatalog,
-        onRefreshInventory: refreshInventory,
+        onRefreshInventory: refreshInstalled,
+        updateStates: updateSnapshot.states,
+        onCheckUpdates: checkAllUpdates,
+        onRetryUpdate: (projectId) => void runtime?.updates.check(projectId),
+        onUpdateExtension: (projectId, anchor) => {
+          const snapshot = runtime?.catalog.read();
+          const projectName = snapshot && "catalog" in snapshot ? snapshot.catalog.projects.find(({ id }) => id === projectId)?.name ?? projectId : projectId;
+          requestUpdate(projectId, projectName, anchor);
+        },
         onToggleExtension: (projectId, internalName, enabled) => void toggleExtension(projectId, internalName, enabled),
         onProjectAction: (projectId, action, anchor) => void runAction(projectId, action, anchor),
         onOpenExtensionManager: () => void host?.openExtensionManager(),
         onUpdateCompanion: () => void host?.openExtensionManager(),
         onOpenTavernary: () => host?.openExternal("https://tavernary.org/"),
-        lifecycleDisabled: activeOperation !== null || togglingInternalName !== null || preparingInstall || pendingInstallChoice !== null || pendingInstallFallback !== null || preparingKitPlan,
+        lifecycleDisabled: activeOperation !== null || togglingInternalName !== null || preparingInstall || pendingInstallChoice !== null || pendingUpdateChoice !== null || pendingInstallFallback !== null || preparingKitPlan,
         kitDiscovery: runtime?.kitDiscovery,
         kitInspectors,
         installedKits: installedKitCards,
@@ -20994,6 +21814,20 @@ function CompanionPopupHost({
         }
       }
     ) : null,
+    pendingUpdateChoice ? /* @__PURE__ */ u3(
+      UpdateVersionChooser,
+      {
+        projectId: pendingUpdateChoice.projectId,
+        projectName: pendingUpdateChoice.projectName,
+        anchor: pendingUpdateChoice.anchor,
+        choice: pendingUpdateChoice.choice,
+        onCancel: () => setPendingUpdateChoice(null),
+        onSelect: (selection) => {
+          setPendingUpdateChoice(null);
+          void executeUpdateSelection(selection);
+        }
+      }
+    ) : null,
     pendingInstallFallback && (fallbackAnchor.current ?? document.querySelector(".tavernary-companion-root")) ? /* @__PURE__ */ u3(
       InstallVersionChooser,
       {
@@ -21038,7 +21872,8 @@ function CompanionPopupHost({
           setReceipt(null);
         },
         onDismissError: () => setOperationError(null),
-        onRetryError: () => void refreshInventory()
+        onRetryError: () => void refreshInventory(),
+        onReload: () => host?.reload()
       }
     ),
     /* @__PURE__ */ u3(
@@ -21087,6 +21922,14 @@ function createPopupRuntime(store, host) {
     confirm: (prompt, project2) => prompts.request(prompt, project2)
   });
   const lock = lifecycle.lock;
+  const updates = createExtensionUpdateCoordinator({
+    host,
+    store,
+    lock,
+    getSnapshot: () => catalog.read(),
+    getInventory: () => kitContext.inventory,
+    confirm: (prompt, project2) => prompts.request(prompt, project2)
+  });
   const kitExecutor = createKitExecutor({
     host,
     profile: store,
@@ -21121,6 +21964,7 @@ function createPopupRuntime(store, host) {
     catalog,
     discovery,
     lifecycle,
+    updates,
     prompts,
     installFallbacks,
     kits,
@@ -21130,7 +21974,7 @@ function createPopupRuntime(store, host) {
   };
 }
 function parseReceipt(value) {
-  if (!value || typeof value.id !== "string" || value.kind !== "install" && value.kind !== "remove" || typeof value.projectId !== "string" || typeof value.projectName !== "string" || !Array.isArray(value.steps)) {
+  if (!value || typeof value.id !== "string" || value.kind !== "install" && value.kind !== "update" && value.kind !== "remove" || typeof value.projectId !== "string" || typeof value.projectName !== "string" || !Array.isArray(value.steps)) {
     return null;
   }
   return structuredClone(value);

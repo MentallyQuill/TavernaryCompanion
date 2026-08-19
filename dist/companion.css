@@ -2177,6 +2177,18 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   text-decoration: underline;
   text-underline-offset: 3px;
 }
+.tavernary-companion-installed-update-status {
+  color: var(--tavernary-color-text-secondary);
+  font-size: 9px;
+  font-weight: 650;
+}
+.tavernary-companion-installed-update-status.is-available {
+  color: var(--tavernary-color-accent-teal-text);
+}
+.tavernary-companion-installed-update-status.is-attention,
+.tavernary-companion-installed-update-status.is-error {
+  color: var(--tavernary-companion-high);
+}
 .tavernary-companion-installed-memberships,
 .tavernary-companion-installed-kit-components {
   display: flex;
@@ -2789,6 +2801,15 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   margin-inline-end: 0.5rem;
   border-radius: 50%;
   background: var(--tavernary-companion-accent);
+}
+.tavernary-companion-update-reload {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+.tavernary-companion-update-reload button {
+  flex: none;
 }
 .tavernary-companion-operation-receipt h3,
 .tavernary-companion-operation-tray p {
