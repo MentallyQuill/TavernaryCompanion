@@ -63,9 +63,60 @@ describe("DiscoveryController", () => {
       "alpha-preset",
     ]);
     expect(controller.read().facets?.frontends).toEqual([
-      { id: "risuai", label: "risuai" },
-      { id: "sillytavern", label: "sillytavern" },
+      { id: "risuai", label: "risuai", count: 1 },
+      { id: "sillytavern", label: "sillytavern", count: 2 },
     ]);
+  });
+
+  it("derives counted filter vocabularies and tag facet metadata from the full catalog", () => {
+    const current = snapshot();
+    current.catalog.tagVocabulary = [
+      {
+        id: "memory",
+        label: "Memory",
+        description: "Adds memory or retrieval behavior",
+        facet: "goal",
+        aliases: [],
+        applicable_kinds: ["extension", "preset"],
+      },
+    ];
+    current.catalog.projects[0].tags = [
+      {
+        id: "memory",
+        label: "Memory",
+        description: "Adds memory or retrieval behavior",
+        facet: "goal",
+      },
+    ];
+    current.catalog.projects[1].preset = {
+      version: "1",
+      publishedAt: null,
+      artifactSizeBytes: null,
+      modelFamilies: [{ id: "claude", label: "Claude", description: "Claude" }],
+      completionFormats: [
+        {
+          id: "chat-completion",
+          label: "Chat completion",
+          description: "Chat completion",
+        },
+      ],
+    };
+
+    const facets = createDiscoveryController({ snapshot: current, inventory }).read().facets;
+
+    expect(facets?.tags).toContainEqual({
+      id: "memory",
+      label: "Memory",
+      description: "Adds memory or retrieval behavior",
+      facet: "goal",
+      count: 1,
+    });
+    expect(facets?.modelFamilies).toContainEqual({ id: "claude", label: "Claude", count: 1 });
+    expect(facets?.completionFormats).toContainEqual({
+      id: "chat-completion",
+      label: "Chat completion",
+      count: 1,
+    });
   });
 
   it("preserves literal search input and does not rebuild the index for inventory", () => {

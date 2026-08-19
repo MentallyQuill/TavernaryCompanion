@@ -27,9 +27,25 @@ export interface DiscoveryState {
   projectDetails: Record<string, ProjectDetailViewModel>;
   installedSections: InstalledSectionViewModel[];
   facets?: {
-    frontends: Array<{ id: string; label: string }>;
-    tags: Array<{ id: string; label: string }>;
+    frontends: DiscoveryFacet[];
+    tags: DiscoveryTagFacet[];
+    modelFamilies: DiscoveryFacet[];
+    completionFormats: DiscoveryFacet[];
+    kinds: DiscoveryFacet[];
+    development: DiscoveryFacet[];
+    licenses: DiscoveryFacet[];
   };
+}
+
+export interface DiscoveryFacet {
+  id: string;
+  label: string;
+  count: number;
+}
+
+export interface DiscoveryTagFacet extends DiscoveryFacet {
+  description: string;
+  facet: "goal" | "trait";
 }
 
 export interface DiscoveryController {
@@ -95,10 +111,10 @@ class DefaultDiscoveryController implements DiscoveryController {
 
   #compute(): DiscoveryState {
     const catalog = "catalog" in this.#snapshot ? this.#snapshot.catalog : null;
+    const now = catalog ? this.#now() : "";
     let projects: ProjectCardViewModel[] = [];
     let projectDetails: Record<string, ProjectDetailViewModel> = {};
     if (catalog) {
-      const now = this.#now();
       if (catalog !== this.#indexedCatalog) {
         this.#indexedCatalog = catalog;
         this.#index = this.#createIndex(
@@ -138,18 +154,76 @@ class DefaultDiscoveryController implements DiscoveryController {
       installedSections: toInstalledSectionViewModel(this.#inventory),
       facets: catalog
         ? {
-            frontends: [
-              ...new Map(
-                catalog.projects.flatMap((project) =>
-                  project.frontends.map(({ id, label }) => [id, { id, label }] as const),
-                ),
-              ).values(),
-            ].sort((left, right) => left.label.localeCompare(right.label)),
+            frontends: countedLabels(catalog.projects.map(({ frontends }) => frontends)),
             tags: catalog.tagVocabulary
-              .map(({ id, label }) => ({ id, label }))
+              .map(({ id, label, description, facet }) => ({
+                id,
+                label,
+                description,
+                facet,
+                count: catalog.projects.filter((project) =>
+                  project.tags.some((tag) => tag.id === id),
+                ).length,
+              }))
               .sort((left, right) => left.label.localeCompare(right.label)),
+            modelFamilies: countedLabels(
+              catalog.projects.map(({ preset }) => preset?.modelFamilies ?? []),
+            ),
+            completionFormats: countedLabels(
+              catalog.projects.map(({ preset }) => preset?.completionFormats ?? []),
+            ),
+            kinds: [
+              { id: "frontend", label: "Frontend" },
+              { id: "extension", label: "Extension" },
+              { id: "preset", label: "System Preset" },
+            ].map((option) => ({
+              ...option,
+              count: catalog.projects.filter((project) => project.kind === option.id).length,
+            })),
+            development: [
+              {
+                id: "active-month",
+                label: "Active this month",
+                count: catalog.projects.filter((project) =>
+                  isWithinDays(project.activity.latestSourceActivityAt, now, 30),
+                ).length,
+              },
+              {
+                id: "new-release",
+                label: "Recently released",
+                count: catalog.projects.filter((project) =>
+                  isWithinDays(
+                    project.latestReleaseAt ?? project.preset?.publishedAt ?? null,
+                    now,
+                    30,
+                  ),
+                ).length,
+              },
+              {
+                id: "dormant",
+                label: "Dormant",
+                count: catalog.projects.filter((project) => project.activity.dormant).length,
+              },
+            ],
+            licenses: [
+              { id: "open-source", label: "Open source", status: "osi-approved" },
+              { id: "proprietary", label: "Proprietary", status: "proprietary" },
+              { id: "pending", label: "Pending verification", status: "pending" },
+              { id: "missing", label: "Missing license", status: "missing" },
+            ].map(({ status, ...option }) => ({
+              ...option,
+              count: catalog.projects.filter((project) => project.license.status === status).length,
+            })),
           }
-        : { frontends: [], tags: [] },
+        : {
+            frontends: [],
+            tags: [],
+            modelFamilies: [],
+            completionFormats: [],
+            kinds: [],
+            development: [],
+            licenses: [],
+          },
     };
   }
 
@@ -157,6 +231,28 @@ class DefaultDiscoveryController implements DiscoveryController {
     const snapshot = this.read();
     for (const subscriber of this.#subscribers) subscriber(snapshot);
   }
+}
+
+function isWithinDays(timestamp: string | null, now: string, days: number): boolean {
+  if (!timestamp) return false;
+  const age = Date.parse(now) - Date.parse(timestamp);
+  return Number.isFinite(age) && age >= 0 && age <= days * 24 * 60 * 60 * 1_000;
+}
+
+function countedLabels(
+  projectLabels: ReadonlyArray<ReadonlyArray<{ id: string; label: string }>>,
+): DiscoveryFacet[] {
+  const options = new Map<string, DiscoveryFacet>();
+  for (const labels of projectLabels) {
+    const seen = new Set<string>();
+    for (const { id, label } of labels) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const current = options.get(id);
+      options.set(id, { id, label, count: (current?.count ?? 0) + 1 });
+    }
+  }
+  return [...options.values()].sort((left, right) => left.label.localeCompare(right.label));
 }
 
 export function createDiscoveryController(
