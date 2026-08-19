@@ -120,55 +120,57 @@ export function InstallVersionChooser({
     : checkedDescriptionId;
 
   return createPortal(
-    <section
-      ref={surfaceRef}
-      class="tavernary-companion-install-version-chooser"
-      role="dialog"
-      aria-labelledby={headingId}
-      data-project-name={projectName}
-      style={{ position: "fixed", ...position }}
-    >
-      <h2 id={headingId}>Which version would you like?</h2>
-      {notice ? (
-        <p class="tavernary-companion-install-version-chooser__notice" role="status">
-          {notice}
-        </p>
-      ) : null}
-      <button
-        ref={checkedRef}
-        type="button"
-        aria-label="Checked version"
-        aria-describedby={checkedDescribedBy}
-        disabled={choice.checked.disabledReason !== null}
-        onClick={() => select(choice.checked.selection)}
+    <div class="tavernary-companion-install-version-chooser-backdrop">
+      <section
+        ref={surfaceRef}
+        class="tavernary-companion-install-version-chooser"
+        role="dialog"
+        aria-labelledby={headingId}
+        data-project-name={projectName}
+        style={{ position: "fixed", ...position }}
       >
-        <strong>Checked version</strong>
-        <span id={checkedDescriptionId}>{checkedDescription}</span>
-        {choice.checked.disabledReason ? (
-          <span id={checkedDisabledId}>{choice.checked.disabledReason}</span>
+        <h2 id={headingId}>Which version would you like?</h2>
+        {notice ? (
+          <p class="tavernary-companion-install-version-chooser__notice" role="status">
+            {notice}
+          </p>
         ) : null}
-      </button>
-      <button
-        ref={newestRef}
-        type="button"
-        aria-label="Newest version"
-        aria-describedby={newestDescriptionId}
-        onClick={() => select(choice.newest.selection)}
-      >
-        <strong>Newest version</strong>
-        <span id={newestDescriptionId}>
-          The latest version from the creator. It may include changes TavernKeeper hasn't checked
-          yet.
-        </span>
-      </button>
-      <button
-        type="button"
-        class="tavernary-companion-install-version-chooser__cancel"
-        onClick={cancel}
-      >
-        Cancel
-      </button>
-    </section>,
+        <button
+          ref={checkedRef}
+          type="button"
+          aria-label="Checked version"
+          aria-describedby={checkedDescribedBy}
+          disabled={choice.checked.disabledReason !== null}
+          onClick={() => select(choice.checked.selection)}
+        >
+          <strong>Checked version</strong>
+          <span id={checkedDescriptionId}>{checkedDescription}</span>
+          {choice.checked.disabledReason ? (
+            <span id={checkedDisabledId}>{choice.checked.disabledReason}</span>
+          ) : null}
+        </button>
+        <button
+          ref={newestRef}
+          type="button"
+          aria-label="Newest version"
+          aria-describedby={newestDescriptionId}
+          onClick={() => select(choice.newest.selection)}
+        >
+          <strong>Newest version</strong>
+          <span id={newestDescriptionId}>
+            The latest version from the creator. It may include changes TavernKeeper hasn't checked
+            yet.
+          </span>
+        </button>
+        <button
+          type="button"
+          class="tavernary-companion-install-version-chooser__cancel"
+          onClick={cancel}
+        >
+          Cancel
+        </button>
+      </section>
+    </div>,
     resolveOverlayPortalTarget(anchor),
   );
 }

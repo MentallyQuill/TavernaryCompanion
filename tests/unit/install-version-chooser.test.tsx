@@ -175,7 +175,7 @@ describe("InstallVersionChooser", () => {
     expect(onCancel).toHaveBeenCalledOnce();
   });
 
-  it("ports the chooser into its owning open dialog without modal focus trapping", () => {
+  it("ports the chooser overlay into its owning open dialog without modal focus trapping", () => {
     const owner = document.createElement("dialog");
     owner.setAttribute("open", "");
     document.body.append(owner);
@@ -193,7 +193,10 @@ describe("InstallVersionChooser", () => {
     );
 
     const chooser = screen.getByRole("dialog", { name: "Which version would you like?" });
-    expect(chooser.parentElement).toBe(owner);
+    expect(chooser.parentElement).toHaveClass(
+      "tavernary-companion-install-version-chooser-backdrop",
+    );
+    expect(chooser.parentElement?.parentElement).toBe(owner);
     expect(chooser).not.toHaveAttribute("aria-modal");
     expect(chooser).toHaveStyle({ position: "fixed" });
   });

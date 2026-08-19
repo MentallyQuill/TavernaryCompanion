@@ -2797,8 +2797,15 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 .tavernary-companion-operation-receipt li[data-status=failed] {
   color: var(--tavernary-companion-high);
 }
+.tavernary-companion-install-version-chooser-backdrop {
+  position: fixed;
+  z-index: 2147483000;
+  inset: 0;
+  box-sizing: border-box;
+  pointer-events: none;
+}
 .tavernary-companion-install-version-chooser {
-  z-index: 2147483001;
+  z-index: 1;
   display: grid;
   max-block-size: calc(100vh - 16px);
   box-sizing: border-box;
@@ -2816,6 +2823,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
     system-ui,
     sans-serif;
   line-height: 1.35;
+  pointer-events: auto;
 }
 .tavernary-companion-install-version-chooser h2 {
   margin: 0 0 2px;
@@ -2865,6 +2873,20 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   color: var(--tavernary-color-text-secondary);
   background: transparent;
   text-align: center;
+}
+@media (max-width: 719px) {
+  .tavernary-companion-install-version-chooser-backdrop {
+    display: grid;
+    padding: 8px;
+    background: rgb(0 0 0 / 32%);
+    backdrop-filter: blur(4px);
+    -webkit-backdrop-filter: blur(4px);
+    pointer-events: auto;
+    place-items: center;
+  }
+  .tavernary-companion-install-version-chooser {
+    position: static !important;
+  }
 }
 .tavernary-companion-operation-receipt__details {
   margin-block-start: var(--tavernary-companion-space-2);

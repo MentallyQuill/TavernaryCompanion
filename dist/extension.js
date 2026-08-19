@@ -16537,7 +16537,7 @@ function InstallVersionChooser({
   const checkedDescription = checkedVersionDescription(choice.checked.selection.target.checkedAt);
   const checkedDescribedBy = choice.checked.disabledReason ? `${checkedDescriptionId} ${checkedDisabledId}` : checkedDescriptionId;
   return $2(
-    /* @__PURE__ */ u3(
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-install-version-chooser-backdrop", children: /* @__PURE__ */ u3(
       "section",
       {
         ref: surfaceRef,
@@ -16590,7 +16590,7 @@ function InstallVersionChooser({
           )
         ]
       }
-    ),
+    ) }),
     resolveOverlayPortalTarget(anchor)
   );
 }

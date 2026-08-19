@@ -32,6 +32,43 @@ test("offers plain Checked and Newest choices only when they differ", async ({ p
 test.describe("touch choice", () => {
   test.use({ hasTouch: true });
 
+  test("centers the mobile chooser in its backdrop", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openVersionChoice(page, "version-choice");
+    await promoteHarnessToNativeModal(page);
+
+    await installAlpha(page).tap();
+    const backdrop = page.locator(".tavernary-companion-install-version-chooser-backdrop");
+    const chooser = page.getByRole("dialog", { name: "Which version would you like?" });
+    const [backdropBox, chooserBox] = await Promise.all([
+      backdrop.boundingBox(),
+      chooser.boundingBox(),
+    ]);
+
+    expect(backdropBox).not.toBeNull();
+    expect(chooserBox).not.toBeNull();
+    expect(chooserBox!.x + chooserBox!.width / 2).toBeCloseTo(
+      backdropBox!.x + backdropBox!.width / 2,
+      0,
+    );
+    expect(chooserBox!.y + chooserBox!.height / 2).toBeCloseTo(
+      backdropBox!.y + backdropBox!.height / 2,
+      0,
+    );
+  });
+
+  test("softens the background behind the mobile chooser", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openVersionChoice(page, "version-choice");
+    await promoteHarnessToNativeModal(page);
+
+    await installAlpha(page).tap();
+    const backdrop = page.locator(".tavernary-companion-install-version-chooser-backdrop");
+
+    await expect(backdrop).toHaveCSS("backdrop-filter", /blur\([1-9]/u);
+    await expect(backdrop).not.toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  });
+
   test("keeps the chooser on screen and installs the tapped choice", async ({ page }) => {
     await page.setViewportSize({ width: 390, height: 844 });
     await openVersionChoice(page, "version-choice");
@@ -105,6 +142,24 @@ async function openVersionChoice(page: Page, scenario: string): Promise<void> {
 
 function installAlpha(page: Page): Locator {
   return page.locator('[data-project-id="alpha"]').getByRole("button", { name: "Install Alpha" });
+}
+
+async function promoteHarnessToNativeModal(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    const root = document.querySelector(".tavernary-companion-root");
+    if (!root) throw new Error("Companion root is missing");
+    const dialog = document.createElement("dialog");
+    dialog.className = "popup wide_dialogue_popup large_dialogue_popup transparent_dialogue_popup";
+    const body = document.createElement("div");
+    body.className = "popup-body";
+    const content = document.createElement("div");
+    content.className = "popup-content";
+    content.append(root);
+    body.append(content);
+    dialog.append(body);
+    document.body.append(dialog);
+    dialog.showModal();
+  });
 }
 
 async function expectContained(page: Page, locator: Locator): Promise<void> {
