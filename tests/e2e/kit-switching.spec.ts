@@ -117,7 +117,7 @@ test("uses Tavernary's full-screen Kit Builder sheet on mobile", async ({ page }
   const draftPill = page.getByRole("button", { name: "Open Kit Builder" });
   await expect(draftPill).toContainText("Kit draft");
   await expect(draftPill).toContainText("1 project");
-  await expect(page).toHaveScreenshot("kit-draft-pill-mobile-390x844.png");
+  await expect(draftPill).toHaveScreenshot("kit-draft-pill-mobile-390x844.png");
   await draftPill.click();
 
   const builder = page.getByRole("dialog", { name: "Kit Builder" });
