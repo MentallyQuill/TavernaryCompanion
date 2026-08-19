@@ -432,13 +432,36 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   line-height: 1.25;
   text-align: end;
 }
-.tavernary-companion-shell__utilities .tavernary-companion-button[aria-label="Refresh catalog"] {
+.tavernary-companion-shell__utilities .tavernary-companion-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   block-size: 32px;
   min-block-size: 32px;
   padding: 0 11px;
   border-radius: 6px;
   font-size: 10px;
   line-height: 1;
+}
+.tavernary-companion-refresh svg {
+  inline-size: 14px;
+  block-size: 14px;
+  flex: none;
+  transform-origin: center;
+}
+.tavernary-companion-refresh.is-refreshing {
+  cursor: progress;
+  opacity: 1;
+  background: var(--tavernary-color-action-primary-pressed) !important;
+}
+.tavernary-companion-refresh.is-refreshing svg {
+  animation: tavernary-companion-refresh-spin 700ms linear infinite;
+}
+@keyframes tavernary-companion-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 .tavernary-companion-button--primary {
   border-color: var(--tavernary-color-functional-border) !important;
@@ -2416,7 +2439,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.55rem 0.75rem;
-    padding: 0.55rem 4rem 0.65rem 0.75rem;
+    padding: 0.55rem 0.75rem 0.65rem;
   }
   .tavernary-companion-brand {
     gap: 0.5rem;
@@ -2433,21 +2456,28 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
     flex-direction: row;
     flex-wrap: nowrap;
     justify-content: flex-end;
+    margin-inline-end: 52px;
     font-size: 0.78rem;
   }
   .tavernary-companion-catalog-freshness {
     display: none;
   }
-  .tavernary-companion-shell__utilities .tavernary-companion-button[aria-label="Refresh catalog"] {
+  .tavernary-companion-shell__utilities .tavernary-companion-refresh {
     inline-size: 44px;
     min-inline-size: 44px;
+    max-inline-size: 44px;
+    block-size: 44px;
+    min-block-size: 44px;
+    max-block-size: 44px;
     padding: 0;
-    font-size: 0;
+    aspect-ratio: 1;
   }
-  .tavernary-companion-shell__utilities .tavernary-companion-button[aria-label="Refresh catalog"]::before {
-    content: "\21bb";
-    font-size: 1.25rem;
-    line-height: 1;
+  .tavernary-companion-refresh svg {
+    inline-size: 20px;
+    block-size: 20px;
+  }
+  .tavernary-companion-refresh > span {
+    display: none;
   }
   .tavernary-companion-header-search {
     grid-column: 1 / -1;
@@ -2671,6 +2701,23 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
     min-block-size: 48px;
   }
   .tavernary-companion-shell__header .tavernary-companion-catalog-freshness {
+    display: none;
+  }
+  .tavernary-companion-shell__utilities .tavernary-companion-refresh {
+    inline-size: 44px;
+    min-inline-size: 44px;
+    max-inline-size: 44px;
+    block-size: 44px;
+    min-block-size: 44px;
+    max-block-size: 44px;
+    padding: 0;
+    aspect-ratio: 1;
+  }
+  .tavernary-companion-refresh svg {
+    inline-size: 20px;
+    block-size: 20px;
+  }
+  .tavernary-companion-refresh > span {
     display: none;
   }
   .tavernary-companion-tavernkeeper-trigger::before {

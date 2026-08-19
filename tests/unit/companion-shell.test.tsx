@@ -77,6 +77,38 @@ describe("CompanionShell", () => {
     expect(discovery.read().query.search).toBe("memory");
   });
 
+  it("shows the supplied refresh icon as disabled feedback while refresh is pending", () => {
+    const catalog = catalogFixture();
+    const catalogSnapshot: CatalogSnapshot = {
+      state: "ready-current",
+      canMutate: true,
+      checkedAt: "2026-08-19T12:00:00.000Z",
+      catalog,
+    };
+    render(
+      <CompanionShell
+        controller={createShellController({ initialRoute: "projects" })}
+        catalogSnapshot={catalogSnapshot}
+        catalogRefreshing
+        onRefreshCatalog={vi.fn()}
+      />,
+    );
+
+    const refresh = screen.getByRole("button", { name: "Refreshing catalog" });
+    expect(refresh).toBeDisabled();
+    expect(refresh).toHaveAttribute("aria-busy", "true");
+    const icon = refresh.querySelector('svg[data-refresh-icon="true"]');
+    expect(icon).toHaveAttribute("viewBox", "0 0 24 24");
+    expect(icon?.querySelector("path")).toHaveAttribute(
+      "d",
+      "M21 3V8M21 8H16M21 8L18 5.29168C16.4077 3.86656 14.3051 3 12 3C7.02944 3 3 7.02944 3 12C3 16.9706 7.02944 21 12 21C16.2832 21 19.8675 18.008 20.777 14",
+    );
+    expect(icon?.querySelector("path")).toHaveAttribute("stroke", "currentColor");
+    expect(icon?.querySelector("path")).toHaveAttribute("stroke-width", "2");
+    expect(icon?.querySelector("path")).toHaveAttribute("stroke-linecap", "round");
+    expect(icon?.querySelector("path")).toHaveAttribute("stroke-linejoin", "round");
+  });
+
   it("shows projects in batches of 60 before asking the user to show more", () => {
     const catalog = catalogFixture();
     catalog.projects = Array.from({ length: 121 }, (_, index) =>

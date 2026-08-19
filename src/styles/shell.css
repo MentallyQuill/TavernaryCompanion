@@ -222,13 +222,40 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   text-align: end;
 }
 
-.tavernary-companion-shell__utilities .tavernary-companion-button[aria-label="Refresh catalog"] {
+.tavernary-companion-shell__utilities .tavernary-companion-refresh {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
   block-size: 32px;
   min-block-size: 32px;
   padding: 0 11px;
   border-radius: 6px;
   font-size: 10px;
   line-height: 1;
+}
+
+.tavernary-companion-refresh svg {
+  inline-size: 14px;
+  block-size: 14px;
+  flex: none;
+  transform-origin: center;
+}
+
+.tavernary-companion-refresh.is-refreshing {
+  cursor: progress;
+  opacity: 1;
+  background: var(--tavernary-color-action-primary-pressed) !important;
+}
+
+.tavernary-companion-refresh.is-refreshing svg {
+  animation: tavernary-companion-refresh-spin 700ms linear infinite;
+}
+
+@keyframes tavernary-companion-refresh-spin {
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 .tavernary-companion-button--primary {

@@ -196,7 +196,7 @@
     grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
     gap: 0.55rem 0.75rem;
-    padding: 0.55rem 4rem 0.65rem 0.75rem;
+    padding: 0.55rem 0.75rem 0.65rem;
   }
 
   .tavernary-companion-brand {
@@ -217,6 +217,7 @@
     flex-direction: row;
     flex-wrap: nowrap;
     justify-content: flex-end;
+    margin-inline-end: 52px;
     font-size: 0.78rem;
   }
 
@@ -224,18 +225,24 @@
     display: none;
   }
 
-  .tavernary-companion-shell__utilities .tavernary-companion-button[aria-label="Refresh catalog"] {
+  .tavernary-companion-shell__utilities .tavernary-companion-refresh {
     inline-size: 44px;
     min-inline-size: 44px;
+    max-inline-size: 44px;
+    block-size: 44px;
+    min-block-size: 44px;
+    max-block-size: 44px;
     padding: 0;
-    font-size: 0;
+    aspect-ratio: 1;
   }
 
-  .tavernary-companion-shell__utilities
-    .tavernary-companion-button[aria-label="Refresh catalog"]::before {
-    content: "↻";
-    font-size: 1.25rem;
-    line-height: 1;
+  .tavernary-companion-refresh svg {
+    inline-size: 20px;
+    block-size: 20px;
+  }
+
+  .tavernary-companion-refresh > span {
+    display: none;
   }
 
   .tavernary-companion-header-search {
@@ -521,6 +528,26 @@
   }
 
   .tavernary-companion-shell__header .tavernary-companion-catalog-freshness {
+    display: none;
+  }
+
+  .tavernary-companion-shell__utilities .tavernary-companion-refresh {
+    inline-size: 44px;
+    min-inline-size: 44px;
+    max-inline-size: 44px;
+    block-size: 44px;
+    min-block-size: 44px;
+    max-block-size: 44px;
+    padding: 0;
+    aspect-ratio: 1;
+  }
+
+  .tavernary-companion-refresh svg {
+    inline-size: 20px;
+    block-size: 20px;
+  }
+
+  .tavernary-companion-refresh > span {
     display: none;
   }
 

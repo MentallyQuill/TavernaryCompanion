@@ -80,11 +80,26 @@ test("filter sheet traps focus, clears safely, and releases modal state on mobil
 
 test("reduced motion removes visible transforms and long transitions", async ({ page }) => {
   await page.emulateMedia({ reducedMotion: "reduce" });
-  await openHarness(page);
+  await openHarness(page, "refresh-pending");
   const styles = await page.getByTestId("companion-shell").evaluate((element) => {
     const computed = getComputedStyle(element);
     return { transitionDuration: computed.transitionDuration, transform: computed.transform };
   });
   expect(Number.parseFloat(styles.transitionDuration)).toBeLessThanOrEqual(0.00001);
   expect(styles.transform).toBe("none");
+
+  const refresh = page.locator(".tavernary-companion-refresh");
+  await refresh.click();
+  await expect(refresh).toHaveAttribute("aria-busy", "true");
+  const iconStyles = await refresh.locator('[data-refresh-icon="true"]').evaluate((element) => {
+    const computed = getComputedStyle(element);
+    return {
+      animationDuration: computed.animationDuration,
+      animationIterationCount: computed.animationIterationCount,
+      transform: computed.transform,
+    };
+  });
+  expect(Number.parseFloat(iconStyles.animationDuration)).toBeLessThanOrEqual(0.00001);
+  expect(iconStyles.animationIterationCount).toBe("1");
+  expect(iconStyles.transform).toBe("none");
 });

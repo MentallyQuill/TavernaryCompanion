@@ -90,6 +90,51 @@ test("mobile follows Tavernary's compact catalog hierarchy", async ({ page }) =>
   ).toBe(1);
 });
 
+test("mobile search spans the header and refresh is a centered square", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHarness(page);
+
+  const shell = await page.getByTestId("companion-shell").boundingBox();
+  const search = await page.getByRole("searchbox", { name: "Search projects" }).boundingBox();
+  const refresh = await page.getByRole("button", { name: "Refresh catalog" }).boundingBox();
+  const icon = await page.locator('[data-refresh-icon="true"]').boundingBox();
+  expect(shell).not.toBeNull();
+  expect(search).not.toBeNull();
+  expect(refresh).not.toBeNull();
+  expect(icon).not.toBeNull();
+
+  expect(search!.x - shell!.x).toBeGreaterThanOrEqual(12);
+  expect(search!.x - shell!.x).toBeLessThanOrEqual(14);
+  expect(shell!.x + shell!.width - (search!.x + search!.width)).toBeGreaterThanOrEqual(12);
+  expect(shell!.x + shell!.width - (search!.x + search!.width)).toBeLessThanOrEqual(14);
+  expect(refresh!.width).toBeCloseTo(44, 0);
+  expect(refresh!.height).toBeCloseTo(44, 0);
+  expect(
+    Math.abs(icon!.x + icon!.width / 2 - (refresh!.x + refresh!.width / 2)),
+  ).toBeLessThanOrEqual(1);
+  expect(
+    Math.abs(icon!.y + icon!.height / 2 - (refresh!.y + refresh!.height / 2)),
+  ).toBeLessThanOrEqual(1);
+});
+
+test("refresh press shows pending visual feedback until the catalog settles", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHarness(page, "refresh-pending");
+
+  const refresh = page.locator(".tavernary-companion-refresh");
+  await refresh.click();
+
+  await expect(refresh).toHaveAccessibleName("Refreshing catalog");
+  await expect(refresh).toBeDisabled();
+  await expect(refresh).toHaveAttribute("aria-busy", "true");
+  await expect(refresh.locator('[data-refresh-icon="true"]')).toHaveCSS(
+    "animation-name",
+    "tavernary-companion-refresh-spin",
+  );
+  await expect(refresh).toHaveAccessibleName("Refresh catalog", { timeout: 2_000 });
+  await expect(refresh).toBeEnabled();
+});
+
 test("project disclosure, density, sort, and first card follow Tavernary's toolbar rhythm", async ({
   page,
 }) => {
@@ -329,7 +374,12 @@ test("touch devices hide header freshness even with a desktop-width viewport", a
     await expect(
       page.locator(".tavernary-companion-shell__header").getByText(/^Catalog up to date$/u),
     ).toBeHidden();
-    await expect(page.getByRole("button", { name: "Refresh catalog" })).toBeVisible();
+    const refresh = page.getByRole("button", { name: "Refresh catalog" });
+    await expect(refresh).toBeVisible();
+    const box = await refresh.boundingBox();
+    expect(box).not.toBeNull();
+    expect(box!.width).toBeCloseTo(44, 0);
+    expect(box!.height).toBeCloseTo(44, 0);
   } finally {
     await page.close();
   }

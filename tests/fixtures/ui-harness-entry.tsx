@@ -226,7 +226,7 @@ async function main() {
     checkedAt: "2026-08-18T12:00:00.000Z",
     catalog,
   };
-  const catalogClient = staticCatalogClient(snapshot);
+  const catalogClient = staticCatalogClient(snapshot, scenario === "refresh-pending" ? 600 : 0);
   const profile = new ProfileStore({
     extensionSettings: {},
     saveSettingsDebounced: () => undefined,
@@ -464,7 +464,7 @@ function markChecked(
   };
 }
 
-function staticCatalogClient(snapshot: CatalogSnapshot): CatalogClient {
+function staticCatalogClient(snapshot: CatalogSnapshot, refreshDelayMs = 0): CatalogClient {
   const listeners = new Set<(next: CatalogSnapshot) => void>();
   const publish = () => {
     for (const listener of listeners) listener(snapshot);
@@ -474,6 +474,9 @@ function staticCatalogClient(snapshot: CatalogSnapshot): CatalogClient {
       publish();
     },
     async refresh() {
+      if (refreshDelayMs > 0) {
+        await new Promise((resolve) => setTimeout(resolve, refreshDelayMs));
+      }
       publish();
     },
     async onFocus() {},
