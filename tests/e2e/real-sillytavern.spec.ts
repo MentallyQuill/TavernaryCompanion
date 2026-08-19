@@ -111,22 +111,26 @@ test.describe("real SillyTavern acceptance", () => {
         ".tavernary-companion-project-card:has(.tavernary-companion-activity-summary):has(.tavernary-companion-project-card__activity-age)",
       )
       .first();
-    const [activityBox, activityAgeBox] = await Promise.all([
-      activityCard.locator(".tavernary-companion-activity-summary").boundingBox(),
+    const [activityTopBox, activityAgeBox] = await Promise.all([
+      activityCard.locator(".tavernary-companion-project-card__top").boundingBox(),
       activityCard.locator(".tavernary-companion-project-card__activity-age").boundingBox(),
     ]);
-    expect(activityAgeBox!.x - (activityBox!.x + activityBox!.width)).toBeCloseTo(5, 0);
+    expect(
+      activityTopBox!.x + activityTopBox!.width - (activityAgeBox!.x + activityAgeBox!.width),
+    ).toBeCloseTo(0, 0);
 
     const repositoryCard = page
       .locator(
-        ".tavernary-companion-project-card:has(.tavernary-companion-project-card__community):has(.tavernary-companion-project-card__repository-size)",
+        ".tavernary-companion-project-card:has(.tavernary-companion-activity-summary):has(.tavernary-companion-project-card__community):has(.tavernary-companion-project-card__repository-size)",
       )
       .first();
-    const [communityBox, repositoryBox] = await Promise.all([
+    const [repositoryActivityBox, communityBox, repositoryBox] = await Promise.all([
+      repositoryCard.locator(".tavernary-companion-activity-summary").boundingBox(),
       repositoryCard.locator(".tavernary-companion-project-card__community").boundingBox(),
       repositoryCard.locator(".tavernary-companion-project-card__repository-size").boundingBox(),
     ]);
-    expect(repositoryBox!.x - (communityBox!.x + communityBox!.width)).toBeCloseTo(5, 0);
+    expect(communityBox!.x).toBeCloseTo(repositoryActivityBox!.x, 0);
+    expect(repositoryBox!.x - (communityBox!.x + communityBox!.width)).toBeGreaterThanOrEqual(24);
 
     const actionCard = page
       .locator(

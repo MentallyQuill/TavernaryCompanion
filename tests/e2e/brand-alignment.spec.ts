@@ -381,8 +381,9 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
       card.locator(".tavernary-companion-project-card__repository-size").boundingBox(),
     ]);
   expect(titleBox!.y - (topBox!.y + topBox!.height)).toBeCloseTo(2, 0);
-  expect(activityAgeBox!.x - (activityBox!.x + activityBox!.width)).toBeCloseTo(5, 0);
-  expect(repositoryBox!.x - (communityBox!.x + communityBox!.width)).toBeCloseTo(5, 0);
+  expect(topBox!.x + topBox!.width - (activityAgeBox!.x + activityAgeBox!.width)).toBeCloseTo(0, 0);
+  expect(communityBox!.x).toBeCloseTo(activityBox!.x, 0);
+  expect(repositoryBox!.x - (communityBox!.x + communityBox!.width)).toBeGreaterThanOrEqual(24);
   const summary = card.locator(".tavernary-companion-project-card__summary");
   await expect(summary).toHaveCSS("font-size", "11px");
   expect(
@@ -513,6 +514,16 @@ test("mobile project cards retain Tavernary geometry without horizontal overflow
   expect(box).not.toBeNull();
   expect(box!.x).toBeGreaterThanOrEqual(12);
   expect(box!.x + box!.width).toBeLessThanOrEqual(378);
+  const [topBox, activityBox, activityAgeBox, communityBox, repositoryBox] = await Promise.all([
+    card.locator(".tavernary-companion-project-card__top").boundingBox(),
+    card.locator(".tavernary-companion-activity-summary").boundingBox(),
+    card.locator(".tavernary-companion-project-card__activity-age").boundingBox(),
+    card.locator(".tavernary-companion-project-card__community").boundingBox(),
+    card.locator(".tavernary-companion-project-card__repository-size").boundingBox(),
+  ]);
+  expect(topBox!.x + topBox!.width - (activityAgeBox!.x + activityAgeBox!.width)).toBeCloseTo(0, 0);
+  expect(communityBox!.x).toBeCloseTo(activityBox!.x, 0);
+  expect(repositoryBox!.x - (communityBox!.x + communityBox!.width)).toBeGreaterThanOrEqual(24);
   await expect(card.locator(".tavernary-companion-project-card__chips")).toHaveCSS(
     "max-height",
     "40px",

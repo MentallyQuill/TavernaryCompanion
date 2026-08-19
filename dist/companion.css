@@ -849,7 +849,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   align-items: center;
   justify-content: end;
   justify-items: end;
-  column-gap: 5px;
+  column-gap: 10px;
   row-gap: 5px;
   color: var(--tavernary-color-text-muted);
   font-size: 10px;
@@ -894,7 +894,6 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 .tavernary-companion-project-card__activity-age {
   grid-column: 2;
   grid-row: 1;
-  justify-self: start;
   color: color-mix(in srgb, var(--tavernary-color-text-primary) var(--tavernary-companion-commit-freshness, 0%), var(--tavernary-color-activity-recent));
   font-weight: 700;
 }
@@ -913,7 +912,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   grid-column: 1;
   grid-row: 2;
   align-items: center;
-  justify-self: end;
+  justify-self: start;
   gap: 3px;
 }
 .tavernary-companion-project-card__community svg {
