@@ -2596,6 +2596,9 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   }
 }
 @media (pointer: coarse) {
+  .tavernary-companion-install-version-chooser > button {
+    min-block-size: 48px;
+  }
   .tavernary-companion-shell__header .tavernary-companion-catalog-freshness {
     display: none;
   }
@@ -2674,6 +2677,95 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 }
 .tavernary-companion-operation-receipt li[data-status=failed] {
   color: var(--tavernary-companion-high);
+}
+.tavernary-companion-install-version-chooser {
+  z-index: 2147483001;
+  display: grid;
+  max-block-size: calc(100vh - 16px);
+  box-sizing: border-box;
+  gap: 8px;
+  overflow: auto;
+  padding: 12px;
+  border: 1px solid var(--tavernary-color-border-strong);
+  border-radius: 8px;
+  color: var(--tavernary-color-text-primary);
+  background: var(--tavernary-color-bg-surface-raised);
+  box-shadow: var(--tavernary-shadow-overlay);
+  font-family:
+    "Inter Variable",
+    Inter,
+    system-ui,
+    sans-serif;
+  line-height: 1.35;
+}
+.tavernary-companion-install-version-chooser h2 {
+  margin: 0 0 2px;
+  color: var(--tavernary-color-heading);
+  font-size: 16px;
+}
+.tavernary-companion-install-version-chooser__notice {
+  margin: 0 0 2px;
+  color: var(--tavernary-color-text-secondary);
+  font-size: 12px;
+}
+.tavernary-companion-install-version-chooser > button {
+  display: grid;
+  inline-size: 100%;
+  min-block-size: 44px;
+  gap: 2px;
+  padding: 9px 10px;
+  border: 1px solid var(--tavernary-color-control-border);
+  border-radius: 6px;
+  color: var(--tavernary-color-text-primary);
+  background: var(--tavernary-color-control-bg);
+  text-align: start;
+}
+.tavernary-companion-install-version-chooser > button:not(:disabled):hover {
+  border-color: var(--tavernary-color-border-hover);
+  background: var(--tavernary-color-bg-surface-hover);
+}
+.tavernary-companion-install-version-chooser > button:focus-visible {
+  outline: 2px solid var(--tavernary-color-focus-ring);
+  outline-offset: 2px;
+}
+.tavernary-companion-install-version-chooser > button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+.tavernary-companion-install-version-chooser > button strong {
+  color: var(--tavernary-color-heading);
+  font-size: 13px;
+}
+.tavernary-companion-install-version-chooser > button span {
+  color: var(--tavernary-color-text-secondary);
+  font-size: 11px;
+}
+.tavernary-companion-install-version-chooser > .tavernary-companion-install-version-chooser__cancel {
+  min-block-size: 36px;
+  justify-items: center;
+  color: var(--tavernary-color-text-secondary);
+  background: transparent;
+  text-align: center;
+}
+.tavernary-companion-operation-receipt__details {
+  margin-block-start: var(--tavernary-companion-space-2);
+}
+.tavernary-companion-operation-receipt__details summary {
+  cursor: pointer;
+  font-weight: 650;
+}
+.tavernary-companion-operation-receipt__details dl {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 4px 10px;
+}
+.tavernary-companion-operation-receipt__details dd {
+  min-inline-size: 0;
+  margin: 0;
+  overflow-wrap: anywhere;
+}
+.tavernary-companion-operation-receipt__details code {
+  font-size: 0.85em;
 }
 .tavernary-companion-operation-notification {
   position: fixed;
@@ -3413,6 +3505,39 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
     border-radius: 0;
     background: rgb(0 0 0 / 0.58);
   }
+}
+.tavernary-companion-kit-version-choices {
+  display: grid;
+  gap: 8px;
+}
+.tavernary-companion-kit-version-choices > :is(h3, p) {
+  margin: 0;
+}
+.tavernary-companion-kit-version-choice {
+  display: grid;
+  min-inline-size: 0;
+  gap: 5px;
+  margin: 0;
+  padding: 9px;
+  border: 1px solid var(--tavernary-color-divider);
+  border-radius: 6px;
+}
+.tavernary-companion-kit-version-choice > label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  min-block-size: 44px;
+  padding: 7px;
+  border-radius: 5px;
+  background: var(--tavernary-color-control-bg);
+}
+.tavernary-companion-kit-version-choice > label > span {
+  display: grid;
+  gap: 2px;
+}
+.tavernary-companion-kit-version-choice small {
+  color: var(--tavernary-color-text-secondary);
 }
 
 /* src/styles/companion.css */

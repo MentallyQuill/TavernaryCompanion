@@ -1,28 +1,27 @@
-# Safety and trust
+# Checks and choices
 
-Companion is about help, not trust automation. You still make the final decision.
+Companion gives you useful information and lets you choose what to install.
 
-## Why warnings appear
+## What a TavernKeeper check means
 
-Extensions run in SillyTavern directly, so dangerous projects can affect your local environment.
+TavernKeeper looks at a specific version of a project. Companion can install that exact version when SillyTavern supports it.
 
-Warnings appear when:
+A check is helpful information. A project can change after it was checked, which is why Companion may show two choices:
 
-- a project has a current risk finding,
-- a finding is stale,
-- or the scan result is high risk.
+- **Checked version:** the version TavernKeeper checked, with the check date.
+- **Newest version:** the latest version from the creator. It may include newer changes.
 
-Warnings are not there to block you forever. They are there to make risk obvious before install.
+Choose the one you want. Companion does not pick one for you or switch versions in the background.
 
-## How to use Tavernary and TavernKeeper signals
+## When a project needs a closer look
 
-Tavernary provides project metadata and scan status from its catalog flow. Companion surfaces these signals at install time.
+Sometimes TavernKeeper found something worth reading. Companion shows a short note and a link to the check.
 
-If a warning is shown:
+When that happens:
 
-1. Read the full reason.
-2. Recheck project notes.
-3. Continue only if you choose to accept the risk.
+1. Read the note.
+2. Open the check if you want more detail.
+3. Continue or cancel—the choice is yours.
 
 ## Managed ownership
 
@@ -34,15 +33,14 @@ It does not:
 - edit your external extension folders,
 - remove itself automatically.
 
-## Current vs stale assessment
+## New changes after a check
 
-- Current warning: scan matches the project version in catalog.
-- Stale warning: scan came from an older version.
+If the creator has published changes since the last check, Companion says that TavernKeeper checked an older version. You can choose that Checked version or choose Newest.
 
-Treat stale warnings as a reason to double-check project details before installing.
+If Checked cannot be installed anymore, Companion stops. You can choose Newest or cancel.
 
 ## External safety practice
 
-Start with small, temporary test installs in a non-critical setup.
+Try unfamiliar extensions in a test setup first when you can.
 
 Uninstall anything that behaves unexpectedly.
