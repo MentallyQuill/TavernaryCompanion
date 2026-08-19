@@ -76,3 +76,57 @@
 .tavernary-companion-operation-receipt li[data-status="failed"] {
   color: var(--tavernary-companion-high);
 }
+
+.tavernary-companion-dialog-backdrop {
+  padding: 16px;
+  background: rgb(0 0 0 / 76%);
+}
+
+.tavernary-companion-dialog {
+  inline-size: min(520px, 100%);
+  max-block-size: min(720px, calc(100% - 16px));
+  padding: 20px;
+  border-color: var(--tavernary-color-border-strong);
+  border-radius: 8px;
+  color: var(--tavernary-color-text-primary);
+  background: var(--tavernary-color-bg-surface-raised);
+  box-shadow: var(--tavernary-shadow-overlay);
+  font-size: 12px;
+  line-height: 1.5;
+  text-align: start;
+}
+
+.tavernary-companion-dialog h2,
+.tavernary-companion-dialog h3,
+.tavernary-companion-dialog p {
+  text-align: start;
+}
+
+.tavernary-companion-dialog h2 {
+  margin-block: 0 10px;
+  color: var(--tavernary-color-heading);
+  font-size: 18px;
+}
+
+.tavernary-companion-dialog input,
+.tavernary-companion-dialog textarea,
+.tavernary-companion-dialog select {
+  inline-size: 100%;
+  padding: 8px 10px;
+  border-color: var(--tavernary-color-control-border);
+  border-radius: 6px;
+  background: var(--tavernary-color-control-bg);
+}
+
+.tavernary-companion-dialog__actions button {
+  min-block-size: 36px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+.tavernary-companion-operation-tray {
+  border-radius: 8px;
+  color: var(--tavernary-color-text-primary);
+  background: var(--tavernary-color-bg-surface-raised);
+  box-shadow: var(--tavernary-shadow-overlay);
+}

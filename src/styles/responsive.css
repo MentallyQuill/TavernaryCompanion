@@ -510,11 +510,6 @@
   .tavernary-companion-project-results {
     padding-block-end: 50px;
   }
-
-  .tavernary-companion-tavernkeeper-popover {
-    inset-inline-end: -52px;
-    inline-size: min(320px, calc(100cqi - 26px));
-  }
 }
 
 @media (pointer: coarse) {

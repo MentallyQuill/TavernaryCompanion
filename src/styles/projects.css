@@ -1222,13 +1222,11 @@
 }
 
 .tavernary-companion-tavernkeeper-popover {
-  position: absolute;
+  position: fixed;
   z-index: 120;
-  inset-block-start: 26px;
-  inset-inline-end: -8px;
   display: grid;
-  inline-size: min(320px, calc(100cqi - 32px));
-  max-block-size: min(480px, calc(100dvh - 32px));
+  inline-size: min(320px, calc(100vw - 16px));
+  max-block-size: min(480px, calc(100dvh - 16px));
   gap: 12px;
   padding: 14px;
   overflow-y: auto;
@@ -1386,4 +1384,64 @@
 
 .tavernary-companion-tavernkeeper-history .risk-high {
   background: var(--tavernary-color-tavernkeeper-red);
+}
+
+.tavernary-companion-installed-route {
+  padding: 20px 22px 60px;
+}
+
+.tavernary-companion-installed-route > .tavernary-companion-route-toolbar {
+  min-block-size: 44px;
+  margin-block-end: 14px;
+}
+
+.tavernary-companion-installed-section {
+  margin: 0 0 12px;
+  padding: 15px;
+}
+
+.tavernary-companion-installed-section > header {
+  min-block-size: 36px;
+  padding-block-end: 10px;
+  border-block-end: 1px solid var(--tavernary-color-border-default);
+}
+
+.tavernary-companion-installed-section h3 {
+  color: var(--tavernary-color-heading);
+  font-size: 15px;
+}
+
+.tavernary-companion-installed-section > header > span {
+  color: var(--tavernary-color-text-muted);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+}
+
+.tavernary-companion-installed-section ul {
+  gap: 0;
+  margin: 0;
+}
+
+.tavernary-companion-installed-section li {
+  min-block-size: 58px;
+  padding-block: 7px;
+  border-block-end: 1px solid var(--tavernary-color-border-subtle);
+}
+
+.tavernary-companion-installed-section li:last-child {
+  border-block-end: 0;
+}
+
+.tavernary-companion-installed-section li strong,
+.tavernary-companion-installed-section li strong a {
+  color: var(--tavernary-color-text-primary);
+  font-size: 12px;
+  text-decoration: none;
+}
+
+.tavernary-companion-installed-section li strong a:hover,
+.tavernary-companion-installed-section li strong a:focus-visible {
+  color: var(--tavernary-color-link-hover);
+  text-decoration: underline;
+  text-underline-offset: 3px;
 }

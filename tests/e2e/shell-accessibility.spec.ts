@@ -44,16 +44,18 @@ test("filter sheet traps focus, clears safely, and releases modal state on deskt
   ).toBe(true);
 
   await page.keyboard.press("Shift+Tab");
-  await expect(sheet.getByRole("radio", { name: "Recently released" })).toBeFocused();
+  await expect(sheet.getByRole("checkbox", { name: "Missing license" })).toBeFocused();
   await page.keyboard.press("Tab");
   await expect(close).toBeFocused();
 
-  await sheet.getByRole("checkbox", { name: "Memory" }).check();
+  const memory = sheet.getByRole("checkbox", { name: "Memory" });
+  await sheet.getByText("Memory", { exact: true }).click();
+  await expect(memory).toBeChecked();
   const clear = sheet.getByRole("button", { name: "Clear all filters" });
   await expect(clear).toBeEnabled();
   await clear.click();
   await expect(close).toBeFocused();
-  await expect(sheet.getByRole("checkbox", { name: "Memory" })).not.toBeChecked();
+  await expect(memory).not.toBeChecked();
 
   await page.setViewportSize({ width: 1440, height: 960 });
   await expect(page.getByRole("dialog", { name: "Project filters" })).toHaveCount(0);

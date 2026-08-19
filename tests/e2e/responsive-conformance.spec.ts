@@ -25,7 +25,11 @@ test("mobile filter sheet matches the Companion route", async ({ page }) => {
 
 test("mobile personal Kits match the shared catalog grammar", async ({ page }) => {
   await prepare(page, { width: 390, height: 844 });
-  await page.getByRole("combobox", { name: "Browse Companion" }).selectOption("kits");
+  await page.getByRole("button", { name: "Browse categories" }).click();
+  await page
+    .getByRole("group", { name: "Browse categories menu" })
+    .getByRole("button", { name: "Kits" })
+    .click();
   await page.getByRole("tab", { name: /Personal/ }).click();
   await expect(page.locator(".tavernary-companion-kit-card").first()).toBeVisible();
   await expect(page).toHaveScreenshot("kits-390x844.png");
@@ -33,7 +37,11 @@ test("mobile personal Kits match the shared catalog grammar", async ({ page }) =
 
 test("mobile Installed matches the shared catalog grammar", async ({ page }) => {
   await prepare(page, { width: 390, height: 844 });
-  await page.getByRole("combobox", { name: "Browse Companion" }).selectOption("installed");
+  await page.getByRole("button", { name: "Browse categories" }).click();
+  await page
+    .getByRole("group", { name: "Browse categories menu" })
+    .getByRole("button", { name: "Installed" })
+    .click();
   await expect(page.locator(".tavernary-companion-installed-section").first()).toBeVisible();
   await expect(page).toHaveScreenshot("installed-390x844.png");
 });

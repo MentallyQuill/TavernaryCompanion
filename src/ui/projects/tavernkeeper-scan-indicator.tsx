@@ -35,6 +35,7 @@ export function TavernKeeperScanIndicator({
   const [open, setOpen] = useState(false);
   const trigger = useRef<HTMLButtonElement>(null);
   const popover = useRef<HTMLElement>(null);
+  const [popoverPosition, setPopoverPosition] = useState<preact.JSX.CSSProperties>({});
   const popoverId = `tavernkeeper-scan-${projectId}`;
   const headingId = `${popoverId}-heading`;
   const report = status.report;
@@ -58,6 +59,45 @@ export function TavernKeeperScanIndicator({
     return () => {
       document.removeEventListener("pointerdown", closeFromPointer);
       document.removeEventListener("keydown", closeFromKeyboard);
+    };
+  }, [open]);
+
+  useEffect(() => {
+    if (!open) return;
+    const placePopover = () => {
+      const anchor = trigger.current?.getBoundingClientRect();
+      const panel = popover.current;
+      const root = trigger.current
+        ?.closest<HTMLElement>(".tavernary-companion-root")
+        ?.getBoundingClientRect();
+      if (!anchor || !panel || !root) return;
+      const margin = 8;
+      const gap = 8;
+      const width = Math.min(320, root.width - margin * 2);
+      const maxHeight = root.height - margin * 2;
+      const height = Math.min(panel.scrollHeight, maxHeight);
+      const preferredTop = anchor.bottom + gap;
+      const top =
+        preferredTop + height <= root.bottom - margin
+          ? preferredTop
+          : Math.max(root.top + margin, anchor.top - height - gap);
+      const left = Math.min(
+        root.right - margin - width,
+        Math.max(root.left + margin, anchor.right - width),
+      );
+      setPopoverPosition({
+        inlineSize: `${width}px`,
+        insetBlockStart: `${top}px`,
+        insetInlineStart: `${left}px`,
+        maxBlockSize: `${maxHeight}px`,
+      });
+    };
+    placePopover();
+    window.addEventListener("resize", placePopover);
+    window.addEventListener("scroll", placePopover, true);
+    return () => {
+      window.removeEventListener("resize", placePopover);
+      window.removeEventListener("scroll", placePopover, true);
     };
   }, [open]);
 
@@ -86,6 +126,7 @@ export function TavernKeeperScanIndicator({
           class="tavernary-companion-tavernkeeper-popover"
           role="dialog"
           aria-labelledby={headingId}
+          style={popoverPosition}
           onClick={(event) => event.stopPropagation()}
         >
           <header>

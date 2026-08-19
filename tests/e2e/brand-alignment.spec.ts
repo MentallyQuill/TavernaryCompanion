@@ -282,6 +282,34 @@ test("mobile project cards retain Tavernary geometry without horizontal overflow
   ).toBe(0);
 });
 
+test("TavernKeeper assessment stays compact, readable, and contained", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHarness(page);
+  await page
+    .locator(".tavernary-companion-shell__header")
+    .getByRole("searchbox", { name: "Search projects" })
+    .fill("Alpha");
+
+  const trigger = page.getByRole("button", { name: "TavernKeeper scan: Not assessed" });
+  await trigger.click();
+  const assessment = page.getByRole("dialog", { name: "TavernKeeper Scan Results" });
+  await expect(assessment).toBeVisible();
+  await expect(
+    assessment.getByText("This project hasn't been scanned by TavernKeeper."),
+  ).toBeVisible();
+  await expect(assessment).toHaveCSS("text-align", "start");
+  const box = await assessment.boundingBox();
+  const shell = await page.getByTestId("companion-shell").boundingBox();
+  expect(box).not.toBeNull();
+  expect(shell).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(shell!.x + 8);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(shell!.x + shell!.width - 8);
+
+  await page.keyboard.press("Escape");
+  await expect(assessment).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+});
+
 test("Kits and Installed reuse the Tavernary card and control system", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await openHarness(page);
