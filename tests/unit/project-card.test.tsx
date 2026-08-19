@@ -526,9 +526,7 @@ describe("ProjectCard", () => {
       }),
     });
     vi.spyOn(window, "open").mockReturnValue(null);
-    render(
-      <ProjectGrid projects={[project()]} density="compact" onProjectAction={vi.fn()} />,
-    );
+    render(<ProjectGrid projects={[project()]} density="compact" onProjectAction={vi.fn()} />);
     const user = userEvent.setup();
 
     await user.click(document.querySelector(".tavernary-companion-project-card__title-text")!);
