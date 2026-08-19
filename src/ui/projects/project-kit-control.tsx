@@ -31,8 +31,8 @@ export function ProjectKitControl({
         >
           <path d={selected ? "M1.5 6h9" : "M6 1.5v9M1.5 6h9"} />
         </svg>
+        <small>Kit</small>
       </span>
-      <small>Kit</small>
     </button>
   );
 }

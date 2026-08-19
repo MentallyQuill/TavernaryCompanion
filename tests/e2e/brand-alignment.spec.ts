@@ -272,13 +272,49 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
   const installBox = await lifecycle.boundingBox();
   const kit = card.getByRole("button", { name: "Add Alpha to Kit" });
   const kitBox = await kit.boundingBox();
+  const installFace = lifecycle.locator(".tavernary-companion-project-lifecycle__face");
+  const kitFace = kit.locator(".tavernary-companion-project-kit-control__face");
+  const kitGlyph = kit.locator('[data-kit-glyph="add"]');
+  const kitLabel = kit.getByText("Kit", { exact: true });
+  const [installFaceBox, kitFaceBox, kitGlyphBox, kitLabelBox] = await Promise.all([
+    installFace.boundingBox(),
+    kitFace.boundingBox(),
+    kitGlyph.boundingBox(),
+    kitLabel.boundingBox(),
+  ]);
   expect(installBox).not.toBeNull();
   expect(kitBox).not.toBeNull();
+  expect(installFaceBox).not.toBeNull();
+  expect(kitFaceBox).not.toBeNull();
+  expect(kitGlyphBox).not.toBeNull();
+  expect(kitLabelBox).not.toBeNull();
   expect(installBox!.x).toBeLessThan(kitBox!.x);
   await expect(lifecycle.locator('[data-icon="install"]')).toBeVisible();
-  await expect(kit.getByText("Kit", { exact: true })).toBeVisible();
-  expect(installBox!.height).toBeGreaterThanOrEqual(44);
-  expect(kitBox!.height).toBeGreaterThanOrEqual(44);
+  await expect(kitLabel).toBeVisible();
+  expect(installBox!.width).toBe(34);
+  expect(installBox!.height).toBe(34);
+  expect(kitBox!.width).toBe(34);
+  expect(kitBox!.height).toBe(34);
+  expect(installFaceBox!.width).toBe(34);
+  expect(installFaceBox!.height).toBe(34);
+  expect(kitFaceBox!.width).toBe(34);
+  expect(kitFaceBox!.height).toBe(34);
+  expect(kitGlyphBox!.x + kitGlyphBox!.width / 2).toBeCloseTo(
+    kitFaceBox!.x + kitFaceBox!.width / 2,
+    1,
+  );
+  expect(kitGlyphBox!.y + kitGlyphBox!.height / 2).toBeCloseTo(
+    kitFaceBox!.y + kitFaceBox!.height / 2,
+    1,
+  );
+  expect(kitLabelBox!.y).toBeGreaterThan(kitFaceBox!.y + kitFaceBox!.height / 2);
+  expect(kitLabelBox!.y + kitLabelBox!.height).toBeLessThanOrEqual(
+    kitFaceBox!.y + kitFaceBox!.height,
+  );
+  expect(kitLabelBox!.x).toBeGreaterThanOrEqual(kitFaceBox!.x);
+  expect(kitLabelBox!.x + kitLabelBox!.width).toBeLessThanOrEqual(
+    kitFaceBox!.x + kitFaceBox!.width,
+  );
 
   await search.fill("Beta Preset");
   const preset = page.locator('[data-project-id="beta-preset"]');
@@ -390,6 +426,18 @@ test("Kits and Installed reuse the Tavernary card and control system", async ({ 
     "background-color",
     "rgb(24, 34, 40)",
   );
+  const installedLifecycle = page.getByRole("button", { name: "Uninstall Writer Tool" });
+  const installedLifecycleFace = installedLifecycle.locator(
+    ".tavernary-companion-project-lifecycle__face",
+  );
+  const [installedLifecycleBox, installedLifecycleFaceBox] = await Promise.all([
+    installedLifecycle.boundingBox(),
+    installedLifecycleFace.boundingBox(),
+  ]);
+  expect(installedLifecycleBox!.width).toBe(44);
+  expect(installedLifecycleBox!.height).toBe(44);
+  expect(installedLifecycleFaceBox!.width).toBe(44);
+  expect(installedLifecycleFaceBox!.height).toBe(44);
 });
 
 test("mobile Kits and Installed use the compact shared route grammar", async ({ page }) => {

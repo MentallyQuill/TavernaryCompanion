@@ -383,7 +383,9 @@ describe("ProjectCard", () => {
     const add = screen.getByRole("button", { name: "Add Alpha to Kit" });
     expect(add).toHaveAttribute("aria-pressed", "false");
     expect(add.querySelector('svg[data-kit-glyph="add"]')).not.toBeNull();
-    expect(add.querySelector("small")).toHaveTextContent("Kit");
+    expect(
+      add.querySelector(".tavernary-companion-project-kit-control__face > small"),
+    ).toHaveTextContent("Kit");
     expect(
       within(document.querySelector("footer")!)
         .getAllByRole("button")

@@ -1432,7 +1432,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   text-decoration: none;
 }
 .tavernary-companion-project-card__utility {
-  min-block-size: 44px;
+  min-block-size: 34px;
 }
 .tavernary-companion-project-card footer {
   position: relative;
@@ -1444,60 +1444,75 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   position: relative;
   z-index: 3;
   display: grid;
-  inline-size: 44px;
-  min-inline-size: 44px;
-  block-size: 44px;
-  min-block-size: 44px;
   padding: 0;
   border: 0;
   background: transparent;
   place-items: center;
 }
 .tavernary-companion-root .tavernary-companion-project-lifecycle {
-  border: 1px solid var(--tavernary-color-functional);
-  border-radius: 5px;
-  color: var(--tavernary-color-action-primary-text);
-  background: var(--tavernary-color-action-primary-bg);
+  inline-size: 44px;
+  min-inline-size: 44px;
+  block-size: 44px;
+  min-block-size: 44px;
 }
-.tavernary-companion-project-lifecycle svg {
-  inline-size: 24px;
-  block-size: 24px;
+.tavernary-companion-root .tavernary-companion-project-kit-control,
+.tavernary-companion-project-card .tavernary-companion-project-lifecycle {
+  inline-size: 34px;
+  min-inline-size: 34px;
+  block-size: 34px;
+  min-block-size: 34px;
 }
-.tavernary-companion-project-lifecycle:hover:not(:disabled) {
-  border-color: var(--tavernary-color-action-primary-hover);
-  background: var(--tavernary-color-action-primary-hover);
-}
-.tavernary-companion-project-lifecycle.is-installed {
-  border-color: var(--tavernary-color-accent-teal-border);
-  color: var(--tavernary-color-accent-teal-text);
-  background: var(--tavernary-color-accent-teal-bg);
-  box-shadow: inset 0 2px 3px var(--tavernary-color-bg-canvas);
-}
-.tavernary-companion-root .tavernary-companion-project-kit-control {
-  grid-template-rows: 30px 10px;
-  align-content: center;
-  gap: 1px;
-  color: var(--tavernary-color-text-muted);
-}
+.tavernary-companion-project-lifecycle__face,
 .tavernary-companion-project-kit-control__face {
   display: grid;
-  inline-size: 28px;
-  block-size: 28px;
   border: 1px solid var(--tavernary-color-functional);
   border-radius: 5px;
   color: var(--tavernary-color-action-primary-text);
   background: var(--tavernary-color-action-primary-bg);
   place-items: center;
 }
+.tavernary-companion-project-lifecycle__face {
+  inline-size: 44px;
+  block-size: 44px;
+}
+.tavernary-companion-project-kit-control__face,
+.tavernary-companion-project-card .tavernary-companion-project-lifecycle__face {
+  inline-size: 34px;
+  block-size: 34px;
+}
+.tavernary-companion-project-lifecycle svg {
+  inline-size: 24px;
+  block-size: 24px;
+}
+.tavernary-companion-project-lifecycle:hover:not(:disabled) .tavernary-companion-project-lifecycle__face {
+  border-color: var(--tavernary-color-action-primary-hover);
+  background: var(--tavernary-color-action-primary-hover);
+}
+.tavernary-companion-project-lifecycle.is-installed .tavernary-companion-project-lifecycle__face {
+  border-color: var(--tavernary-color-accent-teal-border);
+  color: var(--tavernary-color-accent-teal-text);
+  background: var(--tavernary-color-accent-teal-bg);
+  box-shadow: inset 0 2px 3px var(--tavernary-color-bg-canvas);
+}
+.tavernary-companion-root .tavernary-companion-project-kit-control {
+  color: var(--tavernary-color-text-muted);
+}
+.tavernary-companion-project-kit-control__face {
+  position: relative;
+}
 .tavernary-companion-project-kit-control__face svg {
   inline-size: 12px;
   block-size: 12px;
 }
 .tavernary-companion-project-kit-control small {
+  position: absolute;
+  inset-inline: 0;
+  inset-block-end: 2px;
   color: var(--tavernary-color-text-muted);
-  font-size: 8px;
+  font-size: 6px;
   font-weight: 700;
   line-height: 1;
+  text-align: center;
 }
 .tavernary-companion-project-kit-control[aria-pressed=true] .tavernary-companion-project-kit-control__face {
   box-shadow: inset 0 2px 3px var(--tavernary-color-bg-canvas);
@@ -2167,6 +2182,16 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   .tavernary-companion-project-card footer,
   .tavernary-companion-installed-section li {
     flex-wrap: wrap;
+  }
+  .tavernary-companion-project-card__utility {
+    min-block-size: 44px;
+  }
+  .tavernary-companion-root .tavernary-companion-project-lifecycle,
+  .tavernary-companion-root .tavernary-companion-project-kit-control {
+    inline-size: 44px;
+    min-inline-size: 44px;
+    block-size: 44px;
+    min-block-size: 44px;
   }
 }
 @media (prefers-reduced-motion: reduce) {

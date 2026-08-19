@@ -14744,7 +14744,7 @@ function ProjectLifecycleControl({
         title: action.label,
         disabled,
         onClick: () => onAction(action),
-        children: /* @__PURE__ */ u3(InstallIcon, {})
+        children: /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-lifecycle__face", "aria-hidden": "true", children: /* @__PURE__ */ u3(InstallIcon, {}) })
       }
     ),
     disabled ? /* @__PURE__ */ u3("span", { id: disabledReasonId, class: "tavernary-companion-sr-only", children: "Another Companion operation is in progress." }) : null
@@ -16346,8 +16346,8 @@ function ProjectKitControl({
       "aria-pressed": selected,
       title: selected ? "Remove from selection" : "Add to Kit",
       onClick: () => onToggle(projectId),
-      children: [
-        /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-kit-control__face", "aria-hidden": "true", children: /* @__PURE__ */ u3(
+      children: /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-kit-control__face", "aria-hidden": "true", children: [
+        /* @__PURE__ */ u3(
           "svg",
           {
             "data-kit-glyph": selected ? "remove" : "add",
@@ -16358,9 +16358,9 @@ function ProjectKitControl({
             "stroke-linecap": "round",
             children: /* @__PURE__ */ u3("path", { d: selected ? "M1.5 6h9" : "M6 1.5v9M1.5 6h9" })
           }
-        ) }),
+        ),
         /* @__PURE__ */ u3("small", { children: "Kit" })
-      ]
+      ] })
     }
   );
 }

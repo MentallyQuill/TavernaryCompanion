@@ -63,6 +63,25 @@ test("mobile Kit selection keeps install and Kit meanings distinct", async ({ pa
     .locator(".tavernary-companion-shell__header")
     .getByRole("searchbox", { name: "Search projects" })
     .fill("Alpha");
+  const card = page.locator('[data-project-id="alpha"]');
+  const install = card.getByRole("button", { name: "Install Alpha" });
+  const kit = card.getByRole("button", { name: "Add Alpha to Kit" });
+  const installFace = install.locator(".tavernary-companion-project-lifecycle__face");
+  const kitFace = kit.locator(".tavernary-companion-project-kit-control__face");
+  const [installBox, kitBox, installFaceBox, kitFaceBox] = await Promise.all([
+    install.boundingBox(),
+    kit.boundingBox(),
+    installFace.boundingBox(),
+    kitFace.boundingBox(),
+  ]);
+  expect(installBox!.width).toBe(44);
+  expect(installBox!.height).toBe(44);
+  expect(kitBox!.width).toBe(44);
+  expect(kitBox!.height).toBe(44);
+  expect(installFaceBox!.width).toBe(34);
+  expect(installFaceBox!.height).toBe(34);
+  expect(kitFaceBox!.width).toBe(34);
+  expect(kitFaceBox!.height).toBe(34);
   await page.getByRole("button", { name: "Add Alpha to Kit" }).click();
   await expect(page.getByText("1 selected")).toBeVisible();
   await expect(page).toHaveScreenshot("kit-selection-390x844.png");

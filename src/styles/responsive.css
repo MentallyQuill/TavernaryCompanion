@@ -271,6 +271,18 @@
   .tavernary-companion-installed-section li {
     flex-wrap: wrap;
   }
+
+  .tavernary-companion-project-card__utility {
+    min-block-size: 44px;
+  }
+
+  .tavernary-companion-root .tavernary-companion-project-lifecycle,
+  .tavernary-companion-root .tavernary-companion-project-kit-control {
+    inline-size: 44px;
+    min-inline-size: 44px;
+    block-size: 44px;
+    min-block-size: 44px;
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -33,7 +33,9 @@ export function ProjectLifecycleControl({
         disabled={disabled}
         onClick={() => onAction(action)}
       >
-        <InstallIcon />
+        <span class="tavernary-companion-project-lifecycle__face" aria-hidden="true">
+          <InstallIcon />
+        </span>
       </button>
       {disabled ? (
         <span id={disabledReasonId} class="tavernary-companion-sr-only">
