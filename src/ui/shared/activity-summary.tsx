@@ -1,37 +1,39 @@
 import type { ProjectCardViewModel } from "../../catalog/project-view-model";
 import { ActivityStrip } from "./activity-strip";
+import { Tooltip } from "./tooltip";
 
 interface ActivitySummaryProps {
+  projectId: string;
   activity: ProjectCardViewModel["activity"];
+  tooltip: string;
 }
 
-export function ActivitySummary({ activity }: ActivitySummaryProps): preact.JSX.Element {
+export function ActivitySummary({
+  projectId,
+  activity,
+  tooltip,
+}: ActivitySummaryProps): preact.JSX.Element {
   if (activity.activeWeeks12 === null || activity.weeklyActivity === null) {
     return (
-      <span
-        class="tavernary-companion-development-unavailable"
-        role="img"
-        aria-label="Activity unavailable"
+      <Tooltip
+        id={`${projectId}-activity`}
+        label={tooltip}
+        ariaLabel={tooltip}
+        className="tavernary-companion-development-unavailable"
       >
         No data
-      </span>
+      </Tooltip>
     );
   }
-  const evidence =
-    activity.evidenceStatus === "provisional"
-      ? ", baseline pending"
-      : activity.evidenceStatus === "degraded"
-        ? ", evidence incomplete"
-        : "";
-  const label = `Activity: ${activity.activeWeeks12} of 12 active weeks${evidence}${activity.dormant ? ", dormant" : ""}`;
   return (
-    <span
-      class={`tavernary-companion-activity-summary evidence-${activity.evidenceStatus}`}
-      role="img"
-      aria-label={label}
+    <Tooltip
+      id={`${projectId}-activity`}
+      label={tooltip}
+      ariaLabel={tooltip}
+      className={`tavernary-companion-activity-summary evidence-${activity.evidenceStatus}`}
     >
       <b aria-hidden="true">Activity</b>
       <ActivityStrip weeks={activity.weeklyActivity} />
-    </span>
+    </Tooltip>
   );
 }

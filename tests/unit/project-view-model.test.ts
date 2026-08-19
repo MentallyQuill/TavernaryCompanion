@@ -66,13 +66,25 @@ describe("project view models", () => {
     expect(view.tagChips).toEqual([{ label: "Memory", facet: "goal" }]);
     expect(view.licenseLabel).toBe("MIT");
     expect(view.licenseStatus).toBe("osi-approved");
-    expect(view.attributionLabel).toBe("by tavernary-author");
+    expect(view.attributionLabel).toBe("by tavernary-author, plus 1 contributor");
     expect(view.activity.weeklyActivity).toEqual(project.activity.weeklyActivity);
     expect(view.activity.evidenceStatus).toBe("complete");
     expect(view.activity.latestSourceActivityLabel).toBe("1d ago");
     expect(view.activity.latestSourceActivityFreshness).toBeCloseTo(96.67, 1);
     expect(view.communityAggregate).toBe(11);
     expect(view.repositorySizeLabel).toBe("2.0 MB repo");
+    expect(view.tooltips).toEqual({
+      type: "Memory & Retrieval Extension",
+      activity: "Source activity in 1 of the last 12 weeks",
+      latestSourceActivity: "Last source activity Aug 18, 2026 (1d ago)",
+      community: "11 total: 8 stars, 2 forks, 1 watchers",
+      repositorySize: "2.0 MB repository",
+      attribution: "GitHub owner: tavernary-author",
+      license: "MIT is OSI-approved",
+      frontends: ["sillytavern"],
+      tags: ["Memory tools"],
+      preset: null,
+    });
   });
 
   it("projects Tavernary preset development and compatibility metadata", () => {
@@ -100,6 +112,13 @@ describe("project view models", () => {
       sizeLabel: "2 KB file",
       modelFamilies: ["Model-Agnostic"],
       completionFormats: ["Chat Completion"],
+    });
+    expect(view.tooltips.preset).toEqual({
+      version: "Preset version v1.2.0",
+      published: "Published Aug 18, 2026",
+      size: "2 KB file",
+      modelFamilies: ["Any model"],
+      completionFormats: ["Chat completion"],
     });
   });
 

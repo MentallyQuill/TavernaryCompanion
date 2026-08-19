@@ -837,7 +837,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   align-items: center;
   justify-content: end;
   justify-items: end;
-  column-gap: 10px;
+  column-gap: 5px;
   row-gap: 5px;
   color: var(--tavernary-color-text-muted);
   font-size: 10px;
@@ -882,6 +882,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 .tavernary-companion-project-card__activity-age {
   grid-column: 2;
   grid-row: 1;
+  justify-self: start;
   color: color-mix(in srgb, var(--tavernary-color-text-primary) var(--tavernary-companion-commit-freshness, 0%), var(--tavernary-color-activity-recent));
   font-weight: 700;
 }
@@ -900,7 +901,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   grid-column: 1;
   grid-row: 2;
   align-items: center;
-  justify-self: start;
+  justify-self: end;
   gap: 3px;
 }
 .tavernary-companion-project-card__community svg {
@@ -933,7 +934,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   min-inline-size: 0;
   align-items: center;
   gap: 4px;
-  margin: 10px 0 8px;
+  margin: 2px 0 8px;
 }
 .tavernary-companion-project-card h3 {
   min-inline-size: 0;
@@ -1452,7 +1453,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 .tavernary-companion-project-card footer {
   position: relative;
   z-index: 3;
-  gap: 2px;
+  gap: 4px;
 }
 .tavernary-companion-root .tavernary-companion-project-lifecycle,
 .tavernary-companion-root .tavernary-companion-project-kit-control {
@@ -1523,7 +1524,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   position: absolute;
   inset-inline: 0;
   inset-block-end: 2px;
-  color: var(--tavernary-color-text-muted);
+  color: currentcolor;
   font-size: 6px;
   font-weight: 700;
   line-height: 1;
@@ -1732,6 +1733,114 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 }
 .tavernary-companion-tavernkeeper-history .risk-high {
   background: var(--tavernary-color-tavernkeeper-red);
+}
+.tavernary-companion-tooltip-anchor {
+  position: relative;
+}
+.tavernary-companion-control-tooltip {
+  z-index: 3;
+  display: inline-flex;
+}
+.tavernary-companion-project-card .tavernary-companion-tooltip-anchor {
+  z-index: 2;
+  cursor: pointer;
+}
+.tavernary-companion-tooltip-content {
+  position: fixed;
+  z-index: 200;
+  inline-size: max-content;
+  max-inline-size: min(240px, calc(100vw - 16px));
+  padding: 7px 9px;
+  border: 1px solid var(--tavernary-color-border-strong);
+  border-radius: 5px;
+  color: var(--tavernary-color-text-secondary);
+  background: var(--tavernary-color-bg-canvas);
+  box-shadow: var(--tavernary-shadow-overlay);
+  font-family:
+    "Inter Variable",
+    Inter,
+    system-ui,
+    sans-serif;
+  font-size: 9px;
+  font-weight: 500;
+  line-height: 1.4;
+  opacity: 1;
+  pointer-events: none;
+  transform: none;
+  white-space: normal;
+}
+.tavernary-companion-root .tavernary-companion-tavernkeeper-trigger {
+  z-index: 5;
+  cursor: pointer;
+  transition: color 160ms ease, transform 160ms ease;
+}
+.tavernary-companion-tavernkeeper-trigger:focus-visible {
+  outline: 2px solid var(--tavernary-color-focus-ring);
+  outline-offset: 4px;
+}
+.tavernary-companion-tavernkeeper-trigger:is(:active, [aria-expanded=true]) {
+  transform: scale(0.94);
+}
+.tavernary-companion-tavernkeeper-popover {
+  max-block-size: calc(100dvh - 16px - env(safe-area-inset-top) - env(safe-area-inset-bottom));
+  box-sizing: border-box;
+  font-family:
+    "Inter Variable",
+    Inter,
+    system-ui,
+    sans-serif;
+  transition: opacity 150ms ease, transform 150ms ease;
+}
+.tavernary-companion-tavernkeeper-popover__header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 12px;
+}
+.tavernary-companion-tavernkeeper-popover__status {
+  display: grid;
+  justify-items: end;
+  padding-inline-start: 8px;
+  border-inline-start: 2px solid currentcolor;
+  line-height: 1.25;
+  text-align: end;
+}
+.tavernary-companion-tavernkeeper-popover__status > strong {
+  white-space: nowrap;
+  font-size: 11px;
+}
+.tavernary-companion-tavernkeeper-popover__status > span {
+  color: var(--tavernary-color-text-secondary);
+  font-size: 10px;
+  text-transform: capitalize;
+}
+.tavernary-companion-tavernkeeper-popover a:focus-visible {
+  color: var(--tavernary-color-link-hover);
+  outline: 2px solid var(--tavernary-color-focus-ring);
+  outline-offset: 2px;
+}
+.tavernary-companion-tavernkeeper-counts {
+  line-height: 1.25;
+}
+.tavernary-companion-tavernkeeper-details div {
+  grid-template-columns: 58px minmax(0, 1fr);
+}
+.tavernary-companion-tavernkeeper-recent {
+  justify-content: flex-start;
+  gap: 10px;
+  color: var(--tavernary-color-text-secondary);
+  font-size: 11px;
+}
+.tavernary-companion-tavernkeeper-recent > span {
+  white-space: nowrap;
+}
+.tavernary-companion-tavernkeeper-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: 8px 16px;
+  padding-block-start: 10px;
+  border-block-start: 1px solid var(--tavernary-color-border-subtle);
 }
 .tavernary-companion-installed-route {
   padding: 20px 22px 60px;

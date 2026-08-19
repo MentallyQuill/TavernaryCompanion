@@ -26,6 +26,18 @@ function project(overrides: Partial<ProjectCardViewModel> = {}): ProjectCardView
     licenseLabel: "MIT",
     licenseStatus: "osi-approved",
     attributionLabel: null,
+    tooltips: {
+      type: "Interface & Workflow Extension",
+      activity: "Source activity in 5 of the last 12 weeks",
+      latestSourceActivity: "Last source activity Aug 17, 2026 (1d ago)",
+      community: "11 total: 8 stars, 2 forks, 1 watchers",
+      repositorySize: "2.0 MB repository",
+      attribution: null,
+      license: "MIT is OSI-approved",
+      frontends: ["Compatible with SillyTavern"],
+      tags: ["Workflow tools", "General utility"],
+      preset: null,
+    },
     activity: {
       latestSourceActivityAt: "2026-08-17T00:00:00.000Z",
       latestSourceActivityLabel: "1d ago",
@@ -84,8 +96,8 @@ describe("ProjectCard", () => {
     expect(screen.getByRole("heading", { name: "Alpha" })).toBeVisible();
     expect(screen.getByText("Extension")).toBeVisible();
     expect(screen.queryByText("5 of 12 active weeks")).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Activity: 5 of 12 active weeks")).toBeVisible();
-    expect(screen.queryByLabelText("TavernKeeper scan: Not assessed")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Source activity in 5 of the last 12 weeks")).toBeVisible();
+    expect(screen.queryByLabelText("TavernKeeper scan: Not assessed.")).not.toBeInTheDocument();
     expect(screen.queryByText("Not assessed")).not.toBeInTheDocument();
     expect(screen.getByText("SillyTavern")).toBeVisible();
     expect(screen.getByText("Workflow")).toBeVisible();
@@ -93,7 +105,7 @@ describe("ProjectCard", () => {
     expect(document.querySelectorAll(".tavernary-companion-activity-strip i")).toHaveLength(12);
     const install = screen.getByRole("button", { name: "Install Alpha" });
     expect(install).toHaveAttribute("aria-pressed", "false");
-    expect(install).toHaveAttribute("title", "Install");
+    expect(install).not.toHaveAttribute("title");
     expect(install.querySelector('svg[data-icon="install"]')).not.toBeNull();
     expect(screen.queryByRole("button", { name: /details/i })).not.toBeInTheDocument();
 
@@ -119,7 +131,7 @@ describe("ProjectCard", () => {
       />,
     );
 
-    expect(screen.getByLabelText("TavernKeeper scan: Not assessed")).toBeVisible();
+    expect(screen.getByLabelText("TavernKeeper scan: Not assessed.")).toBeVisible();
     expect(document.querySelector('svg[data-icon="scan-fill"]')).toBeVisible();
     expect(screen.queryByText("Not assessed")).not.toBeInTheDocument();
   });
@@ -131,6 +143,10 @@ describe("ProjectCard", () => {
           activity: {
             ...project().activity,
             weeklyActivity: null,
+          },
+          tooltips: {
+            ...project().tooltips,
+            activity: "Activity unavailable",
           },
         })}
         onAction={vi.fn()}
@@ -148,6 +164,10 @@ describe("ProjectCard", () => {
             latestSourceActivityAt: null,
             latestSourceActivityLabel: null,
           },
+          tooltips: {
+            ...project().tooltips,
+            latestSourceActivity: "No source activity in the last 12 weeks",
+          },
         })}
         onAction={vi.fn()}
       />,
@@ -163,13 +183,18 @@ describe("ProjectCard", () => {
             latestSourceActivityLabel: null,
             evidenceStatus: "provisional",
           },
+          tooltips: {
+            ...project().tooltips,
+            activity: "Approximate activity in 5 of the last 12 weeks; baseline pending",
+            latestSourceActivity: "Source activity baseline pending",
+          },
         })}
         onAction={vi.fn()}
       />,
     );
-    expect(screen.getByLabelText("Activity: 5 of 12 active weeks, baseline pending")).toHaveClass(
-      "evidence-provisional",
-    );
+    expect(
+      screen.getByLabelText("Approximate activity in 5 of the last 12 weeks; baseline pending"),
+    ).toHaveClass("evidence-provisional");
     expect(screen.getByText("Pending")).toBeVisible();
 
     view.rerender(
@@ -179,12 +204,18 @@ describe("ProjectCard", () => {
             ...project().activity,
             evidenceStatus: "degraded",
           },
+          tooltips: {
+            ...project().tooltips,
+            activity: "Source activity in 5 of the last 12 weeks; activity evidence is incomplete",
+          },
         })}
         onAction={vi.fn()}
       />,
     );
     expect(
-      screen.getByLabelText("Activity: 5 of 12 active weeks, evidence incomplete"),
+      screen.getByLabelText(
+        "Source activity in 5 of the last 12 weeks; activity evidence is incomplete",
+      ),
     ).toHaveClass("evidence-degraded");
   });
 
@@ -194,6 +225,10 @@ describe("ProjectCard", () => {
         project={project({
           primaryFunctionId: "memory-retrieval",
           primaryFunction: "Memory & Retrieval",
+          tooltips: {
+            ...project().tooltips,
+            type: "Memory & Retrieval Extension",
+          },
         })}
         onAction={vi.fn()}
       />,
@@ -201,7 +236,10 @@ describe("ProjectCard", () => {
     const memoryIcon = document.querySelector('svg[data-icon="memory-retrieval"]');
     expect(memoryIcon).toHaveAttribute("viewBox", "0 0 24 24");
     expect(memoryIcon?.querySelectorAll("path")).toHaveLength(8);
-    expect(screen.getByLabelText("Memory & Retrieval Extension")).toBeVisible();
+    expect(screen.getByText("Extension").closest("span")).toHaveAttribute(
+      "aria-describedby",
+      "alpha-type",
+    );
 
     view.rerender(
       <ProjectCard
@@ -215,6 +253,17 @@ describe("ProjectCard", () => {
             sizeLabel: "2 KB file",
             modelFamilies: ["Model-Agnostic"],
             completionFormats: ["Chat Completion"],
+          },
+          tooltips: {
+            ...project().tooltips,
+            type: "System Presets System Preset",
+            preset: {
+              version: "Preset version v1.2.0",
+              published: "Published Aug 18, 2026",
+              size: "2 KB file",
+              modelFamilies: ["Any model"],
+              completionFormats: ["Chat completion"],
+            },
           },
           action: {
             kind: "view-project",
@@ -266,7 +315,7 @@ describe("ProjectCard", () => {
     expect(screen.getByText("1d ago")).toBeVisible();
     expect(screen.getByText("11")).toBeVisible();
     expect(screen.getByText("2.0 MB repo")).toBeVisible();
-    expect(screen.getByLabelText("Community activity: 11")).toBeVisible();
+    expect(screen.getByText("11")).toBeVisible();
   });
 
   it("keeps destructive uninstall actions visibly labeled", () => {
@@ -363,7 +412,7 @@ describe("ProjectCard", () => {
     const install = screen.getByRole("button", { name: "Install Alpha" });
     const descriptionId = install.getAttribute("aria-describedby");
     expect(install).toBeDisabled();
-    expect(install).toHaveAttribute("title", "Install");
+    expect(install).not.toHaveAttribute("title");
     expect(descriptionId).toBeTruthy();
     expect(document.getElementById(descriptionId!)).toHaveTextContent(
       "Another Companion operation is in progress.",
@@ -404,7 +453,34 @@ describe("ProjectCard", () => {
     );
     const remove = screen.getByRole("button", { name: "Remove Alpha from selection" });
     expect(remove).toHaveAttribute("aria-pressed", "true");
-    expect(remove).toHaveAttribute("title", "Remove from selection");
+    expect(remove).not.toHaveAttribute("title");
     expect(remove.querySelector('svg[data-kit-glyph="remove"]')).not.toBeNull();
+  });
+
+  it("uses Tavernary's exact hover and focus tooltip contract", () => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    });
+    render(<ProjectCard project={project()} onAction={vi.fn()} />);
+
+    fireEvent.pointerEnter(screen.getByText("Extension").closest("span")!);
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Interface & Workflow Extension");
+    fireEvent.pointerLeave(screen.getByText("Extension").closest("span")!);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+
+    fireEvent.pointerEnter(screen.getByText("SillyTavern"));
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Compatible with SillyTavern");
+    fireEvent.pointerLeave(screen.getByText("SillyTavern"));
+
+    const install = screen.getByRole("button", { name: "Install Alpha" });
+    fireEvent.focus(install);
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Install");
+    fireEvent.keyDown(install, { key: "Escape" });
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
   });
 });

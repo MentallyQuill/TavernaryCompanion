@@ -9,6 +9,11 @@ test("card body and title open the repository while nested controls keep their o
   await openHarness(page);
   await page.evaluate(() => {
     (window as typeof window & { companionRepositoryClicks: number }).companionRepositoryClicks = 0;
+    window.open = () => {
+      (window as typeof window & { companionRepositoryClicks: number }).companionRepositoryClicks +=
+        1;
+      return null;
+    };
     document.addEventListener(
       "click",
       (event) => {
@@ -30,13 +35,17 @@ test("card body and title open the repository while nested controls keep their o
   await expect(source).toHaveAttribute("target", "_blank");
   await expect(source).toHaveAttribute("rel", /noopener/u);
 
-  for (const surface of [
-    card.locator(".tavernary-companion-project-card__summary"),
-    card.getByRole("heading", { name: "Alpha" }),
-  ]) {
+  for (const [surface, expectedTag] of [
+    [card.locator(".tavernary-companion-project-card__summary"), "A"],
+    [card.getByRole("heading", { name: "Alpha" }), "SPAN"],
+  ] as const) {
     const hit = await hitTarget(page, surface);
-    expect(hit.tagName).toBe("A");
-    expect(hit.className).toContain("tavernary-companion-project-card__hitarea");
+    expect(hit.tagName).toBe(expectedTag);
+    if (expectedTag === "A") {
+      expect(hit.className).toContain("tavernary-companion-project-card__hitarea");
+    } else {
+      expect(hit.className).toContain("tavernary-companion-tooltip-anchor");
+    }
     expect(hit.cursor).toBe("pointer");
     await page.mouse.click(hit.x, hit.y);
   }
