@@ -17050,7 +17050,10 @@ function mountCompanionLauncher(input) {
   icon.src = new URL("./assets/tavernary-trihex.png", import.meta.url).href;
   icon.alt = "";
   icon.setAttribute("aria-hidden", "true");
-  button.append(icon, document.createTextNode("Tavernary Companion"));
+  const label2 = document.createElement("span");
+  label2.dataset.tavernaryCompanionLabel = "";
+  label2.textContent = "Tavernary Companion";
+  button.append(icon, label2);
   input.anchor.before(button);
   let disposed = false;
   let popupContent = null;

@@ -50,15 +50,15 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 }
 
 .tavernary-companion-launcher {
-  align-items: center;
-  gap: 0.4em;
+  filter: none;
+  font: inherit;
 }
 
 .tavernary-companion-launcher > [data-tavernary-companion-icon] {
   display: block;
   flex: none;
-  inline-size: 1.1em;
-  block-size: 1.1em;
+  inline-size: 1em;
+  block-size: 1em;
   object-fit: contain;
 }
 

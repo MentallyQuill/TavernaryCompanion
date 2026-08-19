@@ -12,6 +12,7 @@ import { fingerprintKitTopology } from "../../src/kits/kit-validation";
 import { createLifecycleCoordinator } from "../../src/lifecycle/lifecycle-coordinator";
 import { TrustPromptBroker } from "../../src/lifecycle/trust-prompt-broker";
 import { ProfileStore } from "../../src/state/profile-store";
+import { mountCompanionLauncher } from "../../src/ui/launcher";
 import { CompanionPopupHost, type PopupRuntime } from "../../src/ui/popup-host";
 import "../../src/styles/companion.css";
 import { catalogFixture, catalogProjectFixture } from "../helpers/catalog-fixtures";
@@ -20,6 +21,20 @@ import { extension } from "../helpers/kit-executor-fixture";
 
 async function main() {
   const scenario = new URL(window.location.href).searchParams.get("scenario");
+  if (scenario === "launcher") {
+    const toolbar = document.createElement("div");
+    toolbar.dataset.sillyTavernLauncherFixture = "";
+    toolbar.innerHTML = `
+      <div id="extensions_details" class="menu_button menu_button_icon">
+        <i aria-hidden="true">&#x25C6;</i>
+        <span>Manage extensions</span>
+      </div>
+    `;
+    document.body.prepend(toolbar);
+    const anchor = toolbar.querySelector("#extensions_details");
+    if (!anchor) throw new Error("Missing launcher fixture anchor.");
+    mountCompanionLauncher({ anchor, host: createFakeHost() });
+  }
   const catalog = catalogFixture("2026-08-18T10:00:00.000Z");
   catalog.tagVocabulary = [
     {

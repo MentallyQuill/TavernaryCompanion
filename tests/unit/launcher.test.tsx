@@ -24,6 +24,9 @@ it("mounts a branded launcher immediately before native extension management", (
 
   expect(launcher.button).toHaveTextContent("Tavernary Companion");
   expect(launcher.button.nextElementSibling).toBe(manageExtensions);
+  expect(launcher.button.querySelector("span[data-tavernary-companion-label]")).toHaveTextContent(
+    "Tavernary Companion",
+  );
   expect(launcher.button.querySelector("[data-tavernary-companion-icon]")).toHaveAttribute(
     "aria-hidden",
     "true",

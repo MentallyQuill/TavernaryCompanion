@@ -17,6 +17,41 @@
         display: grid;
         place-items: center;
       }
+      [data-silly-tavern-launcher-fixture] {
+        --mainFontFamily: "Noto Sans", sans-serif;
+        --mainFontSize: 20px;
+        --SmartThemeBodyColor: rgb(220 220 220);
+        --SmartThemeBlurTintColor: rgb(20 20 20);
+        --SmartThemeBorderColor: rgb(55 55 55);
+        position: fixed;
+        z-index: 2;
+        inset: 1rem auto auto 1rem;
+        display: flex;
+        gap: 0.5rem;
+        align-items: center;
+        color: var(--SmartThemeBodyColor);
+        font-family: var(--mainFontFamily);
+        font-size: var(--mainFontSize);
+      }
+      :where([data-silly-tavern-launcher-fixture]) .menu_button {
+        display: flex;
+        width: fit-content;
+        margin: 5px 0;
+        padding: 3px 5px;
+        align-items: center;
+        justify-content: center;
+        color: var(--SmartThemeBodyColor);
+        background-color: var(--SmartThemeBlurTintColor);
+        border: 1px solid var(--SmartThemeBorderColor);
+        border-radius: 5px;
+        filter: grayscale(0.5);
+      }
+      :where([data-silly-tavern-launcher-fixture]) .menu_button_icon {
+        gap: 5px;
+      }
+      :where([data-silly-tavern-launcher-fixture]) .menu_button_icon span {
+        font-size: calc(var(--mainFontSize) * 0.9);
+      }
     </style>
     <link rel="stylesheet" href="../../.tmp/ui-harness.css" />
   </head>
