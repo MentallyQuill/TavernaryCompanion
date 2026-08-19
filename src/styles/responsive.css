@@ -3,6 +3,10 @@
     position: relative;
   }
 
+  .tavernary-companion-projects-route.has-open-filters {
+    overflow: hidden;
+  }
+
   .tavernary-companion-projects-route__workspace {
     position: static;
     grid-template-columns: minmax(0, 1fr);
@@ -12,38 +16,86 @@
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
-  .tavernary-companion-filter-trigger {
-    display: inline-flex;
-    inline-size: max-content;
+  .tavernary-companion-filter-bar {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+  }
+
+  .tavernary-companion-filter-bar .tavernary-companion-catalog-advisory {
+    flex: 1 1 auto;
+  }
+
+  .tavernary-companion-root .tavernary-companion-filter-trigger {
+    display: grid;
   }
 
   .tavernary-companion-filter-surface {
     position: absolute;
     z-index: 8;
-    inset-block: 0;
-    inset-inline-start: 0;
+    inset: 0.75rem;
     display: none;
-    inline-size: min(24rem, 92%);
-    block-size: 100%;
-    max-block-size: 100%;
-    overflow: auto;
-    box-shadow: 1rem 0 2rem rgb(0 0 0 / 45%);
+    inline-size: auto;
+    block-size: auto;
+    max-block-size: none;
+    overflow: hidden;
+    border: 1px solid var(--tavernary-color-border-default);
+    border-radius: 10px;
+    background: var(--tavernary-color-bg-surface-raised);
+    box-shadow: 0 1rem 2.5rem rgb(0 0 0 / 55%);
     transition:
       opacity 120ms ease,
       transform 120ms ease;
   }
 
   .tavernary-companion-filter-surface.is-open {
+    display: flex;
+  }
+
+  .tavernary-companion-filter-surface__header {
+    flex: 0 0 auto;
+    padding: 1rem;
+    border-block-end: 1px solid var(--tavernary-color-divider);
+  }
+
+  .tavernary-companion-filter-surface__header h2 {
+    margin-block-start: 0.15rem;
+    font-size: 1.25rem;
+  }
+
+  .tavernary-companion-filter-surface__eyebrow {
     display: block;
   }
 
-  .tavernary-companion-filter-close {
-    position: sticky;
-    z-index: 2;
-    inset-block-start: 0;
-    display: block;
-    inline-size: calc(100% - 1rem);
-    margin: 0.5rem;
+  .tavernary-companion-root .tavernary-companion-filter-close {
+    display: grid;
+    place-items: center;
+    flex: 0 0 44px;
+    inline-size: 44px;
+    min-inline-size: 44px;
+    block-size: 44px;
+    min-block-size: 44px;
+    padding: 0;
+    border: 1px solid var(--tavernary-color-control-border);
+    border-radius: 6px;
+    color: var(--tavernary-color-text-secondary);
+    background: transparent;
+  }
+
+  .tavernary-companion-root .tavernary-companion-filter-clear:disabled {
+    display: none;
+  }
+
+  .tavernary-companion-filter-panel {
+    flex: 1 1 auto;
+    min-block-size: 0;
+    padding: 0 1rem 2rem;
+    overflow: auto;
+    overscroll-behavior: contain;
+  }
+
+  .tavernary-companion-filter-panel fieldset {
+    padding-block: 1rem;
   }
 }
 
@@ -248,7 +300,6 @@
     min-inline-size: 0;
   }
 
-  .tavernary-companion-results-toolbar .tavernary-companion-filter-trigger,
   .tavernary-companion-results-toolbar .tavernary-companion-select-kit {
     flex: 0 0 auto;
   }

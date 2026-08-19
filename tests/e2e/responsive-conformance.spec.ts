@@ -18,7 +18,7 @@ for (const viewport of viewports) {
 
 test("mobile filter sheet matches the Companion route", async ({ page }) => {
   await prepare(page, { width: 390, height: 844 });
-  await page.getByRole("button", { name: "Filters" }).click();
+  await page.getByRole("button", { name: "Open filters" }).click();
   await expect(page.getByRole("dialog", { name: "Project filters" })).toBeVisible();
   await expect(page).toHaveScreenshot("filters-390x844.png");
 });

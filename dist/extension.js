@@ -15567,13 +15567,8 @@ var sorts = [
 function ProjectResultsToolbar({
   query,
   resultCount,
-  filtersOpen,
-  filterTrigger,
   kitSelectionActive,
-  showClearFilters,
   onQueryChange,
-  onOpenFilters,
-  onClearFilters,
   onBeginKitSelection
 }) {
   return /* @__PURE__ */ u3("div", { class: "tavernary-companion-results-toolbar", children: [
@@ -15582,15 +15577,6 @@ function ProjectResultsToolbar({
       " ",
       resultCount === 1 ? "project" : "projects"
     ] }),
-    showClearFilters ? /* @__PURE__ */ u3(
-      "button",
-      {
-        type: "button",
-        class: "tavernary-companion-results-toolbar__clear",
-        onClick: onClearFilters,
-        children: "Clear filters"
-      }
-    ) : null,
     /* @__PURE__ */ u3(
       "select",
       {
@@ -15598,18 +15584,6 @@ function ProjectResultsToolbar({
         value: query.sort,
         onChange: (event) => onQueryChange({ ...query, sort: event.currentTarget.value }),
         children: sorts.map(({ id, label: label2 }) => /* @__PURE__ */ u3("option", { value: id, children: label2 }))
-      }
-    ),
-    /* @__PURE__ */ u3(
-      "button",
-      {
-        ref: filterTrigger,
-        type: "button",
-        class: "tavernary-companion-filter-trigger",
-        "aria-label": "Filters",
-        "aria-expanded": filtersOpen,
-        onClick: onOpenFilters,
-        children: "Filters"
       }
     ),
     /* @__PURE__ */ u3(
@@ -15664,25 +15638,61 @@ function ProjectsRoute({
   onVisibleProjectCountChange
 }) {
   const [filtersOpen, setFiltersOpen] = d2(false);
+  const [compactFilters, setCompactFilters] = d2(true);
+  const route = A2(null);
   const filterTrigger = A2(null);
   const filterSurface = A2(null);
+  const restoreFilterTriggerFocus = A2(false);
   const closeFilters = () => {
+    restoreFilterTriggerFocus.current = true;
     setFiltersOpen(false);
-    queueMicrotask(() => filterTrigger.current?.focus());
   };
   h2(() => {
-    if (!filtersOpen) return;
-    const controls = filterSurface.current?.querySelectorAll(
+    const root = route.current?.closest(".tavernary-companion-root");
+    if (!root) return;
+    const syncMode = () => {
+      const compact = root.clientWidth <= 1199;
+      setCompactFilters(compact);
+      if (!compact) setFiltersOpen(false);
+    };
+    syncMode();
+    if (typeof ResizeObserver === "undefined") return;
+    const observer = new ResizeObserver(syncMode);
+    observer.observe(root);
+    return () => observer.disconnect();
+  }, []);
+  h2(() => {
+    if (!filtersOpen || !compactFilters || !filterSurface.current) return;
+    const surface = filterSurface.current;
+    const root = route.current?.closest(".tavernary-companion-root");
+    const getControls = () => surface.querySelectorAll(
       'button:not([disabled]), input:not([disabled]), select:not([disabled]), [tabindex="0"]'
     );
-    controls?.[0]?.focus({ preventScroll: true });
+    getControls()[0]?.focus({ preventScroll: true });
+    const inerted = [];
+    if (root) {
+      let branch = surface;
+      let parent = branch.parentElement;
+      while (parent) {
+        for (const child of parent.children) {
+          if (child !== branch && child instanceof HTMLElement) {
+            inerted.push({ element: child, inert: child.inert });
+            child.inert = true;
+          }
+        }
+        if (parent === root) break;
+        branch = parent;
+        parent = parent.parentElement;
+      }
+    }
     const onKeyDown = (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
         closeFilters();
         return;
       }
-      if (event.key !== "Tab" || !controls || controls.length === 0) return;
+      const controls = getControls();
+      if (event.key !== "Tab" || controls.length === 0) return;
       const first = controls[0];
       const last2 = controls[controls.length - 1];
       if (event.shiftKey && document.activeElement === first) {
@@ -15694,7 +15704,15 @@ function ProjectsRoute({
       }
     };
     window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
+    return () => {
+      window.removeEventListener("keydown", onKeyDown);
+      for (const { element, inert } of inerted) element.inert = inert;
+    };
+  }, [compactFilters, filtersOpen]);
+  h2(() => {
+    if (filtersOpen || !restoreFilterTriggerFocus.current) return;
+    restoreFilterTriggerFocus.current = false;
+    filterTrigger.current?.focus();
   }, [filtersOpen]);
   const hasChangedFilters = !sameValues(state.query.frontends, DEFAULT_COMPANION_QUERY.frontends) || !sameValues(state.query.kinds, DEFAULT_COMPANION_QUERY.kinds) || state.query.category !== DEFAULT_COMPANION_QUERY.category || state.query.tags.length > 0 || (state.query.modelFamilies?.length ?? 0) > 0 || (state.query.completionFormats?.length ?? 0) > 0 || state.query.development.length > 0 || state.query.licenses.length > 0 || state.query.view !== DEFAULT_COMPANION_QUERY.view;
   const clearFilters = () => onQueryChange({
@@ -15702,64 +15720,123 @@ function ProjectsRoute({
     search: state.query.search,
     sort: state.query.sort
   });
-  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-projects-route", "aria-label": "Projects", children: [
-    /* @__PURE__ */ u3("p", { class: "tavernary-companion-catalog-advisory", children: "TavernKeeper provides evidence, not a guarantee of safety. Review projects before installing." }),
-    /* @__PURE__ */ u3(
-      ProjectResultsToolbar,
-      {
-        query: state.query,
-        resultCount: state.projects.length,
-        filtersOpen,
-        filterTrigger,
-        kitSelectionActive,
-        showClearFilters: hasChangedFilters,
-        onQueryChange,
-        onOpenFilters: () => setFiltersOpen(true),
-        onClearFilters: clearFilters,
-        onBeginKitSelection
-      }
-    ),
-    hasChangedFilters ? /* @__PURE__ */ u3(ActiveFilterChips, { query: state.query, facets, onQueryChange }) : null,
-    /* @__PURE__ */ u3("div", { class: "tavernary-companion-projects-route__workspace", children: [
-      /* @__PURE__ */ u3(
-        "div",
-        {
-          ref: filterSurface,
-          role: filtersOpen ? "dialog" : void 0,
-          "aria-label": "Project filters",
-          "aria-modal": filtersOpen || void 0,
-          class: `tavernary-companion-filter-surface${filtersOpen ? " is-open" : ""}`,
-          children: [
-            /* @__PURE__ */ u3("button", { type: "button", class: "tavernary-companion-filter-close", onClick: closeFilters, children: "Close filters" }),
-            /* @__PURE__ */ u3(FilterPanel, { query: state.query, facets, onQueryChange })
-          ]
-        }
-      ),
-      /* @__PURE__ */ u3(
-        ProjectGrid,
-        {
-          projects: state.projects,
-          onOpenProject,
-          onProjectAction,
-          onManageInSillyTavern,
-          lifecycleDisabled,
-          kitSelectionActive,
-          selectedKitProjectIds,
-          onToggleKitSelection,
-          visibleCount: visibleProjectCount,
-          onVisibleCountChange: onVisibleProjectCountChange
-        }
-      )
-    ] }),
-    kitSelectionActive ? /* @__PURE__ */ u3(
-      KitSelectionDock,
-      {
-        count: selectedKitProjectIds.length,
-        onReview: () => onReviewKitSelection?.(),
-        onCancel: () => onCancelKitSelection?.()
-      }
-    ) : null
-  ] });
+  const clearFiltersFromSurface = () => {
+    clearFilters();
+    if (filtersOpen) {
+      queueMicrotask(
+        () => filterSurface.current?.querySelector(".tavernary-companion-filter-close")?.focus()
+      );
+    }
+  };
+  return /* @__PURE__ */ u3(
+    "section",
+    {
+      ref: route,
+      class: `tavernary-companion-projects-route${filtersOpen && compactFilters ? " has-open-filters" : ""}`,
+      "aria-label": "Projects",
+      children: [
+        /* @__PURE__ */ u3("div", { class: "tavernary-companion-filter-bar", children: [
+          /* @__PURE__ */ u3("p", { class: "tavernary-companion-catalog-advisory", children: "TavernKeeper provides evidence, not a guarantee of safety. Review projects before installing." }),
+          /* @__PURE__ */ u3(
+            "button",
+            {
+              ref: filterTrigger,
+              type: "button",
+              class: "tavernary-companion-filter-trigger",
+              "aria-label": "Open filters",
+              "aria-controls": "tavernary-companion-project-filters",
+              "aria-expanded": filtersOpen,
+              onClick: () => setFiltersOpen(true),
+              children: /* @__PURE__ */ u3(FilterIcon, {})
+            }
+          )
+        ] }),
+        /* @__PURE__ */ u3(
+          ProjectResultsToolbar,
+          {
+            query: state.query,
+            resultCount: state.projects.length,
+            kitSelectionActive,
+            onQueryChange,
+            onBeginKitSelection
+          }
+        ),
+        hasChangedFilters ? /* @__PURE__ */ u3(ActiveFilterChips, { query: state.query, facets, onQueryChange }) : null,
+        /* @__PURE__ */ u3("div", { class: "tavernary-companion-projects-route__workspace", children: [
+          /* @__PURE__ */ u3(
+            "div",
+            {
+              id: "tavernary-companion-project-filters",
+              ref: filterSurface,
+              role: filtersOpen && compactFilters ? "dialog" : void 0,
+              "aria-label": "Project filters",
+              "aria-modal": filtersOpen && compactFilters || void 0,
+              class: `tavernary-companion-filter-surface${filtersOpen ? " is-open" : ""}`,
+              children: [
+                /* @__PURE__ */ u3("header", { class: "tavernary-companion-filter-surface__header", children: [
+                  /* @__PURE__ */ u3("div", { children: [
+                    /* @__PURE__ */ u3("span", { class: "tavernary-companion-filter-surface__eyebrow", children: "Refine catalog" }),
+                    /* @__PURE__ */ u3("h2", { children: "Filters" })
+                  ] }),
+                  /* @__PURE__ */ u3(
+                    "button",
+                    {
+                      type: "button",
+                      class: "tavernary-companion-filter-clear",
+                      "aria-label": "Clear all filters",
+                      disabled: !hasChangedFilters,
+                      onClick: clearFiltersFromSurface,
+                      children: "Clear all"
+                    }
+                  ),
+                  /* @__PURE__ */ u3(
+                    "button",
+                    {
+                      type: "button",
+                      class: "tavernary-companion-filter-close",
+                      "aria-label": "Close filters",
+                      onClick: closeFilters,
+                      children: /* @__PURE__ */ u3(CloseIcon, {})
+                    }
+                  )
+                ] }),
+                /* @__PURE__ */ u3(FilterPanel, { query: state.query, facets, onQueryChange })
+              ]
+            }
+          ),
+          /* @__PURE__ */ u3(
+            ProjectGrid,
+            {
+              projects: state.projects,
+              onOpenProject,
+              onProjectAction,
+              onManageInSillyTavern,
+              lifecycleDisabled,
+              kitSelectionActive,
+              selectedKitProjectIds,
+              onToggleKitSelection,
+              visibleCount: visibleProjectCount,
+              onVisibleCountChange: onVisibleProjectCountChange
+            }
+          )
+        ] }),
+        kitSelectionActive ? /* @__PURE__ */ u3(
+          KitSelectionDock,
+          {
+            count: selectedKitProjectIds.length,
+            onReview: () => onReviewKitSelection?.(),
+            onCancel: () => onCancelKitSelection?.()
+          }
+        ) : null
+      ]
+    }
+  );
+}
+function FilterIcon() {
+  return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", fill: "none", children: /* @__PURE__ */ u3("path", { d: "M4 7h16M7 12h10M10 17h4" }) });
+}
+function CloseIcon() {
+  return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", fill: "none", children: /* @__PURE__ */ u3("path", { d: "m6 6 12 12M18 6 6 18" }) });
 }
 function sameValues(left, right) {
   return left.length === right.length && left.every((value) => right.includes(value));

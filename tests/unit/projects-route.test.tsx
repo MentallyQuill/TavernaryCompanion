@@ -29,10 +29,14 @@ describe("ProjectsRoute", () => {
     expect(screen.queryByRole("searchbox", { name: "Search projects" })).not.toBeInTheDocument();
     expect(screen.getByText("0 projects")).toBeVisible();
     expect(screen.getByRole("combobox", { name: "Sort projects" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Filters" })).toHaveAttribute(
+    expect(screen.getByRole("button", { name: "Open filters" })).toHaveAttribute(
       "aria-expanded",
       "false",
     );
+    expect(screen.getByRole("button", { name: "Open filters" }).textContent).toBe("");
+    expect(screen.getByText("Refine catalog")).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Filters" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Close filters" }).textContent).toBe("");
     expect(screen.queryByLabelText("Active filters")).not.toBeInTheDocument();
     expect(screen.getByText(/TavernKeeper provides evidence/)).toBeVisible();
   });
@@ -112,7 +116,7 @@ describe("ProjectsRoute", () => {
 
   it("closes the compact filter surface with Escape and restores focus", async () => {
     render(<ProjectsRoute state={state()} onQueryChange={vi.fn()} />);
-    const trigger = screen.getByRole("button", { name: "Filters" });
+    const trigger = screen.getByRole("button", { name: "Open filters" });
     expect(screen.queryByRole("dialog", { name: "Project filters" })).not.toBeInTheDocument();
     fireEvent.click(trigger);
     expect(screen.getByRole("dialog", { name: "Project filters" })).toHaveAttribute(
@@ -122,5 +126,24 @@ describe("ProjectsRoute", () => {
     fireEvent.keyDown(window, { key: "Escape" });
     await vi.waitFor(() => expect(trigger).toHaveFocus());
     expect(trigger).toHaveAttribute("aria-expanded", "false");
+  });
+
+  it("clears filters from the persistent filter header", () => {
+    const onQueryChange = vi.fn();
+    const current = state();
+    current.query.search = "memory";
+    current.query.sort = "popularity";
+    current.query.tags = ["memory"];
+    render(<ProjectsRoute state={current} onQueryChange={onQueryChange} />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Clear all filters" }));
+
+    expect(onQueryChange).toHaveBeenLastCalledWith(
+      expect.objectContaining({
+        search: "memory",
+        sort: "popularity",
+        tags: [],
+      }),
+    );
   });
 });

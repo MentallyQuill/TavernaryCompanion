@@ -136,7 +136,7 @@ for (const viewport of [
     expect(shell!.x + shell!.width).toBeLessThanOrEqual(viewport.width);
     expect(shell!.y + shell!.height).toBeLessThanOrEqual(viewport.height);
     if (viewport.width === 390) {
-      await page.getByRole("button", { name: "Filters" }).click();
+      await page.getByRole("button", { name: "Open filters" }).click();
       await page.getByRole("button", { name: "Close filters" }).click();
       await page.locator(".popup-content").evaluate((content) => {
         content.scrollTop = 64;

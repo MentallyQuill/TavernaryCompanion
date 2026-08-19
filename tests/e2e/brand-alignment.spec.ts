@@ -75,7 +75,7 @@ test("mobile brand header stays contained and readable", async ({ page }) => {
   ).toBeVisible();
   await expect(page.getByRole("combobox", { name: "Browse Companion" })).toBeVisible();
   await expect(page.getByRole("tablist")).not.toBeVisible();
-  await page.getByRole("button", { name: "Filters" }).click();
+  await page.getByRole("button", { name: "Open filters" }).click();
   await expect(page.getByRole("img", { name: "Tavernary" })).toBeInViewport();
   await page.getByRole("button", { name: "Close filters" }).click();
   await page.getByRole("combobox", { name: "Browse Companion" }).selectOption("kits");
@@ -90,6 +90,50 @@ test("mobile brand header stays contained and readable", async ({ page }) => {
   ).toBeInViewport();
   await page.getByRole("button", { name: "Kit filters" }).click();
   await expect(page.locator(".tavernary-companion-kit-filters")).toBeVisible();
+});
+
+test("desktop filters use Tavernary's persistent flush rail", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openHarness(page);
+
+  await expect(page.getByRole("button", { name: "Open filters" })).not.toBeVisible();
+  const surface = page.locator(".tavernary-companion-filter-surface");
+  const box = await surface.boundingBox();
+  expect(box).not.toBeNull();
+  expect(box!.width).toBeGreaterThanOrEqual(230);
+  expect(box!.width).toBeLessThanOrEqual(245);
+  await expect(surface).toHaveCSS("background-color", "rgb(18, 26, 31)");
+  await expect(surface).toHaveCSS("border-radius", "0px");
+  await expect(surface.getByRole("heading", { name: "Filters" })).toBeVisible();
+  await expect(surface.getByText("Refine catalog")).not.toBeVisible();
+});
+
+test("mobile filters use Tavernary's compact icon and inset refinement sheet", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHarness(page);
+
+  const trigger = page.getByRole("button", { name: "Open filters" });
+  const triggerBox = await trigger.boundingBox();
+  expect(triggerBox).not.toBeNull();
+  expect(triggerBox!.width).toBe(44);
+  expect(triggerBox!.height).toBe(44);
+  await expect(trigger).toHaveCSS("background-color", "rgb(18, 26, 31)");
+  await expect(trigger).toHaveCSS("border-radius", "6px");
+
+  await trigger.click();
+  const sheet = page.getByRole("dialog", { name: "Project filters" });
+  const sheetBox = await sheet.boundingBox();
+  expect(sheetBox).not.toBeNull();
+  expect(sheetBox!.x).toBeGreaterThanOrEqual(12);
+  expect(sheetBox!.x + sheetBox!.width).toBeLessThanOrEqual(378);
+  await expect(sheet).toHaveCSS("background-color", "rgb(28, 40, 46)");
+  await expect(sheet.getByText("Refine catalog")).toBeVisible();
+  await expect(sheet.getByRole("heading", { name: "Filters" })).toBeVisible();
+  const close = sheet.getByRole("button", { name: "Close filters" });
+  const closeBox = await close.boundingBox();
+  expect(closeBox).not.toBeNull();
+  expect(closeBox!.width).toBe(44);
+  expect(closeBox!.height).toBe(44);
 });
 
 test("project cards use Tavernary's surface, evidence hierarchy, and action color", async ({
