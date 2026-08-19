@@ -238,41 +238,6 @@
     display: none;
   }
 
-  .tavernary-companion-shell__tabs {
-    min-block-size: 58px;
-    padding: 0.5rem 0.75rem;
-    overflow: visible;
-  }
-
-  .tavernary-companion-shell__tabs > div {
-    display: none;
-  }
-
-  .tavernary-companion-route-select {
-    display: grid;
-    grid-template-columns: auto minmax(0, 1fr);
-    align-items: center;
-    gap: 0.65rem;
-    inline-size: 100%;
-  }
-
-  .tavernary-companion-route-select > span {
-    color: var(--tavernary-color-text-muted);
-    font-size: 0.68rem;
-    font-weight: 750;
-    letter-spacing: 0.08em;
-    text-transform: uppercase;
-  }
-
-  .tavernary-companion-route-select select {
-    inline-size: 100%;
-    min-block-size: 44px;
-    border-color: var(--tavernary-color-control-border);
-    color: var(--tavernary-color-text-primary);
-    background: var(--tavernary-color-control-bg);
-    font-weight: 700;
-  }
-
   .tavernary-companion-catalog-state > header {
     padding-inline: 0.75rem;
   }
@@ -300,24 +265,9 @@
     min-inline-size: 0;
   }
 
-  .tavernary-companion-results-toolbar .tavernary-companion-select-kit {
-    flex: 0 0 auto;
-  }
-
-  .tavernary-companion-select-kit {
-    margin-inline-start: 0;
-  }
-
   .tavernary-companion-project-card footer,
   .tavernary-companion-installed-section li {
     flex-wrap: wrap;
-  }
-
-  .tavernary-companion-project-card__compact-action {
-    inline-size: 44px;
-    min-inline-size: 44px;
-    block-size: 44px;
-    min-block-size: 44px;
   }
 }
 

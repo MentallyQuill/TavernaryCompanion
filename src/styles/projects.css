@@ -50,10 +50,6 @@
   background: var(--tavernary-color-control-bg);
 }
 
-.tavernary-companion-select-kit {
-  margin-inline-start: auto;
-}
-
 .tavernary-companion-projects-route > header {
   padding-block: 0.25rem 0.6rem;
 }
@@ -451,11 +447,6 @@
   margin: 10px 0 8px;
 }
 
-.tavernary-companion-project-card__title .tavernary-companion-assessment {
-  flex: none;
-  font-size: 9px;
-}
-
 .tavernary-companion-project-card h3 {
   min-inline-size: 0;
   margin: 0;
@@ -597,39 +588,6 @@
   gap: 8px;
 }
 
-.tavernary-companion-assessment {
-  font-weight: 650;
-}
-
-.tavernary-companion-assessment--compact {
-  position: relative;
-  z-index: 2;
-  display: inline-grid;
-  inline-size: 18px;
-  block-size: 18px;
-  flex: none;
-  color: var(--tavernary-color-text-muted);
-  place-items: center;
-}
-
-.tavernary-companion-assessment--compact svg {
-  display: block;
-  inline-size: 16px;
-  block-size: 16px;
-}
-
-.tavernary-companion-assessment.is-teal {
-  color: var(--tavernary-companion-low);
-}
-
-.tavernary-companion-assessment.is-orange {
-  color: var(--tavernary-companion-material);
-}
-
-.tavernary-companion-assessment.is-red {
-  color: var(--tavernary-companion-high);
-}
-
 .tavernary-companion-project-card footer {
   display: flex;
   min-inline-size: 0;
@@ -637,22 +595,6 @@
   justify-content: flex-end;
   gap: var(--tavernary-companion-space-2);
   margin: 0;
-}
-
-.tavernary-companion-project-card__primary {
-  margin-inline-start: auto;
-}
-
-.tavernary-companion-project-card__compact-action {
-  display: inline-grid;
-  place-items: center;
-  inline-size: 36px;
-  min-inline-size: 36px;
-  block-size: 36px;
-  min-block-size: 36px;
-  padding: 0 !important;
-  font-size: 1.25rem;
-  line-height: 1;
 }
 
 .tavernary-companion-installed-section,
