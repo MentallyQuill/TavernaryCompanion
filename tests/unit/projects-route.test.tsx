@@ -68,7 +68,24 @@ describe("ProjectsRoute", () => {
     expect(screen.getByRole("heading", { name: "Filters" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Close filters" }).textContent).toBe("");
     expect(screen.queryByLabelText("Active filters")).not.toBeInTheDocument();
-    expect(screen.getByText(/TavernKeeper provides evidence/)).toBeVisible();
+    expect(
+      screen.getByRole("link", {
+        name: "Safety: TavernKeeper scans are advisory, not a guarantee. Review a project carefully before installing it or providing credentials.",
+      }),
+    ).toHaveAttribute("href", "https://tavernary.org/about/#safety-security");
+  });
+
+  it("switches Tavernary card density through the collapse control", () => {
+    const onQueryChange = vi.fn();
+    render(<ProjectsRoute state={state()} onQueryChange={onQueryChange} />);
+
+    const density = screen.getByRole("button", { name: "Use compact cards" });
+    expect(density).toHaveAttribute("aria-pressed", "false");
+    expect(density.querySelector('svg[data-icon="collapse"]')).not.toBeNull();
+
+    fireEvent.click(density);
+
+    expect(onQueryChange).toHaveBeenCalledWith(expect.objectContaining({ density: "compact" }));
   });
 
   it("exposes every project facet and lets users clear SillyTavern", () => {
@@ -197,9 +214,9 @@ describe("ProjectsRoute", () => {
     const options = screen.getAllByRole("option").map((option) => option.textContent);
     expect(options).toEqual(
       expect.arrayContaining([
-        "Recently active",
-        "Date added",
-        "Sustained activity",
+        "Recent Activity",
+        "Date Added",
+        "Sustained Activity",
         "Popularity",
         "Alphabetical",
         "Relevance",

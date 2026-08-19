@@ -231,8 +231,14 @@ export function ProjectsRoute({
         <main class="tavernary-companion-projects-route__main">
           <div class="tavernary-companion-filter-bar">
             <p class="tavernary-companion-catalog-advisory">
-              TavernKeeper provides evidence, not a guarantee of safety. Review projects before
-              installing.
+              <a
+                href="https://tavernary.org/about/#safety-security"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Safety: TavernKeeper scans are advisory, not a guarantee. Review a project carefully
+                before installing it or providing credentials.
+              </a>
             </p>
             <button
               ref={filterTrigger}
@@ -262,6 +268,7 @@ export function ProjectsRoute({
             lifecycleDisabled={lifecycleDisabled}
             selectedKitProjectIds={selectedKitProjectIds}
             onToggleKitSelection={onToggleKitSelection}
+            density={state.query.density}
             visibleCount={visibleProjectCount}
             onVisibleCountChange={onVisibleProjectCountChange}
           />

@@ -17739,6 +17739,7 @@ function missingSourceActivityLabel(evidenceStatus) {
 var PROJECT_BATCH_SIZE = 60;
 function ProjectGrid({
   projects,
+  density = "standard",
   onProjectAction,
   onManageInSillyTavern,
   lifecycleDisabled,
@@ -17760,37 +17761,44 @@ function ProjectGrid({
   if (projects.length === 0) {
     return /* @__PURE__ */ u3("p", { children: "No projects match the current filters." });
   }
-  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-project-results", "aria-label": "Project results", children: [
-    /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-grid", children: projects.slice(0, visibleCount).map((project2) => /* @__PURE__ */ u3(
-      ProjectCard,
-      {
-        project: project2,
-        onAction: (action) => onProjectAction(project2.id, action),
-        onManageInSillyTavern,
-        lifecycleDisabled,
-        selectedForKit: selectedKitProjectIds.includes(project2.id),
-        onToggleKitSelection
-      },
-      project2.id
-    )) }),
-    visibleCount < projects.length ? /* @__PURE__ */ u3(
-      "button",
-      {
-        type: "button",
-        class: "tavernary-companion-project-results__more tavernary-companion-button tavernary-companion-button--secondary",
-        "aria-label": "Show more projects",
-        onClick: showMore,
-        children: "Show more"
-      }
-    ) : null
-  ] });
+  return /* @__PURE__ */ u3(
+    "section",
+    {
+      class: `tavernary-companion-project-results${density === "compact" ? " is-compact" : ""}`,
+      "aria-label": "Project results",
+      children: [
+        /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-grid", children: projects.slice(0, visibleCount).map((project2) => /* @__PURE__ */ u3(
+          ProjectCard,
+          {
+            project: project2,
+            onAction: (action) => onProjectAction(project2.id, action),
+            onManageInSillyTavern,
+            lifecycleDisabled,
+            selectedForKit: selectedKitProjectIds.includes(project2.id),
+            onToggleKitSelection
+          },
+          project2.id
+        )) }),
+        visibleCount < projects.length ? /* @__PURE__ */ u3(
+          "button",
+          {
+            type: "button",
+            class: "tavernary-companion-project-results__more tavernary-companion-button tavernary-companion-button--secondary",
+            "aria-label": "Show more projects",
+            onClick: showMore,
+            children: "Show more"
+          }
+        ) : null
+      ]
+    }
+  );
 }
 
 // src/ui/projects/project-results-toolbar.tsx
 var sorts = [
-  { id: "recent", label: "Recently active" },
-  { id: "date-added", label: "Date added" },
-  { id: "sustained", label: "Sustained activity" },
+  { id: "recent", label: "Recent Activity" },
+  { id: "date-added", label: "Date Added" },
+  { id: "sustained", label: "Sustained Activity" },
   { id: "popularity", label: "Popularity" },
   { id: "alphabetical", label: "Alphabetical" },
   { id: "relevance", label: "Relevance" }
@@ -17800,6 +17808,7 @@ function ProjectResultsToolbar({
   resultCount,
   onQueryChange
 }) {
+  const densityAction = query.density === "standard" ? "Use compact cards" : "Use standard cards";
   return /* @__PURE__ */ u3("div", { class: "tavernary-companion-results-toolbar", children: [
     /* @__PURE__ */ u3("output", { "aria-live": "polite", children: [
       resultCount,
@@ -17807,8 +17816,31 @@ function ProjectResultsToolbar({
       resultCount === 1 ? "project" : "projects"
     ] }),
     /* @__PURE__ */ u3(
+      Tooltip,
+      {
+        id: "tavernary-companion-density-tooltip",
+        label: densityAction,
+        className: "tavernary-companion-control-tooltip",
+        children: /* @__PURE__ */ u3(
+          "button",
+          {
+            class: "tavernary-companion-density-toggle",
+            type: "button",
+            "aria-label": densityAction,
+            "aria-pressed": query.density === "compact",
+            onClick: () => onQueryChange({
+              ...query,
+              density: query.density === "standard" ? "compact" : "standard"
+            }),
+            children: /* @__PURE__ */ u3(CategoryIcon, { name: "collapse" })
+          }
+        )
+      }
+    ),
+    /* @__PURE__ */ u3(
       "select",
       {
+        class: "tavernary-companion-project-sort",
         "aria-label": "Sort projects",
         value: query.sort,
         onChange: (event) => onQueryChange({ ...query, sort: event.currentTarget.value }),
@@ -18024,7 +18056,15 @@ function ProjectsRoute({
           ),
           /* @__PURE__ */ u3("main", { class: "tavernary-companion-projects-route__main", children: [
             /* @__PURE__ */ u3("div", { class: "tavernary-companion-filter-bar", children: [
-              /* @__PURE__ */ u3("p", { class: "tavernary-companion-catalog-advisory", children: "TavernKeeper provides evidence, not a guarantee of safety. Review projects before installing." }),
+              /* @__PURE__ */ u3("p", { class: "tavernary-companion-catalog-advisory", children: /* @__PURE__ */ u3(
+                "a",
+                {
+                  href: "https://tavernary.org/about/#safety-security",
+                  target: "_blank",
+                  rel: "noopener noreferrer",
+                  children: "Safety: TavernKeeper scans are advisory, not a guarantee. Review a project carefully before installing it or providing credentials."
+                }
+              ) }),
               /* @__PURE__ */ u3(
                 "button",
                 {
@@ -18060,6 +18100,7 @@ function ProjectsRoute({
                 lifecycleDisabled,
                 selectedKitProjectIds,
                 onToggleKitSelection,
+                density: state.query.density,
                 visibleCount: visibleProjectCount,
                 onVisibleCountChange: onVisibleProjectCountChange
               }
