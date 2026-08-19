@@ -10,6 +10,7 @@ import { inventoryFingerprint } from "../../src/kits/kit-planner";
 import { KitStore } from "../../src/kits/kit-store";
 import { fingerprintKitTopology } from "../../src/kits/kit-validation";
 import { createLifecycleCoordinator } from "../../src/lifecycle/lifecycle-coordinator";
+import { createReceipt } from "../../src/lifecycle/operation-receipt";
 import { TrustPromptBroker } from "../../src/lifecycle/trust-prompt-broker";
 import { ProfileStore } from "../../src/state/profile-store";
 import { mountCompanionLauncher } from "../../src/ui/launcher";
@@ -190,6 +191,22 @@ async function main() {
     extensionSettings: {},
     saveSettingsDebounced: () => undefined,
   });
+  if (scenario === "success-receipt") {
+    await profile.update((draft) => {
+      draft.operationReceipt = createReceipt({
+        id: "browser-success-receipt",
+        kind: "install",
+        projectId: "alpha",
+        projectName: "Alpha",
+        startedAt: "2026-08-18T10:00:00.000Z",
+        finishedAt: "2026-08-18T10:01:00.000Z",
+        status: "succeeded",
+        completedThrough: "recorded",
+        safeError: null,
+        reloadRequired: true,
+      });
+    });
+  }
   let kitSequence = 1;
   const kits = new KitStore(profile, {
     uuid: () => `018f6f42-7142-7a1f-9b52-${String(kitSequence++).padStart(12, "0")}`,
