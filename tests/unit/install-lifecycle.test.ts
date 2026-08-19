@@ -3,6 +3,7 @@ import { describe, expect, it, vi } from "vitest";
 import type { CatalogSnapshot } from "../../src/catalog/catalog-client";
 import { createLifecycleCoordinator } from "../../src/lifecycle/lifecycle-coordinator";
 import { OperationInProgressError } from "../../src/lifecycle/operation-lock";
+import { COMPANION_PROJECT_ID } from "../../src/lifecycle/self-protection";
 import { ProfileStore } from "../../src/state/profile-store";
 import type { TrustPrompt } from "../../src/trust/trust-types";
 import { createFakeHost } from "../helpers/fake-host";
@@ -155,4 +156,99 @@ describe("install lifecycle", () => {
       target: { kind: "newest", requestedSha: "c".repeat(40) },
     });
   });
+
+  it.each([
+    {
+      name: "the self-protected Companion project",
+      project: catalogProjectFixture({ id: COMPANION_PROJECT_ID }),
+      snapshot: (catalog: ReturnType<typeof catalogFixture>): CatalogSnapshot => ({
+        state: "ready-current",
+        canMutate: true,
+        checkedAt: "2026-08-19T00:00:00.000Z",
+        catalog,
+      }),
+    },
+    {
+      name: "an incompatible catalog snapshot",
+      project: catalogProjectFixture(),
+      snapshot: (catalog: ReturnType<typeof catalogFixture>): CatalogSnapshot => ({
+        state: "incompatible-with-cache",
+        canMutate: false,
+        checkedAt: "2026-08-19T00:00:00.000Z",
+        remoteSchemaVersion: 8,
+        catalog,
+      }),
+    },
+    {
+      name: "a non-extension project",
+      project: catalogProjectFixture({ kind: "preset" }),
+      snapshot: (catalog: ReturnType<typeof catalogFixture>): CatalogSnapshot => ({
+        state: "ready-current",
+        canMutate: true,
+        checkedAt: "2026-08-19T00:00:00.000Z",
+        catalog,
+      }),
+    },
+    {
+      name: "a project without SillyTavern support",
+      project: catalogProjectFixture({ frontend: "text-generation-webui" }),
+      snapshot: (catalog: ReturnType<typeof catalogFixture>): CatalogSnapshot => ({
+        state: "ready-current",
+        canMutate: true,
+        checkedAt: "2026-08-19T00:00:00.000Z",
+        catalog,
+      }),
+    },
+    {
+      name: "a malformed install contract",
+      project: Object.assign(catalogProjectFixture(), {
+        install: { kind: "sillytavern-extension-git", repositoryUrl: "not-a-url" },
+      }),
+      snapshot: (catalog: ReturnType<typeof catalogFixture>): CatalogSnapshot => ({
+        state: "ready-current",
+        canMutate: true,
+        checkedAt: "2026-08-19T00:00:00.000Z",
+        catalog,
+      }),
+    },
+    {
+      name: "a project without an install contract",
+      project: catalogProjectFixture({ folderName: null }),
+      snapshot: (catalog: ReturnType<typeof catalogFixture>): CatalogSnapshot => ({
+        state: "ready-current",
+        canMutate: true,
+        checkedAt: "2026-08-19T00:00:00.000Z",
+        catalog,
+      }),
+    },
+  ])(
+    "rejects preparation for $name before any host revision call",
+    async ({ project, snapshot }) => {
+      const catalog = catalogFixture();
+      catalog.projects = [project];
+      const host = createFakeHost({
+        capabilities: {
+          pinnedCommitInstall: true,
+          remoteRevisionLookup: true,
+          localRevisionLookup: true,
+        },
+        remoteHeads: {
+          [`${project.install?.repositoryUrl ?? "https://example.test/unused.git"}#`]: "c".repeat(
+            40,
+          ),
+        },
+      });
+      const coordinator = createLifecycleCoordinator({
+        host,
+        store: new ProfileStore({ extensionSettings: {}, saveSettingsDebounced: () => undefined }),
+        getSnapshot: () => snapshot(catalog),
+        confirm: async () => true,
+      });
+
+      await expect(coordinator.prepareInstall(project.id)).rejects.toThrow(
+        "This project is not eligible for installation.",
+      );
+      expect(host.calls).toEqual([]);
+    },
+  );
 });

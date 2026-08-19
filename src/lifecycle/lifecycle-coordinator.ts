@@ -1,5 +1,5 @@
 import type { CatalogSnapshot } from "../catalog/catalog-client";
-import type { CatalogProject } from "../catalog/catalog-core";
+import { parseInstallContract, type CatalogProject } from "../catalog/catalog-core";
 import type { HostExtensionAdapter } from "../host/host-types";
 import { reconcileInventory } from "../inventory/inventory-reconciler";
 import { ManagedRegistry, normalizeManagedExtensionMap } from "../inventory/managed-registry";
@@ -61,13 +61,10 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
 
   prepareInstall(projectId: string): Promise<InstallTargetChoice> {
     const snapshot = this.#getSnapshot();
-    const project =
-      ("catalog" in snapshot
-        ? snapshot.catalog.projects.find(({ id }) => id === projectId)
-        : null) ?? null;
+    const project = eligibleProjectForPreparation(projectId, snapshot);
     if (!project) {
       return Promise.reject(
-        new InstallTargetPreparationError("This project is not available for installation."),
+        new InstallTargetPreparationError("This project is not eligible for installation."),
       );
     }
     return prepareInstallTargetChoice({
@@ -465,6 +462,31 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
         draft.operationReceipt = structuredClone(receipt);
       })
       .catch(() => undefined);
+  }
+}
+
+function eligibleProjectForPreparation(
+  projectId: string,
+  snapshot: CatalogSnapshot,
+): CatalogProject | null {
+  const project =
+    ("catalog" in snapshot ? snapshot.catalog.projects.find(({ id }) => id === projectId) : null) ??
+    null;
+  if (
+    projectId === COMPANION_PROJECT_ID ||
+    !project ||
+    !snapshot.canMutate ||
+    project.kind !== "extension" ||
+    !project.frontends.some(({ id }) => id === "sillytavern")
+  ) {
+    return null;
+  }
+  try {
+    if (!project.install) throw new Error("Install contract is missing.");
+    const contract = parseInstallContract(project.install);
+    return contract.folderName === project.install.folderName ? project : null;
+  } catch {
+    return null;
   }
 }
 
