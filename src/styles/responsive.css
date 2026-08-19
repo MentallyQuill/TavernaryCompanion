@@ -351,6 +351,28 @@
   .tavernary-companion-tag-browser {
     padding-block: 1rem;
   }
+
+  .tavernary-companion-filter-option {
+    min-block-size: 44px;
+  }
+
+  .tavernary-companion-filter-option input[type="checkbox"],
+  .tavernary-companion-filter-option input[type="radio"] {
+    inline-size: 14px;
+    block-size: 14px;
+    min-block-size: 0;
+  }
+
+  .tavernary-companion-filter-choice {
+    min-block-size: 44px !important;
+    align-items: center;
+  }
+
+  .tavernary-companion-filter-choice__input {
+    inline-size: 1px !important;
+    block-size: 1px !important;
+    min-block-size: 0 !important;
+  }
 }
 
 @container tavernary-companion (max-width: 760px) {

@@ -153,6 +153,14 @@ test("mobile filters use Tavernary's compact icon and inset refinement sheet", a
   expect(closeBox).not.toBeNull();
   expect(closeBox!.width).toBe(44);
   expect(closeBox!.height).toBe(44);
+  const kindCheckbox = sheet.getByRole("checkbox", { name: "Extension" });
+  const kindCheckboxBox = await kindCheckbox.boundingBox();
+  const kindRowBox = await kindCheckbox.locator("..").boundingBox();
+  expect(kindCheckboxBox).not.toBeNull();
+  expect(kindRowBox).not.toBeNull();
+  expect(kindCheckboxBox!.width).toBe(14);
+  expect(kindCheckboxBox!.height).toBe(14);
+  expect(kindRowBox!.height).toBeGreaterThanOrEqual(44);
 });
 
 test("project cards use Tavernary's surface, evidence hierarchy, and action color", async ({
