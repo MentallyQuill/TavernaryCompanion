@@ -33,16 +33,18 @@ it("installs behind an activation barrier, commits identity, and reloads once", 
     hostExtensions: await app.host.discover(),
     managed,
   });
-  const plan = planKitOperation({
-    operation: "activate",
-    kit: { id: "new-kit", projectIds: ["alpha"], origin: "personal" },
-    catalog,
-    inventory,
-    managed,
-    installedKits: app.kits.readInstalledStates(),
-    activeKitId: "old-kit",
-    catalogCanMutate: true,
-  });
+  const plan = await app.prepare(
+    planKitOperation({
+      operation: "activate",
+      kit: { id: "new-kit", projectIds: ["alpha"], origin: "personal" },
+      catalog,
+      inventory,
+      managed,
+      installedKits: app.kits.readInstalledStates(),
+      activeKitId: "old-kit",
+      catalogCanMutate: true,
+    }),
+  );
   app.setFingerprint(plan.inventoryFingerprint);
   const receipt = await app.executor.execute(plan, approve(plan));
   expect(receipt.outcome).toBe("completed");
@@ -59,16 +61,18 @@ it("preserves the prior active identity when a required install fails", async ()
   const app = await executorFixture(catalog);
   await app.recordInstalled("old-kit", []);
   await app.kits.setActive("old-kit");
-  const plan = planKitOperation({
-    operation: "activate",
-    kit: { id: "new-kit", projectIds: ["alpha"], origin: "personal" },
-    catalog,
-    inventory: await app.inventory(),
-    managed: {},
-    installedKits: app.kits.readInstalledStates(),
-    activeKitId: "old-kit",
-    catalogCanMutate: true,
-  });
+  const plan = await app.prepare(
+    planKitOperation({
+      operation: "activate",
+      kit: { id: "new-kit", projectIds: ["alpha"], origin: "personal" },
+      catalog,
+      inventory: await app.inventory(),
+      managed: {},
+      installedKits: app.kits.readInstalledStates(),
+      activeKitId: "old-kit",
+      catalogCanMutate: true,
+    }),
+  );
   app.setFingerprint(plan.inventoryFingerprint);
   const receipt = await app.executor.execute(plan, approve(plan));
   expect(receipt.outcome).toBe("partial");

@@ -12,6 +12,7 @@ import { fingerprintKitTopology } from "../../src/kits/kit-validation";
 import { createLifecycleCoordinator } from "../../src/lifecycle/lifecycle-coordinator";
 import { createReceipt } from "../../src/lifecycle/operation-receipt";
 import { TrustPromptBroker } from "../../src/lifecycle/trust-prompt-broker";
+import { InstallTargetFallbackBroker } from "../../src/lifecycle/install-target-fallback-broker";
 import { ProfileStore } from "../../src/state/profile-store";
 import { mountCompanionLauncher } from "../../src/ui/launcher";
 import { CompanionPopupHost, type PopupRuntime } from "../../src/ui/popup-host";
@@ -279,6 +280,7 @@ async function main() {
     ]),
   });
   const prompts = new TrustPromptBroker();
+  const installFallbacks = new InstallTargetFallbackBroker();
   const lifecycle = createLifecycleCoordinator({
     host,
     store: profile,
@@ -325,12 +327,15 @@ async function main() {
         activeKitId: kits.readActiveId(),
       });
     },
+    fallbacks: installFallbacks,
+    confirm: (prompt, project) => prompts.request(prompt, project),
   });
   const runtime: PopupRuntime = {
     catalog: catalogClient,
     discovery,
     lifecycle,
     prompts,
+    installFallbacks,
     kits,
     kitDiscovery,
     kitExecutor,

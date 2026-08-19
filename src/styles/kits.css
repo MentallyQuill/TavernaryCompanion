@@ -651,3 +651,41 @@
     background: rgb(0 0 0 / 0.58);
   }
 }
+.tavernary-companion-kit-version-choices {
+  display: grid;
+  gap: 8px;
+}
+
+.tavernary-companion-kit-version-choices > :is(h3, p) {
+  margin: 0;
+}
+
+.tavernary-companion-kit-version-choice {
+  display: grid;
+  min-inline-size: 0;
+  gap: 5px;
+  margin: 0;
+  padding: 9px;
+  border: 1px solid var(--tavernary-color-divider);
+  border-radius: 6px;
+}
+
+.tavernary-companion-kit-version-choice > label {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: 8px;
+  min-block-size: 44px;
+  padding: 7px;
+  border-radius: 5px;
+  background: var(--tavernary-color-control-bg);
+}
+
+.tavernary-companion-kit-version-choice > label > span {
+  display: grid;
+  gap: 2px;
+}
+
+.tavernary-companion-kit-version-choice small {
+  color: var(--tavernary-color-text-secondary);
+}

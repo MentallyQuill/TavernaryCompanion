@@ -41,5 +41,5 @@ it("announces per-project progress and preserves prior-active failure context", 
     />,
   );
   expect(screen.getByText("old remains active.")).toBeVisible();
-  expect(screen.getByRole("button", { name: "Review retry" })).toBeVisible();
+  expect(screen.getByRole("button", { name: "Try again" })).toBeVisible();
 });

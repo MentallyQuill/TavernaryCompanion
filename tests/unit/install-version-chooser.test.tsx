@@ -85,6 +85,7 @@ describe("InstallVersionChooser", () => {
     const onSelect = vi.fn();
     render(
       <InstallVersionChooser
+        projectId="alpha"
         projectName="Alpha"
         anchor={installButton}
         choice={choice()}
@@ -112,6 +113,7 @@ describe("InstallVersionChooser", () => {
     const installButton = anchor();
     render(
       <InstallVersionChooser
+        projectId="alpha"
         projectName="Alpha"
         anchor={installButton}
         choice={choice("Update SillyTavern to use the checked version.")}
@@ -135,6 +137,7 @@ describe("InstallVersionChooser", () => {
       "That checked version isn't available anymore. You can choose the newest version or cancel.";
     render(
       <InstallVersionChooser
+        projectId="alpha"
         projectName="Alpha"
         anchor={installButton}
         choice={choice(unavailable)}
@@ -155,6 +158,7 @@ describe("InstallVersionChooser", () => {
     const onCancel = vi.fn();
     render(
       <InstallVersionChooser
+        projectId="alpha"
         projectName="Alpha"
         anchor={installButton}
         choice={choice()}
@@ -175,6 +179,7 @@ describe("InstallVersionChooser", () => {
     const installButton = anchor();
     render(
       <InstallVersionChooser
+        projectId="alpha"
         projectName="Alpha"
         anchor={installButton}
         choice={choice()}

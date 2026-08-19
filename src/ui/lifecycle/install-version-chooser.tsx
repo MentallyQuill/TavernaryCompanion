@@ -12,6 +12,7 @@ const ANCHOR_GAP = 8;
 type VersionChoice = Extract<PreparedInstallTargetChoice, { kind: "choose" }>;
 
 interface InstallVersionChooserProps {
+  projectId: string;
   projectName: string;
   anchor: HTMLElement;
   choice: VersionChoice;
@@ -21,6 +22,7 @@ interface InstallVersionChooserProps {
 }
 
 export function InstallVersionChooser({
+  projectId,
   projectName,
   anchor,
   choice,
@@ -37,7 +39,7 @@ export function InstallVersionChooser({
     top: VIEWPORT_MARGIN,
     visibility: "hidden",
   });
-  const headingId = `install-version-${choice.checked.selection.binding.projectId}-heading`;
+  const headingId = `install-version-${projectId}-heading`;
   const checkedDescriptionId = `${headingId}-checked-description`;
   const checkedDisabledId = `${headingId}-checked-disabled`;
   const newestDescriptionId = `${headingId}-newest-description`;
@@ -179,7 +181,7 @@ export function dispatchPreparedInstallChoice(
   else onChoose(choice);
 }
 
-function checkedVersionDescription(checkedAt: string): string {
+export function checkedVersionDescription(checkedAt: string): string {
   const date = new Date(checkedAt);
   const label = Number.isNaN(date.valueOf())
     ? "recently"
