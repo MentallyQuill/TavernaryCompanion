@@ -9,14 +9,12 @@ export function ActivitySummary({ activity }: ActivitySummaryProps): preact.JSX.
   if (activity.activeWeeks12 === null) {
     return <span>Activity unavailable</span>;
   }
+  const label = `Activity: ${activity.activeWeeks12} of 12 active weeks${
+    activity.dormant ? ", dormant" : ""
+  }`;
   return (
-    <span class="tavernary-companion-activity-summary">
-      <span>
-        <b>Activity</b> ·{" "}
-        <span>
-          {activity.activeWeeks12} of 12 active weeks{activity.dormant ? " · Dormant" : ""}
-        </span>
-      </span>
+    <span class="tavernary-companion-activity-summary" aria-label={label}>
+      <b aria-hidden="true">Activity</b>
       <ActivityStrip weeks={activity.weeklyActivity} />
     </span>
   );

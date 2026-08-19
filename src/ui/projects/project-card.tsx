@@ -27,6 +27,7 @@ export function ProjectCard({
 }: ProjectCardProps): preact.JSX.Element {
   const selfProtected =
     project.id === COMPANION_PROJECT_ID || project.action.kind === "current-extension";
+  const compactInstall = project.action.kind === "install";
   return (
     <article class="tavernary-companion-project-card" data-project-id={project.id}>
       <header class="tavernary-companion-project-card__top">
@@ -79,7 +80,7 @@ export function ProjectCard({
           type="button"
           data-focus-key={`project-${project.id}`}
           onClick={onOpen}
-          aria-label={`View ${project.name}`}
+          aria-label={`View ${project.name} details`}
         >
           Details
         </button>
@@ -91,16 +92,18 @@ export function ProjectCard({
           <button
             type="button"
             class={`tavernary-companion-project-card__primary tavernary-companion-button ${
-              project.action.kind === "view-project"
-                ? "tavernary-companion-button--secondary"
-                : "tavernary-companion-button--primary"
+              compactInstall
+                ? "tavernary-companion-project-card__compact-action tavernary-companion-button--primary"
+                : project.action.kind === "view-project"
+                  ? "tavernary-companion-button--secondary"
+                  : "tavernary-companion-button--primary"
             }`}
             data-testid="project-primary-action"
             aria-label={`${project.action.label} ${project.name}`}
             onClick={() => onAction(project.action)}
             disabled={lifecycleDisabled}
           >
-            {project.action.label}
+            {compactInstall ? <span aria-hidden="true">+</span> : project.action.label}
           </button>
         )}
       </footer>

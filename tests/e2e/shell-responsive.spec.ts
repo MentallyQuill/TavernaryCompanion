@@ -76,6 +76,11 @@ test("mobile follows Tavernary's compact catalog hierarchy", async ({ page }) =>
   expect(firstCard!.x).toBeGreaterThanOrEqual(12);
   expect(firstCard!.x).toBeLessThanOrEqual(16);
   expect(firstCard!.x + firstCard!.width).toBeLessThanOrEqual(378);
+  const compactAction = await page.getByRole("button", { name: "Install Alpha" }).boundingBox();
+  expect(compactAction).not.toBeNull();
+  expect(compactAction!.width).toBeGreaterThanOrEqual(44);
+  expect(compactAction!.height).toBeGreaterThanOrEqual(44);
+  expect(Math.abs(compactAction!.width - compactAction!.height)).toBeLessThanOrEqual(1);
   expect(
     await page
       .locator(".tavernary-companion-project-grid")

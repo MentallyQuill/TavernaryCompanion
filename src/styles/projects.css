@@ -245,9 +245,10 @@
 }
 
 .tavernary-companion-activity-summary {
-  display: grid;
-  justify-items: end;
-  gap: 0.2rem;
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.35rem;
 }
 
 .tavernary-companion-activity-strip {
@@ -375,6 +376,18 @@
 
 .tavernary-companion-project-card__primary {
   margin-inline-start: auto;
+}
+
+.tavernary-companion-project-card__compact-action {
+  display: inline-grid;
+  place-items: center;
+  inline-size: 36px;
+  min-inline-size: 36px;
+  block-size: 36px;
+  min-block-size: 36px;
+  padding: 0 !important;
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .tavernary-companion-installed-section,

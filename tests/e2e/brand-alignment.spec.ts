@@ -117,7 +117,13 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
     shadow: "rgba(0, 0, 0, 0.24) 0px 1px 2px 0px, rgba(0, 0, 0, 0.12) 0px 4px 12px 0px",
   });
   await expect(card.locator(".tavernary-companion-activity-strip i")).toHaveCount(12);
+  await expect(card.locator(".tavernary-companion-activity-summary")).toHaveCSS("display", "flex");
   await expect(primary).toHaveCSS("background-color", "rgb(225, 138, 36)");
+  const primaryBox = await primary.boundingBox();
+  expect(primaryBox).not.toBeNull();
+  expect(Math.abs(primaryBox!.width - primaryBox!.height)).toBeLessThanOrEqual(1);
+  expect(primaryBox!.height).toBeGreaterThanOrEqual(36);
+  expect(primaryBox!.height).toBeLessThanOrEqual(40);
 });
 
 test("Kits and Installed reuse the Tavernary card and control system", async ({ page }) => {

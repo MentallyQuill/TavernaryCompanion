@@ -55,18 +55,40 @@ describe("ProjectCard", () => {
     expect(screen.getByRole("heading", { name: "Alpha" })).toBeVisible();
     expect(screen.getByText("Extension")).toBeVisible();
     expect(screen.getByText("Interface & Workflow")).toBeVisible();
-    expect(screen.getByText("5 of 12 active weeks")).toBeVisible();
+    expect(screen.queryByText("5 of 12 active weeks")).not.toBeInTheDocument();
+    expect(screen.getByLabelText("Activity: 5 of 12 active weeks")).toBeVisible();
     expect(screen.getByText("Not assessed")).toBeVisible();
     expect(screen.getByText("SillyTavern")).toBeVisible();
     expect(screen.getByText("Workflow")).toBeVisible();
     expect(screen.getByText("MIT")).toBeVisible();
     expect(document.querySelectorAll(".tavernary-companion-activity-strip i")).toHaveLength(12);
-    expect(screen.getAllByTestId("project-primary-action")).toHaveLength(1);
+    const install = screen.getByRole("button", { name: "Install Alpha" });
+    expect(install).toHaveClass("tavernary-companion-project-card__compact-action");
+    expect(install).toHaveTextContent("+");
+    expect(screen.getByRole("button", { name: "View Alpha details" })).toBeVisible();
 
-    fireEvent.click(screen.getByRole("button", { name: "Install Alpha" }));
+    fireEvent.click(install);
     expect(onAction).toHaveBeenCalledWith(project().action);
-    fireEvent.click(screen.getByRole("button", { name: "View Alpha" }));
+    fireEvent.click(screen.getByRole("button", { name: "View Alpha details" }));
     expect(onOpen).toHaveBeenCalledOnce();
+  });
+
+  it("keeps destructive uninstall actions visibly labeled", () => {
+    render(
+      <ProjectCard
+        project={project({
+          installed: true,
+          ownership: "managed",
+          action: { kind: "uninstall", label: "Uninstall", reason: "Managed by Companion" },
+        })}
+        onOpen={vi.fn()}
+        onAction={vi.fn()}
+      />,
+    );
+
+    const uninstall = screen.getByRole("button", { name: "Uninstall Alpha" });
+    expect(uninstall).toHaveTextContent("Uninstall");
+    expect(uninstall).not.toHaveClass("tavernary-companion-project-card__compact-action");
   });
 
   it("explains browse-only actions without presenting them as installable", () => {
