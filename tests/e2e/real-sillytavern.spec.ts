@@ -18,7 +18,14 @@ test.describe("real SillyTavern acceptance", () => {
     const close = dialog.locator(":scope > .popup-button-close");
     await expect(root).toBeVisible();
     await expect(close).toBeVisible();
+    await expect(close).toHaveClass(/fa-circle-xmark/u);
+    await expect(close).toHaveAttribute("role", "button");
+    await expect(close).toHaveAttribute("tabindex", "0");
+    await expect(close).toHaveAccessibleName("Close popup");
     await expect(close).toHaveCSS("font-family", /Font Awesome/u);
+    expect(await close.evaluate((element) => getComputedStyle(element, "::before").content)).toBe(
+      '"×" / ""',
+    );
     const backdrop = await dialog.evaluate((element) => {
       const styles = getComputedStyle(element, "::backdrop");
       return { background: styles.backgroundColor, filter: styles.backdropFilter };
@@ -161,12 +168,17 @@ test.describe("real SillyTavern acceptance", () => {
       .toBeLessThanOrEqual(390);
     const rootBox = await root.boundingBox();
     const closeBox = await close.boundingBox();
+    const refreshBox = await root.getByRole("button", { name: "Refresh catalog" }).boundingBox();
     expect(rootBox).not.toBeNull();
     expect(closeBox).not.toBeNull();
-    expect(rootBox!.y).toBeGreaterThanOrEqual(52);
-    expect(closeBox!.x).toBeGreaterThanOrEqual(0);
-    expect(closeBox!.x + closeBox!.width).toBeLessThanOrEqual(390);
-    expect(closeBox!.y + closeBox!.height).toBeLessThanOrEqual(rootBox!.y - 4);
+    expect(refreshBox).not.toBeNull();
+    expect(rootBox!.y).toBeLessThanOrEqual(12);
+    expect(closeBox!.x).toBeGreaterThanOrEqual(rootBox!.x);
+    expect(closeBox!.x + closeBox!.width).toBeLessThanOrEqual(rootBox!.x + rootBox!.width);
+    expect(closeBox!.y).toBeGreaterThanOrEqual(rootBox!.y);
+    expect(closeBox!.y + closeBox!.height).toBeLessThanOrEqual(rootBox!.y + 56);
+    expect(refreshBox!.x + refreshBox!.width).toBeLessThanOrEqual(closeBox!.x - 6);
+    await expect(root.locator(".tavernary-companion-catalog-freshness")).toBeHidden();
 
     await page.mouse.click(8, 8);
     await expect(root).toBeHidden();

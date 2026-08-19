@@ -105,10 +105,9 @@ test("shell is constrained by a narrower native popup content box", async ({ pag
   expect(await page.locator("#app").evaluate((app) => app.scrollWidth - app.clientWidth)).toBe(0);
 });
 
-test("native popup becomes a transparent blurred overlay with an external close control", async ({
-  page,
-}) => {
+test("native popup integrates a quiet close control into the header", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
+  await page.clock.setFixedTime(new Date("2026-08-18T18:00:00-06:00"));
   await openHarness(page);
   await page.evaluate(() => {
     const root = document.querySelector(".tavernary-companion-root")!;
@@ -117,12 +116,17 @@ test("native popup becomes a transparent blurred overlay with an external close 
     dialog.style.padding = "4px 14px";
     dialog.style.border = "1px solid rgb(90 90 90)";
     dialog.style.background = "rgb(32 32 32)";
-    const close = document.createElement("button");
-    close.type = "button";
-    close.className = "popup-button-close fa-solid fa-xmark";
-    close.setAttribute("aria-label", "Close Tavernary Companion");
+    const close = document.createElement("div");
+    close.className = "popup-button-close right_menu_button interactable fa-solid fa-circle-xmark";
+    close.dataset.result = "0";
+    close.tabIndex = 0;
+    close.setAttribute("role", "button");
+    close.title = "Close popup";
     const hostStyles = document.createElement("style");
-    hostStyles.textContent = '.fa-solid { font-family: "Font Awesome 6 Free"; }';
+    hostStyles.textContent = `
+      .fa-solid { font-family: "Font Awesome 6 Free"; }
+      .fa-circle-xmark::before { content: "⊗"; }
+    `;
     const body = document.createElement("div");
     body.className = "popup-body";
     const content = document.createElement("div");
@@ -153,20 +157,39 @@ test("native popup becomes a transparent blurred overlay with an external close 
   expect(styles.backdropColor).not.toBe("rgba(0, 0, 0, 0)");
 
   const root = await page.locator(".tavernary-companion-root").boundingBox();
-  const close = await page.getByRole("button", { name: "Close Tavernary Companion" }).boundingBox();
+  const close = await page.getByRole("button", { name: "Close popup" }).boundingBox();
+  const refresh = await page.getByRole("button", { name: "Refresh catalog" }).boundingBox();
   expect(root).not.toBeNull();
   expect(close).not.toBeNull();
+  expect(refresh).not.toBeNull();
   expect(close!.width).toBeGreaterThanOrEqual(44);
   expect(close!.height).toBeGreaterThanOrEqual(44);
-  expect(close!.x).toBeGreaterThan(root!.x + root!.width - 8);
-  expect(close!.y).toBeLessThan(root!.y + 8);
-  await expect(page.getByRole("button", { name: "Close Tavernary Companion" })).toHaveCSS(
-    "font-family",
-    /Font Awesome/u,
+  expect(close!.x).toBeGreaterThanOrEqual(root!.x + root!.width - 60);
+  expect(close!.x + close!.width).toBeLessThanOrEqual(root!.x + root!.width - 6);
+  expect(close!.y).toBeGreaterThanOrEqual(root!.y + 6);
+  expect(close!.y + close!.height).toBeLessThanOrEqual(root!.y + 54);
+  expect(refresh!.x + refresh!.width).toBeLessThanOrEqual(close!.x - 6);
+  await expect(page.getByRole("button", { name: "Close popup" })).toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
   );
+  await expect(page.getByRole("button", { name: "Close popup" })).toHaveCSS(
+    "border-top-width",
+    "0px",
+  );
+  await expect(page.getByRole("button", { name: "Close popup" })).toHaveCSS("box-shadow", "none");
+  expect(
+    await page
+      .getByRole("button", { name: "Close popup" })
+      .evaluate((button) => getComputedStyle(button, "::before").content),
+  ).toBe('"×" / ""');
+  await page.getByRole("button", { name: "Close popup" }).focus();
+  await expect(page.getByRole("button", { name: "Close popup" })).toHaveCSS("outline-width", "2px");
+  await page.getByRole("button", { name: "Close popup" }).evaluate((button) => button.blur());
+  await expect(page).toHaveScreenshot("integrated-close-1440x960.png");
 });
 
-test("intermediate desktop keeps the external close control inside the viewport", async ({
+test("intermediate desktop keeps the integrated close control inside the panel", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 800, height: 600 });
@@ -175,11 +198,12 @@ test("intermediate desktop keeps the external close control inside the viewport"
     const root = document.querySelector(".tavernary-companion-root")!;
     const dialog = document.createElement("dialog");
     dialog.className = "popup wide_dialogue_popup large_dialogue_popup transparent_dialogue_popup";
-    const close = document.createElement("button");
-    close.type = "button";
-    close.className = "popup-button-close";
-    close.setAttribute("aria-label", "Close Tavernary Companion");
-    close.textContent = "×";
+    const close = document.createElement("div");
+    close.className = "popup-button-close right_menu_button interactable fa-solid fa-circle-xmark";
+    close.dataset.result = "0";
+    close.tabIndex = 0;
+    close.setAttribute("role", "button");
+    close.title = "Close popup";
     const body = document.createElement("div");
     body.className = "popup-body";
     const content = document.createElement("div");
@@ -192,27 +216,28 @@ test("intermediate desktop keeps the external close control inside the viewport"
   });
 
   const root = await page.locator(".tavernary-companion-root").boundingBox();
-  const close = await page.getByRole("button", { name: "Close Tavernary Companion" }).boundingBox();
+  const close = await page.getByRole("button", { name: "Close popup" }).boundingBox();
   expect(root).not.toBeNull();
   expect(close).not.toBeNull();
-  expect(close!.x + close!.width / 2).toBeGreaterThan(root!.x + root!.width);
+  expect(close!.x).toBeGreaterThanOrEqual(root!.x);
+  expect(close!.x + close!.width).toBeLessThanOrEqual(root!.x + root!.width);
   expect(close!.x + close!.width).toBeLessThanOrEqual(796);
 });
 
-test("mobile keeps the native close control above the Companion surface and inside the viewport", async ({
-  page,
-}) => {
+test("mobile reclaims the external close row and keeps refresh left of close", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
+  await page.clock.setFixedTime(new Date("2026-08-18T18:00:00-06:00"));
   await openHarness(page);
   await page.evaluate(() => {
     const root = document.querySelector(".tavernary-companion-root")!;
     const dialog = document.createElement("dialog");
     dialog.className = "popup wide_dialogue_popup large_dialogue_popup transparent_dialogue_popup";
-    const close = document.createElement("button");
-    close.type = "button";
-    close.className = "popup-button-close";
-    close.setAttribute("aria-label", "Close Tavernary Companion");
-    close.textContent = "×";
+    const close = document.createElement("div");
+    close.className = "popup-button-close right_menu_button interactable fa-solid fa-circle-xmark";
+    close.dataset.result = "0";
+    close.tabIndex = 0;
+    close.setAttribute("role", "button");
+    close.title = "Close popup";
     const body = document.createElement("div");
     body.className = "popup-body";
     const content = document.createElement("div");
@@ -225,14 +250,40 @@ test("mobile keeps the native close control above the Companion surface and insi
   });
 
   const root = await page.locator(".tavernary-companion-root").boundingBox();
-  const close = await page.getByRole("button", { name: "Close Tavernary Companion" }).boundingBox();
+  const close = await page.getByRole("button", { name: "Close popup" }).boundingBox();
+  const refresh = await page.getByRole("button", { name: "Refresh catalog" }).boundingBox();
   expect(root).not.toBeNull();
   expect(close).not.toBeNull();
-  expect(root!.y).toBeGreaterThanOrEqual(52);
-  expect(close!.x).toBeGreaterThanOrEqual(0);
-  expect(close!.x + close!.width).toBeLessThanOrEqual(390);
-  expect(close!.y + close!.height).toBeLessThanOrEqual(root!.y - 4);
+  expect(refresh).not.toBeNull();
+  expect(root!.y).toBeLessThanOrEqual(12);
+  expect(close!.x).toBeGreaterThanOrEqual(root!.x);
+  expect(close!.x + close!.width).toBeLessThanOrEqual(root!.x + root!.width);
+  expect(close!.y).toBeGreaterThanOrEqual(root!.y);
+  expect(close!.y + close!.height).toBeLessThanOrEqual(root!.y + 56);
+  expect(refresh!.x + refresh!.width).toBeLessThanOrEqual(close!.x - 6);
+  await expect(page.locator(".tavernary-companion-catalog-freshness")).toBeHidden();
   expect(root!.y + root!.height).toBeLessThanOrEqual(844);
+  await page.getByRole("button", { name: "Close popup" }).evaluate((button) => button.blur());
+  await expect(page).toHaveScreenshot("integrated-close-390x844.png");
+});
+
+test("touch devices hide header freshness even with a desktop-width viewport", async ({
+  browser,
+}) => {
+  const page = await browser.newPage({
+    viewport: { width: 980, height: 720 },
+    hasTouch: true,
+    isMobile: true,
+  });
+  try {
+    await openHarness(page);
+    await expect(
+      page.locator(".tavernary-companion-shell__header").getByText(/^Updated /u),
+    ).toBeHidden();
+    await expect(page.getByRole("button", { name: "Refresh catalog" })).toBeVisible();
+  } finally {
+    await page.close();
+  }
 });
 
 for (const viewport of [

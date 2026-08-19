@@ -41,30 +41,39 @@ dialog.popup:has(.tavernary-companion-root)::backdrop {
 dialog.popup:has(.tavernary-companion-root) > .popup-button-close {
   position: absolute !important;
   z-index: 140 !important;
-  inset-block-start: 0 !important;
-  inset-inline-end: max(-52px, calc((92vw - 100vw) / 2 + 4px)) !important;
+  inset-block-start: 7px !important;
+  inset-inline-end: 7px !important;
   display: grid !important;
-  inline-size: 46px !important;
-  min-inline-size: 46px !important;
-  block-size: 46px !important;
-  min-block-size: 46px !important;
+  inline-size: 44px !important;
+  min-inline-size: 44px !important;
+  block-size: 44px !important;
+  min-block-size: 44px !important;
   margin: 0 !important;
   padding: 0 !important;
-  border: 1px solid rgb(255 255 255 / 0.16) !important;
-  border-radius: 50% !important;
-  color: rgb(245 245 245) !important;
-  background: rgb(83 87 92 / 0.96) !important;
-  box-shadow: 0 8px 22px rgb(0 0 0 / 0.38) !important;
+  border: 0 !important;
+  border-radius: 6px !important;
+  color: var(--tavernary-color-text-muted) !important;
+  background: transparent !important;
+  box-shadow: none !important;
   filter: none !important;
-  font-size: 26px !important;
+  font-size: 22px !important;
   font-weight: 700 !important;
   line-height: 1 !important;
   cursor: pointer !important;
   place-items: center !important;
 }
 
+dialog.popup:has(.tavernary-companion-root) > .popup-button-close::before {
+  content: "×" / "" !important;
+  font-family: "Inter Variable", Inter, system-ui, sans-serif !important;
+  font-size: 24px !important;
+  font-weight: 500 !important;
+  line-height: 1 !important;
+}
+
 dialog.popup:has(.tavernary-companion-root) > .popup-button-close:hover {
-  background: rgb(105 109 114 / 0.98) !important;
+  color: var(--tavernary-color-text-primary) !important;
+  background: rgb(255 255 255 / 0.07) !important;
 }
 
 dialog.popup:has(.tavernary-companion-root) > .popup-button-close:focus-visible {
@@ -119,7 +128,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   align-items: center;
   gap: 1rem;
   min-block-size: 58px;
-  padding: 0.55rem 1rem;
+  padding: 0.55rem 4rem 0.55rem 1rem;
   border-block-end: 1px solid var(--tavernary-color-border-subtle);
   background: var(--tavernary-color-bg-header);
 }

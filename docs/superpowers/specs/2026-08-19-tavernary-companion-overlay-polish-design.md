@@ -15,7 +15,7 @@ Make Tavernary Companion feel like a purpose-built Tavernary surface inside Sill
 
 The SillyTavern native dialog remains the lifecycle owner, but its visible grey container, border, padding, and shadow are removed for the Companion instance. The Companion root becomes the only visible panel. Its backdrop uses a deliberate dark tint and blur so SillyTavern remains recognizable but visually recedes.
 
-The native close control becomes a large grey circular button visually outside the Companion panel. It remains inside the viewport and safe area at desktop and mobile sizes, has a 44px or larger target, a visible focus indicator, and the native close semantics. Pointer activation on the native dialog backdrop closes Companion; pointer activation inside the root never does. Escape and launcher focus restoration continue to use the native popup lifecycle.
+The native close control sits in the Companion header's top-right corner as a quiet grey X with a transparent 44px target, a subtle hover surface, a visible focus indicator, and the native close semantics. Refresh sits immediately to its left. Pointer activation on the native dialog backdrop closes Companion; pointer activation inside the root never does. Escape and launcher focus restoration continue to use the native popup lifecycle.
 
 ## Shared shell and typography
 
@@ -43,7 +43,7 @@ Installed Kits appear first as visibly grouped Kit cards. Each Kit card lists it
 
 ## Responsive behavior
 
-Desktop uses a single centered overlay with the floating close control outside its top-right edge. Mobile uses the same single surface, sized to the viewport and safe areas, with the close control remaining reachable and visually separate. Each route keeps one vertical scroll owner. No document, dialog, shell, route, card, filter sheet, or popover creates horizontal overflow at target viewports or 200% text.
+Desktop uses a single centered overlay with refresh and close integrated into the header's right edge. Mobile uses the same single surface, sized to the viewport and safe areas, without reserving a separate row for close; header freshness copy is omitted on touch presentations, including desktop-width mobile viewports. Each route keeps one vertical scroll owner. No document, dialog, shell, route, card, filter sheet, or popover creates horizontal overflow at target viewports or 200% text.
 
 ## Playwright release gate
 
