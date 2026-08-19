@@ -8,7 +8,7 @@ It is built for players, so your current SillyTavern setup stays in your control
 
 - Browse the Tavernary catalog from inside SillyTavern.
 - Install and remove extensions that Companion manages.
-- Check catalog-matched installed extensions for updates and apply an exact version you choose.
+- Check catalog-matched installed extensions for updates and apply an exact version you choose when the SillyTavern host supports Companion's exact-update service.
 - Save, switch, and track your extension sets with Kits.
 - Preserve the ownership of manually installed or external extensions.
 - Let you choose the TavernKeeper-checked version or the newest version when they differ.

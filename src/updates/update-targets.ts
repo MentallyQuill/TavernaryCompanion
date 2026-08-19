@@ -44,6 +44,7 @@ export function matchesUpdateBinding(
   },
 ): boolean {
   return (
+    selection.binding.requestedSha === selection.target.requestedSha &&
     selection.binding.installedSha === current.installedSha &&
     selection.binding.catalogGeneratedAt === current.catalogGeneratedAt &&
     selection.binding.projectId === current.project.id &&
@@ -98,7 +99,7 @@ export function deriveUpdateAvailability({
   ) {
     return {
       kind: "attention",
-      reason: "Update SillyTavern to update this extension safely.",
+      reason: "This SillyTavern build does not support exact Companion updates.",
     };
   }
   const targets: UpdateTarget[] = [];

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "preac
 
 import type { PreparedUpdateChoice } from "../../updates/update-coordinator";
 import type { PreparedUpdateSelection } from "../../updates/update-types";
+import { checkedVersionDescription } from "../lifecycle/install-version-chooser";
 import { resolveOverlayPortalTarget } from "../shared/overlay-portal";
 
 const VIEWPORT_MARGIN = 8;
@@ -116,6 +117,10 @@ export function UpdateVersionChooser({
         ) : null}
         {choice.selections.map((selection, index) => {
           const checked = selection.target.kind === "checked";
+          const description =
+            selection.target.kind === "checked"
+              ? `The latest version scanned by TavernKeeper. ${checkedVersionDescription(selection.target.checkedAt)}`
+              : "The latest version from the creator. It may include changes TavernKeeper hasn't checked yet.";
           const descriptionId = `${headingId}-${selection.target.kind}-description`;
           return (
             <button
@@ -127,11 +132,7 @@ export function UpdateVersionChooser({
               onClick={() => select(selection)}
             >
               <strong>{checked ? "Latest scanned version" : "Newest version"}</strong>
-              <span id={descriptionId}>
-                {checked
-                  ? "The latest version scanned by TavernKeeper."
-                  : "The latest version from the creator. It may include changes TavernKeeper hasn't checked yet."}
-              </span>
+              <span id={descriptionId}>{description}</span>
             </button>
           );
         })}

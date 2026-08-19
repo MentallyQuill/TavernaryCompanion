@@ -2,6 +2,8 @@
 
 Open **Installed** to refresh the installed list and check catalog-matched local extensions for updates. Use **Check again** whenever you want a fresh check.
 
+Exact checks and updates require a compatible SillyTavern host that exposes Companion's exact-update service. Standard SillyTavern releases do not currently expose that service. On those builds, Companion shows **Needs attention** and hands the extension back to SillyTavern's extension manager instead of falling back to an unverified update.
+
 Each extension shows one compact result: **Update available**, **Up to date**, **Could not check**, or **Needs attention**. A failed check has its own **Retry** action.
 
 ## Choose the version
@@ -23,6 +25,6 @@ A catalog-matched extension installed outside Companion can be updated, but it r
 
 ## Finish the update
 
-After SillyTavern applies the exact version, Companion rediscovers the extension and verifies the installed commit. A successful update leaves **Reload to apply updates** visible. You can update other extensions first, then choose **Reload now** once.
+After SillyTavern applies the exact version, Companion rediscovers the extension and verifies the installed commit. A successful update leaves **Reload to apply updates** visible for the current Companion session. You can update other extensions first, then choose **Reload now** once.
 
 V1 intentionally has no bulk update, background polling, persisted update cache, or self-update control.

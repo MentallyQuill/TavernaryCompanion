@@ -200,6 +200,13 @@ describe("lifecycle UI", () => {
       completedThrough: "recorded",
       safeError: null,
       reloadRequired: true,
+      installProvenance: {
+        targetKind: "checked",
+        requestedSha: "a".repeat(40),
+        installedSha: "a".repeat(40),
+        catalogGeneratedAt: "2026-08-18T09:00:00.000Z",
+        tavernKeeperReportId: "report-alpha",
+      },
     });
 
     render(
@@ -212,7 +219,7 @@ describe("lifecycle UI", () => {
     );
 
     expect(screen.getByRole("status", { name: "Update complete" })).toHaveTextContent(
-      "Reload to apply updates",
+      "Updated to the latest scanned version. Reload to apply updates",
     );
     act(() => {
       vi.advanceTimersByTime(30_000);
@@ -220,6 +227,30 @@ describe("lifecycle UI", () => {
     expect(onDismissReceipt).not.toHaveBeenCalled();
     fireEvent.click(screen.getByRole("button", { name: "Reload now" }));
     expect(onReload).toHaveBeenCalledOnce();
+  });
+
+  it("offers reload after a verified update whose profile record could not be saved", () => {
+    const receipt = createReceipt({
+      id: "receipt-update-unrecorded",
+      kind: "update",
+      projectId: "alpha",
+      projectName: "Alpha",
+      startedAt: "2026-08-18T10:00:00.000Z",
+      finishedAt: "2026-08-18T10:01:00.000Z",
+      status: "updated-unrecorded",
+      completedThrough: "verified",
+      failedAt: "recorded",
+      safeError:
+        "The extension was updated and verified, but Companion could not save its update record. Reopen Companion to reconcile it.",
+      reloadRequired: true,
+    });
+
+    render(<OperationTray active={null} receipt={receipt} onReload={vi.fn()} />);
+
+    expect(screen.getByRole("status", { name: "Update complete" })).toHaveTextContent(
+      "could not save its update record",
+    );
+    expect(screen.getByRole("button", { name: "Reload now" })).toBeEnabled();
   });
 
   it("dismisses a successful receipt when its notification is clicked", () => {

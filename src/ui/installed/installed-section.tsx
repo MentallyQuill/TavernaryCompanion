@@ -119,6 +119,9 @@ function InstalledCard({
       {kitTitles.length ? (
         <div class="tavernary-companion-installed-memberships">In {kitTitles.join(", ")}</div>
       ) : null}
+      {updateState?.kind === "attention" ? (
+        <p class="tavernary-companion-installed-attention-reason">{updateState.reason}</p>
+      ) : null}
       <footer>
         {row.toggleable && row.internalName && row.enabled !== null ? (
           <button
@@ -155,6 +158,16 @@ function InstalledCard({
             onClick={() => onRetryUpdate?.(row.id)}
           >
             Retry
+          </button>
+        ) : null}
+        {updateState?.kind === "attention" && !unknown ? (
+          <button
+            type="button"
+            aria-label={`Manage ${row.name} in SillyTavern`}
+            disabled={lifecycleDisabled}
+            onClick={() => onManage?.()}
+          >
+            Manage in SillyTavern
           </button>
         ) : null}
         {unknown ? (

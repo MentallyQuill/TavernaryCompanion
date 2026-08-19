@@ -75,7 +75,7 @@ export function InstalledRoute({
         <button
           type="button"
           aria-label={checkingUpdates ? "Checking for updates" : "Check for updates"}
-          disabled={checkingUpdates}
+          disabled={checkingUpdates || lifecycleDisabled}
           onClick={() => void onCheckUpdates?.()}
         >
           {checkingUpdates ? "Checking…" : "Check again"}

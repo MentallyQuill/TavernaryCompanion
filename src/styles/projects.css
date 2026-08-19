@@ -1851,6 +1851,13 @@
   color: var(--tavernary-companion-high);
 }
 
+.tavernary-companion-installed-attention-reason {
+  margin: 2px 0 10px;
+  color: var(--tavernary-color-text-secondary);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
 .tavernary-companion-installed-memberships,
 .tavernary-companion-installed-kit-components {
   display: flex;

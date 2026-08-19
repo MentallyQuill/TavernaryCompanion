@@ -36,8 +36,32 @@ test("checks, confirms, and applies an Installed extension update", async ({ pag
 
   await chooser.getByRole("button", { name: "Newest version" }).click();
   const reload = page.getByRole("status", { name: "Update complete" });
-  await expect(reload).toContainText("Writer Tool updated. Reload to apply updates.");
+  await expect(reload).toContainText("Updated to the newest version. Reload to apply updates.");
   await expect(reload.getByRole("button", { name: "Reload now" })).toBeVisible();
   await expect(card.getByText("Up to date")).toBeVisible();
   await expect(card.getByRole("button", { name: "Update Writer Tool" })).toHaveCount(0);
+});
+
+test("keeps the update chooser inside a narrow viewport", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHarness(page, "installed-update");
+  await page.getByRole("button", { name: "Browse categories" }).click();
+  await page
+    .getByRole("group", { name: "Browse categories menu" })
+    .getByRole("button", { name: "Installed" })
+    .click();
+
+  const card = page.locator(".tavernary-companion-installed-card", {
+    has: page.getByRole("heading", { name: "Writer Tool" }),
+  });
+  await card.getByRole("button", { name: "Update Writer Tool" }).click();
+  const chooser = page.getByRole("dialog", { name: "Update Writer Tool" });
+  await expect(chooser).toBeVisible();
+  const bounds = await chooser.boundingBox();
+
+  expect(bounds).not.toBeNull();
+  expect(bounds!.x).toBeGreaterThanOrEqual(0);
+  expect(bounds!.x + bounds!.width).toBeLessThanOrEqual(390);
+  expect(bounds!.y).toBeGreaterThanOrEqual(0);
+  expect(bounds!.y + bounds!.height).toBeLessThanOrEqual(844);
 });

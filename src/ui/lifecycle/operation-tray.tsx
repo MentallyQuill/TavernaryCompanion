@@ -49,7 +49,10 @@ export function OperationTray({
     );
   }
   if (receipt) {
-    if (receipt.kind === "update" && receipt.status === "succeeded") {
+    if (
+      receipt.kind === "update" &&
+      (receipt.status === "succeeded" || receipt.status === "updated-unrecorded")
+    ) {
       return (
         <aside
           class="tavernary-companion-operation-tray tavernary-companion-update-reload"
@@ -58,8 +61,9 @@ export function OperationTray({
           aria-live="polite"
         >
           <p>
-            <strong>{receipt.projectName} updated.</strong> Reload to apply updates.
+            <strong>{updateSuccessLabel(receipt)}</strong> Reload to apply updates.
           </p>
+          {receipt.safeError ? <p>{receipt.safeError}</p> : null}
           <button type="button" onClick={onReload}>
             Reload now
           </button>
@@ -76,6 +80,16 @@ export function OperationTray({
     );
   }
   return null;
+}
+
+function updateSuccessLabel(receipt: LifecycleReceipt): string {
+  if (receipt.installProvenance?.targetKind === "checked") {
+    return "Updated to the latest scanned version.";
+  }
+  if (receipt.installProvenance?.targetKind === "newest") {
+    return "Updated to the newest version.";
+  }
+  return `${receipt.projectName} updated.`;
 }
 
 function phaseLabel(phase: string): string {

@@ -10,6 +10,7 @@ import { selectTrustPrompts } from "../trust/trust-policy";
 import type { TrustPrompt } from "../trust/trust-types";
 import { isFullCommitSha } from "../lifecycle/install-target";
 import { COMPANION_PROJECT_ID } from "../lifecycle/self-protection";
+import { createRuntimeId } from "../runtime-id";
 import {
   bindUpdateSelection,
   deriveUpdateAvailability,
@@ -67,6 +68,7 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
   readonly #subscribers = new Set<(snapshot: ExtensionUpdateSnapshot) => void>();
   #snapshot: ExtensionUpdateSnapshot = { states: {} };
   #checkedEvidence: Record<string, { installedSha: string; internalName: string }> = {};
+  #checkSequence: Record<string, number> = {};
   #generation = 0;
 
   constructor(options: ExtensionUpdateCoordinatorOptions) {
@@ -77,7 +79,7 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
     this.#store = options.store;
     this.#confirm = options.confirm;
     this.#now = options.now ?? (() => new Date().toISOString());
-    this.#createId = options.createId ?? (() => crypto.randomUUID());
+    this.#createId = options.createId ?? createRuntimeId;
   }
 
   read(): ExtensionUpdateSnapshot {
@@ -92,6 +94,10 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
   async check(projectId: string): Promise<void> {
     if (projectId === COMPANION_PROJECT_ID) return;
     const generation = this.#generation;
+    const sequence = (this.#checkSequence[projectId] ?? 0) + 1;
+    this.#checkSequence[projectId] = sequence;
+    const isCurrent = () =>
+      generation === this.#generation && sequence === this.#checkSequence[projectId];
     this.#setState(projectId, { kind: "checking" });
     const snapshot = this.#getSnapshot();
     const inventory = this.#getInventory();
@@ -117,14 +123,14 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
         branch: project.install.branch,
         candidateShas,
       });
-      if (generation !== this.#generation) return;
+      if (!isCurrent()) return;
       this.#checkedEvidence[projectId] = {
         installedSha: inspection.installedSha,
         internalName: entry.extension.internalName,
       };
       this.#setState(projectId, deriveUpdateAvailability({ project, inspection }));
     } catch (error) {
-      if (generation !== this.#generation) return;
+      if (!isCurrent()) return;
       delete this.#checkedEvidence[projectId];
       if (
         error instanceof HostOperationError &&
@@ -133,7 +139,7 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
       ) {
         this.#setState(projectId, {
           kind: "attention",
-          reason: "Update SillyTavern to check this extension safely.",
+          reason: "This SillyTavern build does not support exact Companion updates.",
         });
         return;
       }
@@ -169,6 +175,7 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
     this.#generation += 1;
     this.#snapshot = { states: {} };
     this.#checkedEvidence = {};
+    this.#checkSequence = {};
     const snapshot = this.read();
     for (const subscriber of this.#subscribers) subscriber(snapshot);
   }
@@ -283,6 +290,7 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
         }
 
         setPhase("host-request");
+        let applyResponseFailed = false;
         try {
           await this.#host.applyUpdate({
             internalName: entry.extension.internalName,
@@ -293,43 +301,87 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
             targetSha: selection.target.requestedSha,
           });
         } catch {
-          const receipt = createReceipt({
-            id: receiptId,
-            kind: "update",
-            projectId: project.id,
-            projectName: project.name,
-            startedAt,
-            finishedAt: this.#now(),
-            status: "failed",
-            completedThrough: "requested",
-            failedAt: "host-accepted",
-            safeError: "SillyTavern did not complete the extension update.",
-            reloadRequired: false,
-          });
-          await this.#store.update((draft) => {
-            if (disclosureAccepted && !draft.trustAcknowledgedAt) {
-              draft.trustAcknowledgedAt = this.#now();
-            }
-            draft.operationReceipt = structuredClone(receipt);
-          });
-          return receipt;
+          applyResponseFailed = true;
+        }
+        if (applyResponseFailed) {
+          let observedSha: string | null = null;
+          let outcomeKnown = false;
+          try {
+            const afterRequest = await this.#host.inspectUpdate({
+              internalName: entry.extension.internalName,
+              type: entry.extension.type,
+              repositoryUrl: project.install.repositoryUrl,
+              branch: project.install.branch,
+              candidateShas,
+            });
+            observedSha = afterRequest.installedSha;
+            outcomeKnown = true;
+          } catch {
+            // The request may have reached the host. Verification below must remain conservative.
+          }
+          if (outcomeKnown && observedSha === selection.binding.installedSha) {
+            const receipt = createReceipt({
+              id: receiptId,
+              kind: "update",
+              projectId: project.id,
+              projectName: project.name,
+              startedAt,
+              finishedAt: this.#now(),
+              status: "failed",
+              completedThrough: "requested",
+              failedAt: "host-accepted",
+              safeError: "SillyTavern did not complete the extension update.",
+              reloadRequired: false,
+            });
+            await this.#persistIncompleteReceipt(receipt, disclosureAccepted);
+            return receipt;
+          }
+          if (!outcomeKnown || observedSha !== selection.target.requestedSha) {
+            delete this.#checkedEvidence[project.id];
+            this.#setState(project.id, {
+              kind: "attention",
+              reason: "Companion could not verify the installed version. Manage it in SillyTavern.",
+            });
+            const receipt = createReceipt({
+              id: receiptId,
+              kind: "update",
+              projectId: project.id,
+              projectName: project.name,
+              startedAt,
+              finishedAt: this.#now(),
+              status: "verification-failed",
+              completedThrough: "requested",
+              failedAt: "verified",
+              safeError: "Companion could not determine whether SillyTavern applied the update.",
+              reloadRequired: false,
+            });
+            await this.#persistIncompleteReceipt(receipt, disclosureAccepted);
+            return receipt;
+          }
         }
 
         setPhase("verifying");
-        const discovered = await this.#host.discover();
-        const verifiedExtension = discovered.find(
-          (candidate) =>
-            candidate.internalName === entry.extension.internalName &&
-            candidate.folderName.toLocaleLowerCase("en-US") ===
-              entry.extension.folderName.toLocaleLowerCase("en-US") &&
-            candidate.type === entry.extension.type,
-        );
-        const installedSha = verifiedExtension
-          ? await this.#host.readLocalRevision({
-              internalName: verifiedExtension.internalName,
-              type: verifiedExtension.type,
-            })
-          : null;
+        let installedSha: string | null = null;
+        let verificationReadable = false;
+        try {
+          const discovered = await this.#host.discover();
+          const verifiedExtension = discovered.find(
+            (candidate) =>
+              candidate.internalName === entry.extension.internalName &&
+              candidate.folderName.toLocaleLowerCase("en-US") ===
+                entry.extension.folderName.toLocaleLowerCase("en-US") &&
+              candidate.type === entry.extension.type,
+          );
+          installedSha = verifiedExtension
+            ? await this.#host.readLocalRevision({
+                internalName: verifiedExtension.internalName,
+                type: verifiedExtension.type,
+              })
+            : null;
+          verificationReadable = true;
+        } catch {
+          // A successful host request without readable post-state is not a verified update.
+        }
         const provenance = {
           targetKind: selection.target.kind,
           requestedSha: selection.target.requestedSha,
@@ -338,7 +390,32 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
           tavernKeeperReportId:
             selection.target.kind === "checked" ? selection.target.reportId : null,
         } as const;
-        if (!verifiedExtension || installedSha !== selection.target.requestedSha) {
+        if (!verificationReadable) {
+          delete this.#checkedEvidence[project.id];
+          this.#setState(project.id, {
+            kind: "attention",
+            reason: "Companion could not verify the installed version. Manage it in SillyTavern.",
+          });
+          const receipt = createReceipt({
+            id: receiptId,
+            kind: "update",
+            projectId: project.id,
+            projectName: project.name,
+            startedAt,
+            finishedAt: this.#now(),
+            status: "verification-failed",
+            completedThrough: "host-accepted",
+            failedAt: "verified",
+            safeError: "Companion could not verify the installed extension after updating.",
+            reloadRequired: false,
+            installProvenance: provenance,
+            tavernKeeperReportUrl:
+              selection.target.kind === "checked" ? selection.target.reportUrl : null,
+          });
+          await this.#persistIncompleteReceipt(receipt, disclosureAccepted);
+          return receipt;
+        }
+        if (installedSha !== selection.target.requestedSha) {
           delete this.#checkedEvidence[project.id];
           this.#setState(project.id, {
             kind: "attention",
@@ -361,12 +438,7 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
             tavernKeeperReportUrl:
               selection.target.kind === "checked" ? selection.target.reportUrl : null,
           });
-          await this.#store.update((draft) => {
-            if (disclosureAccepted && !draft.trustAcknowledgedAt) {
-              draft.trustAcknowledgedAt = this.#now();
-            }
-            draft.operationReceipt = structuredClone(receipt);
-          });
+          await this.#persistIncompleteReceipt(receipt, disclosureAccepted);
           return receipt;
         }
 
@@ -386,16 +458,37 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
             selection.target.kind === "checked" ? selection.target.reportUrl : null,
         });
         setPhase("recording");
-        await this.#store.update((draft) => {
-          const managed = draft.managedExtensions[project.id];
-          if (managed && typeof managed === "object" && !Array.isArray(managed)) {
-            (managed as Record<string, unknown>).provenance = structuredClone(provenance);
-          }
-          if (disclosureAccepted && !draft.trustAcknowledgedAt) {
-            draft.trustAcknowledgedAt = this.#now();
-          }
-          draft.operationReceipt = structuredClone(receipt);
-        });
+        try {
+          await this.#store.update((draft) => {
+            const managed = draft.managedExtensions[project.id];
+            if (managed && typeof managed === "object" && !Array.isArray(managed)) {
+              (managed as Record<string, unknown>).provenance = structuredClone(provenance);
+            }
+            if (disclosureAccepted && !draft.trustAcknowledgedAt) {
+              draft.trustAcknowledgedAt = this.#now();
+            }
+            draft.operationReceipt = null;
+          });
+        } catch {
+          await this.check(project.id);
+          return createReceipt({
+            id: receiptId,
+            kind: "update",
+            projectId: project.id,
+            projectName: project.name,
+            startedAt,
+            finishedAt: this.#now(),
+            status: "updated-unrecorded",
+            completedThrough: "verified",
+            failedAt: "recorded",
+            safeError:
+              "The extension was updated and verified, but Companion could not save its update record. Reopen Companion to reconcile it.",
+            reloadRequired: true,
+            installProvenance: provenance,
+            tavernKeeperReportUrl:
+              selection.target.kind === "checked" ? selection.target.reportUrl : null,
+          });
+        }
         await this.check(project.id);
         return receipt;
       },
@@ -406,6 +499,20 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
     this.#snapshot.states[projectId] = structuredClone(state);
     const snapshot = this.read();
     for (const subscriber of this.#subscribers) subscriber(snapshot);
+  }
+
+  async #persistIncompleteReceipt(
+    receipt: LifecycleReceipt,
+    disclosureAccepted: boolean,
+  ): Promise<void> {
+    await this.#store
+      .update((draft) => {
+        if (disclosureAccepted && !draft.trustAcknowledgedAt) {
+          draft.trustAcknowledgedAt = this.#now();
+        }
+        draft.operationReceipt = structuredClone(receipt);
+      })
+      .catch(() => undefined);
   }
 }
 

@@ -152,6 +152,43 @@ describe("InstalledRoute", () => {
     expect(onCheckUpdates).toHaveBeenCalledOnce();
   });
 
+  it("disables update checks while another lifecycle operation is active", () => {
+    render(
+      <InstalledRoute
+        sections={sections}
+        updateStates={{ alpha: { kind: "current" } }}
+        lifecycleDisabled
+        onRefresh={vi.fn()}
+        onCheckUpdates={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("button", { name: "Check for updates" })).toBeDisabled();
+  });
+
+  it("shows the attention reason and a SillyTavern handoff", () => {
+    const onManage = vi.fn();
+    render(
+      <InstalledRoute
+        sections={sections}
+        updateStates={{
+          alpha: {
+            kind: "attention",
+            reason: "This extension has local changes. Manage it in SillyTavern.",
+          },
+        }}
+        onRefresh={vi.fn()}
+        onManage={onManage}
+      />,
+    );
+
+    expect(
+      screen.getByText("This extension has local changes. Manage it in SillyTavern."),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Manage Alpha in SillyTavern" }));
+    expect(onManage).toHaveBeenCalledOnce();
+  });
+
   it("links cataloged installed projects directly to their canonical source", () => {
     render(<InstalledRoute sections={sections} onRefresh={vi.fn()} />);
 

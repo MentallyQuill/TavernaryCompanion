@@ -21,6 +21,7 @@ export interface FakeHostOptions {
 
 export type FakeHostOperation =
   | "getInstallCapabilities"
+  | "discover"
   | "resolveRemoteRevision"
   | "install"
   | "readLocalRevision"
@@ -66,6 +67,7 @@ export class FakeHost implements HostExtensionAdapter {
 
   async discover(): Promise<HostExtension[]> {
     this.calls.push({ operation: "discover" });
+    this.#throwConfiguredFailure("discover");
     return structuredClone(this.#extensions);
   }
 

@@ -69,7 +69,9 @@ describe("UpdateVersionChooser", () => {
     expect(screen.getByRole("heading", { name: "Update Alpha" })).toBeVisible();
     expect(
       screen.getByRole("button", { name: "Latest scanned version" }),
-    ).toHaveAccessibleDescription("The latest version scanned by TavernKeeper.");
+    ).toHaveAccessibleDescription(
+      "The latest version scanned by TavernKeeper. TavernKeeper checked this version on Aug 17.",
+    );
     expect(screen.getByRole("button", { name: "Newest version" })).toHaveAccessibleDescription(
       "The latest version from the creator. It may include changes TavernKeeper hasn't checked yet.",
     );

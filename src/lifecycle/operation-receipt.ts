@@ -7,6 +7,7 @@ export type LifecycleReceiptStatus =
   | "failed"
   | "verification-failed"
   | "installed-unrecorded"
+  | "updated-unrecorded"
   | "removed-unrecorded";
 
 export interface LifecycleReceiptStep {

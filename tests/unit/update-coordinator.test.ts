@@ -137,7 +137,7 @@ describe("ExtensionUpdateCoordinator", () => {
 
     expect(coordinator.read().states.alpha).toEqual({
       kind: "attention",
-      reason: "Update SillyTavern to check this extension safely.",
+      reason: "This SillyTavern build does not support exact Companion updates.",
     });
   });
 
@@ -266,6 +266,44 @@ describe("ExtensionUpdateCoordinator", () => {
     expect(coordinator.read()).toEqual({ states: {} });
   });
 
+  it("keeps the newest result when checks for one extension finish out of order", async () => {
+    const { coordinator, host, project } = setup();
+    const older = deferred<HostUpdateInspection>();
+    const newer = deferred<HostUpdateInspection>();
+    vi.spyOn(host, "inspectUpdate")
+      .mockReturnValueOnce(older.promise)
+      .mockReturnValueOnce(newer.promise);
+
+    const firstCheck = coordinator.check("alpha");
+    const secondCheck = coordinator.check("alpha");
+    newer.resolve({
+      installedSha: newestSha,
+      newestSha,
+      remoteUrl: project.install!.repositoryUrl,
+      branch: "main",
+      worktreeClean: true,
+      branchMatches: true,
+      exactUpdateSupported: true,
+      newestRelationship: "equal",
+      candidateRelationships: {},
+    });
+    await secondCheck;
+    older.resolve({
+      installedSha,
+      newestSha,
+      remoteUrl: project.install!.repositoryUrl,
+      branch: "main",
+      worktreeClean: true,
+      branchMatches: true,
+      exactUpdateSupported: true,
+      newestRelationship: "behind",
+      candidateRelationships: {},
+    });
+    await firstCheck;
+
+    expect(coordinator.read().states.alpha).toEqual({ kind: "current" });
+  });
+
   it("prepares immutable selections from the last successful check", async () => {
     const { coordinator } = setup();
     await coordinator.check("alpha");
@@ -343,6 +381,7 @@ describe("ExtensionUpdateCoordinator", () => {
       },
     });
     expect(store.read().managedExtensions.alpha).toBeUndefined();
+    expect(store.read().operationReceipt).toBeNull();
   });
 
   it("marks an extension for attention when post-update revision verification mismatches", async () => {
@@ -379,6 +418,58 @@ describe("ExtensionUpdateCoordinator", () => {
       safeError: "SillyTavern did not complete the extension update.",
     });
     expect(JSON.stringify(receipt)).not.toContain("private host failure");
+  });
+
+  it("verifies the installed commit when the host applies an update but loses its response", async () => {
+    const { coordinator, host } = setup();
+    await coordinator.check("alpha");
+    const selection = coordinator.prepare("alpha").selections[0];
+    const applyUpdate = host.applyUpdate.bind(host);
+    vi.spyOn(host, "applyUpdate").mockImplementation(async (input) => {
+      await applyUpdate(input);
+      throw new Error("response lost");
+    });
+
+    const receipt = await coordinator.update(selection);
+
+    expect(receipt).toMatchObject({
+      status: "succeeded",
+      installProvenance: { requestedSha: newestSha, installedSha: newestSha },
+    });
+  });
+
+  it("returns an attention receipt when post-update discovery cannot verify the result", async () => {
+    const { coordinator } = setup({ failures: { discover: new Error("private path") } });
+    await coordinator.check("alpha");
+
+    const receipt = await coordinator.update(coordinator.prepare("alpha").selections[0]);
+
+    expect(receipt).toMatchObject({
+      status: "verification-failed",
+      safeError: "Companion could not verify the installed extension after updating.",
+      reloadRequired: false,
+    });
+    expect(JSON.stringify(receipt)).not.toContain("private path");
+    expect(coordinator.read().states.alpha).toEqual({
+      kind: "attention",
+      reason: "Companion could not verify the installed version. Manage it in SillyTavern.",
+    });
+  });
+
+  it("reports a verified update when its profile record cannot be saved", async () => {
+    const { coordinator, store } = setup();
+    await coordinator.check("alpha");
+    vi.spyOn(store, "update").mockRejectedValueOnce(new Error("private settings failure"));
+
+    const receipt = await coordinator.update(coordinator.prepare("alpha").selections[0]);
+
+    expect(receipt).toMatchObject({
+      status: "updated-unrecorded",
+      safeError:
+        "The extension was updated and verified, but Companion could not save its update record. Reopen Companion to reconcile it.",
+      reloadRequired: true,
+    });
+    expect(JSON.stringify(receipt)).not.toContain("private settings failure");
   });
 
   it("rechecks after a scanned update and keeps a newer creator update available", async () => {

@@ -199,7 +199,7 @@ describe("deriveUpdateAvailability", () => {
       }),
     ).toEqual({
       kind: "attention",
-      reason: "Update SillyTavern to update this extension safely.",
+      reason: "This SillyTavern build does not support exact Companion updates.",
     });
   });
 
@@ -306,6 +306,31 @@ describe("bindUpdateSelection", () => {
         catalogGeneratedAt: "2026-08-19T00:00:00.000Z",
         internalName: "third-party/Alpha",
         installedSha: "4".repeat(40),
+      }),
+    ).toBe(false);
+  });
+
+  it("rejects a prepared target when its selected commit no longer matches its binding", () => {
+    const project = catalogProjectFixture();
+    const selection = bindUpdateSelection({
+      project,
+      catalogGeneratedAt: "2026-08-19T00:00:00.000Z",
+      internalName: "third-party/Alpha",
+      installedSha,
+      target: {
+        kind: "newest",
+        requestedSha: newestSha,
+        resolvedAt: "2026-08-19T01:00:00.000Z",
+      },
+    });
+    selection.target.requestedSha = "4".repeat(40);
+
+    expect(
+      matchesUpdateBinding(selection, {
+        project,
+        catalogGeneratedAt: "2026-08-19T00:00:00.000Z",
+        internalName: "third-party/Alpha",
+        installedSha,
       }),
     ).toBe(false);
   });
