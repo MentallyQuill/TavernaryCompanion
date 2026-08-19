@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/preact";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CompanionShell } from "../../src/ui/shell/companion-shell";
@@ -6,6 +6,15 @@ import { createShellController } from "../../src/ui/shell/shell-controller";
 import { createKitDiscoveryController } from "../../src/kits/kit-discovery-controller";
 import { catalogFixture, catalogProjectFixture } from "../helpers/catalog-fixtures";
 import type { CatalogSnapshot } from "../../src/catalog/catalog-client";
+import { createDiscoveryController } from "../../src/catalog/discovery-controller";
+import type { InventorySnapshot } from "../../src/inventory/inventory-types";
+
+const emptyInventory: InventorySnapshot = {
+  managed: [],
+  external: [],
+  unknown: [],
+  missingManaged: [],
+};
 
 afterEach(() => {
   document.body.replaceChildren();
@@ -34,6 +43,46 @@ describe("CompanionShell", () => {
     expect(screen.getByRole("navigation", { name: "Companion sections" })).toBeVisible();
     expect(screen.getByRole("tab", { name: "Installed" })).toHaveAttribute("aria-selected", "true");
     expect(screen.getByRole("main")).toHaveTextContent("Installed extensions");
+  });
+
+  it("keeps project search in the shared header", () => {
+    const catalog = catalogFixture();
+    catalog.projects = [catalogProjectFixture()];
+    const discovery = createDiscoveryController({
+      snapshot: {
+        state: "ready-current",
+        canMutate: true,
+        checkedAt: null,
+        catalog,
+      },
+      inventory: emptyInventory,
+    });
+    render(
+      <CompanionShell
+        controller={createShellController({ initialRoute: "projects" })}
+        discovery={discovery}
+      />,
+    );
+
+    const header = document.querySelector<HTMLElement>(".tavernary-companion-shell__header");
+    expect(header).not.toBeNull();
+    const search = within(header!).getByRole("searchbox", { name: "Search projects" });
+    fireEvent.input(search, { target: { value: "memory" } });
+
+    expect(discovery.read().query.search).toBe("memory");
+  });
+
+  it("navigates primary routes with the compact Browse selector", () => {
+    render(
+      <CompanionShell controller={createShellController({ initialRoute: "projects" })} />,
+    );
+
+    fireEvent.change(screen.getByRole("combobox", { name: "Browse Companion" }), {
+      target: { value: "kits" },
+    });
+
+    expect(screen.getByRole("heading", { name: "Kits" })).toBeVisible();
+    expect(screen.getByRole("combobox", { name: "Browse Companion" })).toHaveValue("kits");
   });
 
   it("uses one browser Back event for the top detail and preserves the popup", () => {

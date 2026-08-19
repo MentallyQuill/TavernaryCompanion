@@ -9,6 +9,13 @@ test("shell uses Tavernary's production brand lockup and visual tokens", async (
   await expect(page.getByRole("img", { name: "Tavernary" })).toBeVisible();
   await expect(page.getByText("Where AI roleplay tools gather")).toBeVisible();
   await expect(page.getByText("Companion", { exact: true })).toBeVisible();
+  await expect(
+    page.locator(".tavernary-companion-shell__header").getByRole("searchbox", {
+      name: "Search projects",
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole("tablist")).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Browse Companion" })).not.toBeVisible();
 
   const tokens = await page.evaluate(() => {
     const root = document.querySelector<HTMLElement>(".tavernary-companion-root")!;
@@ -61,18 +68,19 @@ test("mobile brand header stays contained and readable", async ({ page }) => {
   expect(brand!.x + brand!.width).toBeLessThanOrEqual(utilities!.x);
   expect(qualifier!.x + qualifier!.width).toBeLessThanOrEqual(utilities!.x);
   await expect(page.getByText("Where AI roleplay tools gather")).toBeVisible();
+  await expect(
+    page.locator(".tavernary-companion-shell__header").getByRole("searchbox", {
+      name: "Search projects",
+    }),
+  ).toBeVisible();
+  await expect(page.getByRole("combobox", { name: "Browse Companion" })).toBeVisible();
+  await expect(page.getByRole("tablist")).not.toBeVisible();
   await page.getByRole("button", { name: "Filters" }).click();
   await expect(page.getByRole("img", { name: "Tavernary" })).toBeInViewport();
   await page.getByRole("button", { name: "Close filters" }).click();
-  await page.getByRole("tab", { name: "Kits" }).click();
+  await page.getByRole("combobox", { name: "Browse Companion" }).selectOption("kits");
   await expect(page.getByRole("img", { name: "Tavernary" })).toBeInViewport();
-  const installedTab = page.getByRole("tab", { name: "Installed" });
-  expect(
-    await installedTab.evaluate((tab) => ({
-      whiteSpace: getComputedStyle(tab).whiteSpace,
-      fits: tab.scrollWidth <= tab.clientWidth,
-    })),
-  ).toEqual({ whiteSpace: "nowrap", fits: true });
+  await expect(page.getByRole("combobox", { name: "Browse Companion" })).toHaveValue("kits");
   await expect(page.getByRole("button", { name: "Kit filters" })).toBeVisible();
   await expect(page.locator(".tavernary-companion-kit-filters")).not.toBeVisible();
   await expect(

@@ -2,6 +2,7 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 
 import type { CatalogSnapshot } from "../../catalog/catalog-client";
+import type { CatalogQuery } from "../../catalog/catalog-core";
 import type { DiscoveryController } from "../../catalog/discovery-controller";
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
 import type { KitDiscoveryController } from "../../kits/kit-discovery-controller";
@@ -107,6 +108,10 @@ export function CompanionShell({
   }, [controller]);
 
   const detail = state.detailStack.at(-1);
+  const updateProjectQuery = (query: CatalogQuery) => {
+    setVisibleProjectCount(INITIAL_PROJECT_COUNT);
+    discovery?.setQuery(query);
+  };
   const headerCatalogSnapshot = catalogSnapshot?.state.startsWith("ready-")
     ? catalogSnapshot
     : undefined;
@@ -117,6 +122,15 @@ export function CompanionShell({
       data-testid="companion-shell"
     >
       <ShellHeader
+        search={
+          !detail && state.route === "projects" && discoveryState
+            ? {
+                value: discoveryState.query.search,
+                onChange: (search) =>
+                  updateProjectQuery({ ...discoveryState.query, search }),
+              }
+            : undefined
+        }
         onRequestClose={onRequestClose}
         catalogSnapshot={headerCatalogSnapshot}
         catalogRefreshing={catalogRefreshing}
@@ -137,10 +151,7 @@ export function CompanionShell({
                 <ProjectsRoute
                   state={discoveryState}
                   facets={facets ?? discoveryState.facets}
-                  onQueryChange={(query) => {
-                    setVisibleProjectCount(INITIAL_PROJECT_COUNT);
-                    discovery.setQuery(query);
-                  }}
+                  onQueryChange={updateProjectQuery}
                   onOpenProject={(id) =>
                     controller.openDetail({ kind: "project", id, focusKey: `project-${id}` })
                   }

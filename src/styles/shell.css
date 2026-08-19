@@ -67,13 +67,13 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 }
 
 .tavernary-companion-shell__header {
-  display: flex;
+  display: grid;
+  grid-template-columns: auto minmax(16rem, 1fr) auto;
   flex: none;
   align-items: center;
-  justify-content: space-between;
-  gap: var(--tavernary-companion-space-3);
-  min-block-size: 78px;
-  padding: 0.75rem 1.25rem;
+  gap: 1rem;
+  min-block-size: 66px;
+  padding: 0.55rem 1rem;
   border-block-end: 1px solid var(--tavernary-color-border-subtle);
   background: var(--tavernary-color-bg-header);
 }
@@ -87,8 +87,8 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 
 .tavernary-companion-brand__mark {
   flex: none;
-  inline-size: 48px;
-  block-size: 48px;
+  inline-size: 44px;
+  block-size: 44px;
   background: var(--tavernary-brand-mark) center / contain no-repeat;
 }
 
@@ -102,7 +102,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   gap: 0.55rem;
   margin: 0;
   color: var(--tavernary-color-functional);
-  font-size: clamp(1.25rem, 2cqi, 1.75rem);
+  font-size: clamp(1.15rem, 2cqi, 1.55rem);
   font-weight: 750;
   line-height: 1.15;
 }
@@ -126,6 +126,25 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   line-height: 1.2;
 }
 
+.tavernary-companion-header-search {
+  display: block;
+  min-inline-size: 0;
+}
+
+.tavernary-companion-header-search input {
+  inline-size: 100%;
+  min-block-size: 42px;
+  padding: 0.55rem 0.85rem;
+  border: 1px solid var(--tavernary-color-control-border);
+  border-radius: var(--tavernary-radius);
+  color: var(--tavernary-color-text-primary);
+  background: var(--tavernary-color-control-bg);
+}
+
+.tavernary-companion-header-search input::placeholder {
+  color: var(--tavernary-color-text-muted);
+}
+
 .tavernary-companion-shell__utilities,
 .tavernary-companion-shell__tabs > div {
   display: flex;
@@ -144,6 +163,10 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   padding: 0.45rem 1.25rem;
   border-block-end: 1px solid var(--tavernary-color-divider);
   background: var(--tavernary-color-bg-sidebar);
+}
+
+.tavernary-companion-route-select {
+  display: none;
 }
 
 .tavernary-companion-shell__tabs button {

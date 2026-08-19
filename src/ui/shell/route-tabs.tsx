@@ -27,6 +27,18 @@ export function RouteTabs({ route, onNavigate }: RouteTabsProps): preact.JSX.Ele
           </button>
         ))}
       </div>
+      <label class="tavernary-companion-route-select">
+        <span>Browse</span>
+        <select
+          aria-label="Browse Companion"
+          value={route}
+          onChange={(event) => onNavigate(event.currentTarget.value as CompanionRoute)}
+        >
+          {routes.map((candidate) => (
+            <option value={candidate.id}>{candidate.label}</option>
+          ))}
+        </select>
+      </label>
     </nav>
   );
 }

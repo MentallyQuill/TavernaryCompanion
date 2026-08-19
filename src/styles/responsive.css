@@ -124,8 +124,11 @@
   }
 
   .tavernary-companion-shell__header {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
     align-items: center;
-    padding: 0.6rem 0.75rem;
+    gap: 0.55rem 0.75rem;
+    padding: 0.55rem 0.75rem 0.65rem;
   }
 
   .tavernary-companion-brand {
@@ -133,8 +136,8 @@
   }
 
   .tavernary-companion-brand__mark {
-    inline-size: 38px;
-    block-size: 38px;
+    inline-size: 36px;
+    block-size: 36px;
   }
 
   .tavernary-companion-brand h1 {
@@ -147,32 +150,73 @@
   }
 
   .tavernary-companion-shell__utilities {
-    flex-wrap: wrap;
+    flex-direction: row;
+    flex-wrap: nowrap;
     justify-content: flex-end;
     font-size: 0.78rem;
   }
 
+  .tavernary-companion-catalog-freshness {
+    display: none;
+  }
+
+  .tavernary-companion-shell__utilities
+    .tavernary-companion-button[aria-label="Refresh catalog"] {
+    inline-size: 44px;
+    min-inline-size: 44px;
+    padding: 0;
+    font-size: 0;
+  }
+
+  .tavernary-companion-shell__utilities
+    .tavernary-companion-button[aria-label="Refresh catalog"]::before {
+    content: "↻";
+    font-size: 1.25rem;
+    line-height: 1;
+  }
+
+  .tavernary-companion-header-search {
+    grid-column: 1 / -1;
+    grid-row: 2;
+  }
+
+  .tavernary-companion-header-search input {
+    min-block-size: 44px;
+  }
+
   .tavernary-companion-shell__tabs {
-    padding: 0.35rem 0.5rem;
-    overflow-x: auto;
-    overscroll-behavior-inline: contain;
-    scrollbar-width: thin;
+    min-block-size: 58px;
+    padding: 0.5rem 0.75rem;
+    overflow: visible;
   }
 
   .tavernary-companion-shell__tabs > div {
-    display: flex;
-    inline-size: max-content;
-    min-inline-size: 100%;
+    display: none;
   }
 
-  .tavernary-companion-shell__tabs button {
-    flex: 1 0 auto;
-    min-inline-size: 0;
-    padding-inline: 0.35rem;
-    overflow-wrap: normal;
-    white-space: nowrap;
-    font-size: 0.76rem;
-    letter-spacing: 0.025em;
+  .tavernary-companion-route-select {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr);
+    align-items: center;
+    gap: 0.65rem;
+    inline-size: 100%;
+  }
+
+  .tavernary-companion-route-select > span {
+    color: var(--tavernary-color-text-muted);
+    font-size: 0.68rem;
+    font-weight: 750;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+  }
+
+  .tavernary-companion-route-select select {
+    inline-size: 100%;
+    min-block-size: 44px;
+    border-color: var(--tavernary-color-control-border);
+    color: var(--tavernary-color-text-primary);
+    background: var(--tavernary-color-control-bg);
+    font-weight: 700;
   }
 
   .tavernary-companion-catalog-state > header {

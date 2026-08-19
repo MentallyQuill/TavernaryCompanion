@@ -2,6 +2,10 @@ import type { CatalogSnapshot } from "../../catalog/catalog-client";
 import { CatalogFreshness } from "../catalog/catalog-freshness";
 
 interface ShellHeaderProps {
+  search?: {
+    value: string;
+    onChange(value: string): void;
+  };
   onRequestClose?: () => void;
   catalogSnapshot?: CatalogSnapshot;
   catalogRefreshing?: boolean;
@@ -9,6 +13,7 @@ interface ShellHeaderProps {
 }
 
 export function ShellHeader({
+  search,
   onRequestClose,
   catalogSnapshot,
   catalogRefreshing,
@@ -25,6 +30,18 @@ export function ShellHeader({
           <p>Where AI roleplay tools gather</p>
         </div>
       </div>
+      {search ? (
+        <label class="tavernary-companion-header-search">
+          <span class="tavernary-companion-sr-only">Search projects</span>
+          <input
+            type="search"
+            aria-label="Search projects"
+            placeholder="Search projects or creators…"
+            value={search.value}
+            onInput={(event) => search.onChange(event.currentTarget.value)}
+          />
+        </label>
+      ) : null}
       <div class="tavernary-companion-shell__utilities">
         {catalogSnapshot ? (
           <>
