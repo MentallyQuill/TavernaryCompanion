@@ -52,6 +52,7 @@ export function ProjectGrid({
             project={project}
             onAction={(action) => onProjectAction(project.id, action)}
             onManageInSillyTavern={onManageInSillyTavern}
+            density={density}
             lifecycleDisabled={lifecycleDisabled}
             selectedForKit={selectedKitProjectIds.includes(project.id)}
             onToggleKitSelection={onToggleKitSelection}

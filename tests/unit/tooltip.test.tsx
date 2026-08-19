@@ -1,4 +1,5 @@
 import { fireEvent, render, screen } from "@testing-library/preact";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { Tooltip } from "../../src/ui/shared/tooltip";
@@ -60,6 +61,88 @@ describe("Tooltip", () => {
     fireEvent.focus(screen.getByRole("button", { name: "Dialog action" }));
 
     expect(screen.getByRole("tooltip").parentElement).toBe(dialog);
+  });
+
+  it("does not let pointer-origin focus pin the tooltip open", () => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    });
+    render(
+      <Tooltip id="pointer-tip" label="Pointer hover only">
+        <button type="button">Pointer target</button>
+      </Tooltip>,
+    );
+
+    const button = screen.getByRole("button", { name: "Pointer target" });
+    const anchor = button.closest(".tavernary-companion-tooltip-anchor")!;
+    fireEvent.pointerEnter(anchor, { pointerType: "mouse" });
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Pointer hover only");
+
+    fireEvent.pointerDown(button, { pointerType: "mouse" });
+    button.focus();
+    fireEvent.pointerUp(button, { pointerType: "mouse" });
+
+    expect(button).toHaveFocus();
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  });
+
+  it("suppresses compatibility focus after a wide-screen touch interaction", () => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    });
+    render(
+      <Tooltip id="touch-tip" label="Touch must not pin this">
+        <button type="button">Touch target</button>
+      </Tooltip>,
+    );
+
+    const button = screen.getByRole("button", { name: "Touch target" });
+    const anchor = button.closest(".tavernary-companion-tooltip-anchor")!;
+    fireEvent.pointerDown(button, { pointerType: "touch" });
+    fireEvent.pointerUp(button, { pointerType: "touch" });
+    fireEvent.pointerLeave(anchor, { pointerType: "touch" });
+    button.focus();
+    fireEvent.focus(button);
+
+    expect(button).toHaveFocus();
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  });
+
+  it("restores focus tooltips when keyboard navigation follows a pointer click", async () => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    });
+    render(
+      <Tooltip id="mixed-input-tip" label="Keyboard focus remains available">
+        <button type="button">Pointer first</button>
+        <button type="button">Keyboard next</button>
+      </Tooltip>,
+    );
+
+    const user = userEvent.setup();
+    const pointerButton = screen.getByRole("button", { name: "Pointer first" });
+    const keyboardButton = screen.getByRole("button", { name: "Keyboard next" });
+    await user.click(pointerButton);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+
+    await user.tab();
+    expect(keyboardButton).toHaveFocus();
+    expect(screen.getByRole("tooltip")).toHaveTextContent("Keyboard focus remains available");
   });
 
   it("suppresses hover tooltips at Tavernary's mobile breakpoint", () => {

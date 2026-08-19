@@ -11,6 +11,7 @@ interface ProjectCardProps {
   project: ProjectCardViewModel;
   onAction(action: ProjectPrimaryAction): void;
   onManageInSillyTavern?(): void;
+  density?: "standard" | "compact";
   lifecycleDisabled?: boolean;
   selectedForKit?: boolean;
   onToggleKitSelection?(projectId: string): void;
@@ -20,6 +21,7 @@ export function ProjectCard({
   project,
   onAction,
   onManageInSillyTavern,
+  density = "standard",
   lifecycleDisabled = false,
   selectedForKit = false,
   onToggleKitSelection,
@@ -152,14 +154,18 @@ export function ProjectCard({
       </header>
       <div class="tavernary-companion-project-card__title">
         <h3>
-          <Tooltip
-            id={`${project.id}-title`}
-            label={project.summary}
-            className="tavernary-companion-project-card__title-text"
-            showOnAncestorFocus
-          >
-            {project.displayName}
-          </Tooltip>
+          {density === "compact" ? (
+            <Tooltip
+              id={`${project.id}-title`}
+              label={project.summary}
+              className="tavernary-companion-project-card__title-text"
+              showOnAncestorFocus
+            >
+              {project.displayName}
+            </Tooltip>
+          ) : (
+            <span class="tavernary-companion-project-card__title-text">{project.displayName}</span>
+          )}
         </h3>
         {project.tavernKeeper ? (
           <TavernKeeperScanIndicator projectId={project.id} status={project.tavernKeeper} />

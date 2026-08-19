@@ -49,6 +49,8 @@ export function Tooltip({
 }: TooltipProps): preact.JSX.Element {
   const triggerRef = useRef<HTMLSpanElement>(null);
   const tooltipRef = useRef<HTMLSpanElement>(null);
+  const pointerFocusPending = useRef(false);
+  const keyboardClearRef = useRef<(() => void) | null>(null);
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<preact.JSX.CSSProperties | null>(null);
 
@@ -62,6 +64,39 @@ export function Tooltip({
     setOpen(true);
   }, []);
 
+  const clearPointerFocus = useCallback(() => {
+    pointerFocusPending.current = false;
+    if (keyboardClearRef.current) {
+      document.removeEventListener("keydown", keyboardClearRef.current, true);
+      keyboardClearRef.current = null;
+    }
+  }, []);
+
+  const beginPointerFocus = useCallback(() => {
+    clearPointerFocus();
+    pointerFocusPending.current = true;
+    const clearOnKeyboard = () => clearPointerFocus();
+    keyboardClearRef.current = clearOnKeyboard;
+    document.addEventListener("keydown", clearOnKeyboard, true);
+    hide();
+  }, [clearPointerFocus, hide]);
+
+  const showFromFocus = useCallback(() => {
+    if (pointerFocusPending.current) return;
+    show();
+  }, [show]);
+
+  const leave = useCallback(() => {
+    hide();
+  }, [hide]);
+
+  const blur = useCallback(() => {
+    clearPointerFocus();
+    hide();
+  }, [clearPointerFocus, hide]);
+
+  useEffect(() => () => clearPointerFocus(), [clearPointerFocus]);
+
   useEffect(() => {
     if (!showOnAncestorFocus) return;
     const trigger = triggerRef.current;
@@ -72,13 +107,15 @@ export function Tooltip({
         ?.querySelector<HTMLElement>(".tavernary-companion-project-card__hitarea");
     if (!focusTarget) return;
 
-    focusTarget.addEventListener("focus", show);
-    focusTarget.addEventListener("blur", hide);
+    focusTarget.addEventListener("pointerdown", beginPointerFocus);
+    focusTarget.addEventListener("focus", showFromFocus);
+    focusTarget.addEventListener("blur", blur);
     return () => {
-      focusTarget.removeEventListener("focus", show);
-      focusTarget.removeEventListener("blur", hide);
+      focusTarget.removeEventListener("pointerdown", beginPointerFocus);
+      focusTarget.removeEventListener("focus", showFromFocus);
+      focusTarget.removeEventListener("blur", blur);
     };
-  }, [hide, show, showOnAncestorFocus]);
+  }, [beginPointerFocus, blur, showFromFocus, showOnAncestorFocus]);
 
   const updatePosition = useCallback(() => {
     if (!triggerRef.current || !tooltipRef.current) return;
@@ -133,10 +170,13 @@ export function Tooltip({
         aria-describedby={id}
         role={ariaLabel ? "img" : undefined}
         onPointerEnter={show}
-        onPointerLeave={hide}
-        onFocusCapture={show}
+        onPointerLeave={leave}
+        onPointerDownCapture={beginPointerFocus}
+        onFocusCapture={showFromFocus}
         onBlurCapture={(event) => {
-          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) hide();
+          if (!event.currentTarget.contains(event.relatedTarget as Node | null)) {
+            blur();
+          }
         }}
       >
         {children}
