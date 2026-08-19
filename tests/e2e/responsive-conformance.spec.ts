@@ -23,6 +23,23 @@ test("mobile filter sheet matches the Companion route", async ({ page }) => {
   await expect(page).toHaveScreenshot("filters-390x844.png");
 });
 
+test("mobile filter sheet scrolls to the final filter group", async ({ page }) => {
+  await prepare(page, { width: 390, height: 844 });
+  await page.getByRole("button", { name: "Open filters" }).click();
+
+  const sheet = page.getByRole("dialog", { name: "Project filters" });
+  const panel = sheet.locator(".tavernary-companion-filter-panel");
+  const licenseGroup = sheet.getByRole("group", { name: "License" });
+  const dimensions = await panel.evaluate((element) => ({
+    clientHeight: element.clientHeight,
+    scrollHeight: element.scrollHeight,
+  }));
+
+  expect(dimensions.scrollHeight).toBeGreaterThan(dimensions.clientHeight);
+  await panel.evaluate((element) => element.scrollTo({ top: element.scrollHeight }));
+  await expect(licenseGroup).toBeInViewport();
+});
+
 test("mobile personal Kits match the shared catalog grammar", async ({ page }) => {
   await prepare(page, { width: 390, height: 844 });
   await page.getByRole("button", { name: "Browse categories" }).click();

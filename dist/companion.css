@@ -2320,6 +2320,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
     z-index: 8;
     inset: 0.75rem;
     display: none;
+    align-self: stretch;
     inline-size: auto;
     block-size: auto;
     max-block-size: none;
