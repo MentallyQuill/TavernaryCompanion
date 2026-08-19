@@ -208,12 +208,58 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
         if (prompt.kind === "unsandboxed-disclosure") disclosureAccepted = true;
       }
 
+      const executionBefore = await this.#host.discover();
+      const executionSnapshot = this.#getSnapshot();
+      const executionCatalog =
+        "catalog" in executionSnapshot ? executionSnapshot.catalog : null;
+      const executionProject =
+        executionCatalog?.projects.find((candidate) => candidate.id === projectId) ?? null;
+      if (
+        selection &&
+        (!executionProject ||
+          !executionCatalog ||
+          !matchesPreparationBinding(
+            selection,
+            eligibleProjectForPreparation(projectId, executionSnapshot),
+            executionCatalog.generatedAt,
+          ))
+      ) {
+        throw new InstallPreparationStaleError();
+      }
+      const executionRegistry = new ManagedRegistry(
+        normalizeManagedExtensionMap(this.#store.read().managedExtensions),
+      );
+      const executionInventory = reconcileInventory({
+        projects: executionCatalog?.projects ?? [],
+        hostExtensions: executionBefore,
+        managed: executionRegistry.read(),
+      });
+      const executionDecision = evaluateLifecycle({
+        operation: "install",
+        project: executionProject,
+        context: { snapshot: executionSnapshot, inventory: executionInventory },
+      });
+      if (
+        executionDecision.kind !== "allowed" ||
+        executionDecision.operation !== "install" ||
+        !executionProject ||
+        !executionCatalog
+      ) {
+        if (selection) throw new InstallPreparationStaleError();
+        return this.#rejected({
+          id,
+          projectId,
+          projectName: executionProject?.name ?? projectId,
+          startedAt,
+        });
+      }
+
       setPhase("host-request");
       let verified: Awaited<ReturnType<typeof executeVerifiedInstall>>;
       try {
         verified = await executeVerifiedInstall({
           host: this.#host,
-          project,
+          project: executionProject,
           target: selectedTarget,
         });
       } catch (error) {
@@ -224,23 +270,28 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
           throw error;
         }
         if (error instanceof VerifiedInstallError) {
+          const failedBeforeMutation = error.stage === "preflight";
           const receipt = createReceipt({
             id,
             kind: "install",
             projectId,
-            projectName: project.name,
+            projectName: executionProject.name,
             startedAt,
             finishedAt: this.#now(),
-            status: "verification-failed",
-            completedThrough: "host-accepted",
-            failedAt: "verified",
-            safeError: verificationFailureCopy(error.cleanupOutcome),
+            status: failedBeforeMutation ? "failed" : "verification-failed",
+            completedThrough: failedBeforeMutation ? "requested" : "host-accepted",
+            failedAt: failedBeforeMutation ? "host-accepted" : "verified",
+            safeError: verificationFailureCopy(error),
             reloadRequired: false,
-            installProvenance: createInstallProvenance({
-              target: selectedTarget,
-              installedSha: error.installedSha,
-              catalogGeneratedAt: catalog.generatedAt,
-            }),
+            ...(failedBeforeMutation
+              ? {}
+              : {
+                  installProvenance: createInstallProvenance({
+                    target: selectedTarget,
+                    installedSha: error.installedSha,
+                    catalogGeneratedAt: executionCatalog.generatedAt,
+                  }),
+                }),
             cleanupOutcome: error.cleanupOutcome,
           });
           await this.#persistNonMutation(receipt, disclosureAccepted ? this.#now() : null);
@@ -250,7 +301,7 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
           id,
           kind: "install",
           projectId,
-          projectName: project.name,
+          projectName: executionProject.name,
           startedAt,
           finishedAt: this.#now(),
           status: "failed",
@@ -267,11 +318,11 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
       const provenance = createInstallProvenance({
         target: selectedTarget,
         installedSha: verified.installedSha,
-        catalogGeneratedAt: catalog.generatedAt,
+        catalogGeneratedAt: executionCatalog.generatedAt,
       });
-      registry.recordInstalled({
+      executionRegistry.recordInstalled({
         projectId,
-        expectedFolderName: decision.contract.folderName,
+        expectedFolderName: executionDecision.contract.folderName,
         extension: verified.extension,
         installedAt: this.#now(),
         installedBy: "individual",
@@ -281,7 +332,7 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
         id,
         kind: "install",
         projectId,
-        projectName: project.name,
+        projectName: executionProject.name,
         startedAt,
         finishedAt: this.#now(),
         status: "succeeded",
@@ -294,7 +345,7 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
       setPhase("recording");
       try {
         await this.#store.update((draft) => {
-          draft.managedExtensions = registry.read();
+          draft.managedExtensions = executionRegistry.read();
           if (disclosureAccepted && !draft.trustAcknowledgedAt) {
             draft.trustAcknowledgedAt = this.#now();
           }
@@ -306,7 +357,7 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
           id,
           kind: "install",
           projectId,
-          projectName: project.name,
+          projectName: executionProject.name,
           startedAt,
           finishedAt: this.#now(),
           status: "installed-unrecorded",
@@ -696,11 +747,16 @@ function createInstallProvenance(input: {
   };
 }
 
-function verificationFailureCopy(cleanupOutcome: VerifiedInstallError["cleanupOutcome"]): string {
-  if (cleanupOutcome === "succeeded") {
+function verificationFailureCopy(error: VerifiedInstallError): string {
+  if (error.stage === "preflight") {
+    return error.subtype === "local-revision-lookup-unavailable"
+      ? "SillyTavern can't verify the selected version, so Companion did not install it."
+      : "Companion could not prepare this install request.";
+  }
+  if (error.cleanupOutcome === "succeeded") {
     return "The install didn't finish correctly, so Companion cleaned it up.";
   }
-  if (cleanupOutcome === "failed") {
+  if (error.cleanupOutcome === "failed") {
     return "The install didn't finish correctly, and cleanup needs attention in SillyTavern.";
   }
   return "SillyTavern did not report the expected installed extension.";

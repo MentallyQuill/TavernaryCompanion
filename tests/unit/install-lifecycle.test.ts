@@ -111,6 +111,7 @@ describe("install lifecycle", () => {
 
     expect(host.calls.map(({ operation }) => operation)).toEqual([
       "discover",
+      "discover",
       "getInstallCapabilities",
       "install",
       "discover",
@@ -229,6 +230,51 @@ describe("install lifecycle", () => {
     expect(fixture.store.read().managedExtensions.alpha).toMatchObject({
       provenance: receipt.installProvenance,
     });
+  });
+
+  it("reports an unavailable pinned verification capability before host acceptance", async () => {
+    const fixture = setup();
+    const resolvedSha = "c".repeat(40);
+    const catalog = catalogFixture("2026-08-19T00:00:00.000Z");
+    catalog.projects = [fixture.project];
+    const snapshot: CatalogSnapshot = {
+      state: "ready-current",
+      canMutate: true,
+      checkedAt: "2026-08-19T00:05:00.000Z",
+      catalog,
+    };
+    const host = createFakeHost({
+      capabilities: {
+        pinnedCommitInstall: true,
+        remoteRevisionLookup: true,
+        localRevisionLookup: false,
+      },
+      remoteHeads: { [`${fixture.project.install!.repositoryUrl}#`]: resolvedSha },
+    });
+    const coordinator = createLifecycleCoordinator({
+      host,
+      store: fixture.store,
+      getSnapshot: () => snapshot,
+      confirm: async () => true,
+    });
+    const selection = await prepareSingleSelection(coordinator);
+    host.calls.length = 0;
+
+    const receipt = await coordinator.install("alpha", selection);
+
+    expect(receipt).toMatchObject({
+      status: "failed",
+      cleanupOutcome: "not-needed",
+      safeError: "SillyTavern can't verify the selected version, so Companion did not install it.",
+      steps: [
+        { id: "requested", status: "succeeded" },
+        { id: "host-accepted", status: "failed" },
+        { id: "verified", status: "pending" },
+        { id: "recorded", status: "pending" },
+      ],
+    });
+    expect(host.calls.filter(({ operation }) => operation === "install")).toEqual([]);
+    expect(fixture.store.read().managedExtensions).toEqual({});
   });
 
   it("returns the cleaned-up failure receipt and keeps ownership empty after a SHA mismatch", async () => {
@@ -467,6 +513,95 @@ describe("install lifecycle", () => {
       expect(confirm).not.toHaveBeenCalled();
     },
   );
+
+  it("rejects a prepared selection when the catalog changes while confirmation is open", async () => {
+    const project = catalogProjectFixture({ id: "alpha", folderName: "Alpha" });
+    attachReport(project, "report-123", checkedSha);
+    const catalog = catalogFixture("2026-08-19T00:00:00.000Z");
+    catalog.projects = [project];
+    const snapshot: CatalogSnapshot = {
+      state: "ready-current",
+      canMutate: true,
+      checkedAt: "2026-08-19T00:05:00.000Z",
+      catalog,
+    };
+    const approval = deferred<boolean>();
+    const confirm = vi
+      .fn<(prompt: TrustPrompt) => Promise<boolean>>()
+      .mockImplementationOnce(() => approval.promise)
+      .mockResolvedValue(true);
+    const host = createFakeHost();
+    const store = new ProfileStore({ extensionSettings: {}, saveSettingsDebounced: () => undefined });
+    const coordinator = createLifecycleCoordinator({
+      host,
+      store,
+      getSnapshot: () => snapshot,
+      confirm,
+    });
+    const selection = await prepareSingleSelection(coordinator);
+    host.calls.length = 0;
+
+    const installing = coordinator.install("alpha", selection);
+    await vi.waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+    catalog.generatedAt = "2026-08-19T01:00:00.000Z";
+    approval.resolve(true);
+
+    await expect(installing).rejects.toMatchObject({
+      name: "InstallPreparationStaleError",
+      reason: "This install choice is out of date. Choose a version again.",
+    });
+    expect(host.calls.filter(({ operation }) => operation === "install")).toEqual([]);
+    expect(store.read().managedExtensions).toEqual({});
+  });
+
+  it("rejects a prepared selection when its expected folder appears while confirmation is open", async () => {
+    const project = catalogProjectFixture({ id: "alpha", folderName: "Alpha" });
+    attachReport(project, "report-123", checkedSha);
+    const catalog = catalogFixture("2026-08-19T00:00:00.000Z");
+    catalog.projects = [project];
+    const snapshot: CatalogSnapshot = {
+      state: "ready-current",
+      canMutate: true,
+      checkedAt: "2026-08-19T00:05:00.000Z",
+      catalog,
+    };
+    const approval = deferred<boolean>();
+    const confirm = vi
+      .fn<(prompt: TrustPrompt) => Promise<boolean>>()
+      .mockImplementationOnce(() => approval.promise)
+      .mockResolvedValue(true);
+    const host = createFakeHost();
+    const concurrentExtension = {
+      internalName: "third-party/Alpha",
+      folderName: "Alpha",
+      enabled: true,
+      type: "local" as const,
+      manifest: null,
+    };
+    vi.spyOn(host, "discover")
+      .mockResolvedValueOnce([])
+      .mockResolvedValue([concurrentExtension]);
+    const store = new ProfileStore({ extensionSettings: {}, saveSettingsDebounced: () => undefined });
+    const coordinator = createLifecycleCoordinator({
+      host,
+      store,
+      getSnapshot: () => snapshot,
+      confirm,
+    });
+    const selection = await prepareSingleSelection(coordinator);
+    host.calls.length = 0;
+
+    const installing = coordinator.install("alpha", selection);
+    await vi.waitFor(() => expect(confirm).toHaveBeenCalledTimes(1));
+    approval.resolve(true);
+
+    await expect(installing).rejects.toMatchObject({
+      name: "InstallPreparationStaleError",
+      reason: "This install choice is out of date. Choose a version again.",
+    });
+    expect(host.calls.filter(({ operation }) => operation === "install")).toEqual([]);
+    expect(store.read().managedExtensions).toEqual({});
+  });
 
   it.each([
     {

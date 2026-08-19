@@ -113,6 +113,8 @@ describe("verified install", () => {
       executeVerifiedInstall({ host, project, target: checkedTarget }),
     ).rejects.toMatchObject({
       name: "VerifiedInstallError",
+      stage: "preflight",
+      subtype: "local-revision-lookup-unavailable",
       cleanupOutcome: "not-needed",
     } satisfies Partial<VerifiedInstallError>);
     expect(host.calls.map(({ operation }) => operation)).toEqual(["getInstallCapabilities"]);
@@ -127,6 +129,8 @@ describe("verified install", () => {
       executeVerifiedInstall({ host, project, target: checkedTarget }),
     ).rejects.toMatchObject({
       name: "VerifiedInstallError",
+      stage: "post-install-verification",
+      subtype: "local-revision-read-failed",
       cleanupOutcome: "succeeded",
     } satisfies Partial<VerifiedInstallError>);
     expect(host.calls).toContainEqual({
@@ -164,6 +168,8 @@ describe("verified install", () => {
       executeVerifiedInstall({ host, project, target: checkedTarget }),
     ).rejects.toMatchObject({
       name: "VerifiedInstallError",
+      stage: "post-install-verification",
+      subtype: "revision-mismatch",
       cleanupOutcome: "succeeded",
     } satisfies Partial<VerifiedInstallError>);
     expect(host.calls).toContainEqual({
