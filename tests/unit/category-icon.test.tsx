@@ -36,10 +36,7 @@ describe("CategoryIcon", () => {
       "d",
       "m6 6 12 12M18 6 6 18",
     );
-    expect(document.querySelector('svg[data-icon="kit"]')).toHaveAttribute(
-      "viewBox",
-      "3 3 26 26",
-    );
+    expect(document.querySelector('svg[data-icon="kit"]')).toHaveAttribute("viewBox", "3 3 26 26");
     expect(document.querySelector('svg[data-icon="add-to-kit"] path')).toHaveAttribute(
       "d",
       "M4 6h10v12H4zM17 8v8M13 12h8",

@@ -1,9 +1,6 @@
 import { useEffect, useRef, useState } from "preact/hooks";
 
-import {
-  CATEGORY_OPTIONS,
-  type CatalogQuery,
-} from "../../catalog/catalog-core";
+import { CATEGORY_OPTIONS, type CatalogQuery } from "../../catalog/catalog-core";
 import { CategoryIcon } from "../shared/category-icon";
 import type { CompanionRoute } from "./shell-state";
 

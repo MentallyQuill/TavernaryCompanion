@@ -24,9 +24,7 @@ describe("CatalogNavigation", () => {
     await user.click(screen.getByRole("button", { name: "System Presets" }));
 
     expect(onNavigate).toHaveBeenCalledWith("projects");
-    expect(onQueryChange).toHaveBeenCalledWith(
-      expect.objectContaining({ category: "preset" }),
-    );
+    expect(onQueryChange).toHaveBeenCalledWith(expect.objectContaining({ category: "preset" }));
     expect(view.container.querySelector('[data-category="preset"] [data-icon="preset"]')).toBe(
       screen.getByRole("button", { name: "System Presets" }).querySelector("svg"),
     );
@@ -51,10 +49,9 @@ describe("CatalogNavigation", () => {
     await user.click(trigger);
     expect(trigger).toHaveAttribute("aria-expanded", "true");
     await user.click(
-      within(screen.getByRole("group", { name: "Browse categories menu" })).getByRole(
-        "button",
-        { name: "Installed" },
-      ),
+      within(screen.getByRole("group", { name: "Browse categories menu" })).getByRole("button", {
+        name: "Installed",
+      }),
     );
 
     expect(onNavigate).toHaveBeenCalledWith("installed");
