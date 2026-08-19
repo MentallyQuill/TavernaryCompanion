@@ -1,11 +1,16 @@
 import { SillyTavernHostAdapter } from "./sillytavern-host";
 import type { HostExtensionAdapter, HostPopupOptions } from "./host-types";
 
-interface SillyTavernExtensionModule {
+export interface SillyTavernExtensionModule {
   extensionNames: string[];
   extensionTypes: Record<string, string>;
   getExtensionManifest(name: string): Record<string, unknown> | null;
-  installExtension(url: string, global: boolean, branch: string): Promise<boolean>;
+  installExtension(
+    url: string,
+    global: boolean,
+    branch: string,
+    commitSha?: string,
+  ): Promise<boolean>;
   enableExtension(name: string, reload: boolean): Promise<void>;
   disableExtension(name: string, reload: boolean): Promise<void>;
 }
@@ -38,10 +43,10 @@ const EXTENSION_MODULE_PATH = "/scripts/extensions.js";
 
 export async function createSillyTavernRuntimeHost(
   context: RuntimeSillyTavernContext,
+  loadExtensionModule: () => Promise<SillyTavernExtensionModule> = async () =>
+    (await import(/* @vite-ignore */ EXTENSION_MODULE_PATH)) as SillyTavernExtensionModule,
 ): Promise<HostExtensionAdapter> {
-  const extensionModule = (await import(
-    /* @vite-ignore */ EXTENSION_MODULE_PATH
-  )) as SillyTavernExtensionModule;
+  const extensionModule = await loadExtensionModule();
 
   if (!context.getRequestHeaders || !context.Popup || !context.POPUP_TYPE) {
     throw new Error("SillyTavern context is missing required extension APIs.");
@@ -57,8 +62,8 @@ export async function createSillyTavernRuntimeHost(
         : [];
     },
     getExtensionManifest: (name) => extensionModule.getExtensionManifest(name),
-    installExtension: (url, global, branch) =>
-      extensionModule.installExtension(url, global, branch),
+    installExtension: (url, global, branch, commitSha) =>
+      extensionModule.installExtension(url, global, branch, commitSha),
     enableExtension: (name, reload) => extensionModule.enableExtension(name, reload),
     disableExtension: (name, reload) => extensionModule.disableExtension(name, reload),
     getRequestHeaders: () => context.getRequestHeaders!(),

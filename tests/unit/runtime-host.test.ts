@@ -1,8 +1,59 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
 
-import { showNativePopup, type RuntimeSillyTavernContext } from "../../src/host/runtime-host";
+import {
+  createSillyTavernRuntimeHost,
+  showNativePopup,
+  type RuntimeSillyTavernContext,
+} from "../../src/host/runtime-host";
 
 afterEach(() => document.body.replaceChildren());
+
+it("forwards a checked commit through the runtime extension helper", async () => {
+  const installExtension = vi.fn().mockResolvedValue(true);
+  const extensionModule = {
+    extensionNames: [],
+    extensionTypes: {},
+    getExtensionManifest: vi.fn(() => null),
+    installExtension,
+    enableExtension: vi.fn(),
+    disableExtension: vi.fn(),
+  };
+  class Popup {
+    dlg = document.createElement("dialog");
+    closeButton = document.createElement("button");
+    show = vi.fn(async () => undefined);
+    complete = vi.fn(async () => undefined);
+  }
+  const context = {
+    extensionSettings: {},
+    saveSettingsDebounced: vi.fn(),
+    getRequestHeaders: () => ({}),
+    Popup,
+    POPUP_TYPE: { DISPLAY: 1 },
+  } satisfies RuntimeSillyTavernContext;
+  vi.spyOn(globalThis, "fetch").mockResolvedValue(
+    Response.json({
+      pinnedCommitInstall: true,
+      remoteRevisionLookup: true,
+      localRevisionLookup: true,
+    }),
+  );
+  const host = await createSillyTavernRuntimeHost(context, async () => extensionModule);
+  const commitSha = "a".repeat(40);
+
+  await host.install({
+    repositoryUrl: "https://github.com/example/Alpha",
+    branch: null,
+    commitSha,
+  });
+
+  expect(installExtension).toHaveBeenCalledWith(
+    "https://github.com/example/Alpha",
+    false,
+    "",
+    commitSha,
+  );
+});
 
 describe("showNativePopup", () => {
   it("uses a transparent native popup and dismisses only from its backdrop", async () => {

@@ -4,6 +4,232 @@ import { HostOperationError } from "../../src/host/host-errors";
 import { SillyTavernHostAdapter } from "../../src/host/sillytavern-host";
 import { createFakeHost } from "../helpers/fake-host";
 
+const repositoryUrl = "https://github.com/example/Alpha";
+const checkedSha = "a".repeat(40);
+const remoteSha = "b".repeat(40);
+
+function createSillyTavernHost(overrides: Record<string, unknown> = {}) {
+  return new SillyTavernHostAdapter({
+    getExtensionNames: () => [],
+    getExtensionTypes: () => ({}),
+    getDisabledExtensions: () => [],
+    getExtensionManifest: () => null,
+    installExtension: vi.fn(),
+    enableExtension: vi.fn(),
+    disableExtension: vi.fn(),
+    getRequestHeaders: () => ({ Authorization: "private" }),
+    fetch: vi.fn(),
+    reload: vi.fn(),
+    openExtensionManager: vi.fn(),
+    openExternal: vi.fn(),
+    showPopup: vi.fn(),
+    ...overrides,
+  });
+}
+
+it("falls back to legacy install capabilities when the capability endpoint is absent", async () => {
+  const host = createSillyTavernHost({
+    fetch: vi.fn().mockResolvedValue(new Response("missing", { status: 404 })),
+  });
+
+  await expect(host.getInstallCapabilities()).resolves.toEqual({
+    pinnedCommitInstall: false,
+    remoteRevisionLookup: false,
+    localRevisionLookup: true,
+  });
+});
+
+it("reads advertised install capabilities", async () => {
+  const host = createSillyTavernHost({
+    fetch: vi.fn().mockResolvedValue(
+      Response.json({
+        pinnedCommitInstall: true,
+        remoteRevisionLookup: true,
+        localRevisionLookup: true,
+      }),
+    ),
+  });
+
+  await expect(host.getInstallCapabilities()).resolves.toEqual({
+    pinnedCommitInstall: true,
+    remoteRevisionLookup: true,
+    localRevisionLookup: true,
+  });
+});
+
+it("resolves and validates the remote branch revision", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(Response.json({ sha: remoteSha }));
+  const host = createSillyTavernHost({ fetch: fetchMock });
+
+  await expect(host.resolveRemoteRevision({ repositoryUrl, branch: null })).resolves.toEqual({
+    sha: remoteSha,
+  });
+  expect(fetchMock).toHaveBeenCalledWith("/api/extensions/resolve", {
+    method: "POST",
+    headers: { Authorization: "private" },
+    body: JSON.stringify({ repositoryUrl, branch: null }),
+  });
+});
+
+it("rejects malformed remote revision hashes", async () => {
+  const host = createSillyTavernHost({
+    fetch: vi.fn().mockResolvedValue(Response.json({ sha: "not-a-commit" })),
+  });
+
+  await expect(host.resolveRemoteRevision({ repositoryUrl, branch: null })).rejects.toThrow(
+    "valid commit",
+  );
+});
+
+it("sanitizes bounded details from failed revision lookups", async () => {
+  const host = createSillyTavernHost({
+    fetch: vi.fn().mockResolvedValue(new Response(`\u0000${"x".repeat(600)}`, { status: 502 })),
+  });
+
+  const error = await host
+    .resolveRemoteRevision({ repositoryUrl, branch: null })
+    .catch((cause: unknown) => cause);
+
+  expect(error).toBeInstanceOf(HostOperationError);
+  expect(error).toMatchObject({ status: 502, details: "x".repeat(500) });
+});
+
+it("reads a local revision and treats an empty host hash as absent", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(Response.json({ currentCommitHash: checkedSha }))
+    .mockResolvedValueOnce(Response.json({ currentCommitHash: "" }));
+  const host = createSillyTavernHost({ fetch: fetchMock });
+
+  await expect(
+    host.readLocalRevision({ internalName: "third-party/Alpha", type: "local" }),
+  ).resolves.toBe(checkedSha);
+  await expect(
+    host.readLocalRevision({ internalName: "third-party/Alpha", type: "local" }),
+  ).resolves.toBeNull();
+  expect(fetchMock).toHaveBeenNthCalledWith(1, "/api/extensions/version", {
+    method: "POST",
+    headers: { Authorization: "private" },
+    body: JSON.stringify({ extensionName: "Alpha", global: false }),
+  });
+});
+
+it("rejects malformed non-empty local revision hashes", async () => {
+  const host = createSillyTavernHost({
+    fetch: vi.fn().mockResolvedValue(Response.json({ currentCommitHash: "short" })),
+  });
+
+  await expect(
+    host.readLocalRevision({ internalName: "third-party/Alpha", type: "global" }),
+  ).rejects.toThrow("valid commit");
+});
+
+it("forwards a checked commit only when pinned installs are advertised", async () => {
+  const installExtension = vi.fn().mockResolvedValue(true);
+  const host = createSillyTavernHost({
+    installExtension,
+    fetch: vi.fn().mockResolvedValue(
+      Response.json({
+        pinnedCommitInstall: true,
+        remoteRevisionLookup: true,
+        localRevisionLookup: true,
+      }),
+    ),
+  });
+
+  await host.install({ repositoryUrl, branch: null, commitSha: checkedSha });
+
+  expect(installExtension).toHaveBeenCalledWith(repositoryUrl, false, "", checkedSha);
+});
+
+it("refuses a checked commit when pinned installs are unavailable", async () => {
+  const installExtension = vi.fn();
+  const host = createSillyTavernHost({
+    installExtension,
+    fetch: vi.fn().mockResolvedValue(new Response("missing", { status: 404 })),
+  });
+
+  await expect(
+    host.install({ repositoryUrl, branch: null, commitSha: checkedSha }),
+  ).rejects.toThrow("pinned");
+  expect(installExtension).not.toHaveBeenCalled();
+});
+
+it("maps only an explicit unavailable-commit failure to the typed host error", async () => {
+  const unavailable = Object.assign(new Error("commit missing"), { code: "COMMIT_UNAVAILABLE" });
+  const networkFailure = new TypeError("network failed");
+  const capabilities = Response.json({
+    pinnedCommitInstall: true,
+    remoteRevisionLookup: true,
+    localRevisionLookup: true,
+  });
+  const explicitlyUnavailableHost = createSillyTavernHost({
+    installExtension: vi.fn().mockRejectedValue(unavailable),
+    fetch: vi.fn().mockResolvedValue(capabilities),
+  });
+  const networkFailureHost = createSillyTavernHost({
+    installExtension: vi.fn().mockRejectedValue(networkFailure),
+    fetch: vi.fn().mockResolvedValue(
+      Response.json({
+        pinnedCommitInstall: true,
+        remoteRevisionLookup: true,
+        localRevisionLookup: true,
+      }),
+    ),
+  });
+
+  const unavailableError = await explicitlyUnavailableHost
+    .install({ repositoryUrl, branch: null, commitSha: checkedSha })
+    .catch((cause: unknown) => cause);
+  expect(unavailableError).toMatchObject({ name: "HostRevisionUnavailableError" });
+  await expect(
+    networkFailureHost.install({ repositoryUrl, branch: null, commitSha: checkedSha }),
+  ).rejects.toBe(networkFailure);
+});
+
+it("models remote, installed, unavailable, and mismatched revisions in the fake host", async () => {
+  const unavailableSha = "c".repeat(40);
+  const host = createFakeHost({
+    capabilities: {
+      pinnedCommitInstall: true,
+      remoteRevisionLookup: true,
+      localRevisionLookup: true,
+    },
+    remoteHeads: { [`${repositoryUrl}#`]: remoteSha },
+    installedRevisions: { "local:third-party/Alpha": checkedSha },
+    unavailableHashes: [unavailableSha],
+    mismatchResults: { [checkedSha]: remoteSha },
+    installResults: {
+      [repositoryUrl]: {
+        internalName: "third-party/Alpha",
+        folderName: "Alpha",
+        enabled: true,
+        type: "local",
+        manifest: { key: "alpha" },
+      },
+    },
+  });
+
+  await expect(host.getInstallCapabilities()).resolves.toEqual({
+    pinnedCommitInstall: true,
+    remoteRevisionLookup: true,
+    localRevisionLookup: true,
+  });
+  await expect(host.resolveRemoteRevision({ repositoryUrl, branch: null })).resolves.toEqual({
+    sha: remoteSha,
+  });
+  await expect(
+    host.readLocalRevision({ internalName: "third-party/Alpha", type: "local" }),
+  ).resolves.toBe(checkedSha);
+  await host.install({ repositoryUrl, branch: null, commitSha: checkedSha });
+  await expect(
+    host.readLocalRevision({ internalName: "third-party/Alpha", type: "local" }),
+  ).resolves.toBe(remoteSha);
+  await expect(
+    host.install({ repositoryUrl, branch: null, commitSha: unavailableSha }),
+  ).rejects.toMatchObject({ name: "HostRevisionUnavailableError" });
+});
+
 it("discovers canonical host identities and enabled state", async () => {
   const host = createFakeHost({
     extensions: [

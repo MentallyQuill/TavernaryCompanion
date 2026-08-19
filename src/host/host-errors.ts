@@ -1,4 +1,12 @@
-export type HostOperation = "discover" | "install" | "remove" | "enable" | "disable";
+export type HostOperation =
+  | "discover"
+  | "capabilities"
+  | "resolveRevision"
+  | "install"
+  | "readRevision"
+  | "remove"
+  | "enable"
+  | "disable";
 
 export class HostOperationError extends Error {
   readonly operation: HostOperation;
@@ -15,5 +23,15 @@ export class HostOperationError extends Error {
     this.operation = operation;
     this.status = options.status ?? null;
     this.details = options.details ?? null;
+  }
+}
+
+export class HostRevisionUnavailableError extends Error {
+  readonly revision: string;
+
+  constructor(revision: string, options: { cause?: unknown } = {}) {
+    super("The selected extension commit is unavailable.", options);
+    this.name = "HostRevisionUnavailableError";
+    this.revision = revision;
   }
 }
