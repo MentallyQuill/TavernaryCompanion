@@ -7,6 +7,7 @@ import type { ProfileStore } from "../state/profile-store";
 import { selectTrustPrompts } from "../trust/trust-policy";
 import type { TrustPrompt } from "../trust/trust-types";
 import { evaluateLifecycle } from "./lifecycle-policy";
+import { legacyInstallProvenance } from "./install-target";
 import { OperationLock } from "./operation-lock";
 import { createReceipt, type LifecycleReceipt } from "./operation-receipt";
 import {
@@ -176,6 +177,7 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
         extension: installed,
         installedAt: this.#now(),
         installedBy: "individual",
+        provenance: legacyInstallProvenance(),
       });
       const receipt = createReceipt({
         id,

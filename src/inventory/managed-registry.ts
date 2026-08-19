@@ -1,5 +1,9 @@
 import type { HostExtension } from "../host/host-types";
 import { assertNotCompanionProject, COMPANION_PROJECT_ID } from "../lifecycle/self-protection";
+import {
+  legacyInstallProvenance,
+  type ManagedInstallProvenance,
+} from "../lifecycle/install-target";
 import type {
   ManagedExtensionMap,
   ManagedExtensionRecord,
@@ -30,12 +34,14 @@ export class ManagedRegistry {
     extension,
     installedAt,
     installedBy,
+    provenance,
   }: {
     projectId: string;
     expectedFolderName: string;
     extension: HostExtension;
     installedAt: string;
     installedBy: ManagedInstallOrigin;
+    provenance: ManagedInstallProvenance;
   }): ManagedExtensionRecord {
     assertNotCompanionProject(projectId);
     if (folderIdentity(extension.folderName) !== folderIdentity(expectedFolderName)) {
@@ -47,6 +53,7 @@ export class ManagedRegistry {
       folderName: extension.folderName,
       installedAt,
       installedBy,
+      provenance: structuredClone(provenance),
     };
     this.#records[projectId] = structuredClone(record);
     return structuredClone(record);
@@ -79,7 +86,12 @@ export function normalizeManagedExtensionMap(value: Record<string, unknown>): Ma
   const result: ManagedExtensionMap = {};
   for (const [projectId, candidate] of Object.entries(value)) {
     if (!isManagedRecord(candidate) || candidate.projectId !== projectId) continue;
-    result[projectId] = structuredClone(candidate);
+    result[projectId] = {
+      ...structuredClone(candidate),
+      provenance: hasOwn(candidate, "provenance")
+        ? structuredClone(candidate.provenance)
+        : legacyInstallProvenance(),
+    };
   }
   delete result[COMPANION_PROJECT_ID];
   return result;
@@ -93,6 +105,31 @@ function isManagedRecord(value: unknown): value is ManagedExtensionRecord {
     typeof record.internalName === "string" &&
     typeof record.folderName === "string" &&
     typeof record.installedAt === "string" &&
-    (record.installedBy === "individual" || record.installedBy === "kit")
+    (record.installedBy === "individual" || record.installedBy === "kit") &&
+    (!hasOwn(record, "provenance") || isManagedInstallProvenance(record.provenance))
+  );
+}
+
+function hasOwn(value: object, key: PropertyKey): boolean {
+  return Object.prototype.hasOwnProperty.call(value, key);
+}
+
+function isManagedInstallProvenance(value: unknown): value is ManagedInstallProvenance {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const provenance = value as Partial<ManagedInstallProvenance>;
+  if (provenance.targetKind === "legacy-unknown") {
+    return (
+      provenance.requestedSha === null &&
+      provenance.installedSha === null &&
+      provenance.catalogGeneratedAt === null &&
+      provenance.tavernKeeperReportId === null
+    );
+  }
+  return (
+    (provenance.targetKind === "checked" || provenance.targetKind === "newest") &&
+    (typeof provenance.requestedSha === "string" || provenance.requestedSha === null) &&
+    (typeof provenance.installedSha === "string" || provenance.installedSha === null) &&
+    typeof provenance.catalogGeneratedAt === "string" &&
+    (typeof provenance.tavernKeeperReportId === "string" || provenance.tavernKeeperReportId === null)
   );
 }

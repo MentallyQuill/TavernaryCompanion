@@ -18,9 +18,32 @@ export interface HostPopupOptions {
   allowVerticalScrolling?: boolean;
 }
 
+export interface HostInstallCapabilities {
+  pinnedCommitInstall: boolean;
+  remoteRevisionLookup: boolean;
+  localRevisionLookup: boolean;
+}
+
+export interface HostResolvedRevision {
+  sha: string;
+}
+
 export interface HostExtensionAdapter {
   discover(): Promise<HostExtension[]>;
-  install(input: { repositoryUrl: string; branch: string | null }): Promise<void>;
+  getInstallCapabilities(): Promise<HostInstallCapabilities>;
+  resolveRemoteRevision(input: {
+    repositoryUrl: string;
+    branch: string | null;
+  }): Promise<HostResolvedRevision>;
+  install(input: {
+    repositoryUrl: string;
+    branch: string | null;
+    commitSha?: string | null;
+  }): Promise<void>;
+  readLocalRevision(input: {
+    internalName: string;
+    type: HostExtensionType;
+  }): Promise<string | null>;
   remove(input: { internalName: string; type: HostExtensionType }): Promise<void>;
   enable(internalName: string): Promise<void>;
   disable(internalName: string): Promise<void>;

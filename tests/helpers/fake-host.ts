@@ -1,17 +1,27 @@
 import type {
   HostExtension,
   HostExtensionAdapter,
+  HostInstallCapabilities,
   HostPopupOptions,
 } from "../../src/host/host-types";
+import { HostOperationError, HostRevisionUnavailableError } from "../../src/host/host-errors";
 
 export interface FakeHostOptions {
   extensions?: HostExtension[];
   installResults?: Record<string, HostExtension>;
+  capabilities?: HostInstallCapabilities;
+  remoteHeads?: Record<string, string>;
+  installedRevisions?: Record<string, string | null>;
+  unavailableHashes?: string[];
+  mismatchResults?: Record<string, string>;
   failures?: Partial<Record<FakeHostOperation, Error>>;
 }
 
 export type FakeHostOperation =
+  | "getInstallCapabilities"
+  | "resolveRemoteRevision"
   | "install"
+  | "readLocalRevision"
   | "remove"
   | "enable"
   | "disable"
@@ -22,6 +32,11 @@ export type FakeHostOperation =
 export class FakeHost implements HostExtensionAdapter {
   readonly #extensions: HostExtension[];
   readonly #installResults: Record<string, HostExtension>;
+  readonly #capabilities: HostInstallCapabilities;
+  readonly #remoteHeads: Record<string, string>;
+  readonly #installedRevisions: Record<string, string | null>;
+  readonly #unavailableHashes: Set<string>;
+  readonly #mismatchResults: Record<string, string>;
   readonly #failures: Partial<Record<FakeHostOperation, Error>>;
   readonly calls: Array<{ operation: string; [key: string]: unknown }> = [];
   reloadCount = 0;
@@ -29,6 +44,17 @@ export class FakeHost implements HostExtensionAdapter {
   constructor(options: FakeHostOptions = {}) {
     this.#extensions = structuredClone(options.extensions ?? []);
     this.#installResults = structuredClone(options.installResults ?? {});
+    this.#capabilities = structuredClone(
+      options.capabilities ?? {
+        pinnedCommitInstall: false,
+        remoteRevisionLookup: false,
+        localRevisionLookup: true,
+      },
+    );
+    this.#remoteHeads = structuredClone(options.remoteHeads ?? {});
+    this.#installedRevisions = structuredClone(options.installedRevisions ?? {});
+    this.#unavailableHashes = new Set(options.unavailableHashes ?? []);
+    this.#mismatchResults = structuredClone(options.mismatchResults ?? {});
     this.#failures = { ...options.failures };
   }
 
@@ -37,14 +63,61 @@ export class FakeHost implements HostExtensionAdapter {
     return structuredClone(this.#extensions);
   }
 
-  async install(input: { repositoryUrl: string; branch: string | null }): Promise<void> {
+  async getInstallCapabilities(): Promise<HostInstallCapabilities> {
+    this.calls.push({ operation: "getInstallCapabilities" });
+    this.#throwConfiguredFailure("getInstallCapabilities");
+    return structuredClone(this.#capabilities);
+  }
+
+  async resolveRemoteRevision(input: {
+    repositoryUrl: string;
+    branch: string | null;
+  }): Promise<{ sha: string }> {
+    this.calls.push({ operation: "resolveRemoteRevision", ...structuredClone(input) });
+    this.#throwConfiguredFailure("resolveRemoteRevision");
+    if (!this.#capabilities.remoteRevisionLookup) {
+      throw new HostOperationError("resolveRevision", "Remote revision lookup is unavailable.");
+    }
+    const key = `${input.repositoryUrl}#${input.branch ?? ""}`;
+    const sha = this.#remoteHeads[key];
+    if (!sha) throw new Error(`No fake remote head for: ${key}`);
+    return { sha };
+  }
+
+  async install(input: {
+    repositoryUrl: string;
+    branch: string | null;
+    commitSha?: string | null;
+  }): Promise<void> {
     this.calls.push({ operation: "install", ...structuredClone(input) });
     this.#throwConfiguredFailure("install");
+    if (input.commitSha && !this.#capabilities.pinnedCommitInstall) {
+      throw new HostOperationError("install", "Pinned commit installs are unavailable.");
+    }
+    if (input.commitSha && this.#unavailableHashes.has(input.commitSha)) {
+      throw new HostRevisionUnavailableError(input.commitSha);
+    }
     const extension = this.#installResults[input.repositoryUrl];
     if (!extension) {
       throw new Error(`No fake install result for: ${input.repositoryUrl}`);
     }
     this.#extensions.push(structuredClone(extension));
+    const observedRevision = input.commitSha
+      ? (this.#mismatchResults[input.commitSha] ?? input.commitSha)
+      : (this.#remoteHeads[`${input.repositoryUrl}#${input.branch ?? ""}`] ?? null);
+    this.#installedRevisions[`${extension.type}:${extension.internalName}`] = observedRevision;
+  }
+
+  async readLocalRevision(input: {
+    internalName: string;
+    type: "local" | "global";
+  }): Promise<string | null> {
+    this.calls.push({ operation: "readLocalRevision", ...structuredClone(input) });
+    this.#throwConfiguredFailure("readLocalRevision");
+    if (!this.#capabilities.localRevisionLookup) {
+      throw new HostOperationError("readRevision", "Local revision lookup is unavailable.");
+    }
+    return this.#installedRevisions[`${input.type}:${input.internalName}`] ?? null;
   }
 
   async remove(input: { internalName: string; type: "local" | "global" }): Promise<void> {
@@ -57,6 +130,7 @@ export class FakeHost implements HostExtensionAdapter {
       throw new Error(`Unknown extension: ${input.internalName}`);
     }
     this.#extensions.splice(index, 1);
+    delete this.#installedRevisions[`${input.type}:${input.internalName}`];
   }
 
   async enable(internalName: string): Promise<void> {

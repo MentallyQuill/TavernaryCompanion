@@ -1,5 +1,6 @@
 import type { CatalogProject } from "../catalog/catalog-core";
 import type { HostExtension } from "../host/host-types";
+import type { ManagedInstallProvenance } from "../lifecycle/install-target";
 
 export type ManagedInstallOrigin = "individual" | "kit";
 
@@ -9,6 +10,7 @@ export interface ManagedExtensionRecord {
   folderName: string;
   installedAt: string;
   installedBy: ManagedInstallOrigin;
+  provenance?: ManagedInstallProvenance;
 }
 
 export type ManagedExtensionMap = Record<string, ManagedExtensionRecord>;

@@ -1,6 +1,7 @@
 import type { CatalogProject, CatalogV7 } from "../catalog/catalog-core";
 import type { HostExtension, HostExtensionAdapter } from "../host/host-types";
 import { ManagedRegistry, normalizeManagedExtensionMap } from "../inventory/managed-registry";
+import { legacyInstallProvenance } from "../lifecycle/install-target";
 import type { OperationLock } from "../lifecycle/operation-lock";
 import type { ProfileStore } from "../state/profile-store";
 import { applyActivationMutations } from "./kit-activation-commit";
@@ -468,6 +469,7 @@ export class KitExecutor {
         extension,
         installedAt: this.#now(),
         installedBy: "kit",
+        provenance: legacyInstallProvenance(),
       });
       draft.managedExtensions = registry.read();
     });
