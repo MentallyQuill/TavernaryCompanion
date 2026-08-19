@@ -2,12 +2,12 @@ import { useEffect } from "preact/hooks";
 
 import type { InstalledSectionViewModel } from "../../catalog/installed-view-model";
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
-import type { KitInspectorViewModel } from "../../kits/kit-view-model";
+import type { InstalledKitViewModel } from "../../kits/kit-view-model";
 import { InstalledSection } from "./installed-section";
 
 interface InstalledRouteProps {
   sections: InstalledSectionViewModel[];
-  kits?: readonly KitInspectorViewModel[];
+  kits?: readonly InstalledKitViewModel[];
   activeKitId?: string | null;
   refreshing?: boolean;
   togglingInternalName?: string | null;
@@ -15,6 +15,7 @@ interface InstalledRouteProps {
   onAction?(id: string, action: ProjectPrimaryAction): void;
   onManage?(): void;
   onOpenKit?(id: string): void;
+  onUninstallKit?(id: string): void;
   onToggleExtension?(projectId: string, internalName: string, enabled: boolean): void;
   lifecycleDisabled?: boolean;
 }
@@ -29,6 +30,7 @@ export function InstalledRoute({
   onAction,
   onManage,
   onOpenKit,
+  onUninstallKit,
   onToggleExtension,
   lifecycleDisabled,
 }: InstalledRouteProps): preact.JSX.Element {
@@ -36,17 +38,17 @@ export function InstalledRoute({
     void onRefresh();
   }, [onRefresh]);
   const populatedSections = sections.filter((section) => section.rows.length > 0);
-  const installedKits = kits.filter(({ operationalStatus }) => operationalStatus !== "Saved");
+  const installedKits = kits;
   const installedCount = populatedSections.reduce(
     (total, section) => total + section.rows.length,
     0,
   );
   const memberships = new Map<string, string[]>();
   for (const kit of installedKits) {
-    for (const component of kit.components) {
-      const titles = memberships.get(component.projectId) ?? [];
+    for (const projectId of kit.installedProjectIds) {
+      const titles = memberships.get(projectId) ?? [];
       if (!titles.includes(kit.title)) titles.push(kit.title);
-      memberships.set(component.projectId, titles);
+      memberships.set(projectId, titles);
     }
   }
   return (
@@ -90,13 +92,23 @@ export function InstalledRoute({
                     ))}
                   </div>
                   <footer>
-                    <button
-                      type="button"
-                      aria-label={`Open ${kit.title}`}
-                      onClick={() => onOpenKit?.(kit.id)}
-                    >
-                      View Kit
-                    </button>
+                    {kit.orphaned ? (
+                      <button
+                        type="button"
+                        aria-label={`Uninstall ${kit.title}`}
+                        onClick={() => onUninstallKit?.(kit.id)}
+                      >
+                        Uninstall Kit
+                      </button>
+                    ) : (
+                      <button
+                        type="button"
+                        aria-label={`Open ${kit.title}`}
+                        onClick={() => onOpenKit?.(kit.id)}
+                      >
+                        View Kit
+                      </button>
+                    )}
                   </footer>
                 </article>
               );

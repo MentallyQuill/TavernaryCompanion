@@ -18,6 +18,7 @@ interface FilterGroupProps {
   initialVisibleCount?: number;
   kindColors?: boolean;
   countNoun?: string;
+  selectionMode?: "multiple" | "single";
 }
 
 export function FilterGroup({
@@ -30,6 +31,7 @@ export function FilterGroup({
   initialVisibleCount = options.length,
   kindColors = false,
   countNoun = "project",
+  selectionMode = "multiple",
 }: FilterGroupProps): preact.JSX.Element | null {
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState(false);
@@ -77,7 +79,8 @@ export function FilterGroup({
           ) : (
             <label key={option.id} class="tavernary-companion-filter-option">
               <input
-                type="checkbox"
+                type={selectionMode === "single" ? "radio" : "checkbox"}
+                name={selectionMode === "single" ? `filter-${title}` : undefined}
                 aria-label={option.label}
                 checked={selected.includes(option.id)}
                 class={kindColors ? "tavernary-companion-kind-checkbox" : undefined}

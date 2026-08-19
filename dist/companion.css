@@ -271,7 +271,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-button-close {
   position: absolute !important;
   z-index: 140 !important;
   inset-block-start: 0 !important;
-  inset-inline-end: -52px !important;
+  inset-inline-end: max(-52px, calc((92vw - 100vw) / 2 + 4px)) !important;
   display: grid !important;
   inline-size: 46px !important;
   min-inline-size: 46px !important;
@@ -285,7 +285,9 @@ dialog.popup:has(.tavernary-companion-root) > .popup-button-close {
   background: rgb(83 87 92 / 0.96) !important;
   box-shadow: 0 8px 22px rgb(0 0 0 / 0.38) !important;
   filter: none !important;
-  font: 700 26px/1 var(--tavernary-font-family) !important;
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
   cursor: pointer !important;
   place-items: center !important;
 }
@@ -2867,7 +2869,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 .tavernary-companion-kit-filter-backdrop {
   display: none;
 }
-.tavernary-companion-kit-size-filter,
+.tavernary-companion-dual-range,
 .tavernary-companion-kit-status-filter {
   min-inline-size: 0;
   margin: 0;
@@ -2875,7 +2877,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   border: 0;
   border-block-start: 1px solid var(--tavernary-color-divider);
 }
-.tavernary-companion-kit-size-filter legend,
+.tavernary-companion-dual-range legend,
 .tavernary-companion-kit-status-filter legend {
   margin-block-end: 8px;
   color: var(--tavernary-color-text-muted);
@@ -2884,23 +2886,75 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   letter-spacing: 0.11em;
   text-transform: uppercase;
 }
-.tavernary-companion-kit-size-filter label {
-  display: grid;
-  gap: 3px;
-  margin-block-end: 8px;
+.tavernary-companion-dual-range__readouts {
+  display: flex;
+  justify-content: space-between;
+  margin-block-end: 6px;
   color: var(--tavernary-color-text-secondary);
   font-size: 10px;
+  font-variant-numeric: tabular-nums;
 }
-.tavernary-companion-kit-size-filter input {
+.tavernary-companion-dual-range__track {
+  position: relative;
+  block-size: 28px;
+}
+.tavernary-companion-dual-range__track::before,
+.tavernary-companion-dual-range__track::after {
+  position: absolute;
+  inset-block-start: 50%;
+  block-size: 4px;
+  border-radius: 999px;
+  content: "";
+  pointer-events: none;
+  transform: translateY(-50%);
+}
+.tavernary-companion-dual-range__track::after {
+  inset-inline: 0;
+  background: var(--tavernary-color-progress-track);
+}
+.tavernary-companion-dual-range__track::before {
+  z-index: 1;
+  inset-inline-start: var(--range-start);
+  inset-inline-end: calc(100% - var(--range-end));
+  background: var(--tavernary-color-accent-teal);
+}
+.tavernary-companion-dual-range input[type=range] {
+  position: absolute;
+  z-index: 2;
+  inset: 0;
   inline-size: 100%;
-  min-block-size: 18px;
-  accent-color: var(--tavernary-color-accent-teal);
+  block-size: 28px;
+  margin: 0;
+  appearance: none;
+  outline: 0;
+  background: transparent;
+  pointer-events: none;
 }
-.tavernary-companion-kit-size-filter output {
-  display: block;
-  color: var(--tavernary-color-text-muted);
-  font-size: 10px;
-  text-align: center;
+.tavernary-companion-dual-range input[type=range]::-webkit-slider-runnable-track {
+  block-size: 4px;
+  background: transparent;
+}
+.tavernary-companion-dual-range input[type=range]::-webkit-slider-thumb {
+  inline-size: 18px;
+  block-size: 18px;
+  margin-block-start: -7px;
+  appearance: none;
+  border: 2px solid var(--tavernary-color-control-bg);
+  border-radius: 50%;
+  background: var(--tavernary-color-accent-teal);
+  box-shadow: 0 0 0 1px var(--tavernary-color-border-default);
+  cursor: grab;
+  pointer-events: auto;
+}
+.tavernary-companion-dual-range input[type=range]::-moz-range-thumb {
+  inline-size: 18px;
+  block-size: 18px;
+  border: 2px solid var(--tavernary-color-control-bg);
+  border-radius: 50%;
+  background: var(--tavernary-color-accent-teal);
+  box-shadow: 0 0 0 1px var(--tavernary-color-border-default);
+  cursor: grab;
+  pointer-events: auto;
 }
 .tavernary-companion-published-kit-results {
   min-inline-size: 0;

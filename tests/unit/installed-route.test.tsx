@@ -98,23 +98,16 @@ describe("InstalledRoute", () => {
             id: "writer-kit",
             title: "Writer Kit",
             description: "A focused writing stack.",
-            origin: "personal",
             originLabel: "Personal Kit",
-            componentCount: 1,
-            flaggedCount: 0,
             operationalStatus: "Active",
-            primaryAction: { kind: "deactivate", label: "Deactivate" },
             components: [
               {
                 projectId: "alpha",
                 name: "Alpha",
-                group: "managed",
-                available: true,
-                assessment: null,
-                canonicalUrl: "https://example.test/alpha",
               },
             ],
-            editable: true,
+            installedProjectIds: ["alpha"],
+            orphaned: false,
           },
         ]}
         activeKitId="writer-kit"
@@ -135,6 +128,33 @@ describe("InstalledRoute", () => {
     expect(onToggleExtension).toHaveBeenCalledWith("alpha", "third-party/Alpha", false);
     fireEvent.click(screen.getByRole("button", { name: "Open Writer Kit" }));
     expect(onOpenKit).toHaveBeenCalledWith("writer-kit");
+  });
+
+  it("keeps an orphaned installed Kit visible with an uninstall path", () => {
+    const onUninstallKit = vi.fn();
+    render(
+      <InstalledRoute
+        sections={sections.map((section) => ({ ...section, rows: [] }))}
+        kits={[
+          {
+            id: "removed-kit",
+            title: "removed-kit",
+            description: "No longer cataloged.",
+            originLabel: "Installed Kit",
+            operationalStatus: "Installed",
+            components: [{ projectId: "alpha", name: "Alpha" }],
+            installedProjectIds: ["alpha"],
+            orphaned: true,
+          },
+        ]}
+        onRefresh={vi.fn()}
+        onUninstallKit={onUninstallKit}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "removed-kit" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Uninstall removed-kit" }));
+    expect(onUninstallKit).toHaveBeenCalledWith("removed-kit");
   });
 
   it("explains an inventory with no installed extensions", () => {

@@ -42,12 +42,28 @@ it("opens on Personal Kits and exposes Tavernary filters only after switching to
   expect(screen.getByRole("group", { name: "Purpose" })).toBeVisible();
   expect(screen.getByRole("group", { name: "Model family" })).toBeVisible();
   expect(screen.getByRole("group", { name: "Includes project" })).toBeVisible();
+  const includedProject = screen.getByRole("radio", { name: "alpha" });
+  fireEvent.click(includedProject);
+  fireEvent.click(includedProject);
+  expect(includedProject).toBeChecked();
   expect(screen.getByRole("group", { name: "Kit size" })).toBeVisible();
+  const minimumProjects = screen.getByRole("slider", { name: "Minimum projects" });
+  fireEvent.keyDown(minimumProjects, { key: "PageUp" });
+  expect(minimumProjects).toHaveValue("8");
   expect(screen.getByRole("checkbox", { name: "All components available" })).toBeVisible();
+  fireEvent.change(screen.getByRole("combobox", { name: "Sort Published Kits" }), {
+    target: { value: "updated" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  expect(screen.getByRole("combobox", { name: "Sort Published Kits" })).toHaveValue("updated");
   expect(trigger).toHaveAttribute("aria-expanded", "false");
   fireEvent.click(trigger);
   expect(trigger).toHaveAttribute("aria-expanded", "true");
   expect(screen.getByRole("dialog", { name: "Kit filters" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Filters" })).toHaveFocus();
+  expect(document.querySelector(".tavernary-companion-published-kit-results")).toHaveAttribute(
+    "inert",
+  );
   fireEvent.keyDown(window, { key: "Escape" });
   expect(trigger).toHaveAttribute("aria-expanded", "false");
   expect(trigger).toHaveFocus();

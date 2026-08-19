@@ -42,7 +42,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-button-close {
   position: absolute !important;
   z-index: 140 !important;
   inset-block-start: 0 !important;
-  inset-inline-end: -52px !important;
+  inset-inline-end: max(-52px, calc((92vw - 100vw) / 2 + 4px)) !important;
   display: grid !important;
   inline-size: 46px !important;
   min-inline-size: 46px !important;
@@ -56,7 +56,9 @@ dialog.popup:has(.tavernary-companion-root) > .popup-button-close {
   background: rgb(83 87 92 / 0.96) !important;
   box-shadow: 0 8px 22px rgb(0 0 0 / 0.38) !important;
   filter: none !important;
-  font: 700 26px/1 var(--tavernary-font-family) !important;
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
   cursor: pointer !important;
   place-items: center !important;
 }

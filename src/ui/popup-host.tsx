@@ -31,6 +31,7 @@ import {
   toPersonalKitInspector,
   toPublishedKitInspector,
   type KitInspectorViewModel,
+  type InstalledKitViewModel,
   type KitPrimaryAction,
 } from "../kits/kit-view-model";
 import type { ReconciledKitStatus } from "../kits/kit-reconciler";
@@ -117,6 +118,7 @@ export function CompanionPopupHost({
   const [kitEditorSeed, setKitEditorSeed] = useState<string[]>([]);
   const [importingKit, setImportingKit] = useState(false);
   const [kitInspectors, setKitInspectors] = useState<Record<string, KitInspectorViewModel>>({});
+  const [installedKitCards, setInstalledKitCards] = useState<InstalledKitViewModel[]>([]);
   const [operationError, setOperationError] = useState<string | null>(null);
 
   const syncKits = useCallback(async () => {
@@ -134,6 +136,7 @@ export function CompanionPopupHost({
       statuses: presentation.statuses,
     });
     setKitInspectors(presentation.inspectors);
+    setInstalledKitCards(presentation.installedKits);
   }, [runtime, store]);
 
   const refreshInventory = useCallback(async () => {
@@ -336,6 +339,7 @@ export function CompanionPopupHost({
         lifecycleDisabled={activeOperation !== null || togglingInternalName !== null}
         kitDiscovery={runtime?.kitDiscovery}
         kitInspectors={kitInspectors}
+        installedKits={installedKitCards}
         onKitAction={requestKitAction}
         onNewKit={() => {
           setKitEditorSeed([]);
@@ -633,13 +637,22 @@ function resolveKit(
   const personal = runtime.kits.readDefinition(kitId);
   if (personal) return { id: personal.id, projectIds: personal.projectIds, origin: "personal" };
   const published = catalog.kits.find((kit) => kit.id === kitId);
-  return published
-    ? {
-        id: published.id,
-        projectIds: published.components.map(({ projectId }) => projectId),
-        origin: "published",
-      }
-    : null;
+  if (published) {
+    return {
+      id: published.id,
+      projectIds: published.components.map(({ projectId }) => projectId),
+      origin: "published",
+    };
+  }
+  const installed = runtime.kits.readInstalled(kitId);
+  if (!installed) return null;
+  return {
+    id: installed.kitId,
+    projectIds: installed.definitionProjectIds ?? [
+      ...new Set([...installed.installedProjectIds, ...installed.missingProjectIds]),
+    ],
+    origin: "published",
+  };
 }
 
 export async function buildKitPresentation(
@@ -649,6 +662,7 @@ export async function buildKitPresentation(
 ): Promise<{
   statuses: Map<string, ReconciledKitStatus>;
   inspectors: Record<string, KitInspectorViewModel>;
+  installedKits: InstalledKitViewModel[];
 }> {
   const statuses = new Map<string, ReconciledKitStatus>();
   const activeId = kits.readActiveId();
@@ -690,7 +704,42 @@ export async function buildKitPresentation(
     statuses.set(kit.id, status);
     inspectors[kit.id] = toPublishedKitInspector(kit, status, installed);
   }
-  return { statuses, inspectors };
+  const projectNames = new Map(catalog.projects.map((project) => [project.id, project.name]));
+  const installedKits = kits.readInstalledStates().map((installed): InstalledKitViewModel => {
+    const inspector = inspectors[installed.kitId];
+    const currentNames = new Map(
+      inspector?.components.map((component) => [component.projectId, component.name]) ?? [],
+    );
+    const topology = installed.definitionProjectIds ?? [
+      ...new Set([...installed.installedProjectIds, ...installed.missingProjectIds]),
+    ];
+    return {
+      id: installed.kitId,
+      title: inspector?.title ?? installed.kitId,
+      description:
+        inspector?.description ?? "This installed Kit is no longer present in the current catalog.",
+      originLabel: inspector?.originLabel ?? "Installed Kit",
+      operationalStatus:
+        installed.kitId === activeId
+          ? "Active"
+          : (inspector?.operationalStatus ?? installedStatusLabel(installed.status)),
+      components: topology.map((projectId) => ({
+        projectId,
+        name: currentNames.get(projectId) ?? projectNames.get(projectId) ?? projectId,
+      })),
+      installedProjectIds: [...installed.installedProjectIds],
+      orphaned: !inspector,
+    };
+  });
+  return { statuses, inspectors, installedKits };
+}
+
+function installedStatusLabel(status: "installed" | "incomplete" | "drifted"): string {
+  return {
+    installed: "Installed",
+    incomplete: "Incomplete",
+    drifted: "Drifted",
+  }[status];
 }
 
 export function renderCompanionPopup(

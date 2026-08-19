@@ -38,6 +38,17 @@ export interface KitInspectorViewModel extends KitCardViewModel {
   topologyChange?: KitTopologyChange;
 }
 
+export interface InstalledKitViewModel {
+  id: string;
+  title: string;
+  description: string;
+  originLabel: string;
+  operationalStatus: string;
+  components: Array<{ projectId: string; name: string }>;
+  installedProjectIds: string[];
+  orphaned: boolean;
+}
+
 export type KitTopologyChange =
   | {
       kind: "exact";

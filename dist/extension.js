@@ -14753,6 +14753,7 @@ function InstalledRoute({
   onAction,
   onManage,
   onOpenKit,
+  onUninstallKit,
   onToggleExtension,
   lifecycleDisabled
 }) {
@@ -14760,17 +14761,17 @@ function InstalledRoute({
     void onRefresh();
   }, [onRefresh]);
   const populatedSections = sections.filter((section) => section.rows.length > 0);
-  const installedKits = kits.filter(({ operationalStatus }) => operationalStatus !== "Saved");
+  const installedKits = kits;
   const installedCount = populatedSections.reduce(
     (total, section) => total + section.rows.length,
     0
   );
   const memberships = /* @__PURE__ */ new Map();
   for (const kit2 of installedKits) {
-    for (const component2 of kit2.components) {
-      const titles = memberships.get(component2.projectId) ?? [];
+    for (const projectId of kit2.installedProjectIds) {
+      const titles = memberships.get(projectId) ?? [];
       if (!titles.includes(kit2.title)) titles.push(kit2.title);
-      memberships.set(component2.projectId, titles);
+      memberships.set(projectId, titles);
     }
   }
   return /* @__PURE__ */ u3("section", { class: "tavernary-companion-installed-route", "aria-labelledby": "installed-heading", children: [
@@ -14808,7 +14809,15 @@ function InstalledRoute({
                   /* @__PURE__ */ u3("h4", { children: kit2.title }),
                   kit2.description ? /* @__PURE__ */ u3("p", { children: kit2.description }) : null,
                   /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-kit-components", children: kit2.components.map((component2) => /* @__PURE__ */ u3("span", { children: component2.name }, component2.projectId)) }),
-                  /* @__PURE__ */ u3("footer", { children: /* @__PURE__ */ u3(
+                  /* @__PURE__ */ u3("footer", { children: kit2.orphaned ? /* @__PURE__ */ u3(
+                    "button",
+                    {
+                      type: "button",
+                      "aria-label": `Uninstall ${kit2.title}`,
+                      onClick: () => onUninstallKit?.(kit2.id),
+                      children: "Uninstall Kit"
+                    }
+                  ) : /* @__PURE__ */ u3(
                     "button",
                     {
                       type: "button",
@@ -15044,7 +15053,8 @@ function FilterGroup({
   searchLabel,
   initialVisibleCount = options.length,
   kindColors = false,
-  countNoun = "project"
+  countNoun = "project",
+  selectionMode = "multiple"
 }) {
   const [search, setSearch] = d2("");
   const [expanded, setExpanded] = d2(false);
@@ -15089,7 +15099,8 @@ function FilterGroup({
             /* @__PURE__ */ u3(
               "input",
               {
-                type: "checkbox",
+                type: selectionMode === "single" ? "radio" : "checkbox",
+                name: selectionMode === "single" ? `filter-${title}` : void 0,
                 "aria-label": option.label,
                 checked: selected.includes(option.id),
                 class: kindColors ? "tavernary-companion-kind-checkbox" : void 0,
@@ -15116,6 +15127,88 @@ function FilterGroup({
   ] });
 }
 
+// src/ui/kits/dual-range.tsx
+function DualRange({
+  label: label2,
+  minimumLabel,
+  maximumLabel,
+  min,
+  max,
+  step: step2 = 1,
+  value,
+  onChange
+}) {
+  const [minimum, maximum] = value;
+  const span = Math.max(1, max - min);
+  const minimumPercent = (minimum - min) / span * 100;
+  const maximumPercent = (maximum - min) / span * 100;
+  const handleKeyDown = (thumb, event) => {
+    if (!["PageUp", "PageDown", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const current = thumb === "minimum" ? minimum : maximum;
+    const target = event.key === "Home" ? thumb === "minimum" ? min : minimum : event.key === "End" ? thumb === "minimum" ? maximum : max : current + (event.key === "PageUp" ? 5 * step2 : -5 * step2);
+    if (thumb === "minimum") {
+      onChange([Math.max(min, Math.min(target, maximum)), maximum]);
+    } else {
+      onChange([minimum, Math.min(max, Math.max(target, minimum))]);
+    }
+  };
+  return /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-dual-range", children: [
+    /* @__PURE__ */ u3("legend", { children: label2 }),
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-dual-range__readouts", "aria-hidden": "true", children: [
+      /* @__PURE__ */ u3("span", { children: [
+        "Min ",
+        minimum
+      ] }),
+      /* @__PURE__ */ u3("span", { children: [
+        "Max ",
+        maximum
+      ] })
+    ] }),
+    /* @__PURE__ */ u3(
+      "div",
+      {
+        class: "tavernary-companion-dual-range__track",
+        style: `--range-start:${minimumPercent}%;--range-end:${maximumPercent}%`,
+        children: [
+          /* @__PURE__ */ u3(
+            "input",
+            {
+              type: "range",
+              "aria-label": minimumLabel,
+              min,
+              max: maximum,
+              step: step2,
+              value: minimum,
+              onInput: (event) => onChange([Math.min(event.currentTarget.valueAsNumber, maximum), maximum]),
+              onKeyDown: (event) => handleKeyDown("minimum", event)
+            }
+          ),
+          /* @__PURE__ */ u3(
+            "input",
+            {
+              type: "range",
+              "aria-label": maximumLabel,
+              min: minimum,
+              max,
+              step: step2,
+              value: maximum,
+              onInput: (event) => onChange([minimum, Math.max(event.currentTarget.valueAsNumber, minimum)]),
+              onKeyDown: (event) => handleKeyDown("maximum", event)
+            }
+          )
+        ]
+      }
+    ),
+    /* @__PURE__ */ u3("span", { class: "tavernary-companion-sr-only", "aria-live": "polite", children: [
+      minimum,
+      " to ",
+      maximum,
+      " projects"
+    ] })
+  ] });
+}
+
 // src/ui/kits/kit-filter-panel.tsx
 function KitFilterPanel({
   query,
@@ -15124,8 +15217,54 @@ function KitFilterPanel({
   onChange,
   onClose
 }) {
+  const panelRef = A2(null);
+  const headingRef = A2(null);
   const update = (change) => onChange({ ...query, ...change });
   const toggle2 = (values, id) => values.includes(id) ? values.filter((value) => value !== id) : [...values, id];
+  h2(() => {
+    if (!open || !panelRef.current) return;
+    const panel = panelRef.current;
+    const background = panel.closest(".tavernary-companion-kits-route")?.querySelectorAll(
+      ".tavernary-companion-route-toolbar, .tavernary-companion-kit-switcher, .tavernary-companion-kit-segments, .tavernary-companion-kit-search, .tavernary-companion-published-kit-results"
+    );
+    const previous = [...background ?? []].map((element) => ({
+      element,
+      inert: element.hasAttribute("inert"),
+      ariaHidden: element.getAttribute("aria-hidden")
+    }));
+    for (const { element } of previous) {
+      element.setAttribute("inert", "");
+      element.setAttribute("aria-hidden", "true");
+    }
+    headingRef.current?.focus();
+    const trapFocus = (event) => {
+      if (event.key !== "Tab") return;
+      const focusable = [
+        ...panel.querySelectorAll(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+        )
+      ].filter((element) => element.offsetParent !== null || element === document.activeElement);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last2 = focusable.at(-1);
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
+        event.preventDefault();
+        last2.focus();
+      } else if (!event.shiftKey && document.activeElement === last2) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    panel.addEventListener("keydown", trapFocus);
+    return () => {
+      panel.removeEventListener("keydown", trapFocus);
+      for (const item of previous) {
+        if (!item.inert) item.element.removeAttribute("inert");
+        if (item.ariaHidden === null) item.element.removeAttribute("aria-hidden");
+        else item.element.setAttribute("aria-hidden", item.ariaHidden);
+      }
+    };
+  }, [open]);
   return /* @__PURE__ */ u3(S, { children: [
     open ? /* @__PURE__ */ u3(
       "button",
@@ -15139,6 +15278,7 @@ function KitFilterPanel({
     /* @__PURE__ */ u3(
       "aside",
       {
+        ref: panelRef,
         id: "tavernary-companion-kit-filters",
         class: `tavernary-companion-kit-filter-panel${open ? " is-open" : ""}`,
         role: open ? "dialog" : void 0,
@@ -15146,8 +15286,15 @@ function KitFilterPanel({
         "aria-label": "Kit filters",
         children: [
           /* @__PURE__ */ u3("header", { children: [
-            /* @__PURE__ */ u3("h3", { children: "Filters" }),
-            /* @__PURE__ */ u3("button", { type: "button", onClick: () => onChange(structuredClone(DEFAULT_KIT_QUERY)), children: "Clear all" }),
+            /* @__PURE__ */ u3("h3", { ref: headingRef, tabIndex: open ? -1 : void 0, children: "Filters" }),
+            /* @__PURE__ */ u3(
+              "button",
+              {
+                type: "button",
+                onClick: () => onChange({ ...structuredClone(DEFAULT_KIT_QUERY), sort: query.sort }),
+                children: "Clear all"
+              }
+            ),
             /* @__PURE__ */ u3(
               "button",
               {
@@ -15199,53 +15346,25 @@ function KitFilterPanel({
               title: "Includes project",
               options: facets.projects,
               selected: query.includesProjectId ? [query.includesProjectId] : [],
-              onToggle: (id) => update({ includesProjectId: query.includesProjectId === id ? "" : id }),
+              onToggle: (id) => update({ includesProjectId: id }),
               searchLabel: "Search included projects",
               initialVisibleCount: 5,
-              countNoun: "Kit"
+              countNoun: "Kit",
+              selectionMode: "single"
             }
           ),
-          /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-kit-size-filter", children: [
-            /* @__PURE__ */ u3("legend", { children: "Kit size" }),
-            /* @__PURE__ */ u3("label", { children: [
-              /* @__PURE__ */ u3("span", { children: "Minimum projects" }),
-              /* @__PURE__ */ u3(
-                "input",
-                {
-                  type: "range",
-                  min: "3",
-                  max: "50",
-                  value: query.minProjects,
-                  "aria-label": "Minimum projects",
-                  onInput: (event) => update({
-                    minProjects: Math.min(event.currentTarget.valueAsNumber, query.maxProjects)
-                  })
-                }
-              )
-            ] }),
-            /* @__PURE__ */ u3("label", { children: [
-              /* @__PURE__ */ u3("span", { children: "Maximum projects" }),
-              /* @__PURE__ */ u3(
-                "input",
-                {
-                  type: "range",
-                  min: "3",
-                  max: "50",
-                  value: query.maxProjects,
-                  "aria-label": "Maximum projects",
-                  onInput: (event) => update({
-                    maxProjects: Math.max(event.currentTarget.valueAsNumber, query.minProjects)
-                  })
-                }
-              )
-            ] }),
-            /* @__PURE__ */ u3("output", { children: [
-              query.minProjects,
-              "\u2013",
-              query.maxProjects,
-              " projects"
-            ] })
-          ] }),
+          /* @__PURE__ */ u3(
+            DualRange,
+            {
+              label: "Kit size",
+              minimumLabel: "Minimum projects",
+              maximumLabel: "Maximum projects",
+              min: 3,
+              max: 50,
+              value: [query.minProjects, query.maxProjects],
+              onChange: ([minProjects, maxProjects]) => update({ minProjects, maxProjects })
+            }
+          ),
           /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-kit-status-filter", children: [
             /* @__PURE__ */ u3("legend", { children: "Kit status" }),
             /* @__PURE__ */ u3("label", { class: "tavernary-companion-filter-option", children: [
@@ -17150,6 +17269,7 @@ function CompanionShell({
   lifecycleDisabled = false,
   kitDiscovery,
   kitInspectors = {},
+  installedKits = [],
   onKitAction,
   onNewKit,
   onImportKit,
@@ -17281,7 +17401,7 @@ function CompanionShell({
                 InstalledRoute,
                 {
                   sections: discoveryState.installedSections,
-                  kits: Object.values(kitInspectors),
+                  kits: installedKits,
                   activeKitId,
                   refreshing: inventoryRefreshing,
                   togglingInternalName,
@@ -17289,6 +17409,7 @@ function CompanionShell({
                   onAction: (id, action) => onProjectAction?.(id, action),
                   onManage: onOpenExtensionManager,
                   onOpenKit: (id) => controller.openDetail({ kind: "kit", id, focusKey: `installed-kit-${id}` }),
+                  onUninstallKit,
                   onToggleExtension,
                   lifecycleDisabled
                 }
@@ -17489,6 +17610,7 @@ function CompanionPopupHost({
   const [kitEditorSeed, setKitEditorSeed] = d2([]);
   const [importingKit, setImportingKit] = d2(false);
   const [kitInspectors, setKitInspectors] = d2({});
+  const [installedKitCards, setInstalledKitCards] = d2([]);
   const [operationError, setOperationError] = d2(null);
   const syncKits = q2(async () => {
     if (!runtime || !store) return;
@@ -17505,6 +17627,7 @@ function CompanionPopupHost({
       statuses: presentation.statuses
     });
     setKitInspectors(presentation.inspectors);
+    setInstalledKitCards(presentation.installedKits);
   }, [runtime, store]);
   const refreshInventory = q2(async () => {
     if (!runtime || !host || !store) return;
@@ -17686,6 +17809,7 @@ function CompanionPopupHost({
         lifecycleDisabled: activeOperation !== null || togglingInternalName !== null,
         kitDiscovery: runtime?.kitDiscovery,
         kitInspectors,
+        installedKits: installedKitCards,
         onKitAction: requestKitAction,
         onNewKit: () => {
           setKitEditorSeed([]);
@@ -17924,11 +18048,22 @@ function resolveKit(runtime, catalog, kitId) {
   const personal = runtime.kits.readDefinition(kitId);
   if (personal) return { id: personal.id, projectIds: personal.projectIds, origin: "personal" };
   const published = catalog.kits.find((kit2) => kit2.id === kitId);
-  return published ? {
-    id: published.id,
-    projectIds: published.components.map(({ projectId }) => projectId),
+  if (published) {
+    return {
+      id: published.id,
+      projectIds: published.components.map(({ projectId }) => projectId),
+      origin: "published"
+    };
+  }
+  const installed = runtime.kits.readInstalled(kitId);
+  if (!installed) return null;
+  return {
+    id: installed.kitId,
+    projectIds: installed.definitionProjectIds ?? [
+      .../* @__PURE__ */ new Set([...installed.installedProjectIds, ...installed.missingProjectIds])
+    ],
     origin: "published"
-  } : null;
+  };
 }
 async function buildKitPresentation(catalog, kits, inventory) {
   const statuses = /* @__PURE__ */ new Map();
@@ -17971,7 +18106,37 @@ async function buildKitPresentation(catalog, kits, inventory) {
     statuses.set(kit2.id, status);
     inspectors[kit2.id] = toPublishedKitInspector(kit2, status, installed);
   }
-  return { statuses, inspectors };
+  const projectNames = new Map(catalog.projects.map((project2) => [project2.id, project2.name]));
+  const installedKits = kits.readInstalledStates().map((installed) => {
+    const inspector = inspectors[installed.kitId];
+    const currentNames = new Map(
+      inspector?.components.map((component2) => [component2.projectId, component2.name]) ?? []
+    );
+    const topology = installed.definitionProjectIds ?? [
+      .../* @__PURE__ */ new Set([...installed.installedProjectIds, ...installed.missingProjectIds])
+    ];
+    return {
+      id: installed.kitId,
+      title: inspector?.title ?? installed.kitId,
+      description: inspector?.description ?? "This installed Kit is no longer present in the current catalog.",
+      originLabel: inspector?.originLabel ?? "Installed Kit",
+      operationalStatus: installed.kitId === activeId ? "Active" : inspector?.operationalStatus ?? installedStatusLabel(installed.status),
+      components: topology.map((projectId) => ({
+        projectId,
+        name: currentNames.get(projectId) ?? projectNames.get(projectId) ?? projectId
+      })),
+      installedProjectIds: [...installed.installedProjectIds],
+      orphaned: !inspector
+    };
+  });
+  return { statuses, inspectors, installedKits };
+}
+function installedStatusLabel(status) {
+  return {
+    installed: "Installed",
+    incomplete: "Incomplete",
+    drifted: "Drifted"
+  }[status];
 }
 function renderCompanionPopup(container, options = {}) {
   R(/* @__PURE__ */ u3(CompanionPopupHost, { ...options }), container);

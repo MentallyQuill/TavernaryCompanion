@@ -119,9 +119,10 @@ test("native popup becomes a transparent blurred overlay with an external close 
     dialog.style.background = "rgb(32 32 32)";
     const close = document.createElement("button");
     close.type = "button";
-    close.className = "popup-button-close";
+    close.className = "popup-button-close fa-solid fa-xmark";
     close.setAttribute("aria-label", "Close Tavernary Companion");
-    close.textContent = "×";
+    const hostStyles = document.createElement("style");
+    hostStyles.textContent = '.fa-solid { font-family: "Font Awesome 6 Free"; }';
     const body = document.createElement("div");
     body.className = "popup-body";
     const content = document.createElement("div");
@@ -129,6 +130,7 @@ test("native popup becomes a transparent blurred overlay with an external close 
     content.append(root);
     body.append(content);
     dialog.append(close, body);
+    document.head.append(hostStyles);
     document.body.append(dialog);
     dialog.showModal();
   });
@@ -158,6 +160,43 @@ test("native popup becomes a transparent blurred overlay with an external close 
   expect(close!.height).toBeGreaterThanOrEqual(44);
   expect(close!.x).toBeGreaterThan(root!.x + root!.width - 8);
   expect(close!.y).toBeLessThan(root!.y + 8);
+  await expect(page.getByRole("button", { name: "Close Tavernary Companion" })).toHaveCSS(
+    "font-family",
+    /Font Awesome/u,
+  );
+});
+
+test("intermediate desktop keeps the external close control inside the viewport", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 800, height: 600 });
+  await openHarness(page);
+  await page.evaluate(() => {
+    const root = document.querySelector(".tavernary-companion-root")!;
+    const dialog = document.createElement("dialog");
+    dialog.className = "popup wide_dialogue_popup large_dialogue_popup transparent_dialogue_popup";
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "popup-button-close";
+    close.setAttribute("aria-label", "Close Tavernary Companion");
+    close.textContent = "×";
+    const body = document.createElement("div");
+    body.className = "popup-body";
+    const content = document.createElement("div");
+    content.className = "popup-content";
+    content.append(root);
+    body.append(content);
+    dialog.append(close, body);
+    document.body.append(dialog);
+    dialog.showModal();
+  });
+
+  const root = await page.locator(".tavernary-companion-root").boundingBox();
+  const close = await page.getByRole("button", { name: "Close Tavernary Companion" }).boundingBox();
+  expect(root).not.toBeNull();
+  expect(close).not.toBeNull();
+  expect(close!.x + close!.width / 2).toBeGreaterThan(root!.x + root!.width);
+  expect(close!.x + close!.width).toBeLessThanOrEqual(796);
 });
 
 test("mobile keeps the native close control above the Companion surface and inside the viewport", async ({
