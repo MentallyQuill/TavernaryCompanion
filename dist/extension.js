@@ -14448,9 +14448,19 @@ function InstalledRoute({
     void onRefresh();
   }, [onRefresh]);
   const populatedSections = sections.filter((section) => section.rows.length > 0);
+  const installedCount = populatedSections.reduce(
+    (total, section) => total + section.rows.length,
+    0
+  );
   return /* @__PURE__ */ u3("section", { class: "tavernary-companion-installed-route", "aria-labelledby": "installed-heading", children: [
-    /* @__PURE__ */ u3("header", { children: [
-      /* @__PURE__ */ u3("h2", { id: "installed-heading", children: "Installed extensions" }),
+    /* @__PURE__ */ u3("h2", { id: "installed-heading", class: "tavernary-companion-sr-only", children: "Installed extensions" }),
+    /* @__PURE__ */ u3("header", { class: "tavernary-companion-route-toolbar", children: [
+      /* @__PURE__ */ u3("strong", { "aria-hidden": "true", children: "Installed" }),
+      /* @__PURE__ */ u3("span", { children: [
+        installedCount,
+        " installed ",
+        installedCount === 1 ? "extension" : "extensions"
+      ] }),
       refreshing ? /* @__PURE__ */ u3("p", { role: "status", children: "Updating installed extensions\u2026" }) : null
     ] }),
     populatedSections.length ? populatedSections.map((section) => /* @__PURE__ */ u3(
@@ -14796,12 +14806,16 @@ function KitsRoute({
   const [filtersOpen, setFiltersOpen] = d2(false);
   h2(() => controller.subscribe(setState), [controller]);
   return /* @__PURE__ */ u3("section", { class: "tavernary-companion-kits-route", "aria-labelledby": "kits-heading", children: [
-    /* @__PURE__ */ u3("header", { children: [
-      /* @__PURE__ */ u3("div", { children: [
-        /* @__PURE__ */ u3("h2", { id: "kits-heading", children: "Kits" }),
-        /* @__PURE__ */ u3("p", { children: "Save, install, and switch extension collections." })
+    /* @__PURE__ */ u3("h2", { id: "kits-heading", class: "tavernary-companion-sr-only", children: "Kits" }),
+    /* @__PURE__ */ u3("header", { class: "tavernary-companion-route-toolbar", children: [
+      /* @__PURE__ */ u3("strong", { "aria-hidden": "true", children: "Kits" }),
+      /* @__PURE__ */ u3("span", { children: [
+        state.visible.length,
+        " ",
+        state.visible.length === 1 ? "Kit" : "Kits",
+        " shown"
       ] }),
-      /* @__PURE__ */ u3("div", { children: [
+      /* @__PURE__ */ u3("div", { class: "tavernary-companion-route-actions", children: [
         /* @__PURE__ */ u3("button", { type: "button", onClick: onNewKit, children: "New Kit" }),
         /* @__PURE__ */ u3("button", { type: "button", onClick: onImport, children: "Import" })
       ] })
@@ -14850,11 +14864,13 @@ function KitsRoute({
       )
     ] }),
     /* @__PURE__ */ u3("label", { class: "tavernary-companion-kit-search", children: [
-      "Search Kits",
+      /* @__PURE__ */ u3("span", { class: "tavernary-companion-sr-only", children: "Search Kits" }),
       /* @__PURE__ */ u3(
         "input",
         {
           type: "search",
+          "aria-label": "Search Kits",
+          placeholder: "Search Kits\u2026",
           value: state.search,
           onInput: (event) => controller.setSearch(event.currentTarget.value)
         }
@@ -15024,17 +15040,9 @@ function ActivitySummary({ activity }) {
   if (activity.activeWeeks12 === null) {
     return /* @__PURE__ */ u3("span", { children: "Activity unavailable" });
   }
-  return /* @__PURE__ */ u3("span", { class: "tavernary-companion-activity-summary", children: [
-    /* @__PURE__ */ u3("span", { children: [
-      /* @__PURE__ */ u3("b", { children: "Activity" }),
-      " \xB7",
-      " ",
-      /* @__PURE__ */ u3("span", { children: [
-        activity.activeWeeks12,
-        " of 12 active weeks",
-        activity.dormant ? " \xB7 Dormant" : ""
-      ] })
-    ] }),
+  const label2 = `Activity: ${activity.activeWeeks12} of 12 active weeks${activity.dormant ? ", dormant" : ""}`;
+  return /* @__PURE__ */ u3("span", { class: "tavernary-companion-activity-summary", role: "img", "aria-label": label2, children: [
+    /* @__PURE__ */ u3("b", { "aria-hidden": "true", children: "Activity" }),
     /* @__PURE__ */ u3(ActivityStrip, { weeks: activity.weeklyActivity })
   ] });
 }
@@ -15427,6 +15435,7 @@ function ProjectCard({
   onToggleKitSelection
 }) {
   const selfProtected = project2.id === COMPANION_PROJECT_ID || project2.action.kind === "current-extension";
+  const compactInstall = project2.action.kind === "install";
   return /* @__PURE__ */ u3("article", { class: "tavernary-companion-project-card", "data-project-id": project2.id, children: [
     /* @__PURE__ */ u3("header", { class: "tavernary-companion-project-card__top", children: [
       /* @__PURE__ */ u3("span", { class: `tavernary-companion-project-card__kind kind-${project2.kind}`, children: [
@@ -15468,7 +15477,7 @@ function ProjectCard({
           type: "button",
           "data-focus-key": `project-${project2.id}`,
           onClick: onOpen,
-          "aria-label": `View ${project2.name}`,
+          "aria-label": `View ${project2.name} details`,
           children: "Details"
         }
       ),
@@ -15476,12 +15485,12 @@ function ProjectCard({
         "button",
         {
           type: "button",
-          class: `tavernary-companion-project-card__primary tavernary-companion-button ${project2.action.kind === "view-project" ? "tavernary-companion-button--secondary" : "tavernary-companion-button--primary"}`,
+          class: `tavernary-companion-project-card__primary tavernary-companion-button ${compactInstall ? "tavernary-companion-project-card__compact-action tavernary-companion-button--primary" : project2.action.kind === "view-project" ? "tavernary-companion-button--secondary" : "tavernary-companion-button--primary"}`,
           "data-testid": "project-primary-action",
           "aria-label": `${project2.action.label} ${project2.name}`,
           onClick: () => onAction(project2.action),
           disabled: lifecycleDisabled,
-          children: project2.action.label
+          children: compactInstall ? /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: "+" }) : project2.action.label
         }
       )
     ] })
@@ -15546,7 +15555,7 @@ function ProjectGrid({
   ] });
 }
 
-// src/ui/projects/search-toolbar.tsx
+// src/ui/projects/project-results-toolbar.tsx
 var sorts = [
   { id: "recent", label: "Recently active" },
   { id: "date-added", label: "Date added" },
@@ -15555,40 +15564,64 @@ var sorts = [
   { id: "alphabetical", label: "Alphabetical" },
   { id: "relevance", label: "Relevance" }
 ];
-function SearchToolbar({
+function ProjectResultsToolbar({
   query,
   resultCount,
-  onQueryChange
+  filtersOpen,
+  filterTrigger,
+  kitSelectionActive,
+  showClearFilters,
+  onQueryChange,
+  onOpenFilters,
+  onClearFilters,
+  onBeginKitSelection
 }) {
-  return /* @__PURE__ */ u3("div", { class: "tavernary-companion-search-toolbar", children: [
-    /* @__PURE__ */ u3("label", { children: [
-      /* @__PURE__ */ u3("span", { children: "Search projects" }),
-      /* @__PURE__ */ u3(
-        "input",
-        {
-          type: "search",
-          "aria-label": "Search projects",
-          value: query.search,
-          onInput: (event) => onQueryChange({ ...query, search: event.currentTarget.value })
-        }
-      )
-    ] }),
-    /* @__PURE__ */ u3("label", { children: [
-      /* @__PURE__ */ u3("span", { children: "Sort" }),
-      /* @__PURE__ */ u3(
-        "select",
-        {
-          "aria-label": "Sort projects",
-          value: query.sort,
-          onChange: (event) => onQueryChange({ ...query, sort: event.currentTarget.value }),
-          children: sorts.map(({ id, label: label2 }) => /* @__PURE__ */ u3("option", { value: id, children: label2 }))
-        }
-      )
-    ] }),
+  return /* @__PURE__ */ u3("div", { class: "tavernary-companion-results-toolbar", children: [
     /* @__PURE__ */ u3("output", { "aria-live": "polite", children: [
       resultCount,
-      " projects"
-    ] })
+      " ",
+      resultCount === 1 ? "project" : "projects"
+    ] }),
+    showClearFilters ? /* @__PURE__ */ u3(
+      "button",
+      {
+        type: "button",
+        class: "tavernary-companion-results-toolbar__clear",
+        onClick: onClearFilters,
+        children: "Clear filters"
+      }
+    ) : null,
+    /* @__PURE__ */ u3(
+      "select",
+      {
+        "aria-label": "Sort projects",
+        value: query.sort,
+        onChange: (event) => onQueryChange({ ...query, sort: event.currentTarget.value }),
+        children: sorts.map(({ id, label: label2 }) => /* @__PURE__ */ u3("option", { value: id, children: label2 }))
+      }
+    ),
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        ref: filterTrigger,
+        type: "button",
+        class: "tavernary-companion-filter-trigger",
+        "aria-label": "Filters",
+        "aria-expanded": filtersOpen,
+        onClick: onOpenFilters,
+        children: "Filters"
+      }
+    ),
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        type: "button",
+        class: "tavernary-companion-select-kit",
+        disabled: kitSelectionActive,
+        onClick: onBeginKitSelection,
+        children: "Select for Kit"
+      }
+    )
   ] });
 }
 
@@ -15663,42 +15696,36 @@ function ProjectsRoute({
     window.addEventListener("keydown", onKeyDown);
     return () => window.removeEventListener("keydown", onKeyDown);
   }, [filtersOpen]);
-  const isDefaultScope = state.query.frontends.length === 1 && state.query.frontends[0] === "sillytavern" && state.query.kinds.length === 2 && state.query.kinds.includes("extension") && state.query.kinds.includes("preset");
-  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-projects-route", "aria-labelledby": "projects-heading", children: [
-    /* @__PURE__ */ u3("header", { children: [
-      /* @__PURE__ */ u3("div", { children: [
-        /* @__PURE__ */ u3("h2", { id: "projects-heading", children: "Projects" }),
-        /* @__PURE__ */ u3("button", { type: "button", disabled: kitSelectionActive, onClick: onBeginKitSelection, children: "Select for Kit" })
-      ] }),
-      isDefaultScope ? /* @__PURE__ */ u3("p", { children: "Showing SillyTavern extensions and presets. Clear filters to explore all Tavernary projects." }) : null
-    ] }),
+  const hasChangedFilters = !sameValues(state.query.frontends, DEFAULT_COMPANION_QUERY.frontends) || !sameValues(state.query.kinds, DEFAULT_COMPANION_QUERY.kinds) || state.query.category !== DEFAULT_COMPANION_QUERY.category || state.query.tags.length > 0 || (state.query.modelFamilies?.length ?? 0) > 0 || (state.query.completionFormats?.length ?? 0) > 0 || state.query.development.length > 0 || state.query.licenses.length > 0 || state.query.view !== DEFAULT_COMPANION_QUERY.view;
+  const clearFilters = () => onQueryChange({
+    ...structuredClone(DEFAULT_COMPANION_QUERY),
+    search: state.query.search,
+    sort: state.query.sort
+  });
+  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-projects-route", "aria-label": "Projects", children: [
+    /* @__PURE__ */ u3("p", { class: "tavernary-companion-catalog-advisory", children: "TavernKeeper provides evidence, not a guarantee of safety. Review projects before installing." }),
     /* @__PURE__ */ u3(
-      SearchToolbar,
+      ProjectResultsToolbar,
       {
         query: state.query,
         resultCount: state.projects.length,
-        onQueryChange
+        filtersOpen,
+        filterTrigger,
+        kitSelectionActive,
+        showClearFilters: hasChangedFilters,
+        onQueryChange,
+        onOpenFilters: () => setFiltersOpen(true),
+        onClearFilters: clearFilters,
+        onBeginKitSelection
       }
     ),
-    /* @__PURE__ */ u3(
-      "button",
-      {
-        ref: filterTrigger,
-        type: "button",
-        class: "tavernary-companion-filter-trigger",
-        "aria-label": "Filters",
-        "aria-expanded": filtersOpen,
-        onClick: () => setFiltersOpen(true),
-        children: "Filters"
-      }
-    ),
-    /* @__PURE__ */ u3(ActiveFilterChips, { query: state.query, facets, onQueryChange }),
+    hasChangedFilters ? /* @__PURE__ */ u3(ActiveFilterChips, { query: state.query, facets, onQueryChange }) : null,
     /* @__PURE__ */ u3("div", { class: "tavernary-companion-projects-route__workspace", children: [
       /* @__PURE__ */ u3(
         "div",
         {
           ref: filterSurface,
-          role: "dialog",
+          role: filtersOpen ? "dialog" : void 0,
           "aria-label": "Project filters",
           "aria-modal": filtersOpen || void 0,
           class: `tavernary-companion-filter-surface${filtersOpen ? " is-open" : ""}`,
@@ -15734,9 +15761,13 @@ function ProjectsRoute({
     ) : null
   ] });
 }
+function sameValues(left, right) {
+  return left.length === right.length && left.every((value) => right.includes(value));
+}
 
 // src/ui/shell/shell-header.tsx
 function ShellHeader({
+  search,
   onRequestClose,
   catalogSnapshot,
   catalogRefreshing,
@@ -15753,6 +15784,19 @@ function ShellHeader({
         /* @__PURE__ */ u3("p", { children: "Where AI roleplay tools gather" })
       ] })
     ] }),
+    search ? /* @__PURE__ */ u3("label", { class: "tavernary-companion-header-search", children: [
+      /* @__PURE__ */ u3("span", { class: "tavernary-companion-sr-only", children: "Search projects" }),
+      /* @__PURE__ */ u3(
+        "input",
+        {
+          type: "search",
+          "aria-label": "Search projects",
+          placeholder: "Search projects or creators\u2026",
+          value: search.value,
+          onInput: (event) => search.onChange(event.currentTarget.value)
+        }
+      )
+    ] }) : null,
     /* @__PURE__ */ u3("div", { class: "tavernary-companion-shell__utilities", children: [
       catalogSnapshot ? /* @__PURE__ */ u3(S, { children: [
         /* @__PURE__ */ u3(CatalogFreshness, { snapshot: catalogSnapshot, refreshing: catalogRefreshing }),
@@ -15788,17 +15832,31 @@ var routes = [
   { id: "installed", label: "Installed" }
 ];
 function RouteTabs({ route, onNavigate }) {
-  return /* @__PURE__ */ u3("nav", { class: "tavernary-companion-shell__tabs", "aria-label": "Companion sections", children: /* @__PURE__ */ u3("div", { role: "tablist", children: routes.map((candidate) => /* @__PURE__ */ u3(
-    "button",
-    {
-      type: "button",
-      role: "tab",
-      "aria-selected": candidate.id === route,
-      tabIndex: candidate.id === route ? 0 : -1,
-      onClick: () => onNavigate(candidate.id),
-      children: candidate.label
-    }
-  )) }) });
+  return /* @__PURE__ */ u3("nav", { class: "tavernary-companion-shell__tabs", "aria-label": "Companion sections", children: [
+    /* @__PURE__ */ u3("div", { role: "tablist", children: routes.map((candidate) => /* @__PURE__ */ u3(
+      "button",
+      {
+        type: "button",
+        role: "tab",
+        "aria-selected": candidate.id === route,
+        tabIndex: candidate.id === route ? 0 : -1,
+        onClick: () => onNavigate(candidate.id),
+        children: candidate.label
+      }
+    )) }),
+    /* @__PURE__ */ u3("label", { class: "tavernary-companion-route-select", children: [
+      /* @__PURE__ */ u3("span", { children: "Browse" }),
+      /* @__PURE__ */ u3(
+        "select",
+        {
+          "aria-label": "Browse Companion",
+          value: route,
+          onChange: (event) => onNavigate(event.currentTarget.value),
+          children: routes.map((candidate) => /* @__PURE__ */ u3("option", { value: candidate.id, children: candidate.label }))
+        }
+      )
+    ] })
+  ] });
 }
 
 // src/ui/shell/companion-shell.tsx
@@ -15852,6 +15910,10 @@ function CompanionShell({
     return () => window.removeEventListener("popstate", onPopState);
   }, [controller]);
   const detail = state.detailStack.at(-1);
+  const updateProjectQuery = (query) => {
+    setVisibleProjectCount(INITIAL_PROJECT_COUNT);
+    discovery?.setQuery(query);
+  };
   const headerCatalogSnapshot = catalogSnapshot?.state.startsWith("ready-") ? catalogSnapshot : void 0;
   return /* @__PURE__ */ u3(
     "section",
@@ -15863,6 +15925,10 @@ function CompanionShell({
         /* @__PURE__ */ u3(
           ShellHeader,
           {
+            search: !detail && state.route === "projects" && discoveryState ? {
+              value: discoveryState.query.search,
+              onChange: (search) => updateProjectQuery({ ...discoveryState.query, search })
+            } : void 0,
             onRequestClose,
             catalogSnapshot: headerCatalogSnapshot,
             catalogRefreshing,
@@ -15879,15 +15945,12 @@ function CompanionShell({
             onUseCached: onUseCachedCatalog,
             onOpenTavernary,
             children: [
-              !detail && state.route === "projects" ? /* @__PURE__ */ u3("section", { "aria-labelledby": "tavernary-companion-projects-heading", children: discovery && discoveryState ? /* @__PURE__ */ u3(
+              !detail && state.route === "projects" ? /* @__PURE__ */ u3(S, { children: discovery && discoveryState ? /* @__PURE__ */ u3(
                 ProjectsRoute,
                 {
                   state: discoveryState,
                   facets: facets ?? discoveryState.facets,
-                  onQueryChange: (query) => {
-                    setVisibleProjectCount(INITIAL_PROJECT_COUNT);
-                    discovery.setQuery(query);
-                  },
+                  onQueryChange: updateProjectQuery,
                   onOpenProject: (id) => controller.openDetail({ kind: "project", id, focusKey: `project-${id}` }),
                   onProjectAction: (id, action) => {
                     if (action.kind === "view-project") {
@@ -15930,7 +15993,7 @@ function CompanionShell({
                   );
                 })
               ] }) }) : null,
-              !detail && state.route === "kits" ? /* @__PURE__ */ u3("section", { "aria-labelledby": "tavernary-companion-kits-heading", children: kitDiscovery ? /* @__PURE__ */ u3(
+              !detail && state.route === "kits" ? /* @__PURE__ */ u3(S, { children: kitDiscovery ? /* @__PURE__ */ u3(
                 KitsRoute,
                 {
                   controller: kitDiscovery,
@@ -15954,7 +16017,7 @@ function CompanionShell({
                   }
                 }
               ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-kits-heading", children: "Kits" }) }) : null,
-              !detail && state.route === "installed" ? /* @__PURE__ */ u3("section", { "aria-labelledby": "tavernary-companion-installed-heading", children: discoveryState ? /* @__PURE__ */ u3(
+              !detail && state.route === "installed" ? /* @__PURE__ */ u3(S, { children: discoveryState ? /* @__PURE__ */ u3(
                 InstalledRoute,
                 {
                   sections: discoveryState.installedSections,

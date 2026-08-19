@@ -48,5 +48,31 @@ the seven PNG captures.
 - The browser suite covers axe, reduced motion, 200% text, filter focus return, lifecycle journeys,
   Kit switching, bounded initial project rendering, and the Tavernary computed-style contract.
 
+## Responsive conformance candidate
+
+Observed: 2026-08-18T19:10:00-06:00
+
+The responsive pass used live Tavernary.org at `390x844` and `1440x960` as the manual hierarchy
+reference, then recorded deterministic local Playwright baselines for Projects at `390x844`,
+`412x915`, `1024x768`, and `1440x960`. Separate mobile baselines cover the Project filter sheet,
+Personal Kits, and Installed. The seven reviewed images are committed beside
+`tests/e2e/responsive-conformance.spec.ts`.
+
+The browser contract verifies:
+
+- mobile Browse navigation replaces hidden desktop tabs;
+- the first mobile project card begins no lower than `400px`, inside `12-16px` route gutters;
+- compact mobile install actions remain at least `44x44px`;
+- desktop retains the filter rail and reaches a three-column card grid at `1440x960`;
+- document and shell horizontal overflow remain zero across six responsive viewports and at 200%
+  text;
+- filter focus restoration, detail Back restoration, reduced motion, and serious/critical Axe
+  checks remain intact.
+
+Candidate verification completed with `61` Vitest files / `203` tests and `34` Chromium tests,
+including all seven screenshot comparisons without baseline updates. This is deterministic harness
+proof. The earlier installed-host proof above remains evidence for the previous visual-alignment
+artifact; the exact responsive candidate has not yet replaced that isolated installation.
+
 The exact merged artifact must be rebuilt and hash-compared after merge; source-branch installed
 proof is not a substitute for that final parity check.

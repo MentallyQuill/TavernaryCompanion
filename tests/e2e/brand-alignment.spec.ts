@@ -177,6 +177,15 @@ test("mobile Kits and Installed use the compact shared route grammar", async ({ 
   expect(installed).not.toBeNull();
   expect(installed!.x).toBeGreaterThanOrEqual(12);
   expect(installed!.x).toBeLessThanOrEqual(16);
+  const installedMetadata = page
+    .locator(".tavernary-companion-installed-section li > div > span")
+    .first();
+  await expect(installedMetadata).toHaveCSS("color", "rgb(130, 144, 153)");
+  expect(
+    await installedMetadata.evaluate((element) =>
+      Number.parseFloat(getComputedStyle(element).fontSize),
+    ),
+  ).toBeLessThanOrEqual(13);
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

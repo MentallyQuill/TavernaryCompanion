@@ -13,7 +13,7 @@ export function ActivitySummary({ activity }: ActivitySummaryProps): preact.JSX.
     activity.dormant ? ", dormant" : ""
   }`;
   return (
-    <span class="tavernary-companion-activity-summary" aria-label={label}>
+    <span class="tavernary-companion-activity-summary" role="img" aria-label={label}>
       <b aria-hidden="true">Activity</b>
       <ActivityStrip weeks={activity.weeklyActivity} />
     </span>

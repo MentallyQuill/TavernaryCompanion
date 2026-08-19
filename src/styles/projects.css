@@ -426,6 +426,12 @@
   margin-inline-end: auto;
 }
 
+.tavernary-companion-installed-section li > div > span {
+  color: var(--tavernary-color-text-muted);
+  font-size: 0.78rem;
+  line-height: 1.3;
+}
+
 .tavernary-companion-project-detail {
   max-inline-size: 56rem;
   margin-inline: auto;

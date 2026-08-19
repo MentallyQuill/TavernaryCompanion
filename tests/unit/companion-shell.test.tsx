@@ -73,9 +73,7 @@ describe("CompanionShell", () => {
   });
 
   it("navigates primary routes with the compact Browse selector", () => {
-    render(
-      <CompanionShell controller={createShellController({ initialRoute: "projects" })} />,
-    );
+    render(<CompanionShell controller={createShellController({ initialRoute: "projects" })} />);
 
     fireEvent.change(screen.getByRole("combobox", { name: "Browse Companion" }), {
       target: { value: "kits" },

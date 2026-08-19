@@ -10,7 +10,11 @@ for (const viewport of [
   }) => {
     await page.setViewportSize(viewport);
     await openHarness(page);
-    await page.getByRole("tab", { name: "Kits" }).click();
+    if (viewport.width <= 700) {
+      await page.getByRole("combobox", { name: "Browse Companion" }).selectOption("kits");
+    } else {
+      await page.getByRole("tab", { name: "Kits" }).click();
+    }
     await page.getByRole("tab", { name: /Personal/u }).click();
     await expect(page.getByRole("heading", { name: "Writer's Kit" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Activate" })).toBeVisible();
