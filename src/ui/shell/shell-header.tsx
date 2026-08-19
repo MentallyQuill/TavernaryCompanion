@@ -21,7 +21,13 @@ export function ShellHeader({
 }: ShellHeaderProps): preact.JSX.Element {
   return (
     <header class="tavernary-companion-shell__header">
-      <div class="tavernary-companion-brand">
+      <a
+        class="tavernary-companion-brand"
+        href="https://tavernary.org/"
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label="Tavernary Companion — open Tavernary.org in a new tab"
+      >
         <span class="tavernary-companion-brand__mark" role="img" aria-label="Tavernary" />
         <div class="tavernary-companion-brand__copy">
           <h1 id="tavernary-companion-heading" aria-label="Tavernary Companion">
@@ -29,7 +35,7 @@ export function ShellHeader({
             <span class="tavernary-companion-brand__companion">Companion</span>
           </h1>
         </div>
-      </div>
+      </a>
       {search ? (
         <label class="tavernary-companion-header-search">
           <span class="tavernary-companion-sr-only">Search projects</span>
