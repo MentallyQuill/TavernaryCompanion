@@ -90,7 +90,6 @@ function InstalledCard({
           row.name
         )}
       </h4>
-      <p>{row.detail}</p>
       {kitTitles.length ? (
         <div class="tavernary-companion-installed-memberships">In {kitTitles.join(", ")}</div>
       ) : null}

@@ -130,6 +130,7 @@ function isManagedInstallProvenance(value: unknown): value is ManagedInstallProv
     (typeof provenance.requestedSha === "string" || provenance.requestedSha === null) &&
     (typeof provenance.installedSha === "string" || provenance.installedSha === null) &&
     typeof provenance.catalogGeneratedAt === "string" &&
-    (typeof provenance.tavernKeeperReportId === "string" || provenance.tavernKeeperReportId === null)
+    (typeof provenance.tavernKeeperReportId === "string" ||
+      provenance.tavernKeeperReportId === null)
   );
 }

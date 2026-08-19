@@ -45,6 +45,7 @@ interface CompanionShellProps {
   onDuplicateKit?(id: string): void;
   onRemoveKit?(id: string): void;
   onCreateKitFromSelection?(projectIds: readonly string[]): void;
+  kitBuilder?: ComponentChildren;
   activeKitId?: string | null;
   catalogSnapshot?: CatalogSnapshot;
   catalogRefreshing?: boolean;
@@ -83,6 +84,7 @@ export function CompanionShell({
   onDuplicateKit,
   onRemoveKit,
   onCreateKitFromSelection,
+  kitBuilder,
   activeKitId = null,
   catalogSnapshot,
   catalogRefreshing = false,
@@ -143,130 +145,133 @@ export function CompanionShell({
         onNavigate={(route) => controller.navigate(route)}
         onQueryChange={updateProjectQuery}
       />
-      <main class="tavernary-companion-shell__content">
-        <CatalogBoundary
-          snapshot={catalogSnapshot}
-          onRefresh={onRefreshCatalog}
-          onUpdateCompanion={onUpdateCompanion}
-          onUseCached={onUseCachedCatalog}
-          onOpenTavernary={onOpenTavernary}
-        >
-          {!detail && state.route === "projects" ? (
-            <>
-              {discovery && discoveryState ? (
-                <ProjectsRoute
-                  state={discoveryState}
-                  facets={facets ?? discoveryState.facets}
-                  onQueryChange={updateProjectQuery}
-                  onProjectAction={(id, action, anchor) => onProjectAction?.(id, action, anchor)}
-                  onManageInSillyTavern={onOpenExtensionManager}
-                  lifecycleDisabled={lifecycleDisabled}
-                  kitSelectionActive={kitSelection !== null}
-                  selectedKitProjectIds={kitSelection ?? []}
-                  onToggleKitSelection={(projectId) =>
-                    setKitSelection((current) => {
-                      if (!current) return [projectId];
-                      return current.includes(projectId)
-                        ? current.filter((id) => id !== projectId)
-                        : [...current, projectId];
-                    })
-                  }
-                  onReviewKitSelection={() => {
-                    if (!kitSelection?.length) return;
-                    onCreateKitFromSelection?.(kitSelection);
-                    setKitSelection(null);
-                  }}
-                  onCancelKitSelection={() => setKitSelection(null)}
-                  visibleProjectCount={visibleProjectCount}
-                  onVisibleProjectCountChange={setVisibleProjectCount}
-                />
-              ) : (
-                <h2 id="tavernary-companion-projects-heading">Projects</h2>
-              )}
-            </>
-          ) : null}
-          {!detail && state.route === "kits" ? (
-            <>
-              {kitDiscovery ? (
-                <KitsRoute
-                  controller={kitDiscovery}
-                  lifecycleDisabled={lifecycleDisabled}
-                  onOpenKit={(id) =>
-                    controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` })
-                  }
-                  onAction={(id, action) => {
-                    if (action.kind === "review" || action.kind === "view") {
-                      controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` });
-                    } else {
-                      onKitAction?.(id, action);
+      <div class="tavernary-companion-shell__workspace" data-testid="companion-workspace">
+        <main class="tavernary-companion-shell__content">
+          <CatalogBoundary
+            snapshot={catalogSnapshot}
+            onRefresh={onRefreshCatalog}
+            onUpdateCompanion={onUpdateCompanion}
+            onUseCached={onUseCachedCatalog}
+            onOpenTavernary={onOpenTavernary}
+          >
+            {!detail && state.route === "projects" ? (
+              <>
+                {discovery && discoveryState ? (
+                  <ProjectsRoute
+                    state={discoveryState}
+                    facets={facets ?? discoveryState.facets}
+                    onQueryChange={updateProjectQuery}
+                    onProjectAction={(id, action, anchor) => onProjectAction?.(id, action, anchor)}
+                    onManageInSillyTavern={onOpenExtensionManager}
+                    lifecycleDisabled={lifecycleDisabled}
+                    kitSelectionActive={kitSelection !== null}
+                    selectedKitProjectIds={kitSelection ?? []}
+                    onToggleKitSelection={(projectId) =>
+                      setKitSelection((current) => {
+                        if (!current) return [projectId];
+                        return current.includes(projectId)
+                          ? current.filter((id) => id !== projectId)
+                          : [...current, projectId];
+                      })
                     }
-                  }}
-                  onNewKit={onNewKit}
-                  onImport={onImportKit}
-                  switcherKits={Object.values(kitInspectors)}
-                  activeKitId={activeKitId}
-                  onActivate={(id) => onKitAction?.(id, { kind: "activate", label: "Activate" })}
-                  onDeactivate={() => {
-                    if (activeKitId)
-                      onKitAction?.(activeKitId, { kind: "deactivate", label: "Deactivate" });
-                  }}
-                />
-              ) : (
-                <h2 id="tavernary-companion-kits-heading">Kits</h2>
-              )}
-            </>
-          ) : null}
-          {!detail && state.route === "installed" ? (
-            <>
-              {discoveryState ? (
-                <InstalledRoute
-                  sections={discoveryState.installedSections}
-                  kits={installedKits}
-                  activeKitId={activeKitId}
-                  refreshing={inventoryRefreshing}
-                  togglingInternalName={togglingInternalName}
-                  onRefresh={onRefreshInventory}
-                  onAction={(id, action, anchor) => onProjectAction?.(id, action, anchor)}
-                  onManage={onOpenExtensionManager}
-                  onOpenKit={(id) =>
-                    controller.openDetail({ kind: "kit", id, focusKey: `installed-kit-${id}` })
-                  }
-                  onUninstallKit={onUninstallKit}
-                  onToggleExtension={onToggleExtension}
-                  lifecycleDisabled={lifecycleDisabled}
-                />
-              ) : (
-                <h2 id="tavernary-companion-installed-heading">Installed extensions</h2>
-              )}
-            </>
-          ) : null}
-          {detail ? (
-            <section aria-label="kit detail">
-              <button type="button" onClick={() => restoreAfterBack(controller)}>
-                Back
-              </button>
-              {kitInspectors[detail.id] ? (
-                <KitInspector
-                  kit={kitInspectors[detail.id]}
-                  disabled={lifecycleDisabled}
-                  onAction={(action) => onKitAction?.(detail.id, action)}
-                  onEdit={() => onEditKit?.(detail.id)}
-                  onCopy={() => onCopyKit?.(detail.id)}
-                  onExport={() => onExportKit?.(detail.id)}
-                  onUninstall={() => onUninstallKit?.(detail.id)}
-                  onDuplicate={() => onDuplicateKit?.(detail.id)}
-                  onRemove={() => {
-                    onRemoveKit?.(detail.id);
-                    restoreAfterBack(controller);
-                  }}
-                />
-              ) : (
-                <h2>{detail.id}</h2>
-              )}
-            </section>
-          ) : null}
-        </CatalogBoundary>
-      </main>
+                    onAddKitSelection={() => {
+                      if (!kitSelection?.length) return;
+                      onCreateKitFromSelection?.(kitSelection);
+                      setKitSelection(null);
+                    }}
+                    onCancelKitSelection={() => setKitSelection(null)}
+                    visibleProjectCount={visibleProjectCount}
+                    onVisibleProjectCountChange={setVisibleProjectCount}
+                  />
+                ) : (
+                  <h2 id="tavernary-companion-projects-heading">Projects</h2>
+                )}
+              </>
+            ) : null}
+            {!detail && state.route === "kits" ? (
+              <>
+                {kitDiscovery ? (
+                  <KitsRoute
+                    controller={kitDiscovery}
+                    lifecycleDisabled={lifecycleDisabled}
+                    onOpenKit={(id) =>
+                      controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` })
+                    }
+                    onAction={(id, action) => {
+                      if (action.kind === "review" || action.kind === "view") {
+                        controller.openDetail({ kind: "kit", id, focusKey: `kit-${id}` });
+                      } else {
+                        onKitAction?.(id, action);
+                      }
+                    }}
+                    onNewKit={onNewKit}
+                    onImport={onImportKit}
+                    switcherKits={Object.values(kitInspectors)}
+                    activeKitId={activeKitId}
+                    onActivate={(id) => onKitAction?.(id, { kind: "activate", label: "Activate" })}
+                    onDeactivate={() => {
+                      if (activeKitId)
+                        onKitAction?.(activeKitId, { kind: "deactivate", label: "Deactivate" });
+                    }}
+                  />
+                ) : (
+                  <h2 id="tavernary-companion-kits-heading">Kits</h2>
+                )}
+              </>
+            ) : null}
+            {!detail && state.route === "installed" ? (
+              <>
+                {discoveryState ? (
+                  <InstalledRoute
+                    sections={discoveryState.installedSections}
+                    kits={installedKits}
+                    activeKitId={activeKitId}
+                    refreshing={inventoryRefreshing}
+                    togglingInternalName={togglingInternalName}
+                    onRefresh={onRefreshInventory}
+                    onAction={(id, action, anchor) => onProjectAction?.(id, action, anchor)}
+                    onManage={onOpenExtensionManager}
+                    onOpenKit={(id) =>
+                      controller.openDetail({ kind: "kit", id, focusKey: `installed-kit-${id}` })
+                    }
+                    onUninstallKit={onUninstallKit}
+                    onToggleExtension={onToggleExtension}
+                    lifecycleDisabled={lifecycleDisabled}
+                  />
+                ) : (
+                  <h2 id="tavernary-companion-installed-heading">Installed extensions</h2>
+                )}
+              </>
+            ) : null}
+            {detail ? (
+              <section aria-label="kit detail">
+                <button type="button" onClick={() => restoreAfterBack(controller)}>
+                  Back
+                </button>
+                {kitInspectors[detail.id] ? (
+                  <KitInspector
+                    kit={kitInspectors[detail.id]}
+                    disabled={lifecycleDisabled}
+                    onAction={(action) => onKitAction?.(detail.id, action)}
+                    onEdit={() => onEditKit?.(detail.id)}
+                    onCopy={() => onCopyKit?.(detail.id)}
+                    onExport={() => onExportKit?.(detail.id)}
+                    onUninstall={() => onUninstallKit?.(detail.id)}
+                    onDuplicate={() => onDuplicateKit?.(detail.id)}
+                    onRemove={() => {
+                      onRemoveKit?.(detail.id);
+                      restoreAfterBack(controller);
+                    }}
+                  />
+                ) : (
+                  <h2>{detail.id}</h2>
+                )}
+              </section>
+            ) : null}
+          </CatalogBoundary>
+        </main>
+        {kitBuilder}
+      </div>
     </section>
   );
 }

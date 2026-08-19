@@ -1,9 +1,11 @@
 import { fireEvent, render, screen, within } from "@testing-library/preact";
+import userEvent from "@testing-library/user-event";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ProjectCardViewModel } from "../../src/catalog/project-view-model";
 import { COMPANION_PROJECT_ID } from "../../src/lifecycle/self-protection";
 import { ProjectCard } from "../../src/ui/projects/project-card";
+import { ProjectGrid } from "../../src/ui/projects/project-grid";
 
 afterEach(() => document.body.replaceChildren());
 
@@ -497,5 +499,51 @@ describe("ProjectCard", () => {
     expect(screen.getByRole("tooltip")).toHaveTextContent("Install");
     fireEvent.keyDown(install, { key: "Escape" });
     expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+  });
+
+  it("offers the full description tooltip only for compact cards", () => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    });
+    const { rerender } = render(
+      <ProjectGrid projects={[project()]} density="standard" onProjectAction={vi.fn()} />,
+    );
+
+    fireEvent.pointerEnter(
+      document.querySelector(".tavernary-companion-project-card__title-text")!,
+    );
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+
+    rerender(<ProjectGrid projects={[project()]} density="compact" onProjectAction={vi.fn()} />);
+    fireEvent.pointerEnter(
+      document.querySelector(".tavernary-companion-project-card__title-text")!,
+    );
+    expect(screen.getByRole("tooltip")).toHaveTextContent("A compact extension for testing.");
+  });
+
+  it("restores the compact description tooltip when Tab follows a title click", async () => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    });
+    vi.spyOn(window, "open").mockReturnValue(null);
+    render(<ProjectGrid projects={[project()]} density="compact" onProjectAction={vi.fn()} />);
+    const user = userEvent.setup();
+
+    await user.click(document.querySelector(".tavernary-companion-project-card__title-text")!);
+    expect(screen.queryByRole("tooltip")).not.toBeInTheDocument();
+
+    await user.tab();
+    expect(screen.getByRole("link", { name: "Open Alpha repository" })).toHaveFocus();
+    expect(screen.getByRole("tooltip")).toHaveTextContent("A compact extension for testing.");
   });
 });

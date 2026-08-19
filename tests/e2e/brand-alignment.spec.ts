@@ -247,6 +247,27 @@ test("desktop filters use Tavernary's persistent flush rail", async ({ page }) =
   await expect(modelFamilyChip).toHaveCSS("order", "1");
   await modelFamily.check({ force: true });
   await expect(modelFamilyChip).toHaveCSS("order", "0");
+
+  const selectedIndicators = await Promise.all(
+    [
+      surface.getByRole("checkbox", { name: "SillyTavern" }),
+      surface.getByRole("checkbox", { name: "Extension" }),
+    ].map((indicator) =>
+      indicator.evaluate((element) => {
+        const control = getComputedStyle(element);
+        const mark = getComputedStyle(element, "::before");
+        return {
+          appearance: control.appearance,
+          background: control.backgroundColor,
+          mark: mark.borderBlockEndColor,
+        };
+      }),
+    ),
+  );
+  expect(selectedIndicators).toEqual([
+    { appearance: "none", background: "rgb(27, 74, 70)", mark: "rgb(240, 245, 247)" },
+    { appearance: "none", background: "rgb(27, 74, 70)", mark: "rgb(240, 245, 247)" },
+  ]);
 });
 
 test("compact desktop keeps Tavernary's 210px persistent rail", async ({ page }) => {

@@ -245,11 +245,30 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 }
 
 .tavernary-companion-shell__content {
-  flex: 1;
+  block-size: 100%;
   min-inline-size: 0;
   min-block-size: 0;
   padding: 0;
   overflow: hidden;
+}
+
+.tavernary-companion-shell__workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  flex: 1;
+  min-inline-size: 0;
+  min-block-size: 0;
+  overflow: hidden;
+}
+
+.tavernary-companion-shell__workspace:has(
+  > .tavernary-companion-kit-builder-panel:not(.collapsed)
+) {
+  grid-template-columns: minmax(0, 1fr) clamp(280px, 24cqw, 340px);
+}
+
+.tavernary-companion-shell__workspace:has(> .tavernary-companion-kit-builder-panel.collapsed) {
+  grid-template-columns: minmax(0, 1fr) 72px;
 }
 
 .tavernary-companion-route-toolbar {

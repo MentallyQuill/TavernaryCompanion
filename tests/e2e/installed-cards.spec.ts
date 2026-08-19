@@ -20,6 +20,21 @@ test("Installed groups Kits and lets extensions be enabled and restored from car
 
   const enable = page.getByRole("switch", { name: /Enable /u });
   await expect(enable).toHaveAttribute("aria-checked", "false");
+  const [toggleBox, trackBox, cardBox] = await Promise.all([
+    enable.boundingBox(),
+    enable.locator("span").boundingBox(),
+    enable.locator("../..").boundingBox(),
+  ]);
+  expect(toggleBox).not.toBeNull();
+  expect(trackBox).not.toBeNull();
+  expect(cardBox).not.toBeNull();
+  expect(toggleBox!.height).toBeGreaterThanOrEqual(44);
+  expect(trackBox!.width).toBe(42);
+  expect(trackBox!.height).toBe(24);
+  expect(cardBox!.height).toBeLessThanOrEqual(160);
+  await expect(enable.locator("b")).toHaveCSS("font-size", "11px");
+  await expect(enable.locator("b")).toHaveCSS("font-weight", "700");
+
   await enable.click();
   const disable = page.getByRole("switch", { name: /Disable /u });
   await expect(disable).toHaveAttribute("aria-checked", "true");

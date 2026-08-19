@@ -72,6 +72,64 @@ test("native popup opens and closes the mobile scan panel by tap", async ({ brow
   }
 });
 
+test("compact description tooltips remain hover-only for pointer clicks", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openHarness(page);
+  await page.evaluate(() => {
+    window.open = () => null;
+  });
+  await page.getByRole("button", { name: "Use compact cards" }).click();
+
+  const card = page.locator('.tavernary-companion-project-card[data-project-id="alpha"]');
+  const title = card.locator(".tavernary-companion-project-card__title-text");
+  const description = page.getByRole("tooltip", {
+    name: "A catalog extension with a concise, predictable summary for responsive testing.",
+  });
+  await title.hover();
+  await expect(description).toBeVisible();
+
+  await title.click();
+  await expect(description).toHaveCount(0);
+});
+
+test("wide touch taps do not pin compact card descriptions", async ({ browser }) => {
+  const context = await browser.newContext({
+    hasTouch: true,
+    viewport: { width: 1024, height: 768 },
+  });
+  const page = await context.newPage();
+  try {
+    await openHarness(page);
+    await page.evaluate(() => {
+      document.addEventListener(
+        "click",
+        (event) => {
+          const target = event.target;
+          if (
+            target instanceof Element &&
+            target.closest(".tavernary-companion-project-card__hitarea")
+          ) {
+            event.preventDefault();
+          }
+        },
+        true,
+      );
+    });
+    await page.getByRole("button", { name: "Use compact cards" }).tap();
+    await expect(page.getByRole("tooltip", { name: "Use standard cards" })).toHaveCount(0);
+
+    const card = page.locator('.tavernary-companion-project-card[data-project-id="alpha"]');
+    await card.getByRole("link", { name: "Open Alpha repository" }).tap();
+    await expect(
+      page.getByRole("tooltip", {
+        name: "A catalog extension with a concise, predictable summary for responsive testing.",
+      }),
+    ).toHaveCount(0);
+  } finally {
+    await context.close();
+  }
+});
+
 test("card body and title open the repository while nested controls keep their own hit targets", async ({
   page,
 }) => {
@@ -107,7 +165,7 @@ test("card body and title open the repository while nested controls keep their o
 
   for (const [surface, expectedTag] of [
     [card.locator(".tavernary-companion-project-card__summary"), "A"],
-    [card.getByRole("heading", { name: "Alpha" }), "SPAN"],
+    [card.getByRole("heading", { name: "Alpha" }), "A"],
   ] as const) {
     const hit = await hitTarget(page, surface);
     expect(hit.tagName).toBe(expectedTag);
@@ -118,6 +176,11 @@ test("card body and title open the repository while nested controls keep their o
     }
     expect(hit.cursor).toBe("pointer");
     await page.mouse.click(hit.x, hit.y);
+    await expect(
+      page.getByRole("tooltip", {
+        name: "A catalog extension with a concise, predictable summary for responsive testing.",
+      }),
+    ).toHaveCount(0);
   }
   expect(await repositoryClicks(page)).toBe(2);
 
