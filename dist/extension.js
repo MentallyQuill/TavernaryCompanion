@@ -20931,11 +20931,7 @@ var DefaultExtensionUpdateCoordinator = class {
         candidateShas
       });
       if (!isCurrent()) return;
-      this.#checkedEvidence[projectId] = {
-        installedSha: inspection.installedSha,
-        internalName: entry.extension.internalName
-      };
-      this.#setState(projectId, deriveUpdateAvailability({ project: project2, inspection }));
+      this.#publishInspection(project2, entry.extension.internalName, inspection);
     } catch (error) {
       if (!isCurrent()) return;
       delete this.#checkedEvidence[projectId];
@@ -21024,6 +21020,11 @@ var DefaultExtensionUpdateCoordinator = class {
           branch: project2.install.branch,
           candidateShas
         });
+        const availability = this.#publishInspection(
+          project2,
+          entry.extension.internalName,
+          inspection
+        );
         if (!matchesUpdateBinding(selection, {
           project: project2,
           catalogGeneratedAt: catalog.generatedAt,
@@ -21032,7 +21033,6 @@ var DefaultExtensionUpdateCoordinator = class {
         })) {
           throw new Error("This update choice is out of date. Check again.");
         }
-        const availability = deriveUpdateAvailability({ project: project2, inspection });
         if (availability.kind !== "available" || !availability.targets.some(
           (target) => target.kind === selection.target.kind && target.requestedSha === selection.target.requestedSha
         )) {
@@ -21097,6 +21097,7 @@ var DefaultExtensionUpdateCoordinator = class {
             });
             observedSha = afterRequest.installedSha;
             outcomeKnown = true;
+            this.#publishInspection(project2, entry.extension.internalName, afterRequest);
           } catch {
           }
           if (outcomeKnown && observedSha === selection.binding.installedSha) {
@@ -21262,6 +21263,15 @@ var DefaultExtensionUpdateCoordinator = class {
     this.#snapshot.states[projectId] = structuredClone(state);
     const snapshot = this.read();
     for (const subscriber of this.#subscribers) subscriber(snapshot);
+  }
+  #publishInspection(project2, internalName, inspection) {
+    const availability = deriveUpdateAvailability({ project: project2, inspection });
+    this.#checkedEvidence[project2.id] = {
+      installedSha: inspection.installedSha,
+      internalName
+    };
+    this.#setState(project2.id, availability);
+    return availability;
   }
   async #persistIncompleteReceipt(receipt, disclosureAccepted) {
     await this.#store.update((draft) => {
