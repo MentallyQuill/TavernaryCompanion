@@ -1,3 +1,5 @@
+import type { ManagedInstallProvenance } from "./install-target";
+
 export type LifecycleReceiptStatus =
   | "succeeded"
   | "cancelled"
@@ -23,6 +25,8 @@ export interface LifecycleReceipt extends Record<string, unknown> {
   steps: LifecycleReceiptStep[];
   safeError: string | null;
   reloadRequired: boolean;
+  installProvenance?: ManagedInstallProvenance;
+  cleanupOutcome?: "not-needed" | "succeeded" | "failed" | null;
 }
 
 interface CreateReceiptInput {
@@ -35,6 +39,8 @@ interface CreateReceiptInput {
   status: LifecycleReceiptStatus;
   safeError: string | null;
   reloadRequired: boolean;
+  installProvenance?: ManagedInstallProvenance;
+  cleanupOutcome?: "not-needed" | "succeeded" | "failed" | null;
   completedThrough?: LifecycleReceiptStep["id"];
   failedAt?: LifecycleReceiptStep["id"];
 }
@@ -57,6 +63,10 @@ export function createReceipt(input: CreateReceiptInput): LifecycleReceipt {
     status: input.status,
     safeError: input.safeError,
     reloadRequired: input.reloadRequired,
+    ...(input.installProvenance === undefined
+      ? {}
+      : { installProvenance: structuredClone(input.installProvenance) }),
+    ...(input.cleanupOutcome === undefined ? {} : { cleanupOutcome: input.cleanupOutcome }),
     steps: order.map((id, index) => ({
       id,
       status:
