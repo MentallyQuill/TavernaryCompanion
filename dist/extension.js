@@ -381,7 +381,7 @@ var require_codegen = __commonJS({
       AND: new code_1._Code("&&"),
       ADD: new code_1._Code("+")
     };
-    var Node = class {
+    var Node2 = class {
       optimizeNodes() {
         return this;
       }
@@ -389,7 +389,7 @@ var require_codegen = __commonJS({
         return this;
       }
     };
-    var Def = class extends Node {
+    var Def = class extends Node2 {
       constructor(varKind, name, rhs) {
         super();
         this.varKind = varKind;
@@ -412,7 +412,7 @@ var require_codegen = __commonJS({
         return this.rhs instanceof code_1._CodeOrName ? this.rhs.names : {};
       }
     };
-    var Assign = class extends Node {
+    var Assign = class extends Node2 {
       constructor(lhs, rhs, sideEffects) {
         super();
         this.lhs = lhs;
@@ -442,7 +442,7 @@ var require_codegen = __commonJS({
         return `${this.lhs} ${this.op}= ${this.rhs};` + _n;
       }
     };
-    var Label = class extends Node {
+    var Label = class extends Node2 {
       constructor(label2) {
         super();
         this.label = label2;
@@ -452,7 +452,7 @@ var require_codegen = __commonJS({
         return `${this.label}:` + _n;
       }
     };
-    var Break = class extends Node {
+    var Break = class extends Node2 {
       constructor(label2) {
         super();
         this.label = label2;
@@ -463,7 +463,7 @@ var require_codegen = __commonJS({
         return `break${label2};` + _n;
       }
     };
-    var Throw = class extends Node {
+    var Throw = class extends Node2 {
       constructor(error) {
         super();
         this.error = error;
@@ -475,7 +475,7 @@ var require_codegen = __commonJS({
         return this.error.names;
       }
     };
-    var AnyCode = class extends Node {
+    var AnyCode = class extends Node2 {
       constructor(code) {
         super();
         this.code = code;
@@ -494,7 +494,7 @@ var require_codegen = __commonJS({
         return this.code instanceof code_1._CodeOrName ? this.code.names : {};
       }
     };
-    var ParentNode = class extends Node {
+    var ParentNode = class extends Node2 {
       constructor(nodes = []) {
         super();
         this.nodes = nodes;
@@ -7270,8 +7270,8 @@ function H() {
   }
 }
 function L(n2, l3, u4, t3, i3, r3, o3, e3, f4, c3, a3) {
-  var s3, h3, p3, v3, y3, _2, g2 = t3 && t3.__k || w, m3 = l3.length;
-  for (f4 = T(u4, l3, g2, f4, m3), s3 = 0; s3 < m3; s3++) null != (p3 = u4.__k[s3]) && (h3 = -1 != p3.__i && g2[p3.__i] || d, p3.__i = s3, _2 = q(n2, p3, h3, i3, r3, o3, e3, f4, c3, a3), v3 = p3.__e, p3.ref && h3.ref != p3.ref && (h3.ref && J(h3.ref, null, p3), a3.push(p3.ref, p3.__c || v3, p3)), null == y3 && null != v3 && (y3 = v3), 4 & p3.__u ? (f4 = j(p3, f4, n2), h3.__e && (h3.__e = null)) : "function" == typeof p3.type && void 0 !== _2 ? f4 = _2 : v3 && (f4 = v3.nextSibling), p3.__u &= -7);
+  var s3, h3, p3, v3, y3, _2, g3 = t3 && t3.__k || w, m3 = l3.length;
+  for (f4 = T(u4, l3, g3, f4, m3), s3 = 0; s3 < m3; s3++) null != (p3 = u4.__k[s3]) && (h3 = -1 != p3.__i && g3[p3.__i] || d, p3.__i = s3, _2 = q(n2, p3, h3, i3, r3, o3, e3, f4, c3, a3), v3 = p3.__e, p3.ref && h3.ref != p3.ref && (h3.ref && J(h3.ref, null, p3), a3.push(p3.ref, p3.__c || v3, p3)), null == y3 && null != v3 && (y3 = v3), 4 & p3.__u ? (f4 = j(p3, f4, n2), h3.__e && (h3.__e = null)) : "function" == typeof p3.type && void 0 !== _2 ? f4 = _2 : v3 && (f4 = v3.nextSibling), p3.__u &= -7);
   return u4.__e = y3, f4;
 }
 function T(n2, l3, u4, t3, i3) {
@@ -7528,6 +7528,15 @@ function q2(n2, t3) {
   return o2 = 8, T2(function() {
     return n2;
   }, t3);
+}
+function g2() {
+  var n2 = s2(t2++, 11);
+  if (!n2.__) {
+    for (var u4 = r2.__v; null !== u4 && !u4.__m && null !== u4.__; ) u4 = u4.__;
+    var i3 = u4.__m || (u4.__m = [0, 0]);
+    n2.__ = "P" + i3[0] + "-" + i3[1]++;
+  }
+  return n2.__;
 }
 function j2() {
   for (var n2; n2 = f2.shift(); ) {
@@ -11235,12 +11244,9 @@ function toInstalledSectionViewModel(inventory) {
         id: project2.id,
         name: project2.name,
         detail: extension.folderName,
+        canonicalUrl: project2.canonicalUrl,
         enabled: extension.enabled,
-        action: {
-          kind: "uninstall",
-          label: "Uninstall",
-          reason: "Managed by Companion"
-        }
+        action: installedAction(extension.type, "Managed by Companion")
       }))
     },
     {
@@ -11250,12 +11256,9 @@ function toInstalledSectionViewModel(inventory) {
         id: project2.id,
         name: project2.name,
         detail: extension.folderName,
+        canonicalUrl: project2.canonicalUrl,
         enabled: extension.enabled,
-        action: {
-          kind: "uninstall",
-          label: "Uninstall",
-          reason: "Installed outside Companion"
-        }
+        action: installedAction(extension.type, "Installed outside Companion")
       }))
     },
     {
@@ -11265,6 +11268,7 @@ function toInstalledSectionViewModel(inventory) {
         id: extension.internalName,
         name: typeof extension.manifest?.display_name === "string" ? extension.manifest.display_name : extension.folderName,
         detail: extension.internalName,
+        canonicalUrl: null,
         enabled: extension.enabled,
         action: {
           kind: "manage-in-sillytavern",
@@ -11280,6 +11284,7 @@ function toInstalledSectionViewModel(inventory) {
         id: record2.projectId,
         name: project2?.name ?? record2.folderName,
         detail: "Managed record is missing from SillyTavern.",
+        canonicalUrl: project2?.canonicalUrl ?? null,
         enabled: null,
         action: {
           kind: "manage-in-sillytavern",
@@ -11289,6 +11294,13 @@ function toInstalledSectionViewModel(inventory) {
       }))
     }
   ];
+}
+function installedAction(extensionType, uninstallReason) {
+  return extensionType === "global" ? {
+    kind: "manage-in-sillytavern",
+    label: "Manage in SillyTavern",
+    reason: "Global extensions are managed by SillyTavern."
+  } : { kind: "uninstall", label: "Uninstall", reason: uninstallReason };
 }
 
 // src/lifecycle/self-protection.ts
@@ -11374,16 +11386,18 @@ function isManagedRecord(value) {
 }
 
 // src/catalog/project-view-model.ts
-function installedOwnership(projectId, inventory) {
-  if (inventory.managed.some(({ project: project2 }) => project2.id === projectId)) {
-    return "managed";
+function installedState(projectId, inventory) {
+  const managed = inventory.managed.find(({ project: project2 }) => project2.id === projectId);
+  if (managed) {
+    return { ownership: "managed", removable: managed.extension.type === "local" };
   }
-  if (inventory.external.some(({ project: project2 }) => project2.id === projectId)) {
-    return "external";
+  const external = inventory.external.find(({ project: project2 }) => project2.id === projectId);
+  if (external) {
+    return { ownership: "external", removable: external.extension.type === "local" };
   }
-  return "absent";
+  return { ownership: "absent", removable: false };
 }
-function actionFor(project2, context, ownership) {
+function actionFor(project2, context, installed) {
   if (project2.id === COMPANION_PROJECT_ID) {
     return {
       kind: "current-extension",
@@ -11398,11 +11412,18 @@ function actionFor(project2, context, ownership) {
       reason: "Catalog schema updated; update Companion to restore actions."
     };
   }
-  if (ownership !== "absent") {
+  if (installed.ownership !== "absent" && !installed.removable) {
+    return {
+      kind: "manage-in-sillytavern",
+      label: "Manage in SillyTavern",
+      reason: "Global extensions are managed by SillyTavern."
+    };
+  }
+  if (installed.ownership !== "absent") {
     return {
       kind: "uninstall",
       label: "Uninstall",
-      reason: ownership === "managed" ? "Managed by Companion" : "Installed outside Companion"
+      reason: installed.ownership === "managed" ? "Managed by Companion" : "Installed outside Companion"
     };
   }
   if (project2.kind === "preset") {
@@ -11432,12 +11453,13 @@ function actionFor(project2, context, ownership) {
   return { kind: "install", label: "Install", reason: null };
 }
 function toProjectCardViewModel(project2, context) {
-  const ownership = installedOwnership(project2.id, context.inventory);
+  const installed = installedState(project2.id, context.inventory);
   const now = context.now ?? project2.refreshedAt ?? project2.catalogedAt;
   return {
     id: project2.id,
     name: project2.name,
     displayName: projectDisplayName(project2.name),
+    canonicalUrl: project2.canonicalUrl,
     summary: project2.summary,
     kind: project2.kind,
     frontends: project2.frontends.map(({ label: label2 }) => label2),
@@ -11467,10 +11489,10 @@ function toProjectCardViewModel(project2, context) {
       completionFormats: project2.preset.completionFormats.map(({ label: label2 }) => label2)
     } : null,
     tavernKeeper: project2.tavernKeeper,
-    installed: ownership !== "absent",
-    ownership,
+    installed: installed.ownership !== "absent",
+    ownership: installed.ownership,
     kitSelectable: project2.id !== COMPANION_PROJECT_ID && project2.kind === "extension" && project2.frontends.some(({ id }) => id === "sillytavern") && Boolean(project2.install),
-    action: actionFor(project2, context, ownership)
+    action: actionFor(project2, context, installed)
   };
 }
 function projectDisplayName(name) {
@@ -11516,23 +11538,6 @@ function primaryFunctionLabel(value) {
   };
   return labels[value] ?? value;
 }
-function toProjectDetailViewModel(project2, context) {
-  return {
-    ...toProjectCardViewModel(project2, context),
-    canonicalUrl: project2.canonicalUrl,
-    primaryFunction: primaryFunctionLabel(project2.primaryFunction),
-    tags: project2.tags.map(({ label: label2 }) => label2),
-    license: structuredClone(project2.license),
-    metadataStatus: project2.metadataStatus,
-    sourceStatus: project2.sourceStatus,
-    catalogedAt: project2.catalogedAt,
-    latestReleaseAt: project2.latestReleaseAt,
-    refreshedAt: project2.refreshedAt,
-    attribution: structuredClone(project2.attribution),
-    fork: structuredClone(project2.fork),
-    kitReferences: (context.kits ?? []).filter((kit2) => kit2.components.some(({ projectId }) => projectId === project2.id)).map(({ id, title }) => ({ id, title }))
-  };
-}
 
 // src/catalog/discovery-controller.ts
 var DefaultDiscoveryController = class {
@@ -11576,10 +11581,9 @@ var DefaultDiscoveryController = class {
   }
   #compute() {
     const catalog = "catalog" in this.#snapshot ? this.#snapshot.catalog : null;
+    const now = catalog ? this.#now() : "";
     let projects = [];
-    let projectDetails = {};
     if (catalog) {
-      const now = this.#now();
       if (catalog !== this.#indexedCatalog) {
         this.#indexedCatalog = catalog;
         this.#index = this.#createIndex(
@@ -11599,34 +11603,83 @@ var DefaultDiscoveryController = class {
           now
         })
       );
-      projectDetails = Object.fromEntries(
-        catalog.projects.map((project2) => [
-          project2.id,
-          toProjectDetailViewModel(project2, {
-            snapshot: this.#snapshot,
-            inventory: this.#inventory,
-            now,
-            kits: catalog.kits
-          })
-        ])
-      );
     }
     return {
       query: structuredClone(this.#query),
       catalogState: this.#snapshot.state,
       projects,
-      projectDetails,
       installedSections: toInstalledSectionViewModel(this.#inventory),
       facets: catalog ? {
-        frontends: [
-          ...new Map(
-            catalog.projects.flatMap(
-              (project2) => project2.frontends.map(({ id, label: label2 }) => [id, { id, label: label2 }])
-            )
-          ).values()
-        ].sort((left, right) => left.label.localeCompare(right.label)),
-        tags: catalog.tagVocabulary.map(({ id, label: label2 }) => ({ id, label: label2 })).sort((left, right) => left.label.localeCompare(right.label))
-      } : { frontends: [], tags: [] }
+        frontends: orderFrontendOptionsByPopularity(
+          countedLabels(catalog.projects.map(({ frontends }) => frontends)),
+          catalog.projects
+        ),
+        tags: catalog.tagVocabulary.map(({ id, label: label2, description, facet }) => ({
+          id,
+          label: label2,
+          description,
+          facet,
+          count: catalog.projects.filter(
+            (project2) => project2.tags.some((tag2) => tag2.id === id)
+          ).length
+        })).sort((left, right) => left.label.localeCompare(right.label)),
+        modelFamilies: countedLabels(
+          catalog.projects.map(({ preset }) => preset?.modelFamilies ?? [])
+        ),
+        completionFormats: countedLabels(
+          catalog.projects.map(({ preset }) => preset?.completionFormats ?? [])
+        ),
+        kinds: [
+          { id: "frontend", label: "Frontend" },
+          { id: "extension", label: "Extension" },
+          { id: "preset", label: "System Preset" }
+        ].map((option) => ({
+          ...option,
+          count: catalog.projects.filter((project2) => project2.kind === option.id).length
+        })),
+        development: [
+          {
+            id: "active-month",
+            label: "Active this month",
+            count: catalog.projects.filter(
+              (project2) => isWithinDays2(project2.activity.latestSourceActivityAt, now, 30)
+            ).length
+          },
+          {
+            id: "new-release",
+            label: "Recently released",
+            count: catalog.projects.filter(
+              (project2) => isWithinDays2(
+                project2.latestReleaseAt ?? project2.preset?.publishedAt ?? null,
+                now,
+                30
+              )
+            ).length
+          },
+          {
+            id: "dormant",
+            label: "Dormant",
+            count: catalog.projects.filter((project2) => project2.activity.dormant).length
+          }
+        ],
+        licenses: [
+          { id: "open-source", label: "Open source", status: "osi-approved" },
+          { id: "proprietary", label: "Proprietary", status: "proprietary" },
+          { id: "pending", label: "Pending verification", status: "pending" },
+          { id: "missing", label: "Missing license", status: "missing" }
+        ].map(({ status, ...option }) => ({
+          ...option,
+          count: catalog.projects.filter((project2) => project2.license.status === status).length
+        }))
+      } : {
+        frontends: [],
+        tags: [],
+        modelFamilies: [],
+        completionFormats: [],
+        kinds: [],
+        development: [],
+        licenses: []
+      }
     };
   }
   #notify() {
@@ -11634,6 +11687,49 @@ var DefaultDiscoveryController = class {
     for (const subscriber of this.#subscribers) subscriber(snapshot);
   }
 };
+function isWithinDays2(timestamp, now, days) {
+  if (!timestamp) return false;
+  const age = Date.parse(now) - Date.parse(timestamp);
+  return Number.isFinite(age) && age >= 0 && age <= days * 24 * 60 * 60 * 1e3;
+}
+function countedLabels(projectLabels) {
+  const options = /* @__PURE__ */ new Map();
+  for (const labels of projectLabels) {
+    const seen = /* @__PURE__ */ new Set();
+    for (const { id, label: label2 } of labels) {
+      if (seen.has(id)) continue;
+      seen.add(id);
+      const current = options.get(id);
+      options.set(id, { id, label: label2, count: (current?.count ?? 0) + 1 });
+    }
+  }
+  return [...options.values()].sort((left, right) => left.label.localeCompare(right.label));
+}
+function orderFrontendOptionsByPopularity(options, projects) {
+  const scores = /* @__PURE__ */ new Map();
+  for (const project2 of projects) {
+    if (project2.kind !== "frontend" || project2.community === null) continue;
+    for (const frontend of project2.frontends) {
+      const current = scores.get(frontend.id);
+      if (current === void 0 || project2.community.aggregate > current) {
+        scores.set(frontend.id, project2.community.aggregate);
+      }
+    }
+  }
+  return [...options].sort((left, right) => {
+    const leftScore = scores.get(left.id);
+    const rightScore = scores.get(right.id);
+    if (leftScore !== void 0 && rightScore !== void 0) {
+      const scoreOrder = rightScore - leftScore;
+      if (scoreOrder !== 0) return scoreOrder;
+    } else if (leftScore !== void 0) {
+      return -1;
+    } else if (rightScore !== void 0) {
+      return 1;
+    }
+    return left.label.localeCompare(right.label) || left.id.localeCompare(right.id);
+  });
+}
 function createDiscoveryController(options) {
   return new DefaultDiscoveryController(options);
 }
@@ -11997,7 +12093,7 @@ function createReceipt(input) {
 // src/lifecycle/removal-impact.ts
 function previewRemovalImpact({
   projectId,
-  projectName: projectName2,
+  projectName,
   ownership,
   installedKits,
   activeKitId,
@@ -12010,7 +12106,7 @@ function previewRemovalImpact({
   const consequence = references.length === 0 ? "" : ` ${kitNames} will become incomplete${activeKitAffected ? ", and the active Kit will show drift" : ""}.`;
   return {
     projectId,
-    projectName: projectName2,
+    projectName,
     ownership,
     ownershipLabel: {
       managed: "Managed by Companion",
@@ -12020,7 +12116,7 @@ function previewRemovalImpact({
     installedKits: references,
     activeKitAffected,
     removable,
-    confirmation: `Uninstall ${projectName2}?${consequence}`
+    confirmation: `Uninstall ${projectName}?${consequence}`
   };
 }
 function markInstalledKitsIncomplete(installedKits, projectId) {
@@ -12892,8 +12988,8 @@ function textFingerprint(value) {
 function isActionable(project2) {
   return project2.kind === "extension" && project2.frontends.some(({ id }) => id === "sillytavern") && project2.install?.kind === "sillytavern-extension-git";
 }
-function step(projectId, projectName2, internalName) {
-  return { projectId, projectName: projectName2, internalName };
+function step(projectId, projectName, internalName) {
+  return { projectId, projectName, internalName };
 }
 function stepFor(project2, internalName) {
   return step(project2.id, project2.name, internalName);
@@ -14258,7 +14354,7 @@ function KitPreflightDialog({
 
 // src/ui/lifecycle/assessment-warning-dialog.tsx
 function AssessmentWarningDialog({
-  projectName: projectName2,
+  projectName,
   prompt,
   onReview,
   onCancel,
@@ -14268,14 +14364,14 @@ function AssessmentWarningDialog({
   return /* @__PURE__ */ u3(
     DialogFrame,
     {
-      label: `Security warning for ${projectName2}`,
+      label: `Security warning for ${projectName}`,
       className: high ? "is-high" : "is-material",
       onCancel,
       children: [
         /* @__PURE__ */ u3("p", { class: "tavernary-companion-dialog__severity", children: high ? "Immediate danger" : "Material concern" }),
         /* @__PURE__ */ u3("h2", { children: [
           "Review before installing ",
-          projectName2
+          projectName
         ] }),
         /* @__PURE__ */ u3("p", { children: prompt.copy }),
         prompt.reviewDisabledReason ? /* @__PURE__ */ u3("p", { children: prompt.reviewDisabledReason }) : null,
@@ -14414,10 +14510,56 @@ function TrustDisclosureDialog({
   ] });
 }
 
+// src/ui/shared/install-icon.tsx
+var INSTALL_PATH = "M9 2v2H5l-.001 10h14L19 4h-4V2h5a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h5zm9.999 14h-14L5 20h14l-.001-4zM17 17v2h-2v-2h2zM13 2v5h3l-4 4-4-4h3V2h2z";
+function InstallIcon() {
+  return /* @__PURE__ */ u3(
+    "svg",
+    {
+      "aria-hidden": "true",
+      "data-icon": "install",
+      "data-testid": "install-icon",
+      fill: "currentColor",
+      viewBox: "0 0 24 24",
+      children: /* @__PURE__ */ u3("path", { d: INSTALL_PATH })
+    }
+  );
+}
+
+// src/ui/projects/project-lifecycle-control.tsx
+function ProjectLifecycleControl({
+  projectName,
+  action,
+  disabled = false,
+  onAction
+}) {
+  const disabledReasonId = g2();
+  if (action.kind !== "install" && action.kind !== "uninstall") return null;
+  const installed = action.kind === "uninstall";
+  const label2 = `${action.label} ${projectName}`;
+  return /* @__PURE__ */ u3(S, { children: [
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        type: "button",
+        class: `tavernary-companion-project-lifecycle${installed ? " is-installed" : ""}`,
+        "data-testid": "project-lifecycle-action",
+        "aria-label": label2,
+        "aria-describedby": disabled ? disabledReasonId : void 0,
+        "aria-pressed": installed,
+        title: action.label,
+        disabled,
+        onClick: () => onAction(action),
+        children: /* @__PURE__ */ u3(InstallIcon, {})
+      }
+    ),
+    disabled ? /* @__PURE__ */ u3("span", { id: disabledReasonId, class: "tavernary-companion-sr-only", children: "Another Companion operation is in progress." }) : null
+  ] });
+}
+
 // src/ui/installed/installed-section.tsx
 function InstalledSection({
   section,
-  onOpenProject,
   onAction,
   onManage,
   lifecycleDisabled
@@ -14432,7 +14574,6 @@ function InstalledSection({
       {
         row,
         sectionId: section.id,
-        onOpenProject,
         onAction,
         onManage,
         lifecycleDisabled
@@ -14443,7 +14584,6 @@ function InstalledSection({
 function InstalledRow({
   row,
   sectionId,
-  onOpenProject,
   onAction,
   onManage,
   lifecycleDisabled
@@ -14451,28 +14591,25 @@ function InstalledRow({
   const unknown = sectionId === "unknown" || row.action.kind === "manage-in-sillytavern";
   return /* @__PURE__ */ u3("li", { children: [
     /* @__PURE__ */ u3("div", { children: [
-      /* @__PURE__ */ u3("strong", { children: row.name }),
+      /* @__PURE__ */ u3("strong", { children: row.canonicalUrl ? /* @__PURE__ */ u3("a", { href: row.canonicalUrl, target: "_blank", rel: "noopener noreferrer", children: row.name }) : row.name }),
       /* @__PURE__ */ u3("span", { children: row.detail }),
       row.enabled !== null ? /* @__PURE__ */ u3("span", { children: row.enabled ? "Enabled" : "Disabled" }) : null
     ] }),
-    !unknown ? /* @__PURE__ */ u3(
+    unknown ? /* @__PURE__ */ u3(
       "button",
       {
         type: "button",
-        "data-focus-key": `installed-${row.id}`,
-        onClick: () => onOpenProject?.(row.id),
-        "aria-label": `View ${row.name}`,
-        children: "Details"
-      }
-    ) : null,
-    /* @__PURE__ */ u3(
-      "button",
-      {
-        type: "button",
-        "aria-label": unknown ? `Manage ${row.name} in SillyTavern` : `${row.action.label} ${row.name}`,
-        onClick: () => unknown ? onManage?.() : onAction?.(row.id, row.action),
-        disabled: !unknown && lifecycleDisabled,
+        "aria-label": `Manage ${row.name} in SillyTavern`,
+        onClick: () => onManage?.(),
         children: row.action.label
+      }
+    ) : /* @__PURE__ */ u3(
+      ProjectLifecycleControl,
+      {
+        projectName: row.name,
+        action: row.action,
+        disabled: lifecycleDisabled,
+        onAction: (action) => onAction?.(row.id, action)
       }
     )
   ] });
@@ -14491,7 +14628,6 @@ function InstalledRoute({
   sections,
   refreshing = false,
   onRefresh,
-  onOpenProject,
   onAction,
   onManage,
   lifecycleDisabled
@@ -14519,7 +14655,6 @@ function InstalledRoute({
       InstalledSection,
       {
         section,
-        onOpenProject,
         onAction,
         onManage,
         lifecycleDisabled
@@ -15077,6 +15212,390 @@ function CatalogStatePanel({
   );
 }
 
+// src/ui/projects/active-filter-chips.tsx
+function ActiveFilterChips({
+  query,
+  facets,
+  onQueryChange
+}) {
+  const labels = {
+    frontends: toLabelMap(facets.frontends),
+    kinds: toLabelMap(facets.kinds),
+    tags: toLabelMap(facets.tags),
+    modelFamilies: toLabelMap(facets.modelFamilies),
+    completionFormats: toLabelMap(facets.completionFormats),
+    development: toLabelMap(facets.development),
+    licenses: toLabelMap(facets.licenses)
+  };
+  const arrayFilters = [
+    { key: "frontends", values: query.frontends },
+    { key: "kinds", values: query.kinds },
+    { key: "tags", values: query.tags },
+    { key: "modelFamilies", values: query.modelFamilies ?? [] },
+    { key: "completionFormats", values: query.completionFormats ?? [] },
+    { key: "development", values: query.development },
+    { key: "licenses", values: query.licenses }
+  ];
+  const categoryLabel = CATEGORY_OPTIONS.find(({ id }) => id === query.category)?.label;
+  const viewLabel = (/* @__PURE__ */ new Map([
+    ["active", "Active catalog view"],
+    ["new", "New catalog view"],
+    ["released", "Recently released catalog view"]
+  ])).get(query.view);
+  return /* @__PURE__ */ u3("div", { class: "tavernary-companion-filter-chips", "aria-label": "Active filters", children: [
+    query.category && categoryLabel ? /* @__PURE__ */ u3(
+      FilterChip,
+      {
+        label: categoryLabel,
+        ariaLabel: `Remove ${categoryLabel} category filter`,
+        onRemove: () => onQueryChange({ ...query, category: "" })
+      }
+    ) : null,
+    arrayFilters.flatMap(
+      ({ key, values }) => values.map((id) => {
+        const label2 = labels[key].get(id) ?? id;
+        return /* @__PURE__ */ u3(
+          FilterChip,
+          {
+            label: label2,
+            ariaLabel: `Remove ${label2} filter`,
+            onRemove: () => onQueryChange({
+              ...query,
+              [key]: values.filter((value) => value !== id)
+            })
+          },
+          `${key}-${id}`
+        );
+      })
+    ),
+    query.view !== "all" && viewLabel ? /* @__PURE__ */ u3(
+      FilterChip,
+      {
+        label: viewLabel,
+        ariaLabel: `Remove ${viewLabel} filter`,
+        onRemove: () => onQueryChange({ ...query, view: "all" })
+      }
+    ) : null
+  ] });
+}
+function FilterChip({
+  label: label2,
+  ariaLabel,
+  onRemove
+}) {
+  return /* @__PURE__ */ u3("button", { type: "button", "aria-label": ariaLabel, onClick: onRemove, children: [
+    label2,
+    " ",
+    /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: "\xD7" })
+  ] });
+}
+function toLabelMap(options) {
+  return new Map(options.map(({ id, label: label2 }) => [id, label2]));
+}
+
+// src/ui/projects/filter-choice.tsx
+function FilterChoice({
+  label: label2,
+  count,
+  checked,
+  onChange,
+  title,
+  class: className
+}) {
+  return /* @__PURE__ */ u3(
+    "label",
+    {
+      class: `tavernary-companion-filter-choice${checked ? " is-selected" : ""}${className ? ` ${className}` : ""}`,
+      title,
+      children: /* @__PURE__ */ u3("span", { class: "tavernary-companion-filter-choice__chip", children: [
+        /* @__PURE__ */ u3(
+          "input",
+          {
+            class: "tavernary-companion-filter-choice__input",
+            type: "checkbox",
+            "aria-label": label2,
+            checked,
+            onChange
+          }
+        ),
+        /* @__PURE__ */ u3("span", { class: "tavernary-companion-filter-choice__check", "aria-hidden": "true", children: "\u2713" }),
+        /* @__PURE__ */ u3("span", { children: label2 }),
+        /* @__PURE__ */ u3(
+          "b",
+          {
+            class: "tavernary-companion-filter-choice__count",
+            "aria-label": `${count} ${count === 1 ? "project" : "projects"}`,
+            children: count
+          }
+        )
+      ] })
+    }
+  );
+}
+
+// src/ui/projects/filter-controls.tsx
+function FilterGroup({
+  title,
+  options,
+  selected,
+  onToggle,
+  presentation = "list",
+  searchLabel,
+  initialVisibleCount = options.length,
+  kindColors = false
+}) {
+  const [search, setSearch] = d2("");
+  const [expanded, setExpanded] = d2(false);
+  if (options.length === 0) return null;
+  const normalizedSearch = search.trim().toLocaleLowerCase();
+  const pinned = options.slice(0, initialVisibleCount);
+  const selectedExtras = options.filter(
+    (option, index) => index >= initialVisibleCount && selected.includes(option.id)
+  );
+  const collapsedIds = new Set([...pinned, ...selectedExtras].map(({ id }) => id));
+  const collapsedOptions = options.filter(({ id }) => collapsedIds.has(id));
+  const visibleOptions = normalizedSearch ? options.filter(({ label: label2 }) => label2.toLocaleLowerCase().includes(normalizedSearch)) : expanded ? options : collapsedOptions;
+  const hiddenCount = options.length - collapsedOptions.length;
+  return /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-filter-group", children: [
+    /* @__PURE__ */ u3("legend", { children: title }),
+    searchLabel ? /* @__PURE__ */ u3(
+      "input",
+      {
+        class: "tavernary-companion-filter-search",
+        type: "search",
+        value: search,
+        placeholder: "Search\u2026",
+        "aria-label": searchLabel,
+        onInput: (event) => setSearch(event.currentTarget.value)
+      }
+    ) : null,
+    /* @__PURE__ */ u3(
+      "div",
+      {
+        class: `tavernary-companion-filter-options tavernary-companion-filter-options--${presentation}`,
+        children: visibleOptions.map(
+          (option) => presentation === "chips" ? /* @__PURE__ */ u3(
+            FilterChoice,
+            {
+              label: option.label,
+              count: option.count,
+              checked: selected.includes(option.id),
+              onChange: () => onToggle(option.id)
+            },
+            option.id
+          ) : /* @__PURE__ */ u3("label", { class: "tavernary-companion-filter-option", children: [
+            /* @__PURE__ */ u3(
+              "input",
+              {
+                type: "checkbox",
+                "aria-label": option.label,
+                checked: selected.includes(option.id),
+                class: kindColors ? "tavernary-companion-kind-checkbox" : void 0,
+                "data-kind": kindColors ? option.id : void 0,
+                onChange: () => onToggle(option.id)
+              }
+            ),
+            /* @__PURE__ */ u3("span", { children: option.label }),
+            /* @__PURE__ */ u3("b", { "aria-label": `${option.count} ${option.count === 1 ? "project" : "projects"}`, children: option.count })
+          ] }, option.id)
+        )
+      }
+    ),
+    !normalizedSearch && (hiddenCount > 0 || expanded) ? /* @__PURE__ */ u3(
+      "button",
+      {
+        class: "tavernary-companion-filter-disclosure",
+        type: "button",
+        "aria-expanded": expanded,
+        onClick: () => setExpanded((value) => !value),
+        children: expanded ? "Show fewer" : `Show ${hiddenCount} more`
+      }
+    ) : null
+  ] });
+}
+
+// src/ui/projects/filter-panel.tsx
+function FilterPanel({
+  query,
+  facets,
+  onQueryChange
+}) {
+  return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-filter-panel", "aria-label": "Project filters", children: [
+    /* @__PURE__ */ u3(
+      FilterGroup,
+      {
+        title: "Compatible frontend",
+        options: facets.frontends,
+        selected: query.frontends,
+        onToggle: (id) => onQueryChange({ ...query, frontends: toggle(query.frontends, id) }),
+        searchLabel: "Search compatible frontends",
+        initialVisibleCount: 3
+      }
+    ),
+    /* @__PURE__ */ u3(
+      FilterGroup,
+      {
+        title: "Project kind",
+        options: facets.kinds,
+        selected: query.kinds,
+        onToggle: (id) => onQueryChange({ ...query, kinds: toggle(query.kinds, id) }),
+        kindColors: true
+      }
+    ),
+    /* @__PURE__ */ u3(
+      TagBrowser,
+      {
+        tags: facets.tags,
+        selected: query.tags,
+        onToggle: (id) => onQueryChange({ ...query, tags: toggle(query.tags, id) })
+      }
+    ),
+    /* @__PURE__ */ u3(
+      FilterGroup,
+      {
+        title: "Model family",
+        options: facets.modelFamilies,
+        selected: query.modelFamilies ?? [],
+        onToggle: (id) => onQueryChange({
+          ...query,
+          modelFamilies: toggle(query.modelFamilies ?? [], id)
+        }),
+        presentation: "chips"
+      }
+    ),
+    /* @__PURE__ */ u3(
+      FilterGroup,
+      {
+        title: "Completion format",
+        options: facets.completionFormats,
+        selected: query.completionFormats ?? [],
+        onToggle: (id) => onQueryChange({
+          ...query,
+          completionFormats: toggle(query.completionFormats ?? [], id)
+        }),
+        presentation: "chips"
+      }
+    ),
+    /* @__PURE__ */ u3(
+      FilterGroup,
+      {
+        title: "Development",
+        options: facets.development,
+        selected: query.development,
+        onToggle: (id) => onQueryChange({
+          ...query,
+          development: toggle(query.development, id)
+        })
+      }
+    ),
+    /* @__PURE__ */ u3(
+      FilterGroup,
+      {
+        title: "License",
+        options: facets.licenses,
+        selected: query.licenses,
+        onToggle: (id) => onQueryChange({
+          ...query,
+          licenses: toggle(query.licenses, id)
+        })
+      }
+    )
+  ] });
+}
+function TagBrowser({
+  tags,
+  selected,
+  onToggle
+}) {
+  const [search, setSearch] = d2("");
+  const [expanded, setExpanded] = d2({ goal: false, trait: false });
+  if (tags.length === 0) return null;
+  const normalizedSearch = search.trim().toLocaleLowerCase();
+  const visibleTags = tags.filter(
+    ({ id, label: label2 }) => !normalizedSearch || id.toLocaleLowerCase().includes(normalizedSearch) || label2.toLocaleLowerCase().includes(normalizedSearch)
+  );
+  const selectedTags = selected.map((id) => tags.find((tag2) => tag2.id === id)).filter((tag2) => tag2 !== void 0);
+  return /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-tag-browser", children: [
+    /* @__PURE__ */ u3("legend", { children: "Goals & traits" }),
+    /* @__PURE__ */ u3(
+      "input",
+      {
+        class: "tavernary-companion-filter-search",
+        type: "search",
+        value: search,
+        placeholder: "Search tags\u2026",
+        "aria-label": "Search goals and traits",
+        onInput: (event) => setSearch(event.currentTarget.value)
+      }
+    ),
+    /* @__PURE__ */ u3("span", { class: "tavernary-companion-tag-browser__status", "aria-live": "polite", children: [
+      selected.length,
+      " selected"
+    ] }),
+    selectedTags.length ? /* @__PURE__ */ u3(
+      "div",
+      {
+        class: "tavernary-companion-tag-browser__selected",
+        "aria-label": "Selected goals and traits",
+        children: selectedTags.map((tag2) => /* @__PURE__ */ u3(
+          "button",
+          {
+            type: "button",
+            "aria-label": `Remove ${tag2.label}`,
+            onClick: () => onToggle(tag2.id),
+            children: [
+              /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: "\u2713" }),
+              /* @__PURE__ */ u3("span", { children: tag2.label }),
+              /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: "\xD7" })
+            ]
+          },
+          tag2.id
+        ))
+      }
+    ) : null,
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-tag-browser__facets", children: [
+      ["goal", "Goals"],
+      ["trait", "Traits"]
+    ].map(([facet, label2]) => {
+      const group = visibleTags.filter((tag2) => tag2.facet === facet).sort(
+        (left, right) => right.count - left.count || left.label.localeCompare(right.label)
+      );
+      if (group.length === 0) return null;
+      const shown = normalizedSearch || expanded[facet] ? group : group.slice(0, 8);
+      const hiddenCount = group.length - shown.length;
+      return /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-tag-browser__group", children: [
+        /* @__PURE__ */ u3("legend", { children: label2 }),
+        /* @__PURE__ */ u3("div", { class: "tavernary-companion-tag-browser__options", children: shown.map((tag2) => /* @__PURE__ */ u3(
+          FilterChoice,
+          {
+            class: "tavernary-companion-tag-browser__option",
+            label: tag2.label,
+            count: tag2.count,
+            checked: selected.includes(tag2.id),
+            title: tag2.description,
+            onChange: () => onToggle(tag2.id)
+          },
+          tag2.id
+        )) }),
+        !normalizedSearch && (hiddenCount > 0 || expanded[facet]) ? /* @__PURE__ */ u3(
+          "button",
+          {
+            type: "button",
+            class: "tavernary-companion-filter-disclosure",
+            "aria-expanded": expanded[facet],
+            onClick: () => setExpanded((current) => ({ ...current, [facet]: !current[facet] })),
+            children: expanded[facet] ? "Show fewer" : `Show ${hiddenCount} more`
+          }
+        ) : null
+      ] }, facet);
+    }) }),
+    normalizedSearch && visibleTags.length === 0 ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-tag-browser__empty", children: "No matching goals or traits." }) : null
+  ] });
+}
+function toggle(values, id) {
+  return values.includes(id) ? values.filter((value) => value !== id) : [...values, id];
+}
+
 // src/ui/shared/activity-strip.tsx
 function ActivityStrip({ weeks }) {
   const values = weeks?.slice(-12) ?? Array.from({ length: 12 }, () => false);
@@ -15116,375 +15635,6 @@ function ActivitySummary({ activity }) {
   );
 }
 
-// src/ui/shared/assessment-badge.tsx
-function AssessmentBadge({
-  status,
-  compact = false
-}) {
-  const label2 = assessmentLabel(status);
-  const state = status?.state ?? "neutral";
-  if (compact) {
-    return /* @__PURE__ */ u3(
-      "span",
-      {
-        class: `tavernary-companion-assessment tavernary-companion-assessment--compact is-${state}`,
-        role: "img",
-        "aria-label": `TavernKeeper scan: ${label2}`,
-        title: label2,
-        children: /* @__PURE__ */ u3("svg", { "aria-hidden": "true", "data-icon": "scan-fill", fill: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M4.257 5.671l2.137 2.137a7 7 0 1 0 1.414-1.414L5.67 4.257A9.959 9.959 0 0 1 12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12c0-2.401.846-4.605 2.257-6.329zm3.571 3.572L12 13.414 13.414 12 9.243 7.828a5 5 0 1 1-1.414 1.414z" }) })
-      }
-    );
-  }
-  return /* @__PURE__ */ u3("span", { class: `tavernary-companion-assessment is-${state}`, children: label2 });
-}
-function assessmentLabel(status) {
-  if (!status || status.freshness === "unassessed") return "Not assessed";
-  if (status.freshness === "unsupported") return "Scan unsupported";
-  if (!status.riskLevel) return "Scan unavailable";
-  const concern = {
-    low: "Low concern",
-    material: "Potential concerns",
-    high: "High concern"
-  }[status.riskLevel];
-  const freshness = status.freshness === "current" ? "current scan" : "scan not current";
-  return `${concern} \xB7 ${freshness}`;
-}
-
-// src/ui/projects/project-evidence.tsx
-function ProjectEvidence({ project: project2 }) {
-  const report2 = project2.tavernKeeper?.report;
-  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-project-evidence", "aria-labelledby": "project-assessment", children: [
-    /* @__PURE__ */ u3("h3", { id: "project-assessment", children: "TavernKeeper assessment" }),
-    /* @__PURE__ */ u3(AssessmentBadge, { status: project2.tavernKeeper }),
-    report2 ? /* @__PURE__ */ u3(S, { children: [
-      /* @__PURE__ */ u3("h4", { children: report2.headline }),
-      /* @__PURE__ */ u3("p", { children: report2.summary }),
-      /* @__PURE__ */ u3("dl", { children: [
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Minor cautions" }),
-          /* @__PURE__ */ u3("dd", { children: report2.minorCautions })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Material concerns" }),
-          /* @__PURE__ */ u3("dd", { children: report2.materialConcerns })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "High danger findings" }),
-          /* @__PURE__ */ u3("dd", { children: report2.highDanger })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Scanned commit" }),
-          /* @__PURE__ */ u3("dd", { children: report2.scannedSha.slice(0, 12) })
-        ] })
-      ] }),
-      /* @__PURE__ */ u3("a", { href: report2.reportUrl, target: "_blank", rel: "noreferrer noopener", children: "Open Scan Review (new tab)" })
-    ] }) : /* @__PURE__ */ u3("p", { children: "No current TavernKeeper assessment is available." }),
-    /* @__PURE__ */ u3("h3", { children: "Activity evidence" }),
-    /* @__PURE__ */ u3(ActivitySummary, { activity: project2.activity }),
-    project2.activity.latestSourceActivityAt ? /* @__PURE__ */ u3("p", { children: [
-      "Latest source activity: ",
-      formatDate(project2.activity.latestSourceActivityAt)
-    ] }) : null
-  ] });
-}
-function formatDate(value) {
-  return new Intl.DateTimeFormat("en", { dateStyle: "medium" }).format(new Date(value));
-}
-
-// src/ui/projects/project-detail.tsx
-function ProjectDetail({
-  project: project2,
-  onAction,
-  onManageInSillyTavern,
-  lifecycleDisabled = false
-}) {
-  const selfProtected = project2.id === COMPANION_PROJECT_ID || project2.action.kind === "current-extension";
-  return /* @__PURE__ */ u3("article", { class: "tavernary-companion-project-detail", children: [
-    /* @__PURE__ */ u3("header", { children: [
-      /* @__PURE__ */ u3("p", { children: project2.kind }),
-      /* @__PURE__ */ u3("h2", { children: project2.name }),
-      /* @__PURE__ */ u3("p", { children: project2.summary }),
-      selfProtected ? /* @__PURE__ */ u3("button", { type: "button", onClick: onManageInSillyTavern, children: "Manage in SillyTavern" }) : /* @__PURE__ */ u3(
-        "button",
-        {
-          type: "button",
-          "aria-label": `${project2.action.label} ${project2.name}`,
-          onClick: () => onAction(project2.action),
-          disabled: lifecycleDisabled,
-          children: project2.action.label
-        }
-      ),
-      project2.action.reason ? /* @__PURE__ */ u3("p", { children: project2.action.reason }) : null
-    ] }),
-    /* @__PURE__ */ u3("section", { "aria-labelledby": "project-details-heading", children: [
-      /* @__PURE__ */ u3("h3", { id: "project-details-heading", children: "Project details" }),
-      /* @__PURE__ */ u3("dl", { children: [
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Frontends" }),
-          /* @__PURE__ */ u3("dd", { children: project2.frontends.join(", ") || "Not specified" })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Category" }),
-          /* @__PURE__ */ u3("dd", { children: project2.primaryFunction })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "License" }),
-          /* @__PURE__ */ u3("dd", { title: project2.license.tooltip, children: project2.license.label })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Catalog metadata" }),
-          /* @__PURE__ */ u3("dd", { children: project2.metadataStatus })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Source status" }),
-          /* @__PURE__ */ u3("dd", { children: project2.sourceStatus })
-        ] }),
-        /* @__PURE__ */ u3("div", { children: [
-          /* @__PURE__ */ u3("dt", { children: "Installed ownership" }),
-          /* @__PURE__ */ u3("dd", { children: project2.ownership })
-        ] })
-      ] }),
-      project2.tags.length > 0 ? /* @__PURE__ */ u3("ul", { "aria-label": "Project tags", children: project2.tags.map((tag2) => /* @__PURE__ */ u3("li", { children: tag2 })) }) : null
-    ] }),
-    /* @__PURE__ */ u3(ProjectEvidence, { project: project2 }),
-    project2.attribution ? /* @__PURE__ */ u3("p", { children: [
-      "Catalog attribution: ",
-      project2.attribution.owner.login
-    ] }) : /* @__PURE__ */ u3("p", { children: "Catalog attribution is pending." }),
-    project2.fork ? /* @__PURE__ */ u3("p", { children: [
-      "Fork of",
-      " ",
-      project2.fork.parentUrl ? /* @__PURE__ */ u3("a", { href: project2.fork.parentUrl, target: "_blank", rel: "noreferrer noopener", children: [
-        project2.fork.parentName,
-        " (new tab)"
-      ] }) : project2.fork.parentName
-    ] }) : null,
-    project2.kitReferences.length > 0 ? /* @__PURE__ */ u3("section", { "aria-labelledby": "project-kits-heading", children: [
-      /* @__PURE__ */ u3("h3", { id: "project-kits-heading", children: "Included in Kits" }),
-      /* @__PURE__ */ u3("ul", { children: project2.kitReferences.map((kit2) => /* @__PURE__ */ u3("li", { children: kit2.title })) })
-    ] }) : null,
-    /* @__PURE__ */ u3("a", { href: project2.canonicalUrl, target: "_blank", rel: "noreferrer noopener", children: "Open project source (new tab)" })
-  ] });
-}
-
-// src/ui/projects/active-filter-chips.tsx
-function ActiveFilterChips({
-  query,
-  facets,
-  onQueryChange
-}) {
-  const frontendLabels = new Map(facets.frontends.map(({ id, label: label2 }) => [id, label2]));
-  const kindLabels = /* @__PURE__ */ new Map([
-    ["frontend", "Frontend"],
-    ["extension", "Extension"],
-    ["preset", "Preset"]
-  ]);
-  return /* @__PURE__ */ u3("div", { class: "tavernary-companion-filter-chips", "aria-label": "Active filters", children: [
-    query.frontends.map((id) => {
-      const label2 = frontendLabels.get(id) ?? id;
-      return /* @__PURE__ */ u3(
-        "button",
-        {
-          type: "button",
-          "aria-label": `Remove ${label2} filter`,
-          onClick: () => onQueryChange({
-            ...query,
-            frontends: query.frontends.filter((value) => value !== id)
-          }),
-          children: [
-            label2,
-            " \xD7"
-          ]
-        }
-      );
-    }),
-    query.kinds.map((id) => {
-      const label2 = kindLabels.get(id) ?? id;
-      return /* @__PURE__ */ u3(
-        "button",
-        {
-          type: "button",
-          "aria-label": `Remove ${label2} filter`,
-          onClick: () => onQueryChange({
-            ...query,
-            kinds: query.kinds.filter((value) => value !== id)
-          }),
-          children: [
-            label2,
-            " \xD7"
-          ]
-        }
-      );
-    })
-  ] });
-}
-
-// src/ui/projects/filter-panel.tsx
-var kinds = [
-  { id: "frontend", label: "Frontend" },
-  { id: "extension", label: "Extension" },
-  { id: "preset", label: "Preset" }
-];
-var models = [
-  { id: "model-agnostic", label: "Model agnostic" },
-  { id: "claude", label: "Claude" },
-  { id: "gpt", label: "GPT" },
-  { id: "gemini", label: "Gemini" },
-  { id: "gemma", label: "Gemma" },
-  { id: "deepseek", label: "DeepSeek" },
-  { id: "glm", label: "GLM" },
-  { id: "minimax", label: "MiniMax" },
-  { id: "mimo", label: "MiMo" },
-  { id: "kimi", label: "Kimi" },
-  { id: "qwen", label: "Qwen" },
-  { id: "llama", label: "Llama" },
-  { id: "mistral", label: "Mistral" }
-];
-var completion = [
-  { id: "chat-completion", label: "Chat completion" },
-  { id: "text-completion", label: "Text completion" }
-];
-var development = [
-  { id: "active-month", label: "Active this month" },
-  { id: "new-release", label: "New release" },
-  { id: "dormant", label: "Dormant" }
-];
-var licenses = [
-  { id: "open-source", label: "Open source" },
-  { id: "proprietary", label: "Proprietary" },
-  { id: "missing", label: "Missing license" },
-  { id: "pending", label: "License pending" }
-];
-var views = [
-  { id: "all", label: "All" },
-  { id: "active", label: "Active" },
-  { id: "new", label: "New" },
-  { id: "released", label: "Recently released" }
-];
-function FilterPanel({
-  query,
-  facets,
-  onQueryChange
-}) {
-  return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-filter-panel", "aria-label": "Project filters", children: [
-    /* @__PURE__ */ u3("fieldset", { children: [
-      /* @__PURE__ */ u3("legend", { children: "Category" }),
-      /* @__PURE__ */ u3(
-        "select",
-        {
-          "aria-label": "Category",
-          value: query.category,
-          onChange: (event) => onQueryChange({ ...query, category: event.currentTarget.value }),
-          children: CATEGORY_OPTIONS.map(({ id, label: label2 }) => /* @__PURE__ */ u3("option", { value: id, children: label2 }))
-        }
-      )
-    ] }),
-    /* @__PURE__ */ u3(
-      CheckboxGroup,
-      {
-        label: "Frontends",
-        options: facets.frontends,
-        selected: query.frontends,
-        onChange: (frontends) => onQueryChange({ ...query, frontends })
-      }
-    ),
-    /* @__PURE__ */ u3(
-      CheckboxGroup,
-      {
-        label: "Project type",
-        options: kinds,
-        selected: query.kinds,
-        onChange: (kinds2) => onQueryChange({ ...query, kinds: kinds2 })
-      }
-    ),
-    /* @__PURE__ */ u3(
-      CheckboxGroup,
-      {
-        label: "Tags",
-        options: facets.tags,
-        selected: query.tags,
-        onChange: (tags) => onQueryChange({ ...query, tags })
-      }
-    ),
-    /* @__PURE__ */ u3(
-      CheckboxGroup,
-      {
-        label: "Models",
-        options: models,
-        selected: query.modelFamilies ?? [],
-        onChange: (modelFamilies) => onQueryChange({ ...query, modelFamilies })
-      }
-    ),
-    /* @__PURE__ */ u3(
-      CheckboxGroup,
-      {
-        label: "Completion",
-        options: completion,
-        selected: query.completionFormats ?? [],
-        onChange: (completionFormats) => onQueryChange({ ...query, completionFormats })
-      }
-    ),
-    /* @__PURE__ */ u3(
-      CheckboxGroup,
-      {
-        label: "Development",
-        options: development,
-        selected: query.development,
-        onChange: (values) => onQueryChange({ ...query, development: values })
-      }
-    ),
-    /* @__PURE__ */ u3(
-      CheckboxGroup,
-      {
-        label: "License",
-        options: licenses,
-        selected: query.licenses,
-        onChange: (values) => onQueryChange({ ...query, licenses: values })
-      }
-    ),
-    /* @__PURE__ */ u3("fieldset", { children: [
-      /* @__PURE__ */ u3("legend", { children: "Catalog view" }),
-      views.map(({ id, label: label2 }) => /* @__PURE__ */ u3("label", { children: [
-        /* @__PURE__ */ u3(
-          "input",
-          {
-            type: "radio",
-            name: "catalog-view",
-            checked: query.view === id,
-            onChange: () => onQueryChange({ ...query, view: id })
-          }
-        ),
-        label2
-      ] }))
-    ] })
-  ] });
-}
-function CheckboxGroup({
-  label: label2,
-  options,
-  selected,
-  onChange
-}) {
-  return /* @__PURE__ */ u3("fieldset", { children: [
-    /* @__PURE__ */ u3("legend", { children: label2 }),
-    options.length === 0 ? /* @__PURE__ */ u3("span", { children: "None available" }) : null,
-    options.map(({ id, label: optionLabel }) => /* @__PURE__ */ u3("label", { children: [
-      /* @__PURE__ */ u3(
-        "input",
-        {
-          type: "checkbox",
-          checked: selected.includes(id),
-          onChange: () => onChange(toggle(selected, id))
-        }
-      ),
-      optionLabel
-    ] }))
-  ] });
-}
-function toggle(values, id) {
-  return values.includes(id) ? values.filter((value) => value !== id) : [...values, id];
-}
-
 // src/ui/shared/category-icon.tsx
 var strokeProps = {
   "aria-hidden": true,
@@ -15495,6 +15645,58 @@ var strokeProps = {
   strokeLinejoin: "round"
 };
 function CategoryIcon({ name }) {
+  if (name === "remove") {
+    return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", "data-icon": name, viewBox: "0 0 24 24", fill: "currentColor", children: /* @__PURE__ */ u3(
+      "path",
+      {
+        fillRule: "evenodd",
+        d: "M12 2a10 10 0 1 1 0 20 10 10 0 0 1 0-20Zm0 2a8 8 0 1 0 0 16 8 8 0 0 0 0-16ZM7.293 7.293a1 1 0 0 1 1.414 0L12 10.586l3.293-3.293a1 1 0 1 1 1.414 1.414L13.414 12l3.293 3.293a1 1 0 0 1-1.414 1.414L12 13.414l-3.293 3.293a1 1 0 0 1-1.414-1.414L10.586 12 7.293 8.707a1 1 0 0 1 0-1.414Z"
+      }
+    ) });
+  }
+  if (name === "kit-builder") {
+    return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", "data-icon": name, viewBox: "0 0 1920 1920", fill: "currentColor", children: /* @__PURE__ */ u3(
+      "path",
+      {
+        fillRule: "evenodd",
+        d: "M1807.124.056V1920h-112.938V.056h112.938ZM1468.254 0v1919.944H282.407c-93.4 0-169.407-75.895-169.407-169.407V169.407C113 76.007 189.007 0 282.407 0h1185.847ZM830.607 661.138 588.242 903.503h654.137v112.938H588.242l242.365 242.477-79.847 79.847-378.793-378.793 378.793-378.68 79.847 79.846Z"
+      }
+    ) });
+  }
+  if (name === "kit") {
+    return /* @__PURE__ */ u3(
+      "svg",
+      {
+        "aria-hidden": "true",
+        "data-icon": name,
+        viewBox: "3 3 26 26",
+        fill: "currentColor",
+        stroke: "none",
+        children: /* @__PURE__ */ u3("path", { d: "M29,5a2,2,0,0,0-2-2H5A2,2,0,0,0,3,5V27a2,2,0,0,0,2,2H27a2,2,0,0,0,2-2ZM27,5V9H5V5Zm0,22H5V23H27Zm0-6H5V17H27Zm0-6H5V11H27Z" })
+      }
+    );
+  }
+  if (name === "add-to-kit") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M4 6h10v12H4zM17 8v8M13 12h8" }) });
+  }
+  if (name === "duplicate") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
+      /* @__PURE__ */ u3("rect", { x: "7", y: "7", width: "12", height: "12", rx: "2" }),
+      /* @__PURE__ */ u3("path", { d: "M5 16H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v1" })
+    ] });
+  }
+  if (name === "copy-link") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M9 15 15 9M7.5 17.5l-1 1a3.5 3.5 0 0 1-5-5l4-4a3.5 3.5 0 0 1 5 0M16.5 6.5l1-1a3.5 3.5 0 0 1 5 5l-4 4a3.5 3.5 0 0 1-5 0" }) });
+  }
+  if (name === "report" || name === "caution") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
+      /* @__PURE__ */ u3("path", { d: "M12 3 2.5 20h19L12 3Z" }),
+      /* @__PURE__ */ u3("path", { d: "M12 9v5M12 17h.01" })
+    ] });
+  }
+  if (name === "drag-handle") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M8 6h8M8 12h8M8 18h8" }) });
+  }
   if (name === "frontend") {
     return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
       /* @__PURE__ */ u3("rect", { x: "3", y: "4", width: "18", height: "16", rx: "2" }),
@@ -15616,22 +15818,379 @@ function CategoryIcon({ name }) {
       /* @__PURE__ */ u3("path", { d: "m9.8 7.3 4.3.4m-5.4 2 2.1 4.5m4.8-3.7-2.1 3.8" })
     ] });
   }
+  if (name === "search") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: [
+      /* @__PURE__ */ u3("circle", { cx: "11", cy: "11", r: "7" }),
+      /* @__PURE__ */ u3("path", { d: "m20 20-4-4" })
+    ] });
+  }
+  if (name === "chevron") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "m6 9 6 6 6-6" }) });
+  }
+  if (name === "filter" || name === "filter-lines") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M4 6h16M7 12h10M10 18h4" }) });
+  }
+  if (name === "collapse") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 32 32", children: /* @__PURE__ */ u3("path", { d: "M23 26l-7-7-7 7M9 6l7 7 7-7" }) });
+  }
+  if (name === "close") {
+    return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "m6 6 12 12M18 6 6 18" }) });
+  }
   return /* @__PURE__ */ u3("svg", { ...strokeProps, "data-icon": name, viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M5 5h5v5H5zM14 5h5v5h-5zM5 14h5v5H5zM14 14h5v5H5z" }) });
+}
+
+// src/ui/projects/project-kit-control.tsx
+function ProjectKitControl({
+  projectId,
+  projectName,
+  selected,
+  onToggle
+}) {
+  return /* @__PURE__ */ u3(
+    "button",
+    {
+      type: "button",
+      class: "tavernary-companion-project-kit-control",
+      "aria-label": selected ? `Remove ${projectName} from selection` : `Add ${projectName} to Kit`,
+      "aria-pressed": selected,
+      title: selected ? "Remove from selection" : "Add to Kit",
+      onClick: () => onToggle(projectId),
+      children: [
+        /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-kit-control__face", "aria-hidden": "true", children: /* @__PURE__ */ u3(
+          "svg",
+          {
+            "data-kit-glyph": selected ? "remove" : "add",
+            viewBox: "0 0 12 12",
+            fill: "none",
+            stroke: "currentColor",
+            "stroke-width": "2",
+            "stroke-linecap": "round",
+            children: /* @__PURE__ */ u3("path", { d: selected ? "M1.5 6h9" : "M6 1.5v9M1.5 6h9" })
+          }
+        ) }),
+        /* @__PURE__ */ u3("small", { children: "Kit" })
+      ]
+    }
+  );
+}
+
+// src/ui/projects/tavernkeeper-history-strip.tsx
+var riskLabels = {
+  low: "low concern",
+  material: "material concern",
+  high: "immediate danger"
+};
+function TavernKeeperHistoryStrip({
+  history
+}) {
+  const conclusions = history.slice(-12);
+  if (conclusions.length < 2) return null;
+  return /* @__PURE__ */ u3(
+    "span",
+    {
+      class: "tavernary-companion-tavernkeeper-history",
+      role: "group",
+      "aria-label": "Recent TavernKeeper scan history",
+      children: conclusions.map((conclusion) => {
+        const label2 = `TavernKeeper scan history: ${riskLabels[conclusion.riskLevel]} on ${formatDate(conclusion.assessedAt)} at commit ${conclusion.scannedSha.slice(0, 7)} under policy ${conclusion.scannerPolicyVersion}`;
+        return /* @__PURE__ */ u3(
+          "a",
+          {
+            "aria-label": `Open TavernKeeper report for ${label2}`,
+            href: conclusion.reportUrl,
+            rel: "noopener noreferrer",
+            target: "_blank",
+            children: /* @__PURE__ */ u3("i", { class: `risk-${conclusion.riskLevel}`, role: "img", "aria-label": label2 })
+          },
+          conclusion.reportId
+        );
+      })
+    }
+  );
+}
+function formatDate(value) {
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+    year: "numeric"
+  }).format(new Date(value));
+}
+
+// src/ui/projects/tavernkeeper-scan-indicator.tsx
+var riskLabels2 = {
+  low: "Low concern",
+  material: "Material concern",
+  high: "Immediate danger"
+};
+var freshnessLabels = {
+  current: "current scan",
+  stale: "scan not current",
+  unavailable: "freshness unavailable",
+  unassessed: "not assessed",
+  unsupported: "unsupported source"
+};
+var dangerBasisLabels = {
+  malicious_or_compromised: "Credible malicious or compromised behavior",
+  critical_exploitable_vulnerability: "Critical, readily exploitable vulnerability",
+  mixed: "Malicious or compromised behavior and an exploitable vulnerability"
+};
+function TavernKeeperScanIndicator({
+  projectId,
+  status
+}) {
+  const [open, setOpen] = d2(false);
+  const trigger = A2(null);
+  const popover = A2(null);
+  const [popoverPosition, setPopoverPosition] = d2({});
+  const popoverId = `tavernkeeper-scan-${projectId}`;
+  const headingId = `${popoverId}-heading`;
+  const report2 = status.report;
+  h2(() => {
+    if (!open) return;
+    const closeFromPointer = (event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (trigger.current?.contains(target) || popover.current?.contains(target)) return;
+      setOpen(false);
+    };
+    const closeFromKeyboard = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setOpen(false);
+      trigger.current?.focus();
+    };
+    document.addEventListener("pointerdown", closeFromPointer);
+    document.addEventListener("keydown", closeFromKeyboard);
+    return () => {
+      document.removeEventListener("pointerdown", closeFromPointer);
+      document.removeEventListener("keydown", closeFromKeyboard);
+    };
+  }, [open]);
+  h2(() => {
+    if (!open) return;
+    const placePopover = () => {
+      const anchor = trigger.current?.getBoundingClientRect();
+      const panel = popover.current;
+      const root = trigger.current?.closest(".tavernary-companion-root")?.getBoundingClientRect();
+      if (!anchor || !panel || !root) return;
+      const margin = 8;
+      const gap = 8;
+      const width = Math.min(320, root.width - margin * 2);
+      const maxHeight = root.height - margin * 2;
+      const height = Math.min(panel.scrollHeight, maxHeight);
+      const preferredTop = anchor.bottom + gap;
+      const top = preferredTop + height <= root.bottom - margin ? preferredTop : Math.max(root.top + margin, anchor.top - height - gap);
+      const left = Math.min(
+        root.right - margin - width,
+        Math.max(root.left + margin, anchor.right - width)
+      );
+      setPopoverPosition({
+        inlineSize: `${width}px`,
+        insetBlockStart: `${top}px`,
+        insetInlineStart: `${left}px`,
+        maxBlockSize: `${maxHeight}px`
+      });
+    };
+    placePopover();
+    window.addEventListener("resize", placePopover);
+    window.addEventListener("scroll", placePopover, true);
+    return () => {
+      window.removeEventListener("resize", placePopover);
+      window.removeEventListener("scroll", placePopover, true);
+    };
+  }, [open]);
+  return /* @__PURE__ */ u3("span", { class: "tavernary-companion-tavernkeeper-control", children: [
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        ref: trigger,
+        type: "button",
+        class: `tavernary-companion-tavernkeeper-trigger state-${status.state}`,
+        "aria-controls": popoverId,
+        "aria-expanded": open,
+        "aria-label": `TavernKeeper scan: ${statusLabel2(status)}`,
+        title: statusLabel2(status),
+        onClick: (event) => {
+          event.stopPropagation();
+          setOpen((value) => !value);
+        },
+        children: [
+          /* @__PURE__ */ u3(ScanIcon, {}),
+          status.freshness === "stale" ? /* @__PURE__ */ u3(ClockIcon, {}) : null
+        ]
+      }
+    ),
+    open ? /* @__PURE__ */ u3(
+      "section",
+      {
+        ref: popover,
+        id: popoverId,
+        class: "tavernary-companion-tavernkeeper-popover",
+        role: "dialog",
+        "aria-labelledby": headingId,
+        style: popoverPosition,
+        onClick: (event) => event.stopPropagation(),
+        children: [
+          /* @__PURE__ */ u3("header", { children: [
+            /* @__PURE__ */ u3("h2", { id: headingId, children: "TavernKeeper Scan Results" }),
+            report2 ? /* @__PURE__ */ u3("span", { class: `state-${status.state}`, children: [
+              /* @__PURE__ */ u3("strong", { children: riskLabels2[report2.riskLevel] }),
+              /* @__PURE__ */ u3("span", { children: freshnessLabels[status.freshness] })
+            ] }) : null
+          ] }),
+          report2 ? /* @__PURE__ */ u3(S, { children: [
+            /* @__PURE__ */ u3("h3", { children: report2.headline }),
+            /* @__PURE__ */ u3("p", { class: "tavernary-companion-tavernkeeper-summary", children: [
+              conciseSummary(report2.summary),
+              freshnessNotice(status)
+            ] }),
+            /* @__PURE__ */ u3(
+              "p",
+              {
+                class: "tavernary-companion-tavernkeeper-counts",
+                "aria-label": "Assessment finding counts",
+                children: [
+                  /* @__PURE__ */ u3("span", { children: countLabel(report2.minorCautions, "minor caution") }),
+                  /* @__PURE__ */ u3("span", { children: countLabel(report2.materialConcerns, "material concern") }),
+                  /* @__PURE__ */ u3("span", { children: countLabel(report2.highDanger, "high-danger finding") })
+                ]
+              }
+            ),
+            /* @__PURE__ */ u3("dl", { class: "tavernary-companion-tavernkeeper-details", children: [
+              report2.riskLevel === "high" && report2.dangerBasis !== "none" ? /* @__PURE__ */ u3("div", { children: [
+                /* @__PURE__ */ u3("dt", { children: "Danger basis" }),
+                /* @__PURE__ */ u3("dd", { children: dangerBasisLabels[report2.dangerBasis] })
+              ] }) : null,
+              /* @__PURE__ */ u3("div", { children: [
+                /* @__PURE__ */ u3("dt", { children: "Scanned" }),
+                /* @__PURE__ */ u3("dd", { children: [
+                  /* @__PURE__ */ u3("time", { dateTime: report2.scannedAt, children: formatDate2(report2.scannedAt) }),
+                  /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \xB7 " }),
+                  /* @__PURE__ */ u3(
+                    "a",
+                    {
+                      "aria-label": `Browse scanned source at commit ${report2.scannedSha}`,
+                      href: report2.treeUrl,
+                      rel: "noopener noreferrer",
+                      target: "_blank",
+                      children: [
+                        report2.scannedSha.slice(0, 7),
+                        /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \u2197" })
+                      ]
+                    }
+                  )
+                ] })
+              ] }),
+              /* @__PURE__ */ u3("div", { children: [
+                /* @__PURE__ */ u3("dt", { children: "Assessed" }),
+                /* @__PURE__ */ u3("dd", { children: [
+                  /* @__PURE__ */ u3("time", { dateTime: report2.assessedAt, children: formatDate2(report2.assessedAt) }),
+                  " by Tavernary"
+                ] })
+              ] })
+            ] }),
+            status.history.length >= 2 ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-tavernkeeper-recent", children: [
+              /* @__PURE__ */ u3("span", { children: "Recent scans" }),
+              /* @__PURE__ */ u3(TavernKeeperHistoryStrip, { history: status.history })
+            ] }) : null,
+            /* @__PURE__ */ u3("footer", { children: [
+              /* @__PURE__ */ u3("a", { href: report2.reportUrl, rel: "noopener noreferrer", target: "_blank", children: [
+                "View full report",
+                /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \u2197" })
+              ] }),
+              status.historyUrl ? /* @__PURE__ */ u3(
+                "a",
+                {
+                  href: externalTavernaryUrl(status.historyUrl),
+                  rel: "noopener noreferrer",
+                  target: "_blank",
+                  children: [
+                    "View scan history",
+                    /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \u2197" })
+                  ]
+                }
+              ) : null
+            ] })
+          ] }) : /* @__PURE__ */ u3("p", { class: "tavernary-companion-tavernkeeper-summary", children: emptyStateCopy(status) })
+        ]
+      }
+    ) : null
+  ] });
+}
+function statusLabel2(status) {
+  if (!status.report || !status.riskLevel) {
+    if (status.freshness === "unsupported") return "Scan unsupported";
+    if (status.freshness === "unavailable") return "Scan unavailable";
+    return "Not assessed";
+  }
+  return `${riskLabels2[status.riskLevel]} \xB7 ${freshnessLabels[status.freshness]}`;
+}
+function emptyStateCopy(status) {
+  if (status.freshness === "unsupported") {
+    return "TavernKeeper scanning is not supported for this project's source.";
+  }
+  if (status.freshness === "unavailable") {
+    return "Tavernary cannot confirm the repository's current commit, and no completed assessment is available.";
+  }
+  return "This project hasn't been scanned by TavernKeeper.";
+}
+function freshnessNotice(status) {
+  if (status.freshness === "stale") {
+    return " This assessment covers an older commit. An updated scan is pending.";
+  }
+  if (status.freshness === "unavailable") {
+    return " Tavernary cannot confirm the repository's current commit, so freshness is unavailable.";
+  }
+  return "";
+}
+function countLabel(count, singular) {
+  return `${count} ${count === 1 ? singular : `${singular}s`}`;
+}
+function formatDate2(value) {
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+    year: "numeric"
+  }).format(new Date(value));
+}
+function externalTavernaryUrl(value) {
+  return new URL(value, "https://tavernary.org").href;
+}
+var encodedCitationPattern = /\s*\uE200cite\uE202[^\uE201]*\uE201/giu;
+var findingReferencePattern = /\s*\((?:V\d+\s+)?findings?\s+[^)]*\b[0-9a-f]{64}\b[^)]*\)/giu;
+var bracketedFindingReferencePattern = /\s*\[[0-9a-f]{64}(?:,\s*[0-9a-f]{64})*\]/giu;
+var invisibleFormattingPattern = /[\u200B-\u200D\u2060\uFEFF]/gu;
+function conciseSummary(summary) {
+  return summary.replace(encodedCitationPattern, "").replace(findingReferencePattern, "").replace(bracketedFindingReferencePattern, "").replace(invisibleFormattingPattern, "").replace(/\s+([,.;!?])/gu, "$1").replace(/\s+/gu, " ").trim();
+}
+function ScanIcon() {
+  return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", "data-icon": "scan-fill", fill: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M4.257 5.671l2.137 2.137a7 7 0 1 0 1.414-1.414L5.67 4.257A9.959 9.959 0 0 1 12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12c0-2.401.846-4.605 2.257-6.329zm3.571 3.572L12 13.414 13.414 12 9.243 7.828a5 5 0 1 1-1.414 1.414z" }) });
+}
+function ClockIcon() {
+  return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", "data-icon": "clock", fill: "none", stroke: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ u3(
+    "path",
+    {
+      d: "M12 7V12L14.5 13.5M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z",
+      "stroke-linecap": "round",
+      "stroke-linejoin": "round",
+      "stroke-width": "2"
+    }
+  ) });
 }
 
 // src/ui/projects/project-card.tsx
 function ProjectCard({
   project: project2,
-  onOpen,
   onAction,
   onManageInSillyTavern,
   lifecycleDisabled = false,
-  kitSelectionActive = false,
   selectedForKit = false,
   onToggleKitSelection
 }) {
   const selfProtected = project2.id === COMPANION_PROJECT_ID || project2.action.kind === "current-extension";
-  const compactInstall = project2.action.kind === "install";
+  const managedInSillyTavern = selfProtected || project2.action.kind === "manage-in-sillytavern";
   const iconName = project2.kind === "extension" ? project2.primaryFunctionId : project2.kind;
   const hasActivityMetrics = project2.activity.activeWeeks12 !== null && project2.activity.weeklyActivity !== null;
   return /* @__PURE__ */ u3(
@@ -15683,8 +16242,18 @@ function ProjectCard({
           ] })
         ] }),
         /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__title", children: [
-          /* @__PURE__ */ u3("h3", { children: project2.displayName }),
-          project2.tavernKeeper ? /* @__PURE__ */ u3(AssessmentBadge, { status: project2.tavernKeeper, compact: true }) : null
+          /* @__PURE__ */ u3("h3", { children: /* @__PURE__ */ u3(
+            "a",
+            {
+              class: "tavernary-companion-project-card__source-link",
+              href: project2.canonicalUrl,
+              target: "_blank",
+              rel: "noopener noreferrer",
+              "data-focus-key": `project-${project2.id}`,
+              children: project2.displayName
+            }
+          ) }),
+          project2.tavernKeeper ? /* @__PURE__ */ u3(TavernKeeperScanIndicator, { projectId: project2.id, status: project2.tavernKeeper }) : null
         ] }),
         project2.attributionLabel ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__attribution", children: project2.attributionLabel }) : null,
         /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__summary", children: project2.summary }),
@@ -15702,38 +16271,24 @@ function ProjectCard({
               project2.installed ? /* @__PURE__ */ u3("span", { children: "Installed" }) : null
             ] }),
             /* @__PURE__ */ u3("footer", { children: [
-              kitSelectionActive && !selfProtected && project2.kitSelectable ? /* @__PURE__ */ u3(
-                "button",
+              managedInSillyTavern ? /* @__PURE__ */ u3("button", { type: "button", onClick: onManageInSillyTavern, children: "Manage in SillyTavern" }) : /* @__PURE__ */ u3(
+                ProjectLifecycleControl,
                 {
-                  type: "button",
-                  class: "tavernary-companion-button tavernary-companion-button--primary",
-                  onClick: () => onToggleKitSelection?.(project2.id),
-                  children: selectedForKit ? "Remove from Kit" : "Add to Kit"
-                }
-              ) : null,
-              /* @__PURE__ */ u3(
-                "button",
-                {
-                  class: "tavernary-companion-button tavernary-companion-button--secondary",
-                  type: "button",
-                  "data-focus-key": `project-${project2.id}`,
-                  onClick: onOpen,
-                  "aria-label": `View ${project2.displayName} details`,
-                  children: "Details"
+                  projectName: project2.displayName,
+                  action: project2.action,
+                  disabled: lifecycleDisabled,
+                  onAction
                 }
               ),
-              selfProtected ? /* @__PURE__ */ u3("button", { type: "button", onClick: onManageInSillyTavern, children: "Manage in SillyTavern" }) : /* @__PURE__ */ u3(
-                "button",
+              !selfProtected && project2.kitSelectable && onToggleKitSelection ? /* @__PURE__ */ u3(
+                ProjectKitControl,
                 {
-                  type: "button",
-                  class: `tavernary-companion-project-card__primary tavernary-companion-button ${compactInstall ? "tavernary-companion-project-card__compact-action tavernary-companion-button--primary" : project2.action.kind === "view-project" ? "tavernary-companion-button--secondary" : "tavernary-companion-button--primary"}`,
-                  "data-testid": "project-primary-action",
-                  "aria-label": `${project2.action.label} ${project2.displayName}`,
-                  onClick: () => onAction(project2.action),
-                  disabled: lifecycleDisabled,
-                  children: compactInstall ? /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: "+" }) : project2.action.label
+                  projectId: project2.id,
+                  projectName: project2.displayName,
+                  selected: selectedForKit,
+                  onToggle: onToggleKitSelection
                 }
-              )
+              ) : null
             ] })
           ] })
         ] })
@@ -15752,11 +16307,9 @@ function missingSourceActivityLabel(evidenceStatus) {
 var PROJECT_BATCH_SIZE = 30;
 function ProjectGrid({
   projects,
-  onOpenProject,
   onProjectAction,
   onManageInSillyTavern,
   lifecycleDisabled,
-  kitSelectionActive = false,
   selectedKitProjectIds = [],
   onToggleKitSelection,
   visibleCount: controlledVisibleCount,
@@ -15780,11 +16333,9 @@ function ProjectGrid({
       ProjectCard,
       {
         project: project2,
-        onOpen: () => onOpenProject(project2.id),
         onAction: (action) => onProjectAction(project2.id, action),
         onManageInSillyTavern,
         lifecycleDisabled,
-        kitSelectionActive,
         selectedForKit: selectedKitProjectIds.includes(project2.id),
         onToggleKitSelection
       },
@@ -15815,9 +16366,7 @@ var sorts = [
 function ProjectResultsToolbar({
   query,
   resultCount,
-  kitSelectionActive,
-  onQueryChange,
-  onBeginKitSelection
+  onQueryChange
 }) {
   return /* @__PURE__ */ u3("div", { class: "tavernary-companion-results-toolbar", children: [
     /* @__PURE__ */ u3("output", { "aria-live": "polite", children: [
@@ -15832,16 +16381,6 @@ function ProjectResultsToolbar({
         value: query.sort,
         onChange: (event) => onQueryChange({ ...query, sort: event.currentTarget.value }),
         children: sorts.map(({ id, label: label2 }) => /* @__PURE__ */ u3("option", { value: id, children: label2 }))
-      }
-    ),
-    /* @__PURE__ */ u3(
-      "button",
-      {
-        type: "button",
-        class: "tavernary-companion-select-kit",
-        disabled: kitSelectionActive,
-        onClick: onBeginKitSelection,
-        children: "Select for Kit"
       }
     )
   ] });
@@ -15865,20 +16404,36 @@ function KitSelectionDock({
 
 // src/ui/projects/projects-route.tsx
 var defaultFacets = {
-  frontends: [{ id: "sillytavern", label: "SillyTavern" }],
-  tags: []
+  frontends: [{ id: "sillytavern", label: "SillyTavern", count: 0 }],
+  kinds: [
+    { id: "frontend", label: "Frontend", count: 0 },
+    { id: "extension", label: "Extension", count: 0 },
+    { id: "preset", label: "System Preset", count: 0 }
+  ],
+  tags: [],
+  modelFamilies: [],
+  completionFormats: [],
+  development: [
+    { id: "active-month", label: "Active this month", count: 0 },
+    { id: "new-release", label: "Recently released", count: 0 },
+    { id: "dormant", label: "Dormant", count: 0 }
+  ],
+  licenses: [
+    { id: "open-source", label: "Open source", count: 0 },
+    { id: "proprietary", label: "Proprietary", count: 0 },
+    { id: "pending", label: "Pending verification", count: 0 },
+    { id: "missing", label: "Missing license", count: 0 }
+  ]
 };
 function ProjectsRoute({
   state,
   facets = state.facets ?? defaultFacets,
   onQueryChange,
-  onOpenProject = () => void 0,
   onProjectAction = () => void 0,
   onManageInSillyTavern,
   lifecycleDisabled,
   kitSelectionActive = false,
   selectedKitProjectIds = [],
-  onBeginKitSelection,
   onToggleKitSelection,
   onReviewKitSelection,
   onCancelKitSelection,
@@ -15923,7 +16478,7 @@ function ProjectsRoute({
       let parent = branch.parentElement;
       while (parent) {
         for (const child of parent.children) {
-          if (child !== branch && child instanceof HTMLElement) {
+          if (child !== branch && child instanceof HTMLElement && !child.classList.contains("tavernary-companion-filter-backdrop")) {
             inerted.push({ element: child, inert: child.inert });
             child.inert = true;
           }
@@ -15976,6 +16531,7 @@ function ProjectsRoute({
       );
     }
   };
+  const filterCount = state.query.frontends.length + state.query.kinds.length + state.query.tags.length + (state.query.modelFamilies?.length ?? 0) + (state.query.completionFormats?.length ?? 0) + state.query.development.length + state.query.licenses.length;
   return /* @__PURE__ */ u3(
     "section",
     {
@@ -15995,7 +16551,10 @@ function ProjectsRoute({
               "aria-controls": "tavernary-companion-project-filters",
               "aria-expanded": filtersOpen,
               onClick: () => setFiltersOpen(true),
-              children: /* @__PURE__ */ u3(FilterIcon, {})
+              children: [
+                /* @__PURE__ */ u3(CategoryIcon, { name: "filter-lines" }),
+                filterCount > 0 ? /* @__PURE__ */ u3("b", { children: filterCount }) : null
+              ]
             }
           )
         ] }),
@@ -16004,13 +16563,20 @@ function ProjectsRoute({
           {
             query: state.query,
             resultCount: state.projects.length,
-            kitSelectionActive,
-            onQueryChange,
-            onBeginKitSelection
+            onQueryChange
           }
         ),
         hasChangedFilters ? /* @__PURE__ */ u3(ActiveFilterChips, { query: state.query, facets, onQueryChange }) : null,
         /* @__PURE__ */ u3("div", { class: "tavernary-companion-projects-route__workspace", children: [
+          filtersOpen && compactFilters ? /* @__PURE__ */ u3(
+            "div",
+            {
+              class: "tavernary-companion-filter-backdrop",
+              "data-testid": "filter-backdrop",
+              "aria-hidden": "true",
+              onPointerDown: closeFilters
+            }
+          ) : null,
           /* @__PURE__ */ u3(
             "div",
             {
@@ -16044,7 +16610,7 @@ function ProjectsRoute({
                       class: "tavernary-companion-filter-close",
                       "aria-label": "Close filters",
                       onClick: closeFilters,
-                      children: /* @__PURE__ */ u3(CloseIcon, {})
+                      children: /* @__PURE__ */ u3(CategoryIcon, { name: "close" })
                     }
                   )
                 ] }),
@@ -16056,11 +16622,9 @@ function ProjectsRoute({
             ProjectGrid,
             {
               projects: state.projects,
-              onOpenProject,
               onProjectAction,
               onManageInSillyTavern,
               lifecycleDisabled,
-              kitSelectionActive,
               selectedKitProjectIds,
               onToggleKitSelection,
               visibleCount: visibleProjectCount,
@@ -16080,14 +16644,183 @@ function ProjectsRoute({
     }
   );
 }
-function FilterIcon() {
-  return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", fill: "none", children: /* @__PURE__ */ u3("path", { d: "M4 7h16M7 12h10M10 17h4" }) });
-}
-function CloseIcon() {
-  return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", viewBox: "0 0 24 24", fill: "none", children: /* @__PURE__ */ u3("path", { d: "m6 6 12 12M18 6 6 18" }) });
-}
 function sameValues(left, right) {
   return left.length === right.length && left.every((value) => right.includes(value));
+}
+
+// src/ui/shell/catalog-navigation.tsx
+function CategoryMark({ id }) {
+  if (!id) {
+    return /* @__PURE__ */ u3("span", { class: "tavernary-companion-all-symbol", "aria-hidden": "true", children: [
+      /* @__PURE__ */ u3("i", {}),
+      /* @__PURE__ */ u3("i", {}),
+      /* @__PURE__ */ u3("i", {}),
+      /* @__PURE__ */ u3("i", {})
+    ] });
+  }
+  return /* @__PURE__ */ u3(CategoryIcon, { name: id });
+}
+function CatalogNavigation({
+  route,
+  query,
+  onNavigate,
+  onQueryChange
+}) {
+  const [mobileOpen, setMobileOpen] = d2(false);
+  const mobileTrigger = A2(null);
+  const mobileMenu = A2(null);
+  const currentCategory = CATEGORY_OPTIONS.find((category) => category.id === query.category) ?? CATEGORY_OPTIONS[0];
+  const current = route === "kits" ? { id: "kits", label: "Kits" } : route === "installed" ? { id: "installed", label: "Installed" } : { id: currentCategory.id, label: currentCategory.label };
+  const selectCategory = (category) => {
+    onNavigate("projects");
+    onQueryChange({ ...query, category });
+    setMobileOpen(false);
+  };
+  h2(() => {
+    if (!mobileOpen) return;
+    const closeFromKeyboard = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      setMobileOpen(false);
+      mobileTrigger.current?.focus();
+    };
+    const closeFromPointer = (event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (mobileTrigger.current?.contains(target) || mobileMenu.current?.contains(target)) return;
+      setMobileOpen(false);
+    };
+    document.addEventListener("keydown", closeFromKeyboard);
+    document.addEventListener("mousedown", closeFromPointer);
+    return () => {
+      document.removeEventListener("keydown", closeFromKeyboard);
+      document.removeEventListener("mousedown", closeFromPointer);
+    };
+  }, [mobileOpen]);
+  const selectRoute = (nextRoute) => {
+    onNavigate(nextRoute);
+    setMobileOpen(false);
+  };
+  return /* @__PURE__ */ u3(S, { children: [
+    /* @__PURE__ */ u3("nav", { class: "tavernary-companion-category-navigation", "aria-label": "Catalog categories", children: [
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          class: route === "kits" ? "active" : "",
+          "data-category": "kits",
+          "aria-pressed": route === "kits",
+          onClick: () => selectRoute("kits"),
+          children: [
+            /* @__PURE__ */ u3(CategoryIcon, { name: "kit" }),
+            /* @__PURE__ */ u3("span", { children: "Kits" })
+          ]
+        }
+      ),
+      CATEGORY_OPTIONS.map((category) => /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          class: route === "projects" && query.category === category.id ? "active" : "",
+          "data-category": category.id || "all",
+          "aria-pressed": route === "projects" && query.category === category.id,
+          onClick: () => selectCategory(category.id),
+          children: [
+            /* @__PURE__ */ u3(CategoryMark, { id: category.id }),
+            /* @__PURE__ */ u3("span", { children: category.shortLabel })
+          ]
+        },
+        category.id || "all"
+      )),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          class: route === "installed" ? "active" : "",
+          "data-category": "installed",
+          "aria-pressed": route === "installed",
+          onClick: () => selectRoute("installed"),
+          children: [
+            /* @__PURE__ */ u3(CategoryIcon, { name: "kit-builder" }),
+            /* @__PURE__ */ u3("span", { children: "Installed" })
+          ]
+        }
+      )
+    ] }),
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-mobile-category", children: [
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          ref: mobileTrigger,
+          class: "tavernary-companion-mobile-category__trigger",
+          type: "button",
+          "aria-label": "Browse categories",
+          "aria-expanded": mobileOpen,
+          "data-category": current.id || "all",
+          onClick: () => setMobileOpen((open) => !open),
+          children: [
+            /* @__PURE__ */ u3(CategoryMark, { id: current.id }),
+            /* @__PURE__ */ u3("span", { children: [
+              /* @__PURE__ */ u3("small", { children: "Browse" }),
+              current.label
+            ] }),
+            /* @__PURE__ */ u3(CategoryIcon, { name: "chevron" })
+          ]
+        }
+      ),
+      mobileOpen ? /* @__PURE__ */ u3(
+        "div",
+        {
+          ref: mobileMenu,
+          class: "tavernary-companion-mobile-category__menu",
+          role: "group",
+          "aria-label": "Browse categories menu",
+          children: [
+            /* @__PURE__ */ u3(
+              "button",
+              {
+                type: "button",
+                class: route === "kits" ? "active" : "",
+                "data-category": "kits",
+                onClick: () => selectRoute("kits"),
+                children: [
+                  /* @__PURE__ */ u3(CategoryIcon, { name: "kit" }),
+                  /* @__PURE__ */ u3("span", { children: "Kits" })
+                ]
+              }
+            ),
+            CATEGORY_OPTIONS.map((category) => /* @__PURE__ */ u3(
+              "button",
+              {
+                type: "button",
+                class: route === "projects" && query.category === category.id ? "active" : "",
+                "data-category": category.id || "all",
+                onClick: () => selectCategory(category.id),
+                children: [
+                  /* @__PURE__ */ u3(CategoryMark, { id: category.id }),
+                  /* @__PURE__ */ u3("span", { children: category.label })
+                ]
+              },
+              category.id || "all"
+            )),
+            /* @__PURE__ */ u3(
+              "button",
+              {
+                type: "button",
+                class: route === "installed" ? "active" : "",
+                "data-category": "installed",
+                onClick: () => selectRoute("installed"),
+                children: [
+                  /* @__PURE__ */ u3(CategoryIcon, { name: "kit-builder" }),
+                  /* @__PURE__ */ u3("span", { children: "Installed" })
+                ]
+              }
+            )
+          ]
+        }
+      ) : null
+    ] })
+  ] });
 }
 
 // src/ui/shell/shell-header.tsx
@@ -16150,47 +16883,12 @@ function ShellHeader({
   ] });
 }
 
-// src/ui/shell/route-tabs.tsx
-var routes = [
-  { id: "projects", label: "Projects" },
-  { id: "kits", label: "Kits" },
-  { id: "installed", label: "Installed" }
-];
-function RouteTabs({ route, onNavigate }) {
-  return /* @__PURE__ */ u3("nav", { class: "tavernary-companion-shell__tabs", "aria-label": "Companion sections", children: [
-    /* @__PURE__ */ u3("div", { role: "tablist", children: routes.map((candidate) => /* @__PURE__ */ u3(
-      "button",
-      {
-        type: "button",
-        role: "tab",
-        "aria-selected": candidate.id === route,
-        tabIndex: candidate.id === route ? 0 : -1,
-        onClick: () => onNavigate(candidate.id),
-        children: candidate.label
-      }
-    )) }),
-    /* @__PURE__ */ u3("label", { class: "tavernary-companion-route-select", children: [
-      /* @__PURE__ */ u3("span", { children: "Browse" }),
-      /* @__PURE__ */ u3(
-        "select",
-        {
-          "aria-label": "Browse Companion",
-          value: route,
-          onChange: (event) => onNavigate(event.currentTarget.value),
-          children: routes.map((candidate) => /* @__PURE__ */ u3("option", { value: candidate.id, children: candidate.label }))
-        }
-      )
-    ] })
-  ] });
-}
-
 // src/ui/shell/companion-shell.tsx
 var noRefresh = () => void 0;
 var noAction = () => void 0;
 var INITIAL_PROJECT_COUNT = 30;
 function CompanionShell({
   controller,
-  projects = [],
   discovery,
   facets,
   onProjectAction,
@@ -16260,7 +16958,15 @@ function CompanionShell({
             onRefreshCatalog: headerCatalogSnapshot ? () => void onRefreshCatalog() : void 0
           }
         ),
-        /* @__PURE__ */ u3(RouteTabs, { route: state.route, onNavigate: (route) => controller.navigate(route) }),
+        /* @__PURE__ */ u3(
+          CatalogNavigation,
+          {
+            route: state.route,
+            query: discoveryState?.query ?? DEFAULT_COMPANION_QUERY,
+            onNavigate: (route) => controller.navigate(route),
+            onQueryChange: updateProjectQuery
+          }
+        ),
         /* @__PURE__ */ u3("main", { class: "tavernary-companion-shell__content", children: /* @__PURE__ */ u3(
           CatalogBoundary,
           {
@@ -16276,19 +16982,11 @@ function CompanionShell({
                   state: discoveryState,
                   facets: facets ?? discoveryState.facets,
                   onQueryChange: updateProjectQuery,
-                  onOpenProject: (id) => controller.openDetail({ kind: "project", id, focusKey: `project-${id}` }),
-                  onProjectAction: (id, action) => {
-                    if (action.kind === "view-project") {
-                      controller.openDetail({ kind: "project", id, focusKey: `project-${id}` });
-                    } else {
-                      onProjectAction?.(id, action);
-                    }
-                  },
+                  onProjectAction: (id, action) => onProjectAction?.(id, action),
                   onManageInSillyTavern: onOpenExtensionManager,
                   lifecycleDisabled,
                   kitSelectionActive: kitSelection !== null,
                   selectedKitProjectIds: kitSelection ?? [],
-                  onBeginKitSelection: () => setKitSelection([]),
                   onToggleKitSelection: (projectId) => setKitSelection((current) => {
                     if (!current) return [projectId];
                     return current.includes(projectId) ? current.filter((id) => id !== projectId) : [...current, projectId];
@@ -16302,22 +17000,7 @@ function CompanionShell({
                   visibleProjectCount,
                   onVisibleProjectCountChange: setVisibleProjectCount
                 }
-              ) : /* @__PURE__ */ u3(S, { children: [
-                /* @__PURE__ */ u3("h2", { id: "tavernary-companion-projects-heading", children: "Projects" }),
-                projects.map((project2) => {
-                  const focusKey = `project-${project2.id}`;
-                  return /* @__PURE__ */ u3(
-                    "button",
-                    {
-                      type: "button",
-                      "data-focus-key": focusKey,
-                      "aria-label": `View ${project2.name}`,
-                      onClick: () => controller.openDetail({ kind: "project", id: project2.id, focusKey }),
-                      children: project2.name
-                    }
-                  );
-                })
-              ] }) }) : null,
+              ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-projects-heading", children: "Projects" }) }) : null,
               !detail && state.route === "kits" ? /* @__PURE__ */ u3(S, { children: kitDiscovery ? /* @__PURE__ */ u3(
                 KitsRoute,
                 {
@@ -16348,23 +17031,14 @@ function CompanionShell({
                   sections: discoveryState.installedSections,
                   refreshing: inventoryRefreshing,
                   onRefresh: onRefreshInventory,
-                  onOpenProject: (id) => controller.openDetail({ kind: "project", id, focusKey: `installed-${id}` }),
                   onAction: (id, action) => onProjectAction?.(id, action),
                   onManage: onOpenExtensionManager,
                   lifecycleDisabled
                 }
               ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-installed-heading", children: "Installed extensions" }) }) : null,
-              detail ? /* @__PURE__ */ u3("section", { "aria-label": `${detail.kind} detail`, children: [
+              detail ? /* @__PURE__ */ u3("section", { "aria-label": "kit detail", children: [
                 /* @__PURE__ */ u3("button", { type: "button", onClick: () => restoreAfterBack(controller), children: "Back" }),
-                detail.kind === "project" && discoveryState?.projectDetails[detail.id] ? /* @__PURE__ */ u3(
-                  ProjectDetail,
-                  {
-                    project: discoveryState.projectDetails[detail.id],
-                    onAction: (action) => onProjectAction?.(detail.id, action),
-                    onManageInSillyTavern: onOpenExtensionManager,
-                    lifecycleDisabled
-                  }
-                ) : detail.kind === "kit" && kitInspectors[detail.id] ? /* @__PURE__ */ u3(
+                kitInspectors[detail.id] ? /* @__PURE__ */ u3(
                   KitInspector,
                   {
                     kit: kitInspectors[detail.id],
@@ -16380,7 +17054,7 @@ function CompanionShell({
                       restoreAfterBack(controller);
                     }
                   }
-                ) : /* @__PURE__ */ u3("h2", { children: projectName(projects, discoveryState, detail.id) })
+                ) : /* @__PURE__ */ u3("h2", { children: detail.id })
               ] }) : null
             ]
           }
@@ -16422,9 +17096,6 @@ function restoreAfterBack(controller) {
       }
     }
   });
-}
-function projectName(projects, discoveryState, id) {
-  return projects.find((project2) => project2.id === id)?.name ?? discoveryState?.projects.find((project2) => project2.id === id)?.name ?? id;
 }
 
 // src/ui/shell/shell-state.ts

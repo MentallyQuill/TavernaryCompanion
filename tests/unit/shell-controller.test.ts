@@ -10,7 +10,7 @@ describe("ShellController", () => {
       persistRoute,
     });
 
-    controller.openDetail({ kind: "project", id: "alpha", focusKey: "project-alpha" });
+    controller.openDetail({ kind: "kit", id: "alpha", focusKey: "kit-alpha" });
     expect(persistRoute).not.toHaveBeenCalled();
 
     controller.navigate("installed");
@@ -20,11 +20,11 @@ describe("ShellController", () => {
 
   it("closes the top nested surface before yielding Back to the host popup", () => {
     const controller = createShellController({ initialRoute: "projects" });
-    controller.openDetail({ kind: "project", id: "alpha", focusKey: "project-alpha" });
+    controller.openDetail({ kind: "kit", id: "alpha", focusKey: "kit-alpha" });
     controller.openFilter("sheet");
 
     expect(controller.back()).toEqual({ handled: true, focusKey: "filter-trigger" });
-    expect(controller.back()).toEqual({ handled: true, focusKey: "project-alpha" });
+    expect(controller.back()).toEqual({ handled: true, focusKey: "kit-alpha" });
     expect(controller.back()).toEqual({ handled: false, focusKey: null });
   });
 });

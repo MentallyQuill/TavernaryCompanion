@@ -1,33 +1,31 @@
 import type { ProjectCardViewModel, ProjectPrimaryAction } from "../../catalog/project-view-model";
 import { COMPANION_PROJECT_ID } from "../../lifecycle/self-protection";
 import { ActivitySummary } from "../shared/activity-summary";
-import { AssessmentBadge } from "../shared/assessment-badge";
 import { CategoryIcon } from "../shared/category-icon";
+import { ProjectKitControl } from "./project-kit-control";
+import { ProjectLifecycleControl } from "./project-lifecycle-control";
+import { TavernKeeperScanIndicator } from "./tavernkeeper-scan-indicator";
 
 interface ProjectCardProps {
   project: ProjectCardViewModel;
-  onOpen(): void;
   onAction(action: ProjectPrimaryAction): void;
   onManageInSillyTavern?(): void;
   lifecycleDisabled?: boolean;
-  kitSelectionActive?: boolean;
   selectedForKit?: boolean;
   onToggleKitSelection?(projectId: string): void;
 }
 
 export function ProjectCard({
   project,
-  onOpen,
   onAction,
   onManageInSillyTavern,
   lifecycleDisabled = false,
-  kitSelectionActive = false,
   selectedForKit = false,
   onToggleKitSelection,
 }: ProjectCardProps): preact.JSX.Element {
   const selfProtected =
     project.id === COMPANION_PROJECT_ID || project.action.kind === "current-extension";
-  const compactInstall = project.action.kind === "install";
+  const managedInSillyTavern = selfProtected || project.action.kind === "manage-in-sillytavern";
   const iconName = project.kind === "extension" ? project.primaryFunctionId : project.kind;
   const hasActivityMetrics =
     project.activity.activeWeeks12 !== null && project.activity.weeklyActivity !== null;
@@ -103,8 +101,20 @@ export function ProjectCard({
         )}
       </header>
       <div class="tavernary-companion-project-card__title">
-        <h3>{project.displayName}</h3>
-        {project.tavernKeeper ? <AssessmentBadge status={project.tavernKeeper} compact /> : null}
+        <h3>
+          <a
+            class="tavernary-companion-project-card__source-link"
+            href={project.canonicalUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            data-focus-key={`project-${project.id}`}
+          >
+            {project.displayName}
+          </a>
+        </h3>
+        {project.tavernKeeper ? (
+          <TavernKeeperScanIndicator projectId={project.id} status={project.tavernKeeper} />
+        ) : null}
       </div>
       {project.attributionLabel ? (
         <p class="tavernary-companion-project-card__attribution">{project.attributionLabel}</p>
@@ -140,46 +150,26 @@ export function ProjectCard({
             {project.installed ? <span>Installed</span> : null}
           </div>
           <footer>
-            {kitSelectionActive && !selfProtected && project.kitSelectable ? (
-              <button
-                type="button"
-                class="tavernary-companion-button tavernary-companion-button--primary"
-                onClick={() => onToggleKitSelection?.(project.id)}
-              >
-                {selectedForKit ? "Remove from Kit" : "Add to Kit"}
-              </button>
-            ) : null}
-            <button
-              class="tavernary-companion-button tavernary-companion-button--secondary"
-              type="button"
-              data-focus-key={`project-${project.id}`}
-              onClick={onOpen}
-              aria-label={`View ${project.displayName} details`}
-            >
-              Details
-            </button>
-            {selfProtected ? (
+            {managedInSillyTavern ? (
               <button type="button" onClick={onManageInSillyTavern}>
                 Manage in SillyTavern
               </button>
             ) : (
-              <button
-                type="button"
-                class={`tavernary-companion-project-card__primary tavernary-companion-button ${
-                  compactInstall
-                    ? "tavernary-companion-project-card__compact-action tavernary-companion-button--primary"
-                    : project.action.kind === "view-project"
-                      ? "tavernary-companion-button--secondary"
-                      : "tavernary-companion-button--primary"
-                }`}
-                data-testid="project-primary-action"
-                aria-label={`${project.action.label} ${project.displayName}`}
-                onClick={() => onAction(project.action)}
+              <ProjectLifecycleControl
+                projectName={project.displayName}
+                action={project.action}
                 disabled={lifecycleDisabled}
-              >
-                {compactInstall ? <span aria-hidden="true">+</span> : project.action.label}
-              </button>
+                onAction={onAction}
+              />
             )}
+            {!selfProtected && project.kitSelectable && onToggleKitSelection ? (
+              <ProjectKitControl
+                projectId={project.id}
+                projectName={project.displayName}
+                selected={selectedForKit}
+                onToggle={onToggleKitSelection}
+              />
+            ) : null}
           </footer>
         </div>
       </div>

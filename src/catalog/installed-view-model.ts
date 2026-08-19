@@ -5,6 +5,7 @@ export interface InstalledRowViewModel {
   id: string;
   name: string;
   detail: string;
+  canonicalUrl: string | null;
   enabled: boolean | null;
   action: ProjectPrimaryAction;
 }
@@ -30,12 +31,9 @@ export function toInstalledSectionViewModel(
         id: project.id,
         name: project.name,
         detail: extension.folderName,
+        canonicalUrl: project.canonicalUrl,
         enabled: extension.enabled,
-        action: {
-          kind: "uninstall",
-          label: "Uninstall",
-          reason: "Managed by Companion",
-        },
+        action: installedAction(extension.type, "Managed by Companion"),
       })),
     },
     {
@@ -45,12 +43,9 @@ export function toInstalledSectionViewModel(
         id: project.id,
         name: project.name,
         detail: extension.folderName,
+        canonicalUrl: project.canonicalUrl,
         enabled: extension.enabled,
-        action: {
-          kind: "uninstall",
-          label: "Uninstall",
-          reason: "Installed outside Companion",
-        },
+        action: installedAction(extension.type, "Installed outside Companion"),
       })),
     },
     {
@@ -63,6 +58,7 @@ export function toInstalledSectionViewModel(
             ? extension.manifest.display_name
             : extension.folderName,
         detail: extension.internalName,
+        canonicalUrl: null,
         enabled: extension.enabled,
         action: {
           kind: "manage-in-sillytavern",
@@ -78,6 +74,7 @@ export function toInstalledSectionViewModel(
         id: record.projectId,
         name: project?.name ?? record.folderName,
         detail: "Managed record is missing from SillyTavern.",
+        canonicalUrl: project?.canonicalUrl ?? null,
         enabled: null,
         action: {
           kind: "manage-in-sillytavern",
@@ -87,4 +84,17 @@ export function toInstalledSectionViewModel(
       })),
     },
   ];
+}
+
+function installedAction(
+  extensionType: "local" | "global",
+  uninstallReason: string,
+): ProjectPrimaryAction {
+  return extensionType === "global"
+    ? {
+        kind: "manage-in-sillytavern",
+        label: "Manage in SillyTavern",
+        reason: "Global extensions are managed by SillyTavern.",
+      }
+    : { kind: "uninstall", label: "Uninstall", reason: uninstallReason };
 }

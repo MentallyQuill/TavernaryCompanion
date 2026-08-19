@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/preact";
+import { fireEvent, render, screen, within } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { ProjectCardViewModel } from "../../src/catalog/project-view-model";
@@ -12,6 +12,7 @@ function project(overrides: Partial<ProjectCardViewModel> = {}): ProjectCardView
     id: "alpha",
     name: "Alpha",
     displayName: "Alpha",
+    canonicalUrl: "https://example.com/alpha",
     summary: "A compact extension for testing.",
     kind: "extension",
     frontends: ["SillyTavern"],
@@ -60,10 +61,24 @@ function project(overrides: Partial<ProjectCardViewModel> = {}): ProjectCardView
 }
 
 describe("ProjectCard", () => {
+  it("opens the canonical project source from the card and has no Details action", () => {
+    render(
+      <ProjectCard
+        project={{ ...project(), canonicalUrl: "https://example.test/repo" }}
+        onAction={vi.fn()}
+      />,
+    );
+
+    const link = screen.getByRole("link", { name: "Alpha" });
+    expect(link).toHaveAttribute("href", "https://example.test/repo");
+    expect(link).toHaveAttribute("target", "_blank");
+    expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
+    expect(screen.queryByRole("button", { name: /details/i })).not.toBeInTheDocument();
+  });
+
   it("renders bounded evidence and exactly one primary lifecycle action", () => {
-    const onOpen = vi.fn();
     const onAction = vi.fn();
-    render(<ProjectCard project={project()} onOpen={onOpen} onAction={onAction} />);
+    render(<ProjectCard project={project()} onAction={onAction} />);
 
     expect(screen.getByRole("heading", { name: "Alpha" })).toBeVisible();
     expect(screen.getByText("Extension")).toBeVisible();
@@ -76,14 +91,13 @@ describe("ProjectCard", () => {
     expect(screen.getByText("MIT")).toBeVisible();
     expect(document.querySelectorAll(".tavernary-companion-activity-strip i")).toHaveLength(12);
     const install = screen.getByRole("button", { name: "Install Alpha" });
-    expect(install).toHaveClass("tavernary-companion-project-card__compact-action");
-    expect(install).toHaveTextContent("+");
-    expect(screen.getByRole("button", { name: "View Alpha details" })).toBeVisible();
+    expect(install).toHaveAttribute("aria-pressed", "false");
+    expect(install).toHaveAttribute("title", "Install");
+    expect(install.querySelector('svg[data-icon="install"]')).not.toBeNull();
+    expect(screen.queryByRole("button", { name: /details/i })).not.toBeInTheDocument();
 
     fireEvent.click(install);
     expect(onAction).toHaveBeenCalledWith(project().action);
-    fireEvent.click(screen.getByRole("button", { name: "View Alpha details" }));
-    expect(onOpen).toHaveBeenCalledOnce();
   });
 
   it("uses Tavernary's compact scan glyph when TavernKeeper status exists", () => {
@@ -100,7 +114,6 @@ describe("ProjectCard", () => {
             historyUrl: null,
           },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -119,7 +132,6 @@ describe("ProjectCard", () => {
             weeklyActivity: null,
           },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -136,7 +148,6 @@ describe("ProjectCard", () => {
             latestSourceActivityLabel: null,
           },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -152,7 +163,6 @@ describe("ProjectCard", () => {
             evidenceStatus: "provisional",
           },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -169,7 +179,6 @@ describe("ProjectCard", () => {
             evidenceStatus: "degraded",
           },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -185,7 +194,6 @@ describe("ProjectCard", () => {
           primaryFunctionId: "memory-retrieval",
           primaryFunction: "Memory & Retrieval",
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -213,7 +221,6 @@ describe("ProjectCard", () => {
             reason: "Preset installation is not available in V1",
           },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
@@ -229,19 +236,16 @@ describe("ProjectCard", () => {
     render(
       <ProjectCard
         project={project({ name: "SillyTavern Alpha", displayName: "Alpha" })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
 
-    expect(screen.getByRole("button", { name: "View Alpha details" })).toBeVisible();
-    expect(
-      screen.queryByRole("button", { name: "View SillyTavern Alpha details" }),
-    ).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Alpha" })).toBeVisible();
+    expect(screen.queryByRole("link", { name: "SillyTavern Alpha" })).not.toBeInTheDocument();
   });
 
   it("uses Tavernary chip and license semantics without invented compatibility", () => {
-    const view = render(<ProjectCard project={project()} onOpen={vi.fn()} onAction={vi.fn()} />);
+    const view = render(<ProjectCard project={project()} onAction={vi.fn()} />);
 
     expect(screen.getByText("SillyTavern")).toHaveClass("tavernary-companion-chip--frontend");
     expect(screen.getByText("Workflow")).toHaveClass("tavernary-companion-chip--tag");
@@ -249,14 +253,12 @@ describe("ProjectCard", () => {
     expect(screen.queryByText("Interface & Workflow")).not.toBeInTheDocument();
     expect(screen.getByText("MIT")).toHaveClass("license-osi-approved");
 
-    view.rerender(
-      <ProjectCard project={project({ frontends: [] })} onOpen={vi.fn()} onAction={vi.fn()} />,
-    );
+    view.rerender(<ProjectCard project={project({ frontends: [] })} onAction={vi.fn()} />);
     expect(screen.queryByText("Frontend-neutral")).not.toBeInTheDocument();
   });
 
   it("shows Tavernary activity, community, and repository metadata", () => {
-    render(<ProjectCard project={project()} onOpen={vi.fn()} onAction={vi.fn()} />);
+    render(<ProjectCard project={project()} onAction={vi.fn()} />);
 
     expect(screen.getByText("1d ago")).toBeVisible();
     expect(screen.getByText("11")).toBeVisible();
@@ -272,14 +274,14 @@ describe("ProjectCard", () => {
           ownership: "managed",
           action: { kind: "uninstall", label: "Uninstall", reason: "Managed by Companion" },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
 
     const uninstall = screen.getByRole("button", { name: "Uninstall Alpha" });
-    expect(uninstall).toHaveTextContent("Uninstall");
-    expect(uninstall).not.toHaveClass("tavernary-companion-project-card__compact-action");
+    expect(uninstall).toHaveAttribute("aria-pressed", "true");
+    expect(uninstall.querySelector('svg[data-icon="install"]')).not.toBeNull();
+    expect(uninstall).toHaveClass("is-installed");
   });
 
   it("explains browse-only actions without presenting them as installable", () => {
@@ -293,32 +295,25 @@ describe("ProjectCard", () => {
             reason: "Preset installation is not available in V1",
           },
         })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
 
     expect(screen.getByText("Preset installation is not available in V1")).toBeVisible();
     expect(screen.queryByRole("button", { name: /Install Alpha/ })).not.toBeInTheDocument();
-    expect(screen.getByTestId("project-primary-action")).toHaveClass(
-      "tavernary-companion-button--secondary",
-    );
-    expect(screen.getByTestId("project-primary-action")).not.toHaveClass(
-      "tavernary-companion-button--primary",
-    );
+    expect(screen.queryByTestId("project-lifecycle-action")).not.toBeInTheDocument();
   });
 
   it("renders compact attribution only when Tavernary provides it", () => {
     const view = render(
       <ProjectCard
         project={project({ attributionLabel: "By tavernary-author" })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
       />,
     );
     expect(screen.getByText("By tavernary-author")).toBeVisible();
 
-    view.rerender(<ProjectCard project={project()} onOpen={vi.fn()} onAction={vi.fn()} />);
+    view.rerender(<ProjectCard project={project()} onAction={vi.fn()} />);
     expect(screen.queryByText("By tavernary-author")).not.toBeInTheDocument();
   });
 
@@ -326,7 +321,6 @@ describe("ProjectCard", () => {
     render(
       <ProjectCard
         project={project({ id: COMPANION_PROJECT_ID, action: project().action })}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
         onManageInSillyTavern={vi.fn()}
       />,
@@ -335,34 +329,76 @@ describe("ProjectCard", () => {
     expect(screen.getByRole("button", { name: "Manage in SillyTavern" })).toBeVisible();
   });
 
-  it("toggles eligible projects while Kit selection is active", () => {
+  it("renders host-owned global installations as SillyTavern management actions", () => {
+    const onManage = vi.fn();
+    render(
+      <ProjectCard
+        project={project({
+          installed: true,
+          ownership: "external",
+          action: {
+            kind: "manage-in-sillytavern",
+            label: "Manage in SillyTavern",
+            reason: "Global extensions are managed by SillyTavern.",
+          },
+        })}
+        onAction={vi.fn()}
+        onManageInSillyTavern={onManage}
+      />,
+    );
+
+    const manage = screen.getByRole("button", { name: "Manage in SillyTavern" });
+    expect(screen.queryByRole("button", { name: /Uninstall Alpha/ })).not.toBeInTheDocument();
+    fireEvent.click(manage);
+    expect(onManage).toHaveBeenCalledOnce();
+  });
+
+  it("describes why a lifecycle action is temporarily disabled", () => {
+    render(<ProjectCard project={project()} onAction={vi.fn()} lifecycleDisabled />);
+
+    const install = screen.getByRole("button", { name: "Install Alpha" });
+    const descriptionId = install.getAttribute("aria-describedby");
+    expect(install).toBeDisabled();
+    expect(install).toHaveAttribute("title", "Install");
+    expect(descriptionId).toBeTruthy();
+    expect(document.getElementById(descriptionId!)).toHaveTextContent(
+      "Another Companion operation is in progress.",
+    );
+  });
+
+  it("shows an always-available plus/minus Kit control for eligible projects", () => {
     const toggle = vi.fn();
     const { rerender } = render(
       <ProjectCard
         project={project()}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
-        kitSelectionActive
         selectedForKit={false}
         onToggleKitSelection={toggle}
       />,
     );
-    fireEvent.click(screen.getByRole("button", { name: "Add to Kit" }));
+    const add = screen.getByRole("button", { name: "Add Alpha to Kit" });
+    expect(add).toHaveAttribute("aria-pressed", "false");
+    expect(add.querySelector('svg[data-kit-glyph="add"]')).not.toBeNull();
+    expect(add.querySelector("small")).toHaveTextContent("Kit");
+    expect(
+      within(document.querySelector("footer")!)
+        .getAllByRole("button")
+        .map((button) => button.getAttribute("aria-label")),
+    ).toEqual(["Install Alpha", "Add Alpha to Kit"]);
+    fireEvent.click(add);
     expect(toggle).toHaveBeenCalledWith("alpha");
-    expect(screen.getByRole("button", { name: "Add to Kit" })).toHaveClass(
-      "tavernary-companion-button--primary",
-    );
 
     rerender(
       <ProjectCard
         project={project()}
-        onOpen={vi.fn()}
         onAction={vi.fn()}
-        kitSelectionActive
         selectedForKit
         onToggleKitSelection={toggle}
       />,
     );
-    expect(screen.getByRole("button", { name: "Remove from Kit" })).toBeVisible();
+    const remove = screen.getByRole("button", { name: "Remove Alpha from selection" });
+    expect(remove).toHaveAttribute("aria-pressed", "true");
+    expect(remove).toHaveAttribute("title", "Remove from selection");
+    expect(remove.querySelector('svg[data-kit-glyph="remove"]')).not.toBeNull();
   });
 });

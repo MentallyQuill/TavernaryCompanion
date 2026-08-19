@@ -113,6 +113,12 @@
   --tavernary-color-activity-current: #2dd4bf;
   --tavernary-color-activity-recent: #829099;
   --tavernary-color-activity-dormant: #5f6b72;
+  --tavernary-color-tavernkeeper-teal: var(--tavernary-color-accent-teal);
+  --tavernary-color-tavernkeeper-orange: var(--tavernary-color-functional);
+  --tavernary-color-tavernkeeper-red: var(--tavernary-color-danger);
+  --tavernary-color-tavernkeeper-gray: var(--tavernary-color-text-muted);
+  --tavernary-color-tavernkeeper-unsupported: var(--tavernary-color-accent-teal-border);
+  --tavernary-color-tavernkeeper-stale-clock-bg: var(--tavernary-color-bg-canvas);
   --tavernary-color-progress-track: #26363d;
   --tavernary-color-progress-fill: #57c5a3;
   --tavernary-color-license-open: #57c5a3;
@@ -121,6 +127,8 @@
   --tavernary-shadow-card: 0 1px 2px rgb(0 0 0 / 24%), 0 4px 12px rgb(0 0 0 / 12%);
   --tavernary-shadow-overlay: 0 12px 32px rgb(0 0 0 / 40%);
   --tavernary-radius: 8px;
+  --tavernary-header-height: 66px;
+  --tavernary-category-height: 50px;
   --tavernary-brand-mark: url("./assets/tavernary-trihex.png");
 
   /* Transitional aliases retained while the branded components are migrated. */

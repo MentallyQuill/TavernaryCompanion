@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor, within } from "@testing-library/preact";
+import { fireEvent, render, screen, within } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import { CompanionShell } from "../../src/ui/shell/companion-shell";
@@ -21,17 +21,6 @@ afterEach(() => {
 });
 
 describe("CompanionShell", () => {
-  it("restores the originating card after closing project detail", async () => {
-    const controller = createShellController({ initialRoute: "projects" });
-    render(<CompanionShell controller={controller} projects={[{ id: "alpha", name: "Alpha" }]} />);
-    const card = screen.getByRole("button", { name: "View Alpha" });
-    card.focus();
-    fireEvent.click(card);
-    fireEvent.click(screen.getByRole("button", { name: "Back" }));
-
-    await waitFor(() => expect(screen.getByRole("button", { name: "View Alpha" })).toHaveFocus());
-  });
-
   it("renders semantic routes and restores the active route from state", () => {
     const controller = createShellController({ initialRoute: "installed" });
     render(<CompanionShell controller={controller} />);
@@ -40,8 +29,11 @@ describe("CompanionShell", () => {
     expect(screen.getByRole("img", { name: "Tavernary" })).toBeVisible();
     expect(screen.getByText("Where AI roleplay tools gather")).toBeVisible();
     expect(screen.getByText("Companion", { selector: "span" })).toBeVisible();
-    expect(screen.getByRole("navigation", { name: "Companion sections" })).toBeVisible();
-    expect(screen.getByRole("tab", { name: "Installed" })).toHaveAttribute("aria-selected", "true");
+    expect(screen.getByRole("navigation", { name: "Catalog categories" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Installed" })).toHaveAttribute(
+      "aria-pressed",
+      "true",
+    );
     expect(screen.getByRole("main")).toHaveTextContent("Installed extensions");
   });
 
@@ -72,21 +64,58 @@ describe("CompanionShell", () => {
     expect(discovery.read().query.search).toBe("memory");
   });
 
-  it("navigates primary routes with the compact Browse selector", () => {
+  it("starts Kit selection from the card plus and selects that project immediately", () => {
+    const catalog = catalogFixture();
+    const project = catalogProjectFixture();
+    project.name = "SillyTavern Alpha";
+    catalog.projects = [project];
+    const discovery = createDiscoveryController({
+      snapshot: {
+        state: "ready-current",
+        canMutate: true,
+        checkedAt: null,
+        catalog,
+      },
+      inventory: emptyInventory,
+    });
+    render(
+      <CompanionShell
+        controller={createShellController({ initialRoute: "projects" })}
+        discovery={discovery}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Select for Kit" })).not.toBeInTheDocument();
+    const add = screen.getByRole("button", { name: "Add Alpha to Kit" });
+    expect(add.querySelector('svg[data-kit-glyph="add"]')).not.toBeNull();
+    expect(within(add).getByText("Kit")).toBeVisible();
+    fireEvent.click(add);
+
+    expect(screen.getByText("1 selected")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Remove Alpha from selection" }));
+    expect(screen.getByText("0 selected")).toBeVisible();
+  });
+
+  it("navigates primary routes with the compact Browse menu", () => {
     render(<CompanionShell controller={createShellController({ initialRoute: "projects" })} />);
 
-    fireEvent.change(screen.getByRole("combobox", { name: "Browse Companion" }), {
-      target: { value: "kits" },
-    });
+    expect(screen.queryByRole("combobox")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Browse categories" }));
+    fireEvent.click(
+      within(screen.getByRole("group", { name: "Browse categories menu" })).getByRole("button", {
+        name: "Kits",
+      }),
+    );
 
     expect(screen.getByRole("heading", { name: "Kits" })).toBeVisible();
-    expect(screen.getByRole("combobox", { name: "Browse Companion" })).toHaveValue("kits");
+    expect(screen.queryByRole("group", { name: "Browse categories menu" })).not.toBeInTheDocument();
   });
 
   it("uses one browser Back event for the top detail and preserves the popup", () => {
-    const controller = createShellController({ initialRoute: "projects" });
-    render(<CompanionShell controller={controller} projects={[{ id: "alpha", name: "Alpha" }]} />);
-    fireEvent.click(screen.getByRole("button", { name: "View Alpha" }));
+    const controller = createShellController({ initialRoute: "kits" });
+    controller.openDetail({ kind: "kit", id: "alpha", focusKey: "kit-alpha" });
+    render(<CompanionShell controller={controller} />);
+    expect(screen.getByRole("button", { name: "Back" })).toBeVisible();
 
     fireEvent(window, new PopStateEvent("popstate"));
 

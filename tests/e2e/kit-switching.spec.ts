@@ -11,9 +11,16 @@ for (const viewport of [
     await page.setViewportSize(viewport);
     await openHarness(page);
     if (viewport.width <= 700) {
-      await page.getByRole("combobox", { name: "Browse Companion" }).selectOption("kits");
+      await page.getByRole("button", { name: "Browse categories" }).click();
+      await page
+        .getByRole("group", { name: "Browse categories menu" })
+        .getByRole("button", { name: "Kits" })
+        .click();
     } else {
-      await page.getByRole("tab", { name: "Kits" }).click();
+      await page
+        .getByRole("navigation", { name: "Catalog categories" })
+        .getByRole("button", { name: "Kits" })
+        .click();
     }
     await page.getByRole("tab", { name: /Personal/u }).click();
     await expect(page.getByRole("heading", { name: "Writer's Kit" })).toBeVisible();
@@ -55,10 +62,9 @@ for (const viewport of [
 
 test("builds and removes a personal Kit from project-card selection", async ({ page }) => {
   await openHarness(page);
-  await page.getByRole("button", { name: "Select for Kit" }).click();
   await page
     .locator('[data-project-id="alpha"]')
-    .getByRole("button", { name: "Add to Kit" })
+    .getByRole("button", { name: "Add Alpha to Kit" })
     .click();
   await expect(page.getByText("1 selected")).toBeVisible();
   await page.getByRole("button", { name: "Review Kit" }).click();
@@ -67,7 +73,10 @@ test("builds and removes a personal Kit from project-card selection", async ({ p
   await editor.getByLabel("Title").fill("Quick Kit");
   await editor.getByRole("button", { name: "Save Kit" }).click();
 
-  await page.getByRole("tab", { name: "Kits" }).click();
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Kits" })
+    .click();
   await page.getByRole("tab", { name: /Personal/u }).click();
   await expect(page.getByRole("heading", { name: "Quick Kit" })).toBeVisible();
   const quick = page.locator("[data-kit-id]").filter({ hasText: "Quick Kit" });
@@ -78,7 +87,10 @@ test("builds and removes a personal Kit from project-card selection", async ({ p
 
 test("preserves a shared extension while uninstalling one Kit", async ({ page }) => {
   await openHarness(page, "shared");
-  await page.getByRole("tab", { name: "Kits" }).click();
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Kits" })
+    .click();
   await page.getByRole("tab", { name: /Personal/u }).click();
   const writer = page.locator("[data-kit-id]").filter({
     has: page.getByRole("heading", { name: "Writer's Kit", exact: true }),
@@ -102,7 +114,10 @@ test("preserves a shared extension while uninstalling one Kit", async ({ page })
 
 test("surfaces failed activation and interrupted recovery receipts", async ({ page }) => {
   await openHarness(page, "failure");
-  await page.getByRole("tab", { name: "Kits" }).click();
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Kits" })
+    .click();
   await page.getByRole("tab", { name: /Personal/u }).click();
   await page.getByRole("button", { name: "Activate" }).click();
   await page
@@ -114,7 +129,10 @@ test("surfaces failed activation and interrupted recovery receipts", async ({ pa
   await openHarness(page, "interrupted");
   await expect(page.getByRole("heading", { name: "Kit interrupted" })).toBeVisible();
   await page.getByRole("button", { name: "Dismiss" }).click();
-  await page.getByRole("tab", { name: "Kits" }).click();
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Kits" })
+    .click();
   await page.getByRole("tab", { name: /Personal/u }).click();
   await expect(page.getByText("Drifted", { exact: true })).toBeVisible();
   await expect(page.getByRole("button", { name: "Review" })).toBeVisible();
@@ -122,7 +140,10 @@ test("surfaces failed activation and interrupted recovery receipts", async ({ pa
 
 test("confirms dirty editor discard and imports a personal Kit", async ({ page }) => {
   await openHarness(page);
-  await page.getByRole("tab", { name: "Kits" }).click();
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Kits" })
+    .click();
   await page.getByRole("button", { name: "New Kit" }).click();
   const editor = page.getByRole("dialog", { name: "New personal Kit" });
   await editor.getByLabel("Title").fill("Unsaved Kit");

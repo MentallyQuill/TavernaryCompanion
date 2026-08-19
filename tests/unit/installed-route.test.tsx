@@ -15,6 +15,7 @@ const sections: InstalledSectionViewModel[] = [
         id: "alpha",
         name: "Alpha",
         detail: "Alpha",
+        canonicalUrl: "https://example.test/alpha",
         enabled: true,
         action: { kind: "uninstall", label: "Uninstall", reason: "Managed by Companion" },
       },
@@ -29,6 +30,7 @@ const sections: InstalledSectionViewModel[] = [
         id: "third-party/Mystery",
         name: "Mystery",
         detail: "third-party/Mystery",
+        canonicalUrl: null,
         enabled: false,
         action: {
           kind: "manage-in-sillytavern",
@@ -69,6 +71,16 @@ describe("InstalledRoute", () => {
     render(<InstalledRoute sections={sections} refreshing onRefresh={vi.fn()} />);
     expect(screen.getByText("Updating installed extensions…")).toBeVisible();
     expect(screen.getAllByText("Alpha")[0]).toBeVisible();
+  });
+
+  it("links cataloged installed projects directly to their canonical source", () => {
+    render(<InstalledRoute sections={sections} onRefresh={vi.fn()} />);
+
+    const source = screen.getByRole("link", { name: "Alpha" });
+    expect(source).toHaveAttribute("href", "https://example.test/alpha");
+    expect(source).toHaveAttribute("target", "_blank");
+    expect(source).toHaveAttribute("rel", expect.stringContaining("noopener"));
+    expect(screen.queryByRole("button", { name: "View Alpha" })).not.toBeInTheDocument();
   });
 
   it("explains an inventory with no installed extensions", () => {

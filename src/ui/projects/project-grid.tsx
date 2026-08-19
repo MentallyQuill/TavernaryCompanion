@@ -6,11 +6,9 @@ const PROJECT_BATCH_SIZE = 30;
 
 interface ProjectGridProps {
   projects: ProjectCardViewModel[];
-  onOpenProject(id: string): void;
   onProjectAction(id: string, action: ProjectPrimaryAction): void;
   onManageInSillyTavern?(): void;
   lifecycleDisabled?: boolean;
-  kitSelectionActive?: boolean;
   selectedKitProjectIds?: readonly string[];
   onToggleKitSelection?(projectId: string): void;
   visibleCount?: number;
@@ -19,11 +17,9 @@ interface ProjectGridProps {
 
 export function ProjectGrid({
   projects,
-  onOpenProject,
   onProjectAction,
   onManageInSillyTavern,
   lifecycleDisabled,
-  kitSelectionActive = false,
   selectedKitProjectIds = [],
   onToggleKitSelection,
   visibleCount: controlledVisibleCount,
@@ -49,11 +45,9 @@ export function ProjectGrid({
           <ProjectCard
             key={project.id}
             project={project}
-            onOpen={() => onOpenProject(project.id)}
             onAction={(action) => onProjectAction(project.id, action)}
             onManageInSillyTavern={onManageInSillyTavern}
             lifecycleDisabled={lifecycleDisabled}
-            kitSelectionActive={kitSelectionActive}
             selectedForKit={selectedKitProjectIds.includes(project.id)}
             onToggleKitSelection={onToggleKitSelection}
           />

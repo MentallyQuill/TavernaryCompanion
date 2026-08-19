@@ -34,6 +34,7 @@ export interface ProjectCardViewModel {
   id: string;
   name: string;
   displayName: string;
+  canonicalUrl: string;
   summary: string;
   kind: CatalogProject["kind"];
   frontends: string[];
@@ -69,45 +70,33 @@ export interface ProjectCardViewModel {
   action: ProjectPrimaryAction;
 }
 
-export interface ProjectDetailViewModel extends ProjectCardViewModel {
-  canonicalUrl: string;
-  primaryFunction: string;
-  tags: string[];
-  license: CatalogProject["license"];
-  metadataStatus: CatalogProject["metadataStatus"];
-  sourceStatus: CatalogProject["sourceStatus"];
-  catalogedAt: string;
-  latestReleaseAt: string | null;
-  refreshedAt: string | null;
-  attribution: CatalogProject["attribution"];
-  fork: CatalogProject["fork"];
-  kitReferences: Array<{ id: string; title: string }>;
-}
-
 export interface ProjectViewModelContext {
   snapshot: CatalogSnapshot;
   inventory: InventorySnapshot;
   now?: string;
-  kits?: Array<{ id: string; title: string; components: Array<{ projectId: string }> }>;
 }
 
-function installedOwnership(
-  projectId: string,
-  inventory: InventorySnapshot,
-): "managed" | "external" | "absent" {
-  if (inventory.managed.some(({ project }) => project.id === projectId)) {
-    return "managed";
+interface InstalledState {
+  ownership: "managed" | "external" | "absent";
+  removable: boolean;
+}
+
+function installedState(projectId: string, inventory: InventorySnapshot): InstalledState {
+  const managed = inventory.managed.find(({ project }) => project.id === projectId);
+  if (managed) {
+    return { ownership: "managed", removable: managed.extension.type === "local" };
   }
-  if (inventory.external.some(({ project }) => project.id === projectId)) {
-    return "external";
+  const external = inventory.external.find(({ project }) => project.id === projectId);
+  if (external) {
+    return { ownership: "external", removable: external.extension.type === "local" };
   }
-  return "absent";
+  return { ownership: "absent", removable: false };
 }
 
 function actionFor(
   project: CatalogProject,
   context: ProjectViewModelContext,
-  ownership: "managed" | "external" | "absent",
+  installed: InstalledState,
 ): ProjectPrimaryAction {
   if (project.id === COMPANION_PROJECT_ID) {
     return {
@@ -123,11 +112,19 @@ function actionFor(
       reason: "Catalog schema updated; update Companion to restore actions.",
     };
   }
-  if (ownership !== "absent") {
+  if (installed.ownership !== "absent" && !installed.removable) {
+    return {
+      kind: "manage-in-sillytavern",
+      label: "Manage in SillyTavern",
+      reason: "Global extensions are managed by SillyTavern.",
+    };
+  }
+  if (installed.ownership !== "absent") {
     return {
       kind: "uninstall",
       label: "Uninstall",
-      reason: ownership === "managed" ? "Managed by Companion" : "Installed outside Companion",
+      reason:
+        installed.ownership === "managed" ? "Managed by Companion" : "Installed outside Companion",
     };
   }
   if (project.kind === "preset") {
@@ -161,12 +158,13 @@ export function toProjectCardViewModel(
   project: CatalogProject,
   context: ProjectViewModelContext,
 ): ProjectCardViewModel {
-  const ownership = installedOwnership(project.id, context.inventory);
+  const installed = installedState(project.id, context.inventory);
   const now = context.now ?? project.refreshedAt ?? project.catalogedAt;
   return {
     id: project.id,
     name: project.name,
     displayName: projectDisplayName(project.name),
+    canonicalUrl: project.canonicalUrl,
     summary: project.summary,
     kind: project.kind,
     frontends: project.frontends.map(({ label }) => label),
@@ -200,14 +198,14 @@ export function toProjectCardViewModel(
         }
       : null,
     tavernKeeper: project.tavernKeeper,
-    installed: ownership !== "absent",
-    ownership,
+    installed: installed.ownership !== "absent",
+    ownership: installed.ownership,
     kitSelectable:
       project.id !== COMPANION_PROJECT_ID &&
       project.kind === "extension" &&
       project.frontends.some(({ id }) => id === "sillytavern") &&
       Boolean(project.install),
-    action: actionFor(project, context, ownership),
+    action: actionFor(project, context, installed),
   };
 }
 
@@ -260,27 +258,4 @@ function primaryFunctionLabel(value: string): string {
     "developer-infrastructure": "Developer Infrastructure",
   };
   return labels[value] ?? value;
-}
-
-export function toProjectDetailViewModel(
-  project: CatalogProject,
-  context: ProjectViewModelContext,
-): ProjectDetailViewModel {
-  return {
-    ...toProjectCardViewModel(project, context),
-    canonicalUrl: project.canonicalUrl,
-    primaryFunction: primaryFunctionLabel(project.primaryFunction),
-    tags: project.tags.map(({ label }) => label),
-    license: structuredClone(project.license),
-    metadataStatus: project.metadataStatus,
-    sourceStatus: project.sourceStatus,
-    catalogedAt: project.catalogedAt,
-    latestReleaseAt: project.latestReleaseAt,
-    refreshedAt: project.refreshedAt,
-    attribution: structuredClone(project.attribution),
-    fork: structuredClone(project.fork),
-    kitReferences: (context.kits ?? [])
-      .filter((kit) => kit.components.some(({ projectId }) => projectId === project.id))
-      .map(({ id, title }) => ({ id, title })),
-  };
 }

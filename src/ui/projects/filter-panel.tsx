@@ -1,20 +1,23 @@
-import {
-  CATEGORY_OPTIONS,
-  type CatalogKind,
-  type CatalogQuery,
-  type CatalogView,
-  type DevelopmentFilter,
-  type LicenseFilter,
-} from "../../catalog/catalog-core";
+import { useState } from "preact/hooks";
 
-export interface FilterFacet {
-  id: string;
-  label: string;
-}
+import type {
+  CatalogKind,
+  CatalogQuery,
+  DevelopmentFilter,
+  LicenseFilter,
+} from "../../catalog/catalog-core";
+import type { DiscoveryFacet, DiscoveryTagFacet } from "../../catalog/discovery-controller";
+import { FilterChoice } from "./filter-choice";
+import { FilterGroup } from "./filter-controls";
 
 export interface ProjectFacets {
-  frontends: FilterFacet[];
-  tags: FilterFacet[];
+  frontends: DiscoveryFacet[];
+  kinds: DiscoveryFacet[];
+  tags: DiscoveryTagFacet[];
+  modelFamilies: DiscoveryFacet[];
+  completionFormats: DiscoveryFacet[];
+  development: DiscoveryFacet[];
+  licenses: DiscoveryFacet[];
 }
 
 interface FilterPanelProps {
@@ -23,48 +26,6 @@ interface FilterPanelProps {
   onQueryChange(query: CatalogQuery): void;
 }
 
-const kinds: Array<FilterFacet & { id: CatalogKind }> = [
-  { id: "frontend", label: "Frontend" },
-  { id: "extension", label: "Extension" },
-  { id: "preset", label: "Preset" },
-];
-const models: FilterFacet[] = [
-  { id: "model-agnostic", label: "Model agnostic" },
-  { id: "claude", label: "Claude" },
-  { id: "gpt", label: "GPT" },
-  { id: "gemini", label: "Gemini" },
-  { id: "gemma", label: "Gemma" },
-  { id: "deepseek", label: "DeepSeek" },
-  { id: "glm", label: "GLM" },
-  { id: "minimax", label: "MiniMax" },
-  { id: "mimo", label: "MiMo" },
-  { id: "kimi", label: "Kimi" },
-  { id: "qwen", label: "Qwen" },
-  { id: "llama", label: "Llama" },
-  { id: "mistral", label: "Mistral" },
-];
-const completion: FilterFacet[] = [
-  { id: "chat-completion", label: "Chat completion" },
-  { id: "text-completion", label: "Text completion" },
-];
-const development: Array<FilterFacet & { id: DevelopmentFilter }> = [
-  { id: "active-month", label: "Active this month" },
-  { id: "new-release", label: "New release" },
-  { id: "dormant", label: "Dormant" },
-];
-const licenses: Array<FilterFacet & { id: LicenseFilter }> = [
-  { id: "open-source", label: "Open source" },
-  { id: "proprietary", label: "Proprietary" },
-  { id: "missing", label: "Missing license" },
-  { id: "pending", label: "License pending" },
-];
-const views: Array<FilterFacet & { id: CatalogView }> = [
-  { id: "all", label: "All" },
-  { id: "active", label: "Active" },
-  { id: "new", label: "New" },
-  { id: "released", label: "Recently released" },
-];
-
 export function FilterPanel({
   query,
   facets,
@@ -72,109 +33,189 @@ export function FilterPanel({
 }: FilterPanelProps): preact.JSX.Element {
   return (
     <aside class="tavernary-companion-filter-panel" aria-label="Project filters">
-      <fieldset>
-        <legend>Category</legend>
-        <select
-          aria-label="Category"
-          value={query.category}
-          onChange={(event) => onQueryChange({ ...query, category: event.currentTarget.value })}
-        >
-          {CATEGORY_OPTIONS.map(({ id, label }) => (
-            <option value={id}>{label}</option>
-          ))}
-        </select>
-      </fieldset>
-      <CheckboxGroup
-        label="Frontends"
+      <FilterGroup
+        title="Compatible frontend"
         options={facets.frontends}
         selected={query.frontends}
-        onChange={(frontends) => onQueryChange({ ...query, frontends })}
+        onToggle={(id) => onQueryChange({ ...query, frontends: toggle(query.frontends, id) })}
+        searchLabel="Search compatible frontends"
+        initialVisibleCount={3}
       />
-      <CheckboxGroup
-        label="Project type"
-        options={kinds}
+      <FilterGroup
+        title="Project kind"
+        options={facets.kinds}
         selected={query.kinds}
-        onChange={(kinds) => onQueryChange({ ...query, kinds: kinds as CatalogKind[] })}
+        onToggle={(id) =>
+          onQueryChange({ ...query, kinds: toggle(query.kinds, id) as CatalogKind[] })
+        }
+        kindColors
       />
-      <CheckboxGroup
-        label="Tags"
-        options={facets.tags}
+      <TagBrowser
+        tags={facets.tags}
         selected={query.tags}
-        onChange={(tags) => onQueryChange({ ...query, tags })}
+        onToggle={(id) => onQueryChange({ ...query, tags: toggle(query.tags, id) })}
       />
-      <CheckboxGroup
-        label="Models"
-        options={models}
+      <FilterGroup
+        title="Model family"
+        options={facets.modelFamilies}
         selected={query.modelFamilies ?? []}
-        onChange={(modelFamilies) => onQueryChange({ ...query, modelFamilies })}
+        onToggle={(id) =>
+          onQueryChange({
+            ...query,
+            modelFamilies: toggle(query.modelFamilies ?? [], id),
+          })
+        }
+        presentation="chips"
       />
-      <CheckboxGroup
-        label="Completion"
-        options={completion}
+      <FilterGroup
+        title="Completion format"
+        options={facets.completionFormats}
         selected={query.completionFormats ?? []}
-        onChange={(completionFormats) => onQueryChange({ ...query, completionFormats })}
+        onToggle={(id) =>
+          onQueryChange({
+            ...query,
+            completionFormats: toggle(query.completionFormats ?? [], id),
+          })
+        }
+        presentation="chips"
       />
-      <CheckboxGroup
-        label="Development"
-        options={development}
+      <FilterGroup
+        title="Development"
+        options={facets.development}
         selected={query.development}
-        onChange={(values) =>
-          onQueryChange({ ...query, development: values as DevelopmentFilter[] })
+        onToggle={(id) =>
+          onQueryChange({
+            ...query,
+            development: toggle(query.development, id) as DevelopmentFilter[],
+          })
         }
       />
-      <CheckboxGroup
-        label="License"
-        options={licenses}
+      <FilterGroup
+        title="License"
+        options={facets.licenses}
         selected={query.licenses}
-        onChange={(values) => onQueryChange({ ...query, licenses: values as LicenseFilter[] })}
+        onToggle={(id) =>
+          onQueryChange({
+            ...query,
+            licenses: toggle(query.licenses, id) as LicenseFilter[],
+          })
+        }
       />
-      <fieldset>
-        <legend>Catalog view</legend>
-        {views.map(({ id, label }) => (
-          <label>
-            <input
-              type="radio"
-              name="catalog-view"
-              checked={query.view === id}
-              onChange={() => onQueryChange({ ...query, view: id })}
-            />
-            {label}
-          </label>
-        ))}
-      </fieldset>
     </aside>
   );
 }
 
-function CheckboxGroup({
-  label,
-  options,
+function TagBrowser({
+  tags,
   selected,
-  onChange,
+  onToggle,
 }: {
-  label: string;
-  options: FilterFacet[];
-  selected: string[];
-  onChange(values: string[]): void;
-}): preact.JSX.Element {
+  tags: readonly DiscoveryTagFacet[];
+  selected: readonly string[];
+  onToggle(id: string): void;
+}): preact.JSX.Element | null {
+  const [search, setSearch] = useState("");
+  const [expanded, setExpanded] = useState({ goal: false, trait: false });
+  if (tags.length === 0) return null;
+
+  const normalizedSearch = search.trim().toLocaleLowerCase();
+  const visibleTags = tags.filter(
+    ({ id, label }) =>
+      !normalizedSearch ||
+      id.toLocaleLowerCase().includes(normalizedSearch) ||
+      label.toLocaleLowerCase().includes(normalizedSearch),
+  );
+  const selectedTags = selected
+    .map((id) => tags.find((tag) => tag.id === id))
+    .filter((tag): tag is DiscoveryTagFacet => tag !== undefined);
+
   return (
-    <fieldset>
-      <legend>{label}</legend>
-      {options.length === 0 ? <span>None available</span> : null}
-      {options.map(({ id, label: optionLabel }) => (
-        <label>
-          <input
-            type="checkbox"
-            checked={selected.includes(id)}
-            onChange={() => onChange(toggle(selected, id))}
-          />
-          {optionLabel}
-        </label>
-      ))}
+    <fieldset class="tavernary-companion-tag-browser">
+      <legend>Goals &amp; traits</legend>
+      <input
+        class="tavernary-companion-filter-search"
+        type="search"
+        value={search}
+        placeholder="Search tags…"
+        aria-label="Search goals and traits"
+        onInput={(event) => setSearch(event.currentTarget.value)}
+      />
+      <span class="tavernary-companion-tag-browser__status" aria-live="polite">
+        {selected.length} selected
+      </span>
+      {selectedTags.length ? (
+        <div
+          class="tavernary-companion-tag-browser__selected"
+          aria-label="Selected goals and traits"
+        >
+          {selectedTags.map((tag) => (
+            <button
+              type="button"
+              key={tag.id}
+              aria-label={`Remove ${tag.label}`}
+              onClick={() => onToggle(tag.id)}
+            >
+              <span aria-hidden="true">✓</span>
+              <span>{tag.label}</span>
+              <span aria-hidden="true">×</span>
+            </button>
+          ))}
+        </div>
+      ) : null}
+      <div class="tavernary-companion-tag-browser__facets">
+        {(
+          [
+            ["goal", "Goals"],
+            ["trait", "Traits"],
+          ] as const
+        ).map(([facet, label]) => {
+          const group = visibleTags
+            .filter((tag) => tag.facet === facet)
+            .sort(
+              (left, right) => right.count - left.count || left.label.localeCompare(right.label),
+            );
+          if (group.length === 0) return null;
+          const shown = normalizedSearch || expanded[facet] ? group : group.slice(0, 8);
+          const hiddenCount = group.length - shown.length;
+          return (
+            <fieldset key={facet} class="tavernary-companion-tag-browser__group">
+              <legend>{label}</legend>
+              <div class="tavernary-companion-tag-browser__options">
+                {shown.map((tag) => (
+                  <FilterChoice
+                    key={tag.id}
+                    class="tavernary-companion-tag-browser__option"
+                    label={tag.label}
+                    count={tag.count}
+                    checked={selected.includes(tag.id)}
+                    title={tag.description}
+                    onChange={() => onToggle(tag.id)}
+                  />
+                ))}
+              </div>
+              {!normalizedSearch && (hiddenCount > 0 || expanded[facet]) ? (
+                <button
+                  type="button"
+                  class="tavernary-companion-filter-disclosure"
+                  aria-expanded={expanded[facet]}
+                  onClick={() =>
+                    setExpanded((current) => ({ ...current, [facet]: !current[facet] }))
+                  }
+                >
+                  {expanded[facet] ? "Show fewer" : `Show ${hiddenCount} more`}
+                </button>
+              ) : null}
+            </fieldset>
+          );
+        })}
+      </div>
+      {normalizedSearch && visibleTags.length === 0 ? (
+        <p class="tavernary-companion-tag-browser__empty">No matching goals or traits.</p>
+      ) : null}
     </fieldset>
   );
 }
 
-function toggle(values: string[], id: string): string[] {
+function toggle(values: readonly string[], id: string): string[] {
   return values.includes(id) ? values.filter((value) => value !== id) : [...values, id];
 }

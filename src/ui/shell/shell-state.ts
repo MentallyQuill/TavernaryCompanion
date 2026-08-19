@@ -1,7 +1,7 @@
 export type CompanionRoute = "projects" | "kits" | "installed";
 
 export interface ShellDetail {
-  kind: "project" | "kit";
+  kind: "kit";
   id: string;
   focusKey: string;
 }

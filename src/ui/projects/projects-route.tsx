@@ -8,18 +8,17 @@ import { FilterPanel, type ProjectFacets } from "./filter-panel";
 import { ProjectGrid } from "./project-grid";
 import { ProjectResultsToolbar } from "./project-results-toolbar";
 import { KitSelectionDock } from "../kits/kit-selection-dock";
+import { CategoryIcon } from "../shared/category-icon";
 
 interface ProjectsRouteProps {
   state: DiscoveryState;
   facets?: ProjectFacets;
   onQueryChange(query: CatalogQuery): void;
-  onOpenProject?(id: string): void;
   onProjectAction?(id: string, action: ProjectPrimaryAction): void;
   onManageInSillyTavern?(): void;
   lifecycleDisabled?: boolean;
   kitSelectionActive?: boolean;
   selectedKitProjectIds?: readonly string[];
-  onBeginKitSelection?(): void;
   onToggleKitSelection?(projectId: string): void;
   onReviewKitSelection?(): void;
   onCancelKitSelection?(): void;
@@ -28,21 +27,37 @@ interface ProjectsRouteProps {
 }
 
 const defaultFacets: ProjectFacets = {
-  frontends: [{ id: "sillytavern", label: "SillyTavern" }],
+  frontends: [{ id: "sillytavern", label: "SillyTavern", count: 0 }],
+  kinds: [
+    { id: "frontend", label: "Frontend", count: 0 },
+    { id: "extension", label: "Extension", count: 0 },
+    { id: "preset", label: "System Preset", count: 0 },
+  ],
   tags: [],
+  modelFamilies: [],
+  completionFormats: [],
+  development: [
+    { id: "active-month", label: "Active this month", count: 0 },
+    { id: "new-release", label: "Recently released", count: 0 },
+    { id: "dormant", label: "Dormant", count: 0 },
+  ],
+  licenses: [
+    { id: "open-source", label: "Open source", count: 0 },
+    { id: "proprietary", label: "Proprietary", count: 0 },
+    { id: "pending", label: "Pending verification", count: 0 },
+    { id: "missing", label: "Missing license", count: 0 },
+  ],
 };
 
 export function ProjectsRoute({
   state,
   facets = state.facets ?? defaultFacets,
   onQueryChange,
-  onOpenProject = () => undefined,
   onProjectAction = () => undefined,
   onManageInSillyTavern,
   lifecycleDisabled,
   kitSelectionActive = false,
   selectedKitProjectIds = [],
-  onBeginKitSelection,
   onToggleKitSelection,
   onReviewKitSelection,
   onCancelKitSelection,
@@ -88,7 +103,11 @@ export function ProjectsRoute({
       let parent = branch.parentElement;
       while (parent) {
         for (const child of parent.children) {
-          if (child !== branch && child instanceof HTMLElement) {
+          if (
+            child !== branch &&
+            child instanceof HTMLElement &&
+            !child.classList.contains("tavernary-companion-filter-backdrop")
+          ) {
             inerted.push({ element: child, inert: child.inert });
             child.inert = true;
           }
@@ -153,6 +172,14 @@ export function ProjectsRoute({
       );
     }
   };
+  const filterCount =
+    state.query.frontends.length +
+    state.query.kinds.length +
+    state.query.tags.length +
+    (state.query.modelFamilies?.length ?? 0) +
+    (state.query.completionFormats?.length ?? 0) +
+    state.query.development.length +
+    state.query.licenses.length;
   return (
     <section
       ref={route}
@@ -173,20 +200,27 @@ export function ProjectsRoute({
           aria-expanded={filtersOpen}
           onClick={() => setFiltersOpen(true)}
         >
-          <FilterIcon />
+          <CategoryIcon name="filter-lines" />
+          {filterCount > 0 ? <b>{filterCount}</b> : null}
         </button>
       </div>
       <ProjectResultsToolbar
         query={state.query}
         resultCount={state.projects.length}
-        kitSelectionActive={kitSelectionActive}
         onQueryChange={onQueryChange}
-        onBeginKitSelection={onBeginKitSelection}
       />
       {hasChangedFilters ? (
         <ActiveFilterChips query={state.query} facets={facets} onQueryChange={onQueryChange} />
       ) : null}
       <div class="tavernary-companion-projects-route__workspace">
+        {filtersOpen && compactFilters ? (
+          <div
+            class="tavernary-companion-filter-backdrop"
+            data-testid="filter-backdrop"
+            aria-hidden="true"
+            onPointerDown={closeFilters}
+          />
+        ) : null}
         <div
           id="tavernary-companion-project-filters"
           ref={filterSurface}
@@ -215,18 +249,16 @@ export function ProjectsRoute({
               aria-label="Close filters"
               onClick={closeFilters}
             >
-              <CloseIcon />
+              <CategoryIcon name="close" />
             </button>
           </header>
           <FilterPanel query={state.query} facets={facets} onQueryChange={onQueryChange} />
         </div>
         <ProjectGrid
           projects={state.projects}
-          onOpenProject={onOpenProject}
           onProjectAction={onProjectAction}
           onManageInSillyTavern={onManageInSillyTavern}
           lifecycleDisabled={lifecycleDisabled}
-          kitSelectionActive={kitSelectionActive}
           selectedKitProjectIds={selectedKitProjectIds}
           onToggleKitSelection={onToggleKitSelection}
           visibleCount={visibleProjectCount}
@@ -241,22 +273,6 @@ export function ProjectsRoute({
         />
       ) : null}
     </section>
-  );
-}
-
-function FilterIcon(): preact.JSX.Element {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-      <path d="M4 7h16M7 12h10M10 17h4" />
-    </svg>
-  );
-}
-
-function CloseIcon(): preact.JSX.Element {
-  return (
-    <svg aria-hidden="true" viewBox="0 0 24 24" fill="none">
-      <path d="m6 6 12 12M18 6 6 18" />
-    </svg>
   );
 }
 

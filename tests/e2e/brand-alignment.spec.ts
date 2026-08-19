@@ -14,15 +14,15 @@ test("shell uses Tavernary's production brand lockup and visual tokens", async (
       name: "Search projects",
     }),
   ).toBeVisible();
-  await expect(page.getByRole("tablist")).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "Browse Companion" })).not.toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Catalog categories" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Browse categories" })).not.toBeVisible();
 
   const tokens = await page.evaluate(() => {
     const root = document.querySelector<HTMLElement>(".tavernary-companion-root")!;
     const header = document.querySelector<HTMLElement>(".tavernary-companion-shell__header")!;
-    const tabs = document.querySelector<HTMLElement>(".tavernary-companion-shell__tabs")!;
+    const tabs = document.querySelector<HTMLElement>(".tavernary-companion-category-navigation")!;
     const activeTab = document.querySelector<HTMLElement>(
-      '.tavernary-companion-shell__tabs [aria-selected="true"]',
+      '.tavernary-companion-category-navigation [aria-pressed="true"]',
     )!;
     const styles = getComputedStyle(root);
     return {
@@ -40,7 +40,7 @@ test("shell uses Tavernary's production brand lockup and visual tokens", async (
     canvas: "rgb(13, 17, 23)",
     header: "rgb(16, 24, 32)",
     navigation: "rgb(18, 26, 31)",
-    active: "rgb(45, 212, 191)",
+    active: "rgb(230, 237, 243)",
     font: expect.stringContaining("Inter Variable"),
     focus: "#5eead4",
     primary: "#e18a24",
@@ -73,14 +73,19 @@ test("mobile brand header stays contained and readable", async ({ page }) => {
       name: "Search projects",
     }),
   ).toBeVisible();
-  await expect(page.getByRole("combobox", { name: "Browse Companion" })).toBeVisible();
-  await expect(page.getByRole("tablist")).not.toBeVisible();
+  const browse = page.getByRole("button", { name: "Browse categories" });
+  await expect(browse).toBeVisible();
+  await expect(page.getByRole("navigation", { name: "Catalog categories" })).not.toBeVisible();
   await page.getByRole("button", { name: "Open filters" }).click();
   await expect(page.getByRole("img", { name: "Tavernary" })).toBeInViewport();
   await page.getByRole("button", { name: "Close filters" }).click();
-  await page.getByRole("combobox", { name: "Browse Companion" }).selectOption("kits");
+  await browse.click();
+  await page
+    .getByRole("group", { name: "Browse categories menu" })
+    .getByRole("button", { name: "Kits" })
+    .click();
   await expect(page.getByRole("img", { name: "Tavernary" })).toBeInViewport();
-  await expect(page.getByRole("combobox", { name: "Browse Companion" })).toHaveValue("kits");
+  await expect(browse).toContainText("Kits");
   await expect(page.getByRole("button", { name: "Kit filters" })).toBeVisible();
   await expect(page.locator(".tavernary-companion-kit-filters")).not.toBeVisible();
   await expect(
@@ -106,6 +111,20 @@ test("desktop filters use Tavernary's persistent flush rail", async ({ page }) =
   await expect(surface).toHaveCSS("border-radius", "0px");
   await expect(surface.getByRole("heading", { name: "Filters" })).toBeVisible();
   await expect(surface.getByText("Refine catalog")).not.toBeVisible();
+
+  const workspace = page.locator(".tavernary-companion-projects-route__workspace");
+  const workspaceBox = await workspace.boundingBox();
+  const routeBox = await page.locator(".tavernary-companion-projects-route").boundingBox();
+  expect(workspaceBox).not.toBeNull();
+  expect(routeBox).not.toBeNull();
+  expect(workspaceBox!.x).toBe(routeBox!.x);
+  expect(
+    await page
+      .locator(".tavernary-companion-project-grid")
+      .evaluate(
+        (grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length,
+      ),
+  ).toBe(3);
 });
 
 test("mobile filters use Tavernary's compact icon and inset refinement sheet", async ({ page }) => {
@@ -134,6 +153,14 @@ test("mobile filters use Tavernary's compact icon and inset refinement sheet", a
   expect(closeBox).not.toBeNull();
   expect(closeBox!.width).toBe(44);
   expect(closeBox!.height).toBe(44);
+  const kindCheckbox = sheet.getByRole("checkbox", { name: "Extension" });
+  const kindCheckboxBox = await kindCheckbox.boundingBox();
+  const kindRowBox = await kindCheckbox.locator("..").boundingBox();
+  expect(kindCheckboxBox).not.toBeNull();
+  expect(kindRowBox).not.toBeNull();
+  expect(kindCheckboxBox!.width).toBe(14);
+  expect(kindCheckboxBox!.height).toBe(14);
+  expect(kindRowBox!.height).toBeGreaterThanOrEqual(44);
 });
 
 test("project cards use Tavernary's surface, evidence hierarchy, and action color", async ({
@@ -148,7 +175,7 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
     .getByRole("searchbox", { name: "Search projects" });
   await search.fill("Alpha");
   const card = page.locator('[data-project-id="alpha"]');
-  const primary = card.getByTestId("project-primary-action");
+  const lifecycle = card.getByTestId("project-lifecycle-action");
   const styles = await card.evaluate((element) => {
     const computed = getComputedStyle(element);
     return {
@@ -172,7 +199,7 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
   const functionIcon = identity.locator('[data-icon="memory-retrieval"]');
   await expect(functionIcon).toBeVisible();
   expect((await functionIcon.boundingBox())?.width).toBe(23);
-  const scan = card.getByRole("img", { name: "TavernKeeper scan: Not assessed" });
+  const scan = card.getByRole("button", { name: "TavernKeeper scan: Not assessed" });
   await expect(scan).toHaveCSS("color", "rgb(130, 144, 153)");
   await expect(scan.locator('[data-icon="scan-fill"]')).toBeVisible();
   expect((await scan.boundingBox())?.width).toBe(18);
@@ -200,12 +227,19 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
     "rgb(168, 179, 186)",
   );
   await expect(card.locator(".license-osi-approved")).toHaveCSS("color", "rgb(87, 197, 163)");
-  await expect(primary).toHaveCSS("background-color", "rgb(225, 138, 36)");
-  const primaryBox = await primary.boundingBox();
-  expect(primaryBox).not.toBeNull();
-  expect(Math.abs(primaryBox!.width - primaryBox!.height)).toBeLessThanOrEqual(1);
-  expect(primaryBox!.height).toBeGreaterThanOrEqual(36);
-  expect(primaryBox!.height).toBeLessThanOrEqual(40);
+  const source = card.getByRole("link", { name: "Alpha" });
+  await expect(source).toHaveAttribute("href", "https://example.com/alpha");
+  await expect(source).toHaveAttribute("target", "_blank");
+  const installBox = await lifecycle.boundingBox();
+  const kit = card.getByRole("button", { name: "Add Alpha to Kit" });
+  const kitBox = await kit.boundingBox();
+  expect(installBox).not.toBeNull();
+  expect(kitBox).not.toBeNull();
+  expect(installBox!.x).toBeLessThan(kitBox!.x);
+  await expect(lifecycle.locator('[data-icon="install"]')).toBeVisible();
+  await expect(kit.getByText("Kit", { exact: true })).toBeVisible();
+  expect(installBox!.height).toBeGreaterThanOrEqual(44);
+  expect(kitBox!.height).toBeGreaterThanOrEqual(44);
 
   await search.fill("Beta Preset");
   const preset = page.locator('[data-project-id="beta-preset"]');
@@ -256,10 +290,41 @@ test("mobile project cards retain Tavernary geometry without horizontal overflow
   ).toBe(0);
 });
 
+test("TavernKeeper assessment stays compact, readable, and contained", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHarness(page);
+  await page
+    .locator(".tavernary-companion-shell__header")
+    .getByRole("searchbox", { name: "Search projects" })
+    .fill("Alpha");
+
+  const trigger = page.getByRole("button", { name: "TavernKeeper scan: Not assessed" });
+  await trigger.click();
+  const assessment = page.getByRole("dialog", { name: "TavernKeeper Scan Results" });
+  await expect(assessment).toBeVisible();
+  await expect(
+    assessment.getByText("This project hasn't been scanned by TavernKeeper."),
+  ).toBeVisible();
+  await expect(assessment).toHaveCSS("text-align", "start");
+  const box = await assessment.boundingBox();
+  const shell = await page.getByTestId("companion-shell").boundingBox();
+  expect(box).not.toBeNull();
+  expect(shell).not.toBeNull();
+  expect(box!.x).toBeGreaterThanOrEqual(shell!.x + 8);
+  expect(box!.x + box!.width).toBeLessThanOrEqual(shell!.x + shell!.width - 8);
+
+  await page.keyboard.press("Escape");
+  await expect(assessment).toHaveCount(0);
+  await expect(trigger).toBeFocused();
+});
+
 test("Kits and Installed reuse the Tavernary card and control system", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await openHarness(page);
-  await page.getByRole("tab", { name: "Kits" }).click();
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Kits" })
+    .click();
   await expect(page.getByRole("button", { name: "Kit filters" })).not.toBeVisible();
   await expect(page.locator(".tavernary-companion-kit-filters")).toBeVisible();
   await page.getByRole("tab", { name: /Personal/ }).click();
@@ -271,7 +336,10 @@ test("Kits and Installed reuse the Tavernary card and control system", async ({ 
     "rgb(225, 138, 36)",
   );
 
-  await page.getByRole("tab", { name: "Installed" }).click();
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Installed" })
+    .click();
   await expect(page.locator(".tavernary-companion-project-card")).toHaveCount(0);
   await expect(page.locator(".tavernary-companion-installed-section")).toHaveCount(1);
   await expect(page.locator(".tavernary-companion-installed-section")).toHaveCSS(
@@ -283,9 +351,13 @@ test("Kits and Installed reuse the Tavernary card and control system", async ({ 
 test("mobile Kits and Installed use the compact shared route grammar", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openHarness(page);
-  const browse = page.getByRole("combobox", { name: "Browse Companion" });
+  const browse = page.getByRole("button", { name: "Browse categories" });
 
-  await browse.selectOption("kits");
+  await browse.click();
+  await page
+    .getByRole("group", { name: "Browse categories menu" })
+    .getByRole("button", { name: "Kits" })
+    .click();
   const kitsToolbar = page.locator(".tavernary-companion-route-toolbar");
   await expect(kitsToolbar).toHaveCSS("display", "flex");
   await expect(kitsToolbar.locator("> strong")).not.toBeVisible();
@@ -296,7 +368,11 @@ test("mobile Kits and Installed use the compact shared route grammar", async ({ 
   expect(kitCard!.x).toBeLessThanOrEqual(16);
   expect(kitCard!.y).toBeLessThanOrEqual(460);
 
-  await browse.selectOption("installed");
+  await browse.click();
+  await page
+    .getByRole("group", { name: "Browse categories menu" })
+    .getByRole("button", { name: "Installed" })
+    .click();
   const installedToolbar = page.locator(".tavernary-companion-route-toolbar");
   await expect(installedToolbar).toHaveCSS("display", "flex");
   await expect(installedToolbar.locator("> strong")).not.toBeVisible();

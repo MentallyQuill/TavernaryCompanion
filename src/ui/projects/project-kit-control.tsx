@@ -1,0 +1,38 @@
+interface ProjectKitControlProps {
+  projectId: string;
+  projectName: string;
+  selected: boolean;
+  onToggle(projectId: string): void;
+}
+
+export function ProjectKitControl({
+  projectId,
+  projectName,
+  selected,
+  onToggle,
+}: ProjectKitControlProps): preact.JSX.Element {
+  return (
+    <button
+      type="button"
+      class="tavernary-companion-project-kit-control"
+      aria-label={selected ? `Remove ${projectName} from selection` : `Add ${projectName} to Kit`}
+      aria-pressed={selected}
+      title={selected ? "Remove from selection" : "Add to Kit"}
+      onClick={() => onToggle(projectId)}
+    >
+      <span class="tavernary-companion-project-kit-control__face" aria-hidden="true">
+        <svg
+          data-kit-glyph={selected ? "remove" : "add"}
+          viewBox="0 0 12 12"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linecap="round"
+        >
+          <path d={selected ? "M1.5 6h9" : "M6 1.5v9M1.5 6h9"} />
+        </svg>
+      </span>
+      <small>Kit</small>
+    </button>
+  );
+}

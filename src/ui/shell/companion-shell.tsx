@@ -2,7 +2,7 @@ import type { ComponentChildren } from "preact";
 import { useEffect, useState } from "preact/hooks";
 
 import type { CatalogSnapshot } from "../../catalog/catalog-client";
-import type { CatalogQuery } from "../../catalog/catalog-core";
+import { DEFAULT_COMPANION_QUERY, type CatalogQuery } from "../../catalog/catalog-core";
 import type { DiscoveryController } from "../../catalog/discovery-controller";
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
 import type { KitDiscoveryController } from "../../kits/kit-discovery-controller";
@@ -12,20 +12,13 @@ import { InstalledRoute } from "../installed/installed-route";
 import { KitInspector } from "../kits/kit-inspector";
 import { KitsRoute } from "../kits/kits-route";
 import { CatalogStatePanel } from "../catalog/catalog-state-panel";
-import { ProjectDetail } from "../projects/project-detail";
 import { ProjectsRoute } from "../projects/projects-route";
 import type { ShellController } from "./shell-controller";
+import { CatalogNavigation } from "./catalog-navigation";
 import { ShellHeader } from "./shell-header";
-import { RouteTabs } from "./route-tabs";
-
-interface ShellProjectStub {
-  id: string;
-  name: string;
-}
 
 interface CompanionShellProps {
   controller: ShellController;
-  projects?: ShellProjectStub[];
   discovery?: DiscoveryController;
   facets?: ProjectFacets;
   onProjectAction?(id: string, action: ProjectPrimaryAction): void;
@@ -61,7 +54,6 @@ const INITIAL_PROJECT_COUNT = 30;
 
 export function CompanionShell({
   controller,
-  projects = [],
   discovery,
   facets,
   onProjectAction,
@@ -135,7 +127,12 @@ export function CompanionShell({
         catalogRefreshing={catalogRefreshing}
         onRefreshCatalog={headerCatalogSnapshot ? () => void onRefreshCatalog() : undefined}
       />
-      <RouteTabs route={state.route} onNavigate={(route) => controller.navigate(route)} />
+      <CatalogNavigation
+        route={state.route}
+        query={discoveryState?.query ?? DEFAULT_COMPANION_QUERY}
+        onNavigate={(route) => controller.navigate(route)}
+        onQueryChange={updateProjectQuery}
+      />
       <main class="tavernary-companion-shell__content">
         <CatalogBoundary
           snapshot={catalogSnapshot}
@@ -151,21 +148,11 @@ export function CompanionShell({
                   state={discoveryState}
                   facets={facets ?? discoveryState.facets}
                   onQueryChange={updateProjectQuery}
-                  onOpenProject={(id) =>
-                    controller.openDetail({ kind: "project", id, focusKey: `project-${id}` })
-                  }
-                  onProjectAction={(id, action) => {
-                    if (action.kind === "view-project") {
-                      controller.openDetail({ kind: "project", id, focusKey: `project-${id}` });
-                    } else {
-                      onProjectAction?.(id, action);
-                    }
-                  }}
+                  onProjectAction={(id, action) => onProjectAction?.(id, action)}
                   onManageInSillyTavern={onOpenExtensionManager}
                   lifecycleDisabled={lifecycleDisabled}
                   kitSelectionActive={kitSelection !== null}
                   selectedKitProjectIds={kitSelection ?? []}
-                  onBeginKitSelection={() => setKitSelection([])}
                   onToggleKitSelection={(projectId) =>
                     setKitSelection((current) => {
                       if (!current) return [projectId];
@@ -184,24 +171,7 @@ export function CompanionShell({
                   onVisibleProjectCountChange={setVisibleProjectCount}
                 />
               ) : (
-                <>
-                  <h2 id="tavernary-companion-projects-heading">Projects</h2>
-                  {projects.map((project) => {
-                    const focusKey = `project-${project.id}`;
-                    return (
-                      <button
-                        type="button"
-                        data-focus-key={focusKey}
-                        aria-label={`View ${project.name}`}
-                        onClick={() =>
-                          controller.openDetail({ kind: "project", id: project.id, focusKey })
-                        }
-                      >
-                        {project.name}
-                      </button>
-                    );
-                  })}
-                </>
+                <h2 id="tavernary-companion-projects-heading">Projects</h2>
               )}
             </>
           ) : null}
@@ -243,9 +213,6 @@ export function CompanionShell({
                   sections={discoveryState.installedSections}
                   refreshing={inventoryRefreshing}
                   onRefresh={onRefreshInventory}
-                  onOpenProject={(id) =>
-                    controller.openDetail({ kind: "project", id, focusKey: `installed-${id}` })
-                  }
                   onAction={(id, action) => onProjectAction?.(id, action)}
                   onManage={onOpenExtensionManager}
                   lifecycleDisabled={lifecycleDisabled}
@@ -256,18 +223,11 @@ export function CompanionShell({
             </>
           ) : null}
           {detail ? (
-            <section aria-label={`${detail.kind} detail`}>
+            <section aria-label="kit detail">
               <button type="button" onClick={() => restoreAfterBack(controller)}>
                 Back
               </button>
-              {detail.kind === "project" && discoveryState?.projectDetails[detail.id] ? (
-                <ProjectDetail
-                  project={discoveryState.projectDetails[detail.id]}
-                  onAction={(action) => onProjectAction?.(detail.id, action)}
-                  onManageInSillyTavern={onOpenExtensionManager}
-                  lifecycleDisabled={lifecycleDisabled}
-                />
-              ) : detail.kind === "kit" && kitInspectors[detail.id] ? (
+              {kitInspectors[detail.id] ? (
                 <KitInspector
                   kit={kitInspectors[detail.id]}
                   disabled={lifecycleDisabled}
@@ -283,7 +243,7 @@ export function CompanionShell({
                   }}
                 />
               ) : (
-                <h2>{projectName(projects, discoveryState, detail.id)}</h2>
+                <h2>{detail.id}</h2>
               )}
             </section>
           ) : null}
@@ -334,16 +294,4 @@ function restoreAfterBack(controller: ShellController): void {
       }
     }
   });
-}
-
-function projectName(
-  projects: ShellProjectStub[],
-  discoveryState: ReturnType<DiscoveryController["read"]> | null,
-  id: string,
-): string {
-  return (
-    projects.find((project) => project.id === id)?.name ??
-    discoveryState?.projects.find((project) => project.id === id)?.name ??
-    id
-  );
 }
