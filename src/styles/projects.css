@@ -407,16 +407,18 @@
 }
 
 .tavernary-companion-activity-summary {
-  display: inline-flex;
+  display: inline-grid;
   grid-column: 1;
   grid-row: 1;
-  align-items: center;
-  gap: 5px;
+  grid-template-rows: auto auto;
+  justify-items: center;
+  row-gap: 2px;
 }
 
 .tavernary-companion-activity-summary > b {
   color: var(--tavernary-color-text-secondary);
-  font-size: 10px;
+  font-size: 8px;
+  line-height: 1;
 }
 
 .tavernary-companion-activity-strip {

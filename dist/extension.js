@@ -16441,6 +16441,11 @@ l.diffed = function(n2) {
   null != e3 && "textarea" === n2.type && "value" in t3 && t3.value !== e3.value && (e3.value = null == t3.value ? "" : t3.value), rn = null;
 };
 
+// src/ui/shared/overlay-portal.ts
+function resolveOverlayPortalTarget(source) {
+  return source?.closest("dialog[open]") ?? document.body;
+}
+
 // src/ui/lifecycle/install-version-chooser.tsx
 var VIEWPORT_MARGIN = 8;
 var ANCHOR_GAP = 8;
@@ -16586,7 +16591,7 @@ function InstallVersionChooser({
         ]
       }
     ),
-    document.body
+    resolveOverlayPortalTarget(anchor)
   );
 }
 function dispatchPreparedInstallChoice(choice, onInstall, onChoose) {
@@ -17192,11 +17197,6 @@ function UninstallIcon() {
       children: /* @__PURE__ */ u3("path", { d: UNINSTALL_PATH })
     }
   );
-}
-
-// src/ui/shared/overlay-portal.ts
-function resolveOverlayPortalTarget(source) {
-  return source?.closest("dialog[open]") ?? document.body;
 }
 
 // src/ui/shared/tooltip.tsx

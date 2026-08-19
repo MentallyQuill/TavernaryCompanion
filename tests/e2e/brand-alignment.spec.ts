@@ -408,7 +408,7 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
   await expect(scan.locator('[data-icon="scan-fill"]')).toBeVisible();
   expect((await scan.boundingBox())?.width).toBe(18);
   await expect(card.locator(".tavernary-companion-activity-strip i")).toHaveCount(12);
-  await expect(card.locator(".tavernary-companion-activity-summary")).toHaveCSS("display", "flex");
+  await expect(card.locator(".tavernary-companion-activity-summary")).toHaveCSS("display", "grid");
   await expect(card.locator(".tavernary-companion-activity-strip i.is-active").first()).toHaveCSS(
     "background-color",
     "rgb(230, 237, 243)",
@@ -542,6 +542,45 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
     "rgb(214, 40, 57)",
   );
   await expect(frontend.locator('[data-icon="frontend"]')).toBeVisible();
+});
+
+test("project activity evidence stays compact at three-column widths", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openHarness(page, "wide-repository-size");
+  await page.addStyleTag({
+    content: ".tavernary-companion-project-grid { grid-template-columns: repeat(3, 286px); }",
+  });
+  await page
+    .locator(".tavernary-companion-shell__header")
+    .getByRole("searchbox", { name: "Search projects" })
+    .fill("Alpha");
+
+  const card = page.locator('[data-project-id="alpha"]');
+  const identity = card.locator(".tavernary-companion-project-card__kind");
+  const development = card.locator(".tavernary-companion-project-card__development");
+  const activityLabel = card.locator(".tavernary-companion-activity-summary > b");
+  const activityStrip = card.locator(".tavernary-companion-activity-strip");
+  const activityAge = card.locator(".tavernary-companion-project-card__activity-age");
+  const community = card.locator(".tavernary-companion-project-card__community");
+  const repositorySize = card.locator(".tavernary-companion-project-card__repository-size");
+  await expect(repositorySize).toHaveText("28.0 MB repo");
+
+  const [identityBox, developmentBox, labelBox, stripBox, ageBox, communityBox, repositoryBox] =
+    await Promise.all([
+      identity.boundingBox(),
+      development.boundingBox(),
+      activityLabel.boundingBox(),
+      activityStrip.boundingBox(),
+      activityAge.boundingBox(),
+      community.boundingBox(),
+      repositorySize.boundingBox(),
+    ]);
+
+  expect(developmentBox!.y).toBeCloseTo(identityBox!.y, 0);
+  expect(stripBox!.y - (labelBox!.y + labelBox!.height)).toBeGreaterThanOrEqual(1);
+  expect(labelBox!.height).toBeLessThan(ageBox!.height);
+  expect(stripBox!.x).toBeCloseTo(communityBox!.x, 0);
+  expect(repositoryBox!.x + repositoryBox!.width).toBeCloseTo(ageBox!.x + ageBox!.width, 0);
 });
 
 test("mobile project cards retain Tavernary geometry without horizontal overflow", async ({

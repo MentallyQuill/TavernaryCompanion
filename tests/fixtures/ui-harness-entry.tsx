@@ -140,7 +140,7 @@ async function main() {
         true,
       ];
       project.community = { stars: 8, forks: 2, watchers: 1, aggregate: 11 };
-      project.repositorySizeKb = 2048;
+      project.repositorySizeKb = scenario === "wide-repository-size" ? 28 * 1024 : 2048;
       project.attribution = {
         owner: { provider: "github", login: "tavernary-author" },
         contributors: [],

@@ -5,6 +5,7 @@ import type {
   PreparedInstallSelection,
   PreparedInstallTargetChoice,
 } from "../../lifecycle/lifecycle-coordinator";
+import { resolveOverlayPortalTarget } from "../shared/overlay-portal";
 
 const VIEWPORT_MARGIN = 8;
 const ANCHOR_GAP = 8;
@@ -168,7 +169,7 @@ export function InstallVersionChooser({
         Cancel
       </button>
     </section>,
-    document.body,
+    resolveOverlayPortalTarget(anchor),
   );
 }
 

@@ -958,15 +958,17 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   white-space: nowrap;
 }
 .tavernary-companion-activity-summary {
-  display: inline-flex;
+  display: inline-grid;
   grid-column: 1;
   grid-row: 1;
-  align-items: center;
-  gap: 5px;
+  grid-template-rows: auto auto;
+  justify-items: center;
+  row-gap: 2px;
 }
 .tavernary-companion-activity-summary > b {
   color: var(--tavernary-color-text-secondary);
-  font-size: 10px;
+  font-size: 8px;
+  line-height: 1;
 }
 .tavernary-companion-activity-strip {
   display: grid;
@@ -3956,14 +3958,15 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   font-size: 14px;
 }
 .tavernary-companion-kit-discard-actions {
-  display: flex;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
-  margin-block-start: 20px;
+  margin-block-start: 16px;
 }
 .tavernary-companion-root .tavernary-companion-kit-discard-actions button {
   display: inline-flex;
-  min-block-size: 36px;
+  inline-size: 100%;
+  min-block-size: 44px;
   align-items: center;
   justify-content: center;
   padding: 0 13px;
@@ -4096,14 +4099,6 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
     background: var(--tavernary-color-bg-overlay);
   }
   .tavernary-companion-kit-builder-footer button {
-    inline-size: 100%;
-    min-block-size: 44px;
-  }
-  .tavernary-companion-kit-discard-actions {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-  }
-  .tavernary-companion-root .tavernary-companion-kit-discard-actions button {
     inline-size: 100%;
     min-block-size: 44px;
   }

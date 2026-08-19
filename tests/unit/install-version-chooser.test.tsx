@@ -175,8 +175,12 @@ describe("InstallVersionChooser", () => {
     expect(onCancel).toHaveBeenCalledOnce();
   });
 
-  it("keeps the chooser in the body top layer without modal focus trapping", () => {
+  it("ports the chooser into its owning open dialog without modal focus trapping", () => {
+    const owner = document.createElement("dialog");
+    owner.setAttribute("open", "");
+    document.body.append(owner);
     const installButton = anchor();
+    owner.append(installButton);
     render(
       <InstallVersionChooser
         projectId="alpha"
@@ -189,7 +193,7 @@ describe("InstallVersionChooser", () => {
     );
 
     const chooser = screen.getByRole("dialog", { name: "Which version would you like?" });
-    expect(chooser.parentElement).toBe(document.body);
+    expect(chooser.parentElement).toBe(owner);
     expect(chooser).not.toHaveAttribute("aria-modal");
     expect(chooser).toHaveStyle({ position: "fixed" });
   });

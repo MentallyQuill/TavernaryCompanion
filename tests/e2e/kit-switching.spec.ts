@@ -251,7 +251,7 @@ test("uses Tavernary's full-screen Kit Builder sheet on mobile", async ({ page }
   await expect(reopenedDraftPill).toBeFocused();
 });
 
-test("matches Tavernary's compact mobile discard confirmation", async ({ page }) => {
+test("keeps Tavernary's discard confirmation compact at every host width", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openHarness(page);
   await page
@@ -286,6 +286,16 @@ test("matches Tavernary's compact mobile discard confirmation", async ({ page })
   await expect(discard).toHaveCSS("border-color", "rgb(140, 47, 53)");
   await expect(keep).toBeFocused();
   await expect(dialog).toHaveScreenshot("kit-discard-mobile-390x844.png");
+
+  await page.setViewportSize({ width: 1024, height: 844 });
+  await expect(dialog.locator(".tavernary-companion-kit-discard-actions")).toHaveCSS(
+    "display",
+    "grid",
+  );
+  await expect(keep).toHaveCSS("font-size", "14px");
+  await expect(keep).toHaveCSS("min-height", "44px");
+  await expect(discard).toHaveCSS("min-height", "44px");
+  await expect(dialog).toHaveScreenshot("kit-discard-wide-host-1024x844.png");
 });
 
 test("reorders Kit members from Tavernary's drag handles", async ({ page }) => {

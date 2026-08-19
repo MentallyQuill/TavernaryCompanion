@@ -1107,15 +1107,16 @@
 }
 
 .tavernary-companion-kit-discard-actions {
-  display: flex;
-  justify-content: flex-end;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: 8px;
-  margin-block-start: 20px;
+  margin-block-start: 16px;
 }
 
 .tavernary-companion-root .tavernary-companion-kit-discard-actions button {
   display: inline-flex;
-  min-block-size: 36px;
+  inline-size: 100%;
+  min-block-size: 44px;
   align-items: center;
   justify-content: center;
   padding: 0 13px;
@@ -1276,16 +1277,6 @@
   }
 
   .tavernary-companion-kit-builder-footer button {
-    inline-size: 100%;
-    min-block-size: 44px;
-  }
-
-  .tavernary-companion-kit-discard-actions {
-    display: grid;
-    grid-template-columns: minmax(0, 1fr);
-  }
-
-  .tavernary-companion-root .tavernary-companion-kit-discard-actions button {
     inline-size: 100%;
     min-block-size: 44px;
   }
