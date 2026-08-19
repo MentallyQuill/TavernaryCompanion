@@ -17198,6 +17198,7 @@ function TavernKeeperScanIndicator({
   const [position, setPosition] = d2(null);
   const triggerRef = A2(null);
   const popoverRef = A2(null);
+  const portalTargetRef = A2(null);
   const firstLinkRef = A2(null);
   const closeTimer = A2(null);
   const pointerOpenState = A2(null);
@@ -17213,21 +17214,26 @@ function TavernKeeperScanIndicator({
   }, []);
   const closePopover = q2(() => {
     clearCloseTimer();
+    portalTargetRef.current = null;
     setOpen(false);
     setPosition(null);
   }, [clearCloseTimer]);
-  const openPopover = q2(() => {
-    clearCloseTimer();
-    if (activeDismiss && activeDismiss !== closePopover) activeDismiss();
-    setOpen(true);
-  }, [clearCloseTimer, closePopover]);
+  const openPopover = q2(
+    (source) => {
+      clearCloseTimer();
+      if (activeDismiss && activeDismiss !== closePopover) activeDismiss();
+      portalTargetRef.current = resolveOverlayPortalTarget(source ?? triggerRef.current);
+      setOpen(true);
+    },
+    [clearCloseTimer, closePopover]
+  );
   const delayClose = q2(() => {
     clearCloseTimer();
     closeTimer.current = setTimeout(closePopover, CLOSE_DELAY);
   }, [clearCloseTimer, closePopover]);
   const openFromPointer = q2(
     (event) => {
-      if (event.pointerType !== "touch") openPopover();
+      if (event.pointerType !== "touch") openPopover(event.currentTarget);
     },
     [openPopover]
   );
@@ -17237,12 +17243,15 @@ function TavernKeeperScanIndicator({
     },
     [open]
   );
-  const togglePopover = q2(() => {
-    const wasOpenBeforePointerFocus = pointerOpenState.current;
-    pointerOpenState.current = null;
-    if (wasOpenBeforePointerFocus === true) closePopover();
-    else openPopover();
-  }, [closePopover, openPopover]);
+  const togglePopover = q2(
+    (event) => {
+      const wasOpenBeforePointerFocus = pointerOpenState.current;
+      pointerOpenState.current = null;
+      if (wasOpenBeforePointerFocus === true) closePopover();
+      else openPopover(event.currentTarget);
+    },
+    [closePopover, openPopover]
+  );
   const containsInteractiveElement = q2((target) => {
     if (!(target instanceof Node)) return false;
     return Boolean(triggerRef.current?.contains(target) || popoverRef.current?.contains(target));
@@ -17333,9 +17342,9 @@ function TavernKeeperScanIndicator({
         class: `tavernary-companion-tavernkeeper-trigger state-${status.state}`,
         onBlur: closeOnFocusExit,
         onClick: togglePopover,
-        onFocus: openPopover,
+        onFocus: (event) => openPopover(event.currentTarget),
         onKeyDown: focusFirstLink,
-        onMouseEnter: openPopover,
+        onMouseEnter: (event) => openPopover(event.currentTarget),
         onMouseLeave: delayClose,
         onPointerDown: rememberPointerOpenState,
         onPointerEnter: openFromPointer,
@@ -17356,8 +17365,8 @@ function TavernKeeperScanIndicator({
           class: "tavernary-companion-tavernkeeper-popover",
           id: popoverId,
           onBlurCapture: closeOnFocusExit,
-          onFocusCapture: openPopover,
-          onMouseEnter: openPopover,
+          onFocusCapture: (event) => openPopover(event.currentTarget),
+          onMouseEnter: (event) => openPopover(event.currentTarget),
           onMouseLeave: delayClose,
           onPointerEnter: openFromPointer,
           onPointerLeave: delayClose,
@@ -17456,7 +17465,7 @@ function TavernKeeperScanIndicator({
           ]
         }
       ),
-      resolveOverlayPortalTarget(triggerRef.current)
+      portalTargetRef.current ?? resolveOverlayPortalTarget(triggerRef.current)
     ) : null
   ] });
 }
