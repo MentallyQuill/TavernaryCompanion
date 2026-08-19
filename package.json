@@ -4,7 +4,7 @@
   "private": true,
   "description": "Tavernary catalog and extension-kit companion for SillyTavern.",
   "type": "module",
-  "license": "MIT",
+  "license": "AGPL-3.0",
   "engines": {
     "node": ">=24 <25"
   },
