@@ -17,6 +17,7 @@ interface FilterGroupProps {
   searchLabel?: string;
   initialVisibleCount?: number;
   kindColors?: boolean;
+  countNoun?: string;
 }
 
 export function FilterGroup({
@@ -28,6 +29,7 @@ export function FilterGroup({
   searchLabel,
   initialVisibleCount = options.length,
   kindColors = false,
+  countNoun = "project",
 }: FilterGroupProps): preact.JSX.Element | null {
   const [search, setSearch] = useState("");
   const [expanded, setExpanded] = useState(false);
@@ -83,7 +85,7 @@ export function FilterGroup({
                 onChange={() => onToggle(option.id)}
               />
               <span>{option.label}</span>
-              <b aria-label={`${option.count} ${option.count === 1 ? "project" : "projects"}`}>
+              <b aria-label={`${option.count} ${option.count === 1 ? countNoun : `${countNoun}s`}`}>
                 {option.count}
               </b>
             </label>

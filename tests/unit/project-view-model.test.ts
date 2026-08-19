@@ -283,6 +283,8 @@ describe("project view models", () => {
     });
 
     expect(sections.find(({ id }) => id === "unknown")?.rows[0]).toMatchObject({
+      internalName: "third-party/Unknown",
+      toggleable: true,
       action: { kind: "manage-in-sillytavern", label: "Manage in SillyTavern" },
     });
   });

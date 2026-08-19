@@ -1,4 +1,5 @@
 import {
+  countKitsForFilter,
   DEFAULT_KIT_QUERY,
   selectKits,
   type CatalogV7,
@@ -18,7 +19,22 @@ export interface KitDiscoveryState {
   query: KitQuery;
   publishedCount: number;
   personalCount: number;
+  facets: KitDiscoveryFacets;
   visible: KitCardViewModel[];
+}
+
+export interface KitDiscoveryFacet {
+  id: string;
+  label: string;
+  count: number;
+}
+
+export interface KitDiscoveryFacets {
+  frontends: KitDiscoveryFacet[];
+  purposes: KitDiscoveryFacet[];
+  modelFamilies: KitDiscoveryFacet[];
+  projects: KitDiscoveryFacet[];
+  availableCount: number;
 }
 
 export class KitDiscoveryController {
@@ -26,7 +42,7 @@ export class KitDiscoveryController {
   #catalog: CatalogV7;
   #personal: PersonalKitV1[];
   #statuses: ReadonlyMap<string, ReconciledKitStatus>;
-  #segment: KitDiscoveryState["segment"] = "published";
+  #segment: KitDiscoveryState["segment"] = "personal";
   #search = "";
   #query: KitQuery = structuredClone(DEFAULT_KIT_QUERY);
   constructor(input: {
@@ -58,6 +74,7 @@ export class KitDiscoveryController {
       query: structuredClone(this.#query),
       publishedCount: this.#catalog.kits.length,
       personalCount: this.#personal.length,
+      facets: this.#facets(),
       visible: structuredClone(this.#segment === "published" ? published : personal),
     };
   }
@@ -90,6 +107,57 @@ export class KitDiscoveryController {
   #emit(): void {
     const state = this.read();
     for (const listener of this.#listeners) listener(state);
+  }
+
+  #facets(): KitDiscoveryFacets {
+    const frontendLabels = new Map<string, string>();
+    const purposeLabels = new Map<string, string>();
+    const modelFamilyLabels = new Map<string, string>();
+    for (const project of this.#catalog.projects) {
+      for (const frontend of project.frontends) frontendLabels.set(frontend.id, frontend.label);
+      for (const family of project.preset?.modelFamilies ?? []) {
+        modelFamilyLabels.set(family.id, family.label);
+      }
+    }
+    for (const kit of this.#catalog.kits) {
+      for (const frontend of kit.frontends) frontendLabels.set(frontend.id, frontend.label);
+      for (const purpose of kit.purposes) purposeLabels.set(purpose.id, purpose.label);
+      for (const family of kit.modelFamilies ?? []) {
+        modelFamilyLabels.set(family.id, family.label);
+      }
+    }
+    const counted = (
+      labels: ReadonlyMap<string, string>,
+      group: "frontends" | "purposes" | "modelFamilies",
+    ) =>
+      [...labels]
+        .map(([id, label]) => ({
+          id,
+          label,
+          count: countKitsForFilter(this.#catalog.kits, this.#query, group, id, this.#search),
+        }))
+        .sort((left, right) => left.label.localeCompare(right.label));
+    return {
+      frontends: counted(frontendLabels, "frontends"),
+      purposes: counted(purposeLabels, "purposes"),
+      modelFamilies: counted(modelFamilyLabels, "modelFamilies"),
+      projects: this.#catalog.projects
+        .map((project) => ({
+          id: project.id,
+          label: project.name,
+          count: selectKits(
+            this.#catalog.kits,
+            { ...this.#query, includesProjectId: project.id },
+            this.#search,
+          ).length,
+        }))
+        .sort((left, right) => left.label.localeCompare(right.label)),
+      availableCount: selectKits(
+        this.#catalog.kits,
+        { ...this.#query, allComponentsAvailable: true },
+        this.#search,
+      ).length,
+    };
   }
 }
 

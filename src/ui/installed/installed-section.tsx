@@ -7,15 +7,21 @@ import { ProjectLifecycleControl } from "../projects/project-lifecycle-control";
 
 interface InstalledSectionProps {
   section: InstalledSectionViewModel;
+  memberships?: ReadonlyMap<string, readonly string[]>;
+  togglingInternalName?: string | null;
   onAction?(id: string, action: ProjectPrimaryAction): void;
   onManage?(): void;
+  onToggleExtension?(projectId: string, internalName: string, enabled: boolean): void;
   lifecycleDisabled?: boolean;
 }
 
 export function InstalledSection({
   section,
+  memberships = new Map(),
+  togglingInternalName = null,
   onAction,
   onManage,
+  onToggleExtension,
   lifecycleDisabled,
 }: InstalledSectionProps): preact.JSX.Element {
   return (
@@ -27,69 +33,112 @@ export function InstalledSection({
       {section.rows.length === 0 ? (
         <p>{emptyExplanation(section.id)}</p>
       ) : (
-        <ul>
+        <div class="tavernary-companion-installed-grid">
           {section.rows.map((row) => (
-            <InstalledRow
+            <InstalledCard
+              key={`${section.id}-${row.id}`}
               row={row}
               sectionId={section.id}
+              kitTitles={memberships.get(row.id) ?? []}
+              toggling={togglingInternalName === row.internalName}
               onAction={onAction}
               onManage={onManage}
+              onToggleExtension={onToggleExtension}
               lifecycleDisabled={lifecycleDisabled}
             />
           ))}
-        </ul>
+        </div>
       )}
     </section>
   );
 }
 
-function InstalledRow({
+function InstalledCard({
   row,
   sectionId,
+  kitTitles,
+  toggling,
   onAction,
   onManage,
+  onToggleExtension,
   lifecycleDisabled,
 }: {
   row: InstalledRowViewModel;
   sectionId: InstalledSectionViewModel["id"];
+  kitTitles: readonly string[];
+  toggling: boolean;
   onAction?: (id: string, action: ProjectPrimaryAction) => void;
   onManage?: () => void;
+  onToggleExtension?: (projectId: string, internalName: string, enabled: boolean) => void;
   lifecycleDisabled?: boolean;
 }): preact.JSX.Element {
   const unknown = sectionId === "unknown" || row.action.kind === "manage-in-sillytavern";
   return (
-    <li>
-      <div>
-        <strong>
-          {row.canonicalUrl ? (
-            <a href={row.canonicalUrl} target="_blank" rel="noopener noreferrer">
-              {row.name}
-            </a>
-          ) : (
-            row.name
-          )}
-        </strong>
-        <span>{row.detail}</span>
-        {row.enabled !== null ? <span>{row.enabled ? "Enabled" : "Disabled"}</span> : null}
-      </div>
-      {unknown ? (
-        <button
-          type="button"
-          aria-label={`Manage ${row.name} in SillyTavern`}
-          onClick={() => onManage?.()}
-        >
-          {row.action.label}
-        </button>
-      ) : (
-        <ProjectLifecycleControl
-          projectName={row.name}
-          action={row.action}
-          disabled={lifecycleDisabled}
-          onAction={(action) => onAction?.(row.id, action)}
-        />
-      )}
-    </li>
+    <article
+      class={`tavernary-companion-installed-card${row.enabled !== null ? " is-installed" : " is-missing"}${row.enabled === false ? " is-disabled" : ""}`}
+    >
+      <header>
+        <span>{sectionLabel(sectionId)}</span>
+        {row.enabled !== null ? <strong>{row.enabled ? "Enabled" : "Disabled"}</strong> : null}
+      </header>
+      <h4>
+        {row.canonicalUrl ? (
+          <a href={row.canonicalUrl} target="_blank" rel="noopener noreferrer">
+            {row.name}
+          </a>
+        ) : (
+          row.name
+        )}
+      </h4>
+      <p>{row.detail}</p>
+      {kitTitles.length ? (
+        <div class="tavernary-companion-installed-memberships">In {kitTitles.join(", ")}</div>
+      ) : null}
+      <footer>
+        {row.toggleable && row.internalName && row.enabled !== null ? (
+          <button
+            type="button"
+            role="switch"
+            class="tavernary-companion-extension-toggle"
+            aria-checked={row.enabled}
+            aria-label={`${row.enabled ? "Disable" : "Enable"} ${row.name}`}
+            disabled={lifecycleDisabled || toggling}
+            onClick={() => onToggleExtension?.(row.id, row.internalName!, !row.enabled)}
+          >
+            <span aria-hidden="true">
+              <i />
+            </span>
+            <b>{toggling ? "Updating…" : row.enabled ? "Enabled" : "Disabled"}</b>
+          </button>
+        ) : null}
+        {unknown ? (
+          <button
+            type="button"
+            aria-label={`Manage ${row.name} in SillyTavern`}
+            onClick={() => onManage?.()}
+          >
+            {row.action.label}
+          </button>
+        ) : (
+          <ProjectLifecycleControl
+            projectName={row.name}
+            action={row.action}
+            disabled={lifecycleDisabled}
+            onAction={(action) => onAction?.(row.id, action)}
+          />
+        )}
+      </footer>
+    </article>
   );
+}
+
+function sectionLabel(id: InstalledSectionViewModel["id"]): string {
+  return {
+    managed: "Companion managed",
+    external: "Installed externally",
+    unknown: "Uncataloged",
+    attention: "Needs attention",
+  }[id];
 }
 
 function emptyExplanation(id: InstalledSectionViewModel["id"]): string {

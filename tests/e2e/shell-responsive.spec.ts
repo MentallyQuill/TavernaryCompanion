@@ -105,6 +105,97 @@ test("shell is constrained by a narrower native popup content box", async ({ pag
   expect(await page.locator("#app").evaluate((app) => app.scrollWidth - app.clientWidth)).toBe(0);
 });
 
+test("native popup becomes a transparent blurred overlay with an external close control", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openHarness(page);
+  await page.evaluate(() => {
+    const root = document.querySelector(".tavernary-companion-root")!;
+    const dialog = document.createElement("dialog");
+    dialog.className = "popup wide_dialogue_popup large_dialogue_popup transparent_dialogue_popup";
+    dialog.style.padding = "4px 14px";
+    dialog.style.border = "1px solid rgb(90 90 90)";
+    dialog.style.background = "rgb(32 32 32)";
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "popup-button-close";
+    close.setAttribute("aria-label", "Close Tavernary Companion");
+    close.textContent = "×";
+    const body = document.createElement("div");
+    body.className = "popup-body";
+    const content = document.createElement("div");
+    content.className = "popup-content";
+    content.append(root);
+    body.append(content);
+    dialog.append(close, body);
+    document.body.append(dialog);
+    dialog.showModal();
+  });
+
+  const styles = await page.locator("dialog.popup").evaluate((dialog) => {
+    const computed = getComputedStyle(dialog);
+    const backdrop = getComputedStyle(dialog, "::backdrop");
+    return {
+      backgroundColor: computed.backgroundColor,
+      borderWidth: computed.borderWidth,
+      padding: computed.padding,
+      backdropFilter: backdrop.backdropFilter,
+      backdropColor: backdrop.backgroundColor,
+    };
+  });
+  expect(styles.backgroundColor).toBe("rgba(0, 0, 0, 0)");
+  expect(styles.borderWidth).toBe("0px");
+  expect(styles.padding).toBe("0px");
+  expect(styles.backdropFilter).toContain("blur");
+  expect(styles.backdropColor).not.toBe("rgba(0, 0, 0, 0)");
+
+  const root = await page.locator(".tavernary-companion-root").boundingBox();
+  const close = await page.getByRole("button", { name: "Close Tavernary Companion" }).boundingBox();
+  expect(root).not.toBeNull();
+  expect(close).not.toBeNull();
+  expect(close!.width).toBeGreaterThanOrEqual(44);
+  expect(close!.height).toBeGreaterThanOrEqual(44);
+  expect(close!.x).toBeGreaterThan(root!.x + root!.width - 8);
+  expect(close!.y).toBeLessThan(root!.y + 8);
+});
+
+test("mobile keeps the native close control above the Companion surface and inside the viewport", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHarness(page);
+  await page.evaluate(() => {
+    const root = document.querySelector(".tavernary-companion-root")!;
+    const dialog = document.createElement("dialog");
+    dialog.className = "popup wide_dialogue_popup large_dialogue_popup transparent_dialogue_popup";
+    const close = document.createElement("button");
+    close.type = "button";
+    close.className = "popup-button-close";
+    close.setAttribute("aria-label", "Close Tavernary Companion");
+    close.textContent = "×";
+    const body = document.createElement("div");
+    body.className = "popup-body";
+    const content = document.createElement("div");
+    content.className = "popup-content";
+    content.append(root);
+    body.append(content);
+    dialog.append(close, body);
+    document.body.append(dialog);
+    dialog.showModal();
+  });
+
+  const root = await page.locator(".tavernary-companion-root").boundingBox();
+  const close = await page.getByRole("button", { name: "Close Tavernary Companion" }).boundingBox();
+  expect(root).not.toBeNull();
+  expect(close).not.toBeNull();
+  expect(root!.y).toBeGreaterThanOrEqual(52);
+  expect(close!.x).toBeGreaterThanOrEqual(0);
+  expect(close!.x + close!.width).toBeLessThanOrEqual(390);
+  expect(close!.y + close!.height).toBeLessThanOrEqual(root!.y - 4);
+  expect(root!.y + root!.height).toBeLessThanOrEqual(844);
+});
+
 for (const viewport of [
   { width: 1440, height: 960, minimumDesktopWidth: 1100 },
   { width: 390, height: 844, minimumDesktopWidth: 0 },

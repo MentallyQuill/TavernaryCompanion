@@ -16,6 +16,7 @@ import {
 import type { ActiveOperation } from "../lifecycle/operation-lock";
 import type { LifecycleReceipt } from "../lifecycle/operation-receipt";
 import type { RemovalImpact } from "../lifecycle/removal-impact";
+import { assertNotCompanionProject } from "../lifecycle/self-protection";
 import { TrustPromptBroker, type PendingTrustPrompt } from "../lifecycle/trust-prompt-broker";
 import type { ProfileStore } from "../state/profile-store";
 import { createKitDiscoveryController } from "../kits/kit-discovery-controller";
@@ -96,6 +97,7 @@ export function CompanionPopupHost({
   );
   const [catalogRefreshing, setCatalogRefreshing] = useState(false);
   const [inventoryRefreshing, setInventoryRefreshing] = useState(false);
+  const [togglingInternalName, setTogglingInternalName] = useState<string | null>(null);
   const [activeOperation, setActiveOperation] = useState<ActiveOperation | null>(
     runtime?.lifecycle.lock.read() ?? null,
   );
@@ -219,6 +221,24 @@ export function CompanionPopupHost({
     }
   };
 
+  const toggleExtension = async (projectId: string, internalName: string, enabled: boolean) => {
+    if (!host) return;
+    setOperationError(null);
+    setTogglingInternalName(internalName);
+    try {
+      assertNotCompanionProject(projectId, enabled ? "enable" : "disable");
+      if (enabled) await host.enable(internalName);
+      else await host.disable(internalName);
+      await refreshInventory();
+    } catch (error) {
+      setOperationError(
+        error instanceof Error ? error.message : "The extension state could not be changed.",
+      );
+    } finally {
+      setTogglingInternalName(null);
+    }
+  };
+
   const requestKitOperation = (kitId: string, operation: KitOperation) => {
     if (!runtime || !store) return;
     const snapshot = runtime.catalog.read();
@@ -303,13 +323,17 @@ export function CompanionPopupHost({
         catalogSnapshot={catalogSnapshot}
         catalogRefreshing={catalogRefreshing}
         inventoryRefreshing={inventoryRefreshing}
+        togglingInternalName={togglingInternalName}
         onRefreshCatalog={refreshCatalog}
         onRefreshInventory={refreshInventory}
+        onToggleExtension={(projectId, internalName, enabled) =>
+          void toggleExtension(projectId, internalName, enabled)
+        }
         onProjectAction={(projectId, action) => void runAction(projectId, action)}
         onOpenExtensionManager={() => void host?.openExtensionManager()}
         onUpdateCompanion={() => void host?.openExtensionManager()}
         onOpenTavernary={() => host?.openExternal("https://tavernary.org/")}
-        lifecycleDisabled={activeOperation !== null}
+        lifecycleDisabled={activeOperation !== null || togglingInternalName !== null}
         kitDiscovery={runtime?.kitDiscovery}
         kitInspectors={kitInspectors}
         onKitAction={requestKitAction}

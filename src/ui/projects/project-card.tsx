@@ -31,9 +31,19 @@ export function ProjectCard({
     project.activity.activeWeeks12 !== null && project.activity.weeklyActivity !== null;
   return (
     <article
-      class={`tavernary-companion-project-card kind-${project.kind}`}
+      class={`tavernary-companion-project-card kind-${project.kind}${project.installed ? " is-installed" : ""}`}
       data-project-id={project.id}
     >
+      <a
+        class="tavernary-companion-project-card__hitarea"
+        href={project.canonicalUrl}
+        target="_blank"
+        rel="noopener noreferrer"
+        aria-label={`Open ${project.displayName} repository`}
+        data-focus-key={`project-${project.id}`}
+      >
+        <span class="tavernary-companion-sr-only">Open {project.displayName} repository</span>
+      </a>
       <header class="tavernary-companion-project-card__top">
         <span
           class="tavernary-companion-project-card__kind"
@@ -101,17 +111,7 @@ export function ProjectCard({
         )}
       </header>
       <div class="tavernary-companion-project-card__title">
-        <h3>
-          <a
-            class="tavernary-companion-project-card__source-link"
-            href={project.canonicalUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            data-focus-key={`project-${project.id}`}
-          >
-            {project.displayName}
-          </a>
-        </h3>
+        <h3>{project.displayName}</h3>
         {project.tavernKeeper ? (
           <TavernKeeperScanIndicator projectId={project.id} status={project.tavernKeeper} />
         ) : null}

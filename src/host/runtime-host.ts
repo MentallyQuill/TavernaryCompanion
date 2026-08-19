@@ -11,7 +11,10 @@ interface SillyTavernExtensionModule {
 }
 
 interface NativePopup {
+  dlg: HTMLDialogElement;
+  closeButton: HTMLElement;
   show(): Promise<unknown>;
+  complete(result: null): Promise<unknown> | unknown;
 }
 
 interface NativePopupConstructor {
@@ -81,16 +84,28 @@ function openTrustedExternalUrl(input: string): void {
   globalThis.open(url.href, "_blank", "noopener,noreferrer");
 }
 
-async function showNativePopup(
+export async function showNativePopup(
   context: RuntimeSillyTavernContext,
   content: HTMLElement,
   options: HostPopupOptions,
 ): Promise<void> {
   const Popup = context.Popup!;
+  let removeBackdropDismissal: () => void = () => undefined;
   const popup = new Popup(content, context.POPUP_TYPE!.DISPLAY, "", {
     wide: options.wide ?? true,
     large: options.large ?? true,
+    transparent: options.transparent ?? false,
     allowVerticalScrolling: options.allowVerticalScrolling ?? false,
+    onOpen: (openedPopup: NativePopup) => {
+      if (!options.dismissOnBackdrop) return;
+      const onPointerDown = (event: PointerEvent) => {
+        if (event.target === openedPopup.dlg) void openedPopup.complete(null);
+      };
+      openedPopup.dlg.addEventListener("pointerdown", onPointerDown);
+      removeBackdropDismissal = () =>
+        openedPopup.dlg.removeEventListener("pointerdown", onPointerDown);
+    },
+    onClose: () => removeBackdropDismissal(),
   });
   await popup.show();
 }

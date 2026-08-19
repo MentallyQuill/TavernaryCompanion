@@ -24,6 +24,8 @@ interface CompanionShellProps {
   onProjectAction?(id: string, action: ProjectPrimaryAction): void;
   onRefreshInventory?(): void | Promise<void>;
   inventoryRefreshing?: boolean;
+  togglingInternalName?: string | null;
+  onToggleExtension?(projectId: string, internalName: string, enabled: boolean): void;
   onOpenExtensionManager?(): void;
   lifecycleDisabled?: boolean;
   kitDiscovery?: KitDiscoveryController;
@@ -59,6 +61,8 @@ export function CompanionShell({
   onProjectAction,
   onRefreshInventory = noRefresh,
   inventoryRefreshing = false,
+  togglingInternalName = null,
+  onToggleExtension,
   onOpenExtensionManager,
   lifecycleDisabled = false,
   kitDiscovery,
@@ -211,10 +215,17 @@ export function CompanionShell({
               {discoveryState ? (
                 <InstalledRoute
                   sections={discoveryState.installedSections}
+                  kits={Object.values(kitInspectors)}
+                  activeKitId={activeKitId}
                   refreshing={inventoryRefreshing}
+                  togglingInternalName={togglingInternalName}
                   onRefresh={onRefreshInventory}
                   onAction={(id, action) => onProjectAction?.(id, action)}
                   onManage={onOpenExtensionManager}
+                  onOpenKit={(id) =>
+                    controller.openDetail({ kind: "kit", id, focusKey: `installed-kit-${id}` })
+                  }
+                  onToggleExtension={onToggleExtension}
                   lifecycleDisabled={lifecycleDisabled}
                 />
               ) : (

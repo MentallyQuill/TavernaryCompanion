@@ -1,12 +1,15 @@
 import type { InventorySnapshot } from "../inventory/inventory-types";
+import { COMPANION_PROJECT_ID } from "../lifecycle/self-protection";
 import type { ProjectPrimaryAction } from "./project-view-model";
 
 export interface InstalledRowViewModel {
   id: string;
   name: string;
   detail: string;
+  internalName: string | null;
   canonicalUrl: string | null;
   enabled: boolean | null;
+  toggleable: boolean;
   action: ProjectPrimaryAction;
 }
 
@@ -31,8 +34,10 @@ export function toInstalledSectionViewModel(
         id: project.id,
         name: project.name,
         detail: extension.folderName,
+        internalName: extension.internalName,
         canonicalUrl: project.canonicalUrl,
         enabled: extension.enabled,
+        toggleable: canToggle(project.id, extension.internalName),
         action: installedAction(extension.type, "Managed by Companion"),
       })),
     },
@@ -43,8 +48,10 @@ export function toInstalledSectionViewModel(
         id: project.id,
         name: project.name,
         detail: extension.folderName,
+        internalName: extension.internalName,
         canonicalUrl: project.canonicalUrl,
         enabled: extension.enabled,
+        toggleable: canToggle(project.id, extension.internalName),
         action: installedAction(extension.type, "Installed outside Companion"),
       })),
     },
@@ -58,8 +65,10 @@ export function toInstalledSectionViewModel(
             ? extension.manifest.display_name
             : extension.folderName,
         detail: extension.internalName,
+        internalName: extension.internalName,
         canonicalUrl: null,
         enabled: extension.enabled,
+        toggleable: canToggle(extension.internalName, extension.internalName),
         action: {
           kind: "manage-in-sillytavern",
           label: "Manage in SillyTavern",
@@ -74,8 +83,10 @@ export function toInstalledSectionViewModel(
         id: record.projectId,
         name: project?.name ?? record.folderName,
         detail: "Managed record is missing from SillyTavern.",
+        internalName: record.internalName,
         canonicalUrl: project?.canonicalUrl ?? null,
         enabled: null,
+        toggleable: false,
         action: {
           kind: "manage-in-sillytavern",
           label: "Manage in SillyTavern",
@@ -84,6 +95,13 @@ export function toInstalledSectionViewModel(
       })),
     },
   ];
+}
+
+function canToggle(projectId: string, internalName: string): boolean {
+  return (
+    projectId !== COMPANION_PROJECT_ID &&
+    !/(?:^|[/_-])tavernary[ _-]?companion(?:$|[/_-])/iu.test(internalName)
+  );
 }
 
 function installedAction(

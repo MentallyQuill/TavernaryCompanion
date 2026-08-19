@@ -24,10 +24,7 @@ export function ShellHeader({
       <div class="tavernary-companion-brand">
         <span class="tavernary-companion-brand__mark" role="img" aria-label="Tavernary" />
         <div class="tavernary-companion-brand__copy">
-          <h1 id="tavernary-companion-heading">
-            Tavernary <span class="tavernary-companion-brand__qualifier">Companion</span>
-          </h1>
-          <p>Where AI roleplay tools gather</p>
+          <h1 id="tavernary-companion-heading">Tavernary</h1>
         </div>
       </div>
       {search ? (

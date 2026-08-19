@@ -108,6 +108,7 @@
 .tavernary-companion-kit-card p {
   flex: 1;
   color: var(--tavernary-color-text-secondary);
+  text-align: start;
 }
 .tavernary-companion-kit-card dl {
   display: flex;
@@ -419,5 +420,176 @@
   .tavernary-companion-kits-route,
   .tavernary-companion-kit-inspector {
     padding: 16px 13px 50px;
+  }
+}
+
+/* Published Kit discovery follows Tavernary's counted filter rail and mobile sheet. */
+.tavernary-companion-published-kit-workspace {
+  display: grid;
+  grid-template-columns: 238px minmax(0, 1fr);
+  min-inline-size: 0;
+  margin-inline: -22px;
+  border-block-start: 1px solid var(--tavernary-color-divider);
+}
+
+.tavernary-companion-kit-filter-panel {
+  min-inline-size: 0;
+  padding: 0 18px 50px;
+  border-inline-end: 1px solid var(--tavernary-color-divider);
+  background: var(--tavernary-color-bg-sidebar);
+}
+
+.tavernary-companion-kit-filter-panel > header {
+  display: flex;
+  min-block-size: 51px;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  padding-block: 12px 8px;
+}
+
+.tavernary-companion-kit-filter-panel > header h3 {
+  margin: 0;
+  color: var(--tavernary-color-text-primary);
+  font-size: 13px;
+  font-weight: 700;
+}
+
+.tavernary-companion-kit-filter-panel > header button {
+  min-block-size: 28px;
+  padding: 4px 7px;
+  border: 0;
+  color: var(--tavernary-color-text-secondary);
+  background: transparent;
+  font-size: 10px;
+}
+
+.tavernary-companion-kit-filter-close,
+.tavernary-companion-kit-filter-backdrop {
+  display: none;
+}
+
+.tavernary-companion-kit-size-filter,
+.tavernary-companion-kit-status-filter {
+  min-inline-size: 0;
+  margin: 0;
+  padding: 18px 0;
+  border: 0;
+  border-block-start: 1px solid var(--tavernary-color-divider);
+}
+
+.tavernary-companion-kit-size-filter legend,
+.tavernary-companion-kit-status-filter legend {
+  margin-block-end: 8px;
+  color: var(--tavernary-color-text-muted);
+  font-size: 10px;
+  font-weight: 800;
+  letter-spacing: 0.11em;
+  text-transform: uppercase;
+}
+
+.tavernary-companion-kit-size-filter label {
+  display: grid;
+  gap: 3px;
+  margin-block-end: 8px;
+  color: var(--tavernary-color-text-secondary);
+  font-size: 10px;
+}
+
+.tavernary-companion-kit-size-filter input {
+  inline-size: 100%;
+  min-block-size: 18px;
+  accent-color: var(--tavernary-color-accent-teal);
+}
+
+.tavernary-companion-kit-size-filter output {
+  display: block;
+  color: var(--tavernary-color-text-muted);
+  font-size: 10px;
+  text-align: center;
+}
+
+.tavernary-companion-published-kit-results {
+  min-inline-size: 0;
+  padding: 14px 22px 60px;
+}
+
+.tavernary-companion-kit-sort {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 7px;
+  margin-block-end: 12px;
+  color: var(--tavernary-color-text-muted);
+  font-size: 10px;
+}
+
+.tavernary-companion-kit-sort select {
+  block-size: 34px;
+  min-block-size: 34px;
+  padding-inline: 8px;
+  border-radius: 6px;
+  font-size: 11px;
+}
+
+@container tavernary-companion (max-width: 719px) {
+  .tavernary-companion-published-kit-workspace {
+    display: block;
+    margin-inline: -13px;
+  }
+
+  .tavernary-companion-published-kit-results {
+    padding: 13px 13px 50px;
+  }
+
+  .tavernary-companion-kit-filter-trigger {
+    display: inline-flex;
+    min-block-size: 36px;
+    align-items: center;
+    margin-block: 0 10px;
+    font-size: 11px;
+  }
+
+  .tavernary-companion-kit-filter-panel {
+    position: absolute;
+    z-index: 121;
+    inset: 0 auto 0 0;
+    display: none;
+    inline-size: min(320px, calc(100% - 44px));
+    max-block-size: 100%;
+    padding-block-end: 28px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    border-inline-end: 1px solid var(--tavernary-color-border-strong);
+    box-shadow: var(--tavernary-shadow-overlay);
+  }
+
+  .tavernary-companion-kit-filter-panel.is-open,
+  .tavernary-companion-kit-filter-close,
+  .tavernary-companion-kit-filter-backdrop {
+    display: block;
+  }
+
+  .tavernary-companion-kit-filter-close {
+    inline-size: 36px;
+    min-inline-size: 36px;
+    block-size: 36px;
+    min-block-size: 36px;
+    margin-inline-start: auto;
+    padding: 0 !important;
+    font-size: 20px !important;
+  }
+
+  .tavernary-companion-kit-filter-backdrop {
+    position: absolute;
+    z-index: 120;
+    inset: 0;
+    inline-size: 100%;
+    block-size: 100%;
+    min-block-size: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 0;
+    background: rgb(0 0 0 / 0.58);
   }
 }

@@ -1,7 +1,6 @@
-import { useEffect, useState } from "preact/hooks";
+import { useCallback, useEffect, useRef, useState } from "preact/hooks";
 import type { KitDiscoveryController } from "../../kits/kit-discovery-controller";
-import type { KitPrimaryAction } from "../../kits/kit-view-model";
-import type { KitCardViewModel } from "../../kits/kit-view-model";
+import type { KitCardViewModel, KitPrimaryAction } from "../../kits/kit-view-model";
 import { KitCard } from "./kit-card";
 import { KitFilterPanel } from "./kit-filter-panel";
 import { KitSwitcher } from "./kit-switcher";
@@ -31,7 +30,42 @@ export function KitsRoute({
 }): preact.JSX.Element {
   const [state, setState] = useState(controller.read());
   const [filtersOpen, setFiltersOpen] = useState(false);
+  const filterTriggerRef = useRef<HTMLButtonElement>(null);
   useEffect(() => controller.subscribe(setState), [controller]);
+
+  const closeFilters = useCallback(() => {
+    setFiltersOpen(false);
+    filterTriggerRef.current?.focus();
+  }, []);
+
+  useEffect(() => {
+    if (!filtersOpen) return;
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeFilters();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [closeFilters, filtersOpen]);
+
+  const kitResults = (kits: readonly KitCardViewModel[]) =>
+    kits.length ? (
+      <div class="tavernary-companion-kit-grid">
+        {kits.map((kit) => (
+          <KitCard
+            key={`${kit.origin}-${kit.id}`}
+            kit={kit}
+            disabled={lifecycleDisabled}
+            onOpen={() => onOpenKit(kit.id)}
+            onAction={(action) => onAction(kit.id, action)}
+          />
+        ))}
+      </div>
+    ) : (
+      <p>No Kits match the current view.</p>
+    );
+
   return (
     <section class="tavernary-companion-kits-route" aria-labelledby="kits-heading">
       <h2 id="kits-heading" class="tavernary-companion-sr-only">
@@ -67,14 +101,6 @@ export function KitsRoute({
         <button
           type="button"
           role="tab"
-          aria-selected={state.segment === "published"}
-          onClick={() => controller.setSegment("published")}
-        >
-          Published <span>{state.publishedCount}</span>
-        </button>
-        <button
-          type="button"
-          role="tab"
           aria-selected={state.segment === "personal"}
           onClick={() => {
             setFiltersOpen(false);
@@ -82,6 +108,14 @@ export function KitsRoute({
           }}
         >
           Personal <span>{state.personalCount}</span>
+        </button>
+        <button
+          type="button"
+          role="tab"
+          aria-selected={state.segment === "published"}
+          onClick={() => controller.setSegment("published")}
+        >
+          Published <span>{state.publishedCount}</span>
         </button>
       </div>
       <label class="tavernary-companion-kit-search">
@@ -97,6 +131,7 @@ export function KitsRoute({
       {state.segment === "published" ? (
         <>
           <button
+            ref={filterTriggerRef}
             type="button"
             class="tavernary-companion-kit-filter-trigger"
             aria-label="Kit filters"
@@ -106,27 +141,40 @@ export function KitsRoute({
           >
             Filters
           </button>
-          <KitFilterPanel
-            query={state.query}
-            open={filtersOpen}
-            onChange={(query) => controller.setQuery(query)}
-          />
-        </>
-      ) : null}
-      {state.visible.length ? (
-        <div class="tavernary-companion-kit-grid">
-          {state.visible.map((kit) => (
-            <KitCard
-              key={`${kit.origin}-${kit.id}`}
-              kit={kit}
-              disabled={lifecycleDisabled}
-              onOpen={() => onOpenKit(kit.id)}
-              onAction={(action) => onAction(kit.id, action)}
+          <div class="tavernary-companion-published-kit-workspace">
+            <KitFilterPanel
+              query={state.query}
+              facets={state.facets}
+              open={filtersOpen}
+              onClose={closeFilters}
+              onChange={(query) => controller.setQuery(query)}
             />
-          ))}
-        </div>
+            <div class="tavernary-companion-published-kit-results">
+              <label class="tavernary-companion-kit-sort">
+                <span>Sort</span>
+                <select
+                  value={state.query.sort}
+                  aria-label="Sort Published Kits"
+                  onChange={(event) =>
+                    controller.setQuery({
+                      ...state.query,
+                      sort: event.currentTarget.value as typeof state.query.sort,
+                    })
+                  }
+                >
+                  <option value="trending">Trending</option>
+                  <option value="newest">Newest</option>
+                  <option value="updated">Recently updated</option>
+                  <option value="alphabetical">Alphabetical</option>
+                  <option value="relevance">Relevance</option>
+                </select>
+              </label>
+              {kitResults(state.visible)}
+            </div>
+          </div>
+        </>
       ) : (
-        <p>No Kits match the current view.</p>
+        kitResults(state.visible)
       )}
     </section>
   );
