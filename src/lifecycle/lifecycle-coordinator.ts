@@ -8,6 +8,11 @@ import { selectTrustPrompts } from "../trust/trust-policy";
 import type { TrustPrompt } from "../trust/trust-types";
 import { evaluateLifecycle } from "./lifecycle-policy";
 import { legacyInstallProvenance } from "./install-target";
+import {
+  InstallTargetPreparationError,
+  prepareInstallTargetChoice,
+  type InstallTargetChoice,
+} from "./install-target-resolver";
 import { OperationLock } from "./operation-lock";
 import { createReceipt, type LifecycleReceipt } from "./operation-receipt";
 import {
@@ -19,6 +24,7 @@ import { COMPANION_PROJECT_ID } from "./self-protection";
 
 export interface LifecycleCoordinator {
   readonly lock: OperationLock;
+  prepareInstall(projectId: string): Promise<InstallTargetChoice>;
   install(projectId: string): Promise<LifecycleReceipt>;
   previewRemoval(projectId: string): Promise<RemovalImpact>;
   remove(projectId: string): Promise<LifecycleReceipt>;
@@ -51,6 +57,25 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
     this.#now = options.now ?? (() => new Date().toISOString());
     this.#createId = options.createId ?? (() => crypto.randomUUID());
     this.lock = options.lock ?? new OperationLock();
+  }
+
+  prepareInstall(projectId: string): Promise<InstallTargetChoice> {
+    const snapshot = this.#getSnapshot();
+    const project =
+      ("catalog" in snapshot
+        ? snapshot.catalog.projects.find(({ id }) => id === projectId)
+        : null) ?? null;
+    if (!project) {
+      return Promise.reject(
+        new InstallTargetPreparationError("This project is not available for installation."),
+      );
+    }
+    return prepareInstallTargetChoice({
+      host: this.#host,
+      snapshot,
+      project,
+      now: this.#now,
+    });
   }
 
   install(projectId: string): Promise<LifecycleReceipt> {

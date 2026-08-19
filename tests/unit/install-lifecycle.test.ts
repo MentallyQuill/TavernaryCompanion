@@ -123,4 +123,36 @@ describe("install lifecycle", () => {
     expect(receipt.safeError).toMatch(/reopen Companion/i);
     expect(fixture.store.read().managedExtensions).toEqual({});
   });
+
+  it("prepares the current project's resolved install target before mutation", async () => {
+    const project = catalogProjectFixture({ id: "alpha", folderName: "Alpha" });
+    const catalog = catalogFixture();
+    catalog.projects = [project];
+    const snapshot: CatalogSnapshot = {
+      state: "ready-current",
+      canMutate: true,
+      checkedAt: "2026-08-19T00:00:00.000Z",
+      catalog,
+    };
+    const host = createFakeHost({
+      capabilities: {
+        pinnedCommitInstall: true,
+        remoteRevisionLookup: true,
+        localRevisionLookup: true,
+      },
+      remoteHeads: { [`${project.install!.repositoryUrl}#`]: "c".repeat(40) },
+    });
+    const coordinator = createLifecycleCoordinator({
+      host,
+      store: new ProfileStore({ extensionSettings: {}, saveSettingsDebounced: () => undefined }),
+      getSnapshot: () => snapshot,
+      confirm: async () => true,
+      now: () => "2026-08-19T12:00:00.000Z",
+    });
+
+    await expect(coordinator.prepareInstall("alpha")).resolves.toMatchObject({
+      kind: "single",
+      target: { kind: "newest", requestedSha: "c".repeat(40) },
+    });
+  });
 });
