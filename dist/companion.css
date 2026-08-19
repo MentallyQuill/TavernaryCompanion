@@ -1701,6 +1701,12 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
     position: static;
     grid-template-columns: minmax(0, 1fr);
   }
+  .tavernary-companion-filter-backdrop {
+    position: absolute;
+    z-index: 7;
+    inset: 0;
+    background: rgb(0 0 0 / 45%);
+  }
   .tavernary-companion-project-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }

@@ -25,6 +25,7 @@ export function ProjectCard({
 }: ProjectCardProps): preact.JSX.Element {
   const selfProtected =
     project.id === COMPANION_PROJECT_ID || project.action.kind === "current-extension";
+  const managedInSillyTavern = selfProtected || project.action.kind === "manage-in-sillytavern";
   const iconName = project.kind === "extension" ? project.primaryFunctionId : project.kind;
   const hasActivityMetrics =
     project.activity.activeWeeks12 !== null && project.activity.weeklyActivity !== null;
@@ -149,7 +150,7 @@ export function ProjectCard({
             {project.installed ? <span>Installed</span> : null}
           </div>
           <footer>
-            {selfProtected ? (
+            {managedInSillyTavern ? (
               <button type="button" onClick={onManageInSillyTavern}>
                 Manage in SillyTavern
               </button>

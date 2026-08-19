@@ -7270,8 +7270,8 @@ function H() {
   }
 }
 function L(n2, l3, u4, t3, i3, r3, o3, e3, f4, c3, a3) {
-  var s3, h3, p3, v3, y3, _2, g2 = t3 && t3.__k || w, m3 = l3.length;
-  for (f4 = T(u4, l3, g2, f4, m3), s3 = 0; s3 < m3; s3++) null != (p3 = u4.__k[s3]) && (h3 = -1 != p3.__i && g2[p3.__i] || d, p3.__i = s3, _2 = q(n2, p3, h3, i3, r3, o3, e3, f4, c3, a3), v3 = p3.__e, p3.ref && h3.ref != p3.ref && (h3.ref && J(h3.ref, null, p3), a3.push(p3.ref, p3.__c || v3, p3)), null == y3 && null != v3 && (y3 = v3), 4 & p3.__u ? (f4 = j(p3, f4, n2), h3.__e && (h3.__e = null)) : "function" == typeof p3.type && void 0 !== _2 ? f4 = _2 : v3 && (f4 = v3.nextSibling), p3.__u &= -7);
+  var s3, h3, p3, v3, y3, _2, g3 = t3 && t3.__k || w, m3 = l3.length;
+  for (f4 = T(u4, l3, g3, f4, m3), s3 = 0; s3 < m3; s3++) null != (p3 = u4.__k[s3]) && (h3 = -1 != p3.__i && g3[p3.__i] || d, p3.__i = s3, _2 = q(n2, p3, h3, i3, r3, o3, e3, f4, c3, a3), v3 = p3.__e, p3.ref && h3.ref != p3.ref && (h3.ref && J(h3.ref, null, p3), a3.push(p3.ref, p3.__c || v3, p3)), null == y3 && null != v3 && (y3 = v3), 4 & p3.__u ? (f4 = j(p3, f4, n2), h3.__e && (h3.__e = null)) : "function" == typeof p3.type && void 0 !== _2 ? f4 = _2 : v3 && (f4 = v3.nextSibling), p3.__u &= -7);
   return u4.__e = y3, f4;
 }
 function T(n2, l3, u4, t3, i3) {
@@ -7528,6 +7528,15 @@ function q2(n2, t3) {
   return o2 = 8, T2(function() {
     return n2;
   }, t3);
+}
+function g2() {
+  var n2 = s2(t2++, 11);
+  if (!n2.__) {
+    for (var u4 = r2.__v; null !== u4 && !u4.__m && null !== u4.__; ) u4 = u4.__;
+    var i3 = u4.__m || (u4.__m = [0, 0]);
+    n2.__ = "P" + i3[0] + "-" + i3[1]++;
+  }
+  return n2.__;
 }
 function j2() {
   for (var n2; n2 = f2.shift(); ) {
@@ -11237,11 +11246,7 @@ function toInstalledSectionViewModel(inventory) {
         detail: extension.folderName,
         canonicalUrl: project2.canonicalUrl,
         enabled: extension.enabled,
-        action: {
-          kind: "uninstall",
-          label: "Uninstall",
-          reason: "Managed by Companion"
-        }
+        action: installedAction(extension.type, "Managed by Companion")
       }))
     },
     {
@@ -11253,11 +11258,7 @@ function toInstalledSectionViewModel(inventory) {
         detail: extension.folderName,
         canonicalUrl: project2.canonicalUrl,
         enabled: extension.enabled,
-        action: {
-          kind: "uninstall",
-          label: "Uninstall",
-          reason: "Installed outside Companion"
-        }
+        action: installedAction(extension.type, "Installed outside Companion")
       }))
     },
     {
@@ -11293,6 +11294,13 @@ function toInstalledSectionViewModel(inventory) {
       }))
     }
   ];
+}
+function installedAction(extensionType, uninstallReason) {
+  return extensionType === "global" ? {
+    kind: "manage-in-sillytavern",
+    label: "Manage in SillyTavern",
+    reason: "Global extensions are managed by SillyTavern."
+  } : { kind: "uninstall", label: "Uninstall", reason: uninstallReason };
 }
 
 // src/lifecycle/self-protection.ts
@@ -11378,16 +11386,18 @@ function isManagedRecord(value) {
 }
 
 // src/catalog/project-view-model.ts
-function installedOwnership(projectId, inventory) {
-  if (inventory.managed.some(({ project: project2 }) => project2.id === projectId)) {
-    return "managed";
+function installedState(projectId, inventory) {
+  const managed = inventory.managed.find(({ project: project2 }) => project2.id === projectId);
+  if (managed) {
+    return { ownership: "managed", removable: managed.extension.type === "local" };
   }
-  if (inventory.external.some(({ project: project2 }) => project2.id === projectId)) {
-    return "external";
+  const external = inventory.external.find(({ project: project2 }) => project2.id === projectId);
+  if (external) {
+    return { ownership: "external", removable: external.extension.type === "local" };
   }
-  return "absent";
+  return { ownership: "absent", removable: false };
 }
-function actionFor(project2, context, ownership) {
+function actionFor(project2, context, installed) {
   if (project2.id === COMPANION_PROJECT_ID) {
     return {
       kind: "current-extension",
@@ -11402,11 +11412,18 @@ function actionFor(project2, context, ownership) {
       reason: "Catalog schema updated; update Companion to restore actions."
     };
   }
-  if (ownership !== "absent") {
+  if (installed.ownership !== "absent" && !installed.removable) {
+    return {
+      kind: "manage-in-sillytavern",
+      label: "Manage in SillyTavern",
+      reason: "Global extensions are managed by SillyTavern."
+    };
+  }
+  if (installed.ownership !== "absent") {
     return {
       kind: "uninstall",
       label: "Uninstall",
-      reason: ownership === "managed" ? "Managed by Companion" : "Installed outside Companion"
+      reason: installed.ownership === "managed" ? "Managed by Companion" : "Installed outside Companion"
     };
   }
   if (project2.kind === "preset") {
@@ -11436,7 +11453,7 @@ function actionFor(project2, context, ownership) {
   return { kind: "install", label: "Install", reason: null };
 }
 function toProjectCardViewModel(project2, context) {
-  const ownership = installedOwnership(project2.id, context.inventory);
+  const installed = installedState(project2.id, context.inventory);
   const now = context.now ?? project2.refreshedAt ?? project2.catalogedAt;
   return {
     id: project2.id,
@@ -11472,10 +11489,10 @@ function toProjectCardViewModel(project2, context) {
       completionFormats: project2.preset.completionFormats.map(({ label: label2 }) => label2)
     } : null,
     tavernKeeper: project2.tavernKeeper,
-    installed: ownership !== "absent",
-    ownership,
+    installed: installed.ownership !== "absent",
+    ownership: installed.ownership,
     kitSelectable: project2.id !== COMPANION_PROJECT_ID && project2.kind === "extension" && project2.frontends.some(({ id }) => id === "sillytavern") && Boolean(project2.install),
-    action: actionFor(project2, context, ownership)
+    action: actionFor(project2, context, installed)
   };
 }
 function projectDisplayName(name) {
@@ -11593,7 +11610,10 @@ var DefaultDiscoveryController = class {
       projects,
       installedSections: toInstalledSectionViewModel(this.#inventory),
       facets: catalog ? {
-        frontends: countedLabels(catalog.projects.map(({ frontends }) => frontends)),
+        frontends: orderFrontendOptionsByPopularity(
+          countedLabels(catalog.projects.map(({ frontends }) => frontends)),
+          catalog.projects
+        ),
         tags: catalog.tagVocabulary.map(({ id, label: label2, description, facet }) => ({
           id,
           label: label2,
@@ -11684,6 +11704,31 @@ function countedLabels(projectLabels) {
     }
   }
   return [...options.values()].sort((left, right) => left.label.localeCompare(right.label));
+}
+function orderFrontendOptionsByPopularity(options, projects) {
+  const scores = /* @__PURE__ */ new Map();
+  for (const project2 of projects) {
+    if (project2.kind !== "frontend" || project2.community === null) continue;
+    for (const frontend of project2.frontends) {
+      const current = scores.get(frontend.id);
+      if (current === void 0 || project2.community.aggregate > current) {
+        scores.set(frontend.id, project2.community.aggregate);
+      }
+    }
+  }
+  return [...options].sort((left, right) => {
+    const leftScore = scores.get(left.id);
+    const rightScore = scores.get(right.id);
+    if (leftScore !== void 0 && rightScore !== void 0) {
+      const scoreOrder = rightScore - leftScore;
+      if (scoreOrder !== 0) return scoreOrder;
+    } else if (leftScore !== void 0) {
+      return -1;
+    } else if (rightScore !== void 0) {
+      return 1;
+    }
+    return left.label.localeCompare(right.label) || left.id.localeCompare(right.id);
+  });
 }
 function createDiscoveryController(options) {
   return new DefaultDiscoveryController(options);
@@ -14488,23 +14533,28 @@ function ProjectLifecycleControl({
   disabled = false,
   onAction
 }) {
+  const disabledReasonId = g2();
   if (action.kind !== "install" && action.kind !== "uninstall") return null;
   const installed = action.kind === "uninstall";
   const label2 = `${action.label} ${projectName}`;
-  return /* @__PURE__ */ u3(
-    "button",
-    {
-      type: "button",
-      class: `tavernary-companion-project-lifecycle${installed ? " is-installed" : ""}`,
-      "data-testid": "project-lifecycle-action",
-      "aria-label": label2,
-      "aria-pressed": installed,
-      title: action.reason ? `${label2} \u2014 ${action.reason}` : label2,
-      disabled,
-      onClick: () => onAction(action),
-      children: /* @__PURE__ */ u3(InstallIcon, {})
-    }
-  );
+  return /* @__PURE__ */ u3(S, { children: [
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        type: "button",
+        class: `tavernary-companion-project-lifecycle${installed ? " is-installed" : ""}`,
+        "data-testid": "project-lifecycle-action",
+        "aria-label": label2,
+        "aria-describedby": disabled ? disabledReasonId : void 0,
+        "aria-pressed": installed,
+        title: action.label,
+        disabled,
+        onClick: () => onAction(action),
+        children: /* @__PURE__ */ u3(InstallIcon, {})
+      }
+    ),
+    disabled ? /* @__PURE__ */ u3("span", { id: disabledReasonId, class: "tavernary-companion-sr-only", children: "Another Companion operation is in progress." }) : null
+  ] });
 }
 
 // src/ui/installed/installed-section.tsx
@@ -15801,9 +15851,9 @@ function ProjectKitControl({
     {
       type: "button",
       class: "tavernary-companion-project-kit-control",
-      "aria-label": `${selected ? "Remove" : "Add"} ${projectName} ${selected ? "from" : "to"} Kit`,
+      "aria-label": selected ? `Remove ${projectName} from selection` : `Add ${projectName} to Kit`,
       "aria-pressed": selected,
-      title: selected ? "Remove from Kit" : "Add to Kit",
+      title: selected ? "Remove from selection" : "Add to Kit",
       onClick: () => onToggle(projectId),
       children: [
         /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-kit-control__face", "aria-hidden": "true", children: /* @__PURE__ */ u3(
@@ -16140,6 +16190,7 @@ function ProjectCard({
   onToggleKitSelection
 }) {
   const selfProtected = project2.id === COMPANION_PROJECT_ID || project2.action.kind === "current-extension";
+  const managedInSillyTavern = selfProtected || project2.action.kind === "manage-in-sillytavern";
   const iconName = project2.kind === "extension" ? project2.primaryFunctionId : project2.kind;
   const hasActivityMetrics = project2.activity.activeWeeks12 !== null && project2.activity.weeklyActivity !== null;
   return /* @__PURE__ */ u3(
@@ -16220,7 +16271,7 @@ function ProjectCard({
               project2.installed ? /* @__PURE__ */ u3("span", { children: "Installed" }) : null
             ] }),
             /* @__PURE__ */ u3("footer", { children: [
-              selfProtected ? /* @__PURE__ */ u3("button", { type: "button", onClick: onManageInSillyTavern, children: "Manage in SillyTavern" }) : /* @__PURE__ */ u3(
+              managedInSillyTavern ? /* @__PURE__ */ u3("button", { type: "button", onClick: onManageInSillyTavern, children: "Manage in SillyTavern" }) : /* @__PURE__ */ u3(
                 ProjectLifecycleControl,
                 {
                   projectName: project2.displayName,
@@ -16427,7 +16478,7 @@ function ProjectsRoute({
       let parent = branch.parentElement;
       while (parent) {
         for (const child of parent.children) {
-          if (child !== branch && child instanceof HTMLElement) {
+          if (child !== branch && child instanceof HTMLElement && !child.classList.contains("tavernary-companion-filter-backdrop")) {
             inerted.push({ element: child, inert: child.inert });
             child.inert = true;
           }
@@ -16517,6 +16568,15 @@ function ProjectsRoute({
         ),
         hasChangedFilters ? /* @__PURE__ */ u3(ActiveFilterChips, { query: state.query, facets, onQueryChange }) : null,
         /* @__PURE__ */ u3("div", { class: "tavernary-companion-projects-route__workspace", children: [
+          filtersOpen && compactFilters ? /* @__PURE__ */ u3(
+            "div",
+            {
+              class: "tavernary-companion-filter-backdrop",
+              "data-testid": "filter-backdrop",
+              "aria-hidden": "true",
+              onPointerDown: closeFilters
+            }
+          ) : null,
           /* @__PURE__ */ u3(
             "div",
             {

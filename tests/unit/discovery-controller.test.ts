@@ -68,6 +68,35 @@ describe("DiscoveryController", () => {
     ]);
   });
 
+  it("orders compatible frontends by the strongest frontend-project community signal", () => {
+    const current = snapshot();
+    const popularRisu = catalogProjectFixture({
+      id: "risu-frontend",
+      kind: "frontend",
+      folderName: null,
+      frontend: "risuai",
+    });
+    popularRisu.community = { stars: 80, forks: 10, watchers: 10, aggregate: 100 };
+    const quieterSillyTavern = catalogProjectFixture({
+      id: "sillytavern-frontend",
+      kind: "frontend",
+      folderName: null,
+      frontend: "sillytavern",
+    });
+    quieterSillyTavern.community = { stars: 20, forks: 5, watchers: 5, aggregate: 30 };
+    const unscoredAgnai = catalogProjectFixture({
+      id: "agnai-extension",
+      frontend: "agnai",
+    });
+    current.catalog.projects.push(quieterSillyTavern, popularRisu, unscoredAgnai);
+
+    expect(
+      createDiscoveryController({ snapshot: current, inventory })
+        .read()
+        .facets?.frontends.map(({ id }) => id),
+    ).toEqual(["risuai", "sillytavern", "agnai"]);
+  });
+
   it("derives counted filter vocabularies and tag facet metadata from the full catalog", () => {
     const current = snapshot();
     current.catalog.tagVocabulary = [

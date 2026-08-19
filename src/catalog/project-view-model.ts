@@ -76,23 +76,27 @@ export interface ProjectViewModelContext {
   now?: string;
 }
 
-function installedOwnership(
-  projectId: string,
-  inventory: InventorySnapshot,
-): "managed" | "external" | "absent" {
-  if (inventory.managed.some(({ project }) => project.id === projectId)) {
-    return "managed";
+interface InstalledState {
+  ownership: "managed" | "external" | "absent";
+  removable: boolean;
+}
+
+function installedState(projectId: string, inventory: InventorySnapshot): InstalledState {
+  const managed = inventory.managed.find(({ project }) => project.id === projectId);
+  if (managed) {
+    return { ownership: "managed", removable: managed.extension.type === "local" };
   }
-  if (inventory.external.some(({ project }) => project.id === projectId)) {
-    return "external";
+  const external = inventory.external.find(({ project }) => project.id === projectId);
+  if (external) {
+    return { ownership: "external", removable: external.extension.type === "local" };
   }
-  return "absent";
+  return { ownership: "absent", removable: false };
 }
 
 function actionFor(
   project: CatalogProject,
   context: ProjectViewModelContext,
-  ownership: "managed" | "external" | "absent",
+  installed: InstalledState,
 ): ProjectPrimaryAction {
   if (project.id === COMPANION_PROJECT_ID) {
     return {
@@ -108,11 +112,19 @@ function actionFor(
       reason: "Catalog schema updated; update Companion to restore actions.",
     };
   }
-  if (ownership !== "absent") {
+  if (installed.ownership !== "absent" && !installed.removable) {
+    return {
+      kind: "manage-in-sillytavern",
+      label: "Manage in SillyTavern",
+      reason: "Global extensions are managed by SillyTavern.",
+    };
+  }
+  if (installed.ownership !== "absent") {
     return {
       kind: "uninstall",
       label: "Uninstall",
-      reason: ownership === "managed" ? "Managed by Companion" : "Installed outside Companion",
+      reason:
+        installed.ownership === "managed" ? "Managed by Companion" : "Installed outside Companion",
     };
   }
   if (project.kind === "preset") {
@@ -146,7 +158,7 @@ export function toProjectCardViewModel(
   project: CatalogProject,
   context: ProjectViewModelContext,
 ): ProjectCardViewModel {
-  const ownership = installedOwnership(project.id, context.inventory);
+  const installed = installedState(project.id, context.inventory);
   const now = context.now ?? project.refreshedAt ?? project.catalogedAt;
   return {
     id: project.id,
@@ -186,14 +198,14 @@ export function toProjectCardViewModel(
         }
       : null,
     tavernKeeper: project.tavernKeeper,
-    installed: ownership !== "absent",
-    ownership,
+    installed: installed.ownership !== "absent",
+    ownership: installed.ownership,
     kitSelectable:
       project.id !== COMPANION_PROJECT_ID &&
       project.kind === "extension" &&
       project.frontends.some(({ id }) => id === "sillytavern") &&
       Boolean(project.install),
-    action: actionFor(project, context, ownership),
+    action: actionFor(project, context, installed),
   };
 }
 

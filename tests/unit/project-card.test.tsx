@@ -92,6 +92,7 @@ describe("ProjectCard", () => {
     expect(document.querySelectorAll(".tavernary-companion-activity-strip i")).toHaveLength(12);
     const install = screen.getByRole("button", { name: "Install Alpha" });
     expect(install).toHaveAttribute("aria-pressed", "false");
+    expect(install).toHaveAttribute("title", "Install");
     expect(install.querySelector('svg[data-icon="install"]')).not.toBeNull();
     expect(screen.queryByRole("button", { name: /details/i })).not.toBeInTheDocument();
 
@@ -328,6 +329,43 @@ describe("ProjectCard", () => {
     expect(screen.getByRole("button", { name: "Manage in SillyTavern" })).toBeVisible();
   });
 
+  it("renders host-owned global installations as SillyTavern management actions", () => {
+    const onManage = vi.fn();
+    render(
+      <ProjectCard
+        project={project({
+          installed: true,
+          ownership: "external",
+          action: {
+            kind: "manage-in-sillytavern",
+            label: "Manage in SillyTavern",
+            reason: "Global extensions are managed by SillyTavern.",
+          },
+        })}
+        onAction={vi.fn()}
+        onManageInSillyTavern={onManage}
+      />,
+    );
+
+    const manage = screen.getByRole("button", { name: "Manage in SillyTavern" });
+    expect(screen.queryByRole("button", { name: /Uninstall Alpha/ })).not.toBeInTheDocument();
+    fireEvent.click(manage);
+    expect(onManage).toHaveBeenCalledOnce();
+  });
+
+  it("describes why a lifecycle action is temporarily disabled", () => {
+    render(<ProjectCard project={project()} onAction={vi.fn()} lifecycleDisabled />);
+
+    const install = screen.getByRole("button", { name: "Install Alpha" });
+    const descriptionId = install.getAttribute("aria-describedby");
+    expect(install).toBeDisabled();
+    expect(install).toHaveAttribute("title", "Install");
+    expect(descriptionId).toBeTruthy();
+    expect(document.getElementById(descriptionId!)).toHaveTextContent(
+      "Another Companion operation is in progress.",
+    );
+  });
+
   it("shows an always-available plus/minus Kit control for eligible projects", () => {
     const toggle = vi.fn();
     const { rerender } = render(
@@ -358,8 +396,9 @@ describe("ProjectCard", () => {
         onToggleKitSelection={toggle}
       />,
     );
-    const remove = screen.getByRole("button", { name: "Remove Alpha from Kit" });
+    const remove = screen.getByRole("button", { name: "Remove Alpha from selection" });
     expect(remove).toHaveAttribute("aria-pressed", "true");
+    expect(remove).toHaveAttribute("title", "Remove from selection");
     expect(remove.querySelector('svg[data-kit-glyph="remove"]')).not.toBeNull();
   });
 });

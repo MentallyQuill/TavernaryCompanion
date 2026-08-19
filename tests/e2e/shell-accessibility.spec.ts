@@ -28,6 +28,16 @@ test("filter sheet closes with Escape and returns focus", async ({ page }) => {
   await expect(trigger).toBeFocused();
 });
 
+test("filter sheet closes from its backdrop and returns focus", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHarness(page);
+  const trigger = page.getByRole("button", { name: "Open filters" });
+  await trigger.click();
+  await page.getByTestId("filter-backdrop").click({ position: { x: 2, y: 2 } });
+  await expect(page.getByRole("dialog", { name: "Project filters" })).toBeHidden();
+  await expect(trigger).toBeFocused();
+});
+
 test("filter sheet traps focus, clears safely, and releases modal state on desktop", async ({
   page,
 }) => {

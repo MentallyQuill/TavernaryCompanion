@@ -221,6 +221,17 @@ describe("ProjectsRoute", () => {
     expect(trigger).toHaveAttribute("aria-expanded", "false");
   });
 
+  it("closes the compact filter surface from its backdrop and restores focus", async () => {
+    render(<ProjectsRoute state={state()} onQueryChange={vi.fn()} />);
+    const trigger = screen.getByRole("button", { name: "Open filters" });
+    fireEvent.click(trigger);
+
+    fireEvent.pointerDown(screen.getByTestId("filter-backdrop"));
+
+    await vi.waitFor(() => expect(trigger).toHaveFocus());
+    expect(screen.queryByRole("dialog", { name: "Project filters" })).not.toBeInTheDocument();
+  });
+
   it("clears filters from the persistent filter header", () => {
     const onQueryChange = vi.fn();
     const current = state();

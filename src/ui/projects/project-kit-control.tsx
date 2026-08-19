@@ -15,9 +15,9 @@ export function ProjectKitControl({
     <button
       type="button"
       class="tavernary-companion-project-kit-control"
-      aria-label={`${selected ? "Remove" : "Add"} ${projectName} ${selected ? "from" : "to"} Kit`}
+      aria-label={selected ? `Remove ${projectName} from selection` : `Add ${projectName} to Kit`}
       aria-pressed={selected}
-      title={selected ? "Remove from Kit" : "Add to Kit"}
+      title={selected ? "Remove from selection" : "Add to Kit"}
       onClick={() => onToggle(projectId)}
     >
       <span class="tavernary-companion-project-kit-control__face" aria-hidden="true">

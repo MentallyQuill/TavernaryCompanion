@@ -33,11 +33,7 @@ export function toInstalledSectionViewModel(
         detail: extension.folderName,
         canonicalUrl: project.canonicalUrl,
         enabled: extension.enabled,
-        action: {
-          kind: "uninstall",
-          label: "Uninstall",
-          reason: "Managed by Companion",
-        },
+        action: installedAction(extension.type, "Managed by Companion"),
       })),
     },
     {
@@ -49,11 +45,7 @@ export function toInstalledSectionViewModel(
         detail: extension.folderName,
         canonicalUrl: project.canonicalUrl,
         enabled: extension.enabled,
-        action: {
-          kind: "uninstall",
-          label: "Uninstall",
-          reason: "Installed outside Companion",
-        },
+        action: installedAction(extension.type, "Installed outside Companion"),
       })),
     },
     {
@@ -92,4 +84,17 @@ export function toInstalledSectionViewModel(
       })),
     },
   ];
+}
+
+function installedAction(
+  extensionType: "local" | "global",
+  uninstallReason: string,
+): ProjectPrimaryAction {
+  return extensionType === "global"
+    ? {
+        kind: "manage-in-sillytavern",
+        label: "Manage in SillyTavern",
+        reason: "Global extensions are managed by SillyTavern.",
+      }
+    : { kind: "uninstall", label: "Uninstall", reason: uninstallReason };
 }

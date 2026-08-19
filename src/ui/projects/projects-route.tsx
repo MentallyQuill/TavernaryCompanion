@@ -103,7 +103,11 @@ export function ProjectsRoute({
       let parent = branch.parentElement;
       while (parent) {
         for (const child of parent.children) {
-          if (child !== branch && child instanceof HTMLElement) {
+          if (
+            child !== branch &&
+            child instanceof HTMLElement &&
+            !child.classList.contains("tavernary-companion-filter-backdrop")
+          ) {
             inerted.push({ element: child, inert: child.inert });
             child.inert = true;
           }
@@ -209,6 +213,14 @@ export function ProjectsRoute({
         <ActiveFilterChips query={state.query} facets={facets} onQueryChange={onQueryChange} />
       ) : null}
       <div class="tavernary-companion-projects-route__workspace">
+        {filtersOpen && compactFilters ? (
+          <div
+            class="tavernary-companion-filter-backdrop"
+            data-testid="filter-backdrop"
+            aria-hidden="true"
+            onPointerDown={closeFilters}
+          />
+        ) : null}
         <div
           id="tavernary-companion-project-filters"
           ref={filterSurface}

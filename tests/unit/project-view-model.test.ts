@@ -202,6 +202,49 @@ describe("project view models", () => {
     },
   );
 
+  it.each(["managed", "external"] as const)(
+    "sends a global %s installation to SillyTavern management",
+    (ownership) => {
+      const project = catalogProjectFixture();
+      const extension = {
+        internalName: "third-party/Alpha",
+        folderName: "Alpha",
+        enabled: true,
+        type: "global" as const,
+        manifest: null,
+      };
+      const inventory: InventorySnapshot = {
+        ...emptyInventory,
+        [ownership]: [
+          ownership === "managed"
+            ? {
+                project,
+                extension,
+                record: {
+                  projectId: project.id,
+                  internalName: extension.internalName,
+                  folderName: extension.folderName,
+                  installedAt: "2026-08-18T00:00:00.000Z",
+                  installedBy: "individual" as const,
+                },
+              }
+            : { project, extension },
+        ],
+      };
+
+      expect(
+        toProjectCardViewModel(project, { snapshot: readySnapshot(), inventory }).action,
+      ).toEqual({
+        kind: "manage-in-sillytavern",
+        label: "Manage in SillyTavern",
+        reason: "Global extensions are managed by SillyTavern.",
+      });
+      expect(
+        toInstalledSectionViewModel(inventory).find(({ id }) => id === ownership)?.rows[0]?.action,
+      ).toMatchObject({ kind: "manage-in-sillytavern", label: "Manage in SillyTavern" });
+    },
+  );
+
   it("makes Companion and incompatible-schema actions non-mutating", () => {
     const self = catalogProjectFixture({
       id: "mentallyquill-tavernary-companion",

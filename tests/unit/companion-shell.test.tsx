@@ -92,7 +92,7 @@ describe("CompanionShell", () => {
     fireEvent.click(add);
 
     expect(screen.getByText("1 selected")).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Remove Alpha from Kit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Remove Alpha from selection" }));
     expect(screen.getByText("0 selected")).toBeVisible();
   });
 
