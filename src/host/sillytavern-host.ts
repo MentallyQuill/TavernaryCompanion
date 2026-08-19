@@ -239,6 +239,7 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
       throw new HostOperationError(
         "inspectUpdate",
         "This version of SillyTavern cannot check updates safely.",
+        { status: 404 },
       );
     }
     if (!response.ok) {

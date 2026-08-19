@@ -155,7 +155,20 @@ export class FakeHost implements HostExtensionAdapter {
     if (this.#installedRevisions[key] !== input.expectedCurrentSha) {
       throw new HostOperationError("update", "The installed extension changed before updating.");
     }
-    this.#installedRevisions[key] = this.#mismatchResults[input.targetSha] ?? input.targetSha;
+    const installedSha = this.#mismatchResults[input.targetSha] ?? input.targetSha;
+    this.#installedRevisions[key] = installedSha;
+    const inspection = this.#updateInspections[key];
+    if (inspection) {
+      inspection.installedSha = installedSha;
+      inspection.newestRelationship =
+        installedSha === inspection.newestSha ? "equal" : inspection.newestRelationship;
+      inspection.candidateRelationships = Object.fromEntries(
+        Object.entries(inspection.candidateRelationships).map(([sha, relationship]) => [
+          sha,
+          sha === installedSha ? "equal" : relationship === "behind" ? "ahead" : relationship,
+        ]),
+      );
+    }
   }
 
   async remove(input: { internalName: string; type: "local" | "global" }): Promise<void> {

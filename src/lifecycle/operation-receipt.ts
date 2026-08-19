@@ -16,7 +16,7 @@ export interface LifecycleReceiptStep {
 
 export interface LifecycleReceipt extends Record<string, unknown> {
   id: string;
-  kind: "install" | "remove";
+  kind: "install" | "update" | "remove";
   projectId: string;
   projectName: string;
   startedAt: string;
@@ -32,7 +32,7 @@ export interface LifecycleReceipt extends Record<string, unknown> {
 
 interface CreateReceiptInput {
   id: string;
-  kind: "install" | "remove";
+  kind: "install" | "update" | "remove";
   projectId: string;
   projectName: string;
   startedAt: string;
