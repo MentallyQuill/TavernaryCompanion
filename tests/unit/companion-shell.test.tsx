@@ -25,10 +25,10 @@ describe("CompanionShell", () => {
     const controller = createShellController({ initialRoute: "installed" });
     render(<CompanionShell controller={controller} />);
 
-    expect(screen.getByRole("heading", { name: "Tavernary Companion" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Tavernary" })).toBeVisible();
     expect(screen.getByRole("img", { name: "Tavernary" })).toBeVisible();
-    expect(screen.getByText("Where AI roleplay tools gather")).toBeVisible();
-    expect(screen.getByText("Companion", { selector: "span" })).toBeVisible();
+    expect(screen.queryByText("Where AI roleplay tools gather")).not.toBeInTheDocument();
+    expect(screen.queryByText("Companion", { selector: "span" })).not.toBeInTheDocument();
     expect(screen.getByRole("navigation", { name: "Catalog categories" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Installed" })).toHaveAttribute(
       "aria-pressed",
@@ -120,7 +120,7 @@ describe("CompanionShell", () => {
     fireEvent(window, new PopStateEvent("popstate"));
 
     expect(screen.queryByRole("button", { name: "Back" })).not.toBeInTheDocument();
-    expect(screen.getByRole("heading", { name: "Tavernary Companion" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Tavernary" })).toBeVisible();
   });
 
   it("dispatches the close intent", () => {
@@ -237,6 +237,7 @@ describe("CompanionShell", () => {
       />,
     );
 
+    fireEvent.click(screen.getByRole("tab", { name: /Published/u }));
     fireEvent.click(screen.getByRole("button", { name: "Review" }));
     expect(screen.getByRole("heading", { name: "Changed Kit" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Back" })).toBeVisible();

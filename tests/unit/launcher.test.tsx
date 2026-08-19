@@ -65,8 +65,14 @@ it("opens one native popup and focuses it when the launcher is clicked again", a
   await waitFor(() => expect(showPopup).toHaveBeenCalledTimes(1));
   const content = showPopup.mock.calls[0][0];
   expect(content).toHaveAttribute("data-tavernary-companion-popup");
-  expect(content).toHaveTextContent("Tavernary Companion");
-  expect(showPopup.mock.calls[0][1]).toMatchObject({ wide: true, large: true });
+  expect(content).toHaveTextContent("Tavernary");
+  expect(content).not.toHaveTextContent("Where AI roleplay tools gather");
+  expect(showPopup.mock.calls[0][1]).toMatchObject({
+    wide: true,
+    large: true,
+    transparent: true,
+    dismissOnBackdrop: true,
+  });
 
   launcher.button.focus();
   fireEvent.click(launcher.button);

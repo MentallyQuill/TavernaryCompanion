@@ -13,6 +13,8 @@ export interface HostPopupOptions {
   title?: string;
   wide?: boolean;
   large?: boolean;
+  transparent?: boolean;
+  dismissOnBackdrop?: boolean;
   allowVerticalScrolling?: boolean;
 }
 

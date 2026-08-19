@@ -69,7 +69,8 @@ describe("ProjectCard", () => {
       />,
     );
 
-    const link = screen.getByRole("link", { name: "Alpha" });
+    const link = screen.getByRole("link", { name: "Open Alpha repository" });
+    expect(link).toHaveClass("tavernary-companion-project-card__hitarea");
     expect(link).toHaveAttribute("href", "https://example.test/repo");
     expect(link).toHaveAttribute("target", "_blank");
     expect(link).toHaveAttribute("rel", expect.stringContaining("noopener"));
@@ -240,8 +241,10 @@ describe("ProjectCard", () => {
       />,
     );
 
-    expect(screen.getByRole("link", { name: "Alpha" })).toBeVisible();
-    expect(screen.queryByRole("link", { name: "SillyTavern Alpha" })).not.toBeInTheDocument();
+    expect(screen.getByRole("link", { name: "Open Alpha repository" })).toBeVisible();
+    expect(
+      screen.queryByRole("link", { name: "Open SillyTavern Alpha repository" }),
+    ).not.toBeInTheDocument();
   });
 
   it("uses Tavernary chip and license semantics without invented compatibility", () => {
@@ -267,7 +270,7 @@ describe("ProjectCard", () => {
   });
 
   it("keeps destructive uninstall actions visibly labeled", () => {
-    render(
+    const { container } = render(
       <ProjectCard
         project={project({
           installed: true,
@@ -282,6 +285,7 @@ describe("ProjectCard", () => {
     expect(uninstall).toHaveAttribute("aria-pressed", "true");
     expect(uninstall.querySelector('svg[data-icon="install"]')).not.toBeNull();
     expect(uninstall).toHaveClass("is-installed");
+    expect(container.querySelector("article")).toHaveClass("is-installed");
   });
 
   it("explains browse-only actions without presenting them as installable", () => {

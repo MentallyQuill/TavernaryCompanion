@@ -7,8 +7,8 @@ test("shell uses Tavernary's production brand lockup and visual tokens", async (
   await openHarness(page);
 
   await expect(page.getByRole("img", { name: "Tavernary" })).toBeVisible();
-  await expect(page.getByText("Where AI roleplay tools gather")).toBeVisible();
-  await expect(page.getByText("Companion", { exact: true })).toBeVisible();
+  await expect(page.getByText("Where AI roleplay tools gather")).toHaveCount(0);
+  await expect(page.getByText("Companion", { exact: true })).toHaveCount(0);
   await expect(
     page.locator(".tavernary-companion-shell__header").getByRole("searchbox", {
       name: "Search projects",
@@ -25,6 +25,11 @@ test("shell uses Tavernary's production brand lockup and visual tokens", async (
       '.tavernary-companion-category-navigation [aria-pressed="true"]',
     )!;
     const styles = getComputedStyle(root);
+    const wordmark = getComputedStyle(document.querySelector(".tavernary-companion-brand h1")!);
+    const freshness = getComputedStyle(
+      document.querySelector(".tavernary-companion-catalog-freshness")!,
+    );
+    const refresh = getComputedStyle(document.querySelector('[aria-label="Refresh catalog"]')!);
     return {
       canvas: getComputedStyle(root).backgroundColor,
       header: getComputedStyle(header).backgroundColor,
@@ -33,6 +38,10 @@ test("shell uses Tavernary's production brand lockup and visual tokens", async (
       font: styles.fontFamily,
       focus: styles.getPropertyValue("--tavernary-color-focus-ring").trim(),
       primary: styles.getPropertyValue("--tavernary-color-action-primary-bg").trim(),
+      wordmarkSize: Number.parseFloat(wordmark.fontSize),
+      freshnessSize: Number.parseFloat(freshness.fontSize),
+      refreshSize: Number.parseFloat(refresh.fontSize),
+      refreshHeight: Number.parseFloat(refresh.height),
     };
   });
 
@@ -44,7 +53,15 @@ test("shell uses Tavernary's production brand lockup and visual tokens", async (
     font: expect.stringContaining("Inter Variable"),
     focus: "#5eead4",
     primary: "#e18a24",
+    wordmarkSize: expect.any(Number),
+    freshnessSize: expect.any(Number),
+    refreshSize: expect.any(Number),
+    refreshHeight: expect.any(Number),
   });
+  expect(tokens.wordmarkSize).toBeLessThanOrEqual(22);
+  expect(tokens.freshnessSize).toBeLessThanOrEqual(11);
+  expect(tokens.refreshSize).toBeLessThanOrEqual(11);
+  expect(tokens.refreshHeight).toBeLessThanOrEqual(34);
 });
 
 test("mobile brand header stays contained and readable", async ({ page }) => {
@@ -56,18 +73,15 @@ test("mobile brand header stays contained and readable", async ({ page }) => {
 
   const shell = await page.getByTestId("companion-shell").boundingBox();
   const brand = await page.locator(".tavernary-companion-brand").boundingBox();
-  const qualifier = await page.locator(".tavernary-companion-brand__qualifier").boundingBox();
   const utilities = await page.locator(".tavernary-companion-shell__utilities").boundingBox();
   expect(shell).not.toBeNull();
   expect(brand).not.toBeNull();
-  expect(qualifier).not.toBeNull();
   expect(utilities).not.toBeNull();
   expect(shell!.x).toBeGreaterThanOrEqual(0);
   expect(shell!.x + shell!.width).toBeLessThanOrEqual(390);
   expect(brand!.x + brand!.width).toBeLessThanOrEqual(shell!.x + shell!.width);
   expect(brand!.x + brand!.width).toBeLessThanOrEqual(utilities!.x);
-  expect(qualifier!.x + qualifier!.width).toBeLessThanOrEqual(utilities!.x);
-  await expect(page.getByText("Where AI roleplay tools gather")).toBeVisible();
+  await expect(page.getByText("Where AI roleplay tools gather")).toHaveCount(0);
   await expect(
     page.locator(".tavernary-companion-shell__header").getByRole("searchbox", {
       name: "Search projects",
@@ -86,15 +100,19 @@ test("mobile brand header stays contained and readable", async ({ page }) => {
     .click();
   await expect(page.getByRole("img", { name: "Tavernary" })).toBeInViewport();
   await expect(browse).toContainText("Kits");
+  await expect(page.getByRole("tab", { name: /Personal/u })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await expect(page.getByRole("button", { name: "Kit filters" })).toHaveCount(0);
+  await page.getByRole("tab", { name: /Published/u }).click();
   await expect(page.getByRole("button", { name: "Kit filters" })).toBeVisible();
-  await expect(page.locator(".tavernary-companion-kit-filters")).not.toBeVisible();
-  await expect(
-    page
-      .locator(".tavernary-companion-kit-card, .tavernary-companion-kits-route > p:last-child")
-      .first(),
-  ).toBeInViewport();
+  await expect(page.locator(".tavernary-companion-kit-filter-panel")).not.toBeVisible();
+  await expect(page.getByText("No Kits match the current view.")).toBeInViewport();
   await page.getByRole("button", { name: "Kit filters" }).click();
-  await expect(page.locator(".tavernary-companion-kit-filters")).toBeVisible();
+  await expect(page.locator(".tavernary-companion-kit-filter-panel")).toBeVisible();
+  await page.getByRole("button", { name: "Close Kit filters" }).last().click();
+  await expect(page.locator(".tavernary-companion-kit-filter-panel")).not.toBeVisible();
 });
 
 test("desktop filters use Tavernary's persistent flush rail", async ({ page }) => {
@@ -325,8 +343,13 @@ test("Kits and Installed reuse the Tavernary card and control system", async ({ 
     .getByRole("navigation", { name: "Catalog categories" })
     .getByRole("button", { name: "Kits" })
     .click();
+  await expect(page.getByRole("tab", { name: /Personal/u })).toHaveAttribute(
+    "aria-selected",
+    "true",
+  );
+  await page.getByRole("tab", { name: /Published/u }).click();
   await expect(page.getByRole("button", { name: "Kit filters" })).not.toBeVisible();
-  await expect(page.locator(".tavernary-companion-kit-filters")).toBeVisible();
+  await expect(page.locator(".tavernary-companion-kit-filter-panel")).toBeVisible();
   await page.getByRole("tab", { name: /Personal/ }).click();
   const kit = page.locator(".tavernary-companion-kit-card").first();
   await expect(kit).toHaveCSS("background-color", "rgb(24, 34, 40)");
@@ -342,7 +365,7 @@ test("Kits and Installed reuse the Tavernary card and control system", async ({ 
     .click();
   await expect(page.locator(".tavernary-companion-project-card")).toHaveCount(0);
   await expect(page.locator(".tavernary-companion-installed-section")).toHaveCount(1);
-  await expect(page.locator(".tavernary-companion-installed-section")).toHaveCSS(
+  await expect(page.locator(".tavernary-companion-installed-card").first()).toHaveCSS(
     "background-color",
     "rgb(24, 34, 40)",
   );
@@ -384,7 +407,7 @@ test("mobile Kits and Installed use the compact shared route grammar", async ({ 
   expect(installed!.x).toBeGreaterThanOrEqual(12);
   expect(installed!.x).toBeLessThanOrEqual(16);
   const installedMetadata = page
-    .locator(".tavernary-companion-installed-section li > div > span")
+    .locator(".tavernary-companion-installed-card > header > span")
     .first();
   await expect(installedMetadata).toHaveCSS("color", "rgb(130, 144, 153)");
   expect(

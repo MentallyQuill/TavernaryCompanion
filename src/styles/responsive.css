@@ -138,19 +138,6 @@
     font-size: 0.95rem;
   }
 
-  .tavernary-companion-brand__qualifier {
-    display: block;
-    inline-size: max-content;
-    margin-block-start: 0.15rem;
-    padding: 0.12rem 0.3rem;
-    font-size: 0.55rem;
-  }
-
-  .tavernary-companion-brand p {
-    max-inline-size: 8rem;
-    font-size: 0.6rem;
-  }
-
   .tavernary-companion-shell__utilities {
     flex-direction: column;
     align-items: flex-end;
@@ -166,10 +153,22 @@
 
 @media (max-width: 719px) {
   dialog.popup:has(.tavernary-companion-root) {
-    inline-size: calc(100vw - 2rem) !important;
-    max-inline-size: calc(100vw - 2rem) !important;
-    block-size: calc(100dvh - 2rem) !important;
-    max-block-size: calc(100dvh - 2rem) !important;
+    inset: calc(58px + env(safe-area-inset-top, 0px)) 8px
+      calc(8px + env(safe-area-inset-bottom, 0px)) !important;
+    inline-size: calc(100vw - 16px) !important;
+    max-inline-size: calc(100vw - 16px) !important;
+    block-size: calc(
+      100dvh - 66px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+    ) !important;
+    max-block-size: calc(
+      100dvh - 66px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)
+    ) !important;
+    margin: 0 auto !important;
+  }
+
+  dialog.popup:has(.tavernary-companion-root) > .popup-button-close {
+    inset-block-start: -50px !important;
+    inset-inline-end: 0 !important;
   }
 
   .tavernary-companion-root {
@@ -201,10 +200,6 @@
   .tavernary-companion-brand h1 {
     gap: 0.35rem;
     font-size: 1.08rem;
-  }
-
-  .tavernary-companion-brand p {
-    font-size: 0.67rem;
   }
 
   .tavernary-companion-shell__utilities {

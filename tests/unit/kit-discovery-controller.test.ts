@@ -1,11 +1,22 @@
 import { expect, it } from "vitest";
 
 import { createKitDiscoveryController } from "../../src/kits/kit-discovery-controller";
-import { catalogFixture } from "../helpers/catalog-fixtures";
+import {
+  catalogFixture,
+  catalogKitFixture,
+  catalogProjectFixture,
+} from "../helpers/catalog-fixtures";
 
 it("segments published and personal Kits and searches local definitions", () => {
+  const catalog = catalogFixture();
+  catalog.projects = [
+    catalogProjectFixture({ id: "alpha" }),
+    catalogProjectFixture({ id: "beta" }),
+    catalogProjectFixture({ id: "gamma" }),
+  ];
+  catalog.kits = [catalogKitFixture()];
   const controller = createKitDiscoveryController({
-    catalog: catalogFixture(),
+    catalog,
     personal: [
       {
         formatVersion: 1,
@@ -21,7 +32,19 @@ it("segments published and personal Kits and searches local definitions", () => 
     ],
     statuses: new Map(),
   });
-  controller.setSegment("personal");
+  expect(controller.read().segment).toBe("personal");
+  expect(controller.read().visible.map(({ title }) => title)).toEqual(["Writer"]);
+  expect(controller.read().facets).toEqual({
+    frontends: [{ id: "sillytavern", label: "SillyTavern", count: 1 }],
+    purposes: [{ id: "generation-reasoning", label: "Generation & Reasoning", count: 1 }],
+    modelFamilies: [{ id: "claude", label: "Claude", count: 1 }],
+    projects: [
+      { id: "alpha", label: "alpha", count: 1 },
+      { id: "beta", label: "beta", count: 1 },
+      { id: "gamma", label: "gamma", count: 1 },
+    ],
+    availableCount: 1,
+  });
   controller.setSearch("writer");
   expect(controller.read()).toMatchObject({ segment: "personal", search: "writer" });
   expect(controller.read().visible.map(({ title }) => title)).toEqual(["Writer"]);

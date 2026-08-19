@@ -71,7 +71,7 @@ export function TavernKeeperScanIndicator({
         ?.closest<HTMLElement>(".tavernary-companion-root")
         ?.getBoundingClientRect();
       if (!anchor || !panel || !root) return;
-      const margin = 8;
+      const margin = 9;
       const gap = 8;
       const width = Math.min(320, root.width - margin * 2);
       const maxHeight = root.height - margin * 2;

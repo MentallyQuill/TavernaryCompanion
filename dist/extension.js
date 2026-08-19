@@ -7065,10 +7065,21 @@ function openTrustedExternalUrl(input) {
 }
 async function showNativePopup(context, content, options) {
   const Popup = context.Popup;
+  let removeBackdropDismissal = () => void 0;
   const popup = new Popup(content, context.POPUP_TYPE.DISPLAY, "", {
     wide: options.wide ?? true,
     large: options.large ?? true,
-    allowVerticalScrolling: options.allowVerticalScrolling ?? false
+    transparent: options.transparent ?? false,
+    allowVerticalScrolling: options.allowVerticalScrolling ?? false,
+    onOpen: (openedPopup) => {
+      if (!options.dismissOnBackdrop) return;
+      const onPointerDown = (event) => {
+        if (event.target === openedPopup.dlg) void openedPopup.complete(null);
+      };
+      openedPopup.dlg.addEventListener("pointerdown", onPointerDown);
+      removeBackdropDismissal = () => openedPopup.dlg.removeEventListener("pointerdown", onPointerDown);
+    },
+    onClose: () => removeBackdropDismissal()
   });
   await popup.show();
 }
@@ -10721,6 +10732,13 @@ function selectKits(kits, query, search = "", searchResults) {
     (kit2) => !query.allComponentsAvailable || kit2.flaggedProjectCount === 0
   ).sort(kitComparator(query.sort, effectiveSearchResults));
 }
+function countKitsForFilter(kits, query, group, value, search = "") {
+  const candidateQuery = {
+    ...query,
+    [group]: [value]
+  };
+  return selectKits(kits, candidateQuery, search).length;
+}
 
 // vendor/tavernary-core/src/catalog-tag-filter.ts
 function matchesSelectedTags(selectedIds, projectTagIds, vocabulary) {
@@ -11358,6 +11376,20 @@ function createCatalogClient(options) {
   return new DefaultCatalogClient(options);
 }
 
+// src/lifecycle/self-protection.ts
+var COMPANION_PROJECT_ID = "mentallyquill-tavernary-companion";
+var SelfProtectedProjectError = class extends Error {
+  operation;
+  constructor(operation) {
+    super(`Tavernary Companion cannot ${operation} itself.`);
+    this.name = "SelfProtectedProjectError";
+    this.operation = operation;
+  }
+};
+function assertNotCompanionProject(projectId, operation = "manage") {
+  if (projectId === COMPANION_PROJECT_ID) throw new SelfProtectedProjectError(operation);
+}
+
 // src/catalog/installed-view-model.ts
 function toInstalledSectionViewModel(inventory) {
   return [
@@ -11368,8 +11400,10 @@ function toInstalledSectionViewModel(inventory) {
         id: project2.id,
         name: project2.name,
         detail: extension.folderName,
+        internalName: extension.internalName,
         canonicalUrl: project2.canonicalUrl,
         enabled: extension.enabled,
+        toggleable: canToggle(project2.id, extension.internalName),
         action: installedAction(extension.type, "Managed by Companion")
       }))
     },
@@ -11380,8 +11414,10 @@ function toInstalledSectionViewModel(inventory) {
         id: project2.id,
         name: project2.name,
         detail: extension.folderName,
+        internalName: extension.internalName,
         canonicalUrl: project2.canonicalUrl,
         enabled: extension.enabled,
+        toggleable: canToggle(project2.id, extension.internalName),
         action: installedAction(extension.type, "Installed outside Companion")
       }))
     },
@@ -11392,8 +11428,10 @@ function toInstalledSectionViewModel(inventory) {
         id: extension.internalName,
         name: typeof extension.manifest?.display_name === "string" ? extension.manifest.display_name : extension.folderName,
         detail: extension.internalName,
+        internalName: extension.internalName,
         canonicalUrl: null,
         enabled: extension.enabled,
+        toggleable: canToggle(extension.internalName, extension.internalName),
         action: {
           kind: "manage-in-sillytavern",
           label: "Manage in SillyTavern",
@@ -11408,8 +11446,10 @@ function toInstalledSectionViewModel(inventory) {
         id: record2.projectId,
         name: project2?.name ?? record2.folderName,
         detail: "Managed record is missing from SillyTavern.",
+        internalName: record2.internalName,
         canonicalUrl: project2?.canonicalUrl ?? null,
         enabled: null,
+        toggleable: false,
         action: {
           kind: "manage-in-sillytavern",
           label: "Manage in SillyTavern",
@@ -11419,26 +11459,15 @@ function toInstalledSectionViewModel(inventory) {
     }
   ];
 }
+function canToggle(projectId, internalName) {
+  return projectId !== COMPANION_PROJECT_ID && !/(?:^|[/_-])tavernary[ _-]?companion(?:$|[/_-])/iu.test(internalName);
+}
 function installedAction(extensionType, uninstallReason) {
   return extensionType === "global" ? {
     kind: "manage-in-sillytavern",
     label: "Manage in SillyTavern",
     reason: "Global extensions are managed by SillyTavern."
   } : { kind: "uninstall", label: "Uninstall", reason: uninstallReason };
-}
-
-// src/lifecycle/self-protection.ts
-var COMPANION_PROJECT_ID = "mentallyquill-tavernary-companion";
-var SelfProtectedProjectError = class extends Error {
-  operation;
-  constructor(operation) {
-    super(`Tavernary Companion cannot ${operation} itself.`);
-    this.name = "SelfProtectedProjectError";
-    this.operation = operation;
-  }
-};
-function assertNotCompanionProject(projectId, operation = "manage") {
-  if (projectId === COMPANION_PROJECT_ID) throw new SelfProtectedProjectError(operation);
 }
 
 // src/inventory/managed-registry.ts
@@ -12808,7 +12837,7 @@ var KitDiscoveryController = class {
   #catalog;
   #personal;
   #statuses;
-  #segment = "published";
+  #segment = "personal";
   #search = "";
   #query = structuredClone(DEFAULT_KIT_QUERY);
   constructor(input) {
@@ -12830,6 +12859,7 @@ var KitDiscoveryController = class {
       query: structuredClone(this.#query),
       publishedCount: this.#catalog.kits.length,
       personalCount: this.#personal.length,
+      facets: this.#facets(),
       visible: structuredClone(this.#segment === "published" ? published : personal)
     };
   }
@@ -12858,6 +12888,48 @@ var KitDiscoveryController = class {
   #emit() {
     const state = this.read();
     for (const listener of this.#listeners) listener(state);
+  }
+  #facets() {
+    const frontendLabels = /* @__PURE__ */ new Map();
+    const purposeLabels = /* @__PURE__ */ new Map();
+    const modelFamilyLabels = /* @__PURE__ */ new Map();
+    for (const project2 of this.#catalog.projects) {
+      for (const frontend of project2.frontends) frontendLabels.set(frontend.id, frontend.label);
+      for (const family of project2.preset?.modelFamilies ?? []) {
+        modelFamilyLabels.set(family.id, family.label);
+      }
+    }
+    for (const kit2 of this.#catalog.kits) {
+      for (const frontend of kit2.frontends) frontendLabels.set(frontend.id, frontend.label);
+      for (const purpose of kit2.purposes) purposeLabels.set(purpose.id, purpose.label);
+      for (const family of kit2.modelFamilies ?? []) {
+        modelFamilyLabels.set(family.id, family.label);
+      }
+    }
+    const counted = (labels, group) => [...labels].map(([id, label2]) => ({
+      id,
+      label: label2,
+      count: countKitsForFilter(this.#catalog.kits, this.#query, group, id, this.#search)
+    })).sort((left, right) => left.label.localeCompare(right.label));
+    return {
+      frontends: counted(frontendLabels, "frontends"),
+      purposes: counted(purposeLabels, "purposes"),
+      modelFamilies: counted(modelFamilyLabels, "modelFamilies"),
+      projects: this.#catalog.projects.map((project2) => ({
+        id: project2.id,
+        label: project2.name,
+        count: selectKits(
+          this.#catalog.kits,
+          { ...this.#query, includesProjectId: project2.id },
+          this.#search
+        ).length
+      })).sort((left, right) => left.label.localeCompare(right.label)),
+      availableCount: selectKits(
+        this.#catalog.kits,
+        { ...this.#query, allComponentsAvailable: true },
+        this.#search
+      ).length
+    };
   }
 };
 function createKitDiscoveryController(input) {
@@ -14682,8 +14754,11 @@ function ProjectLifecycleControl({
 // src/ui/installed/installed-section.tsx
 function InstalledSection({
   section,
+  memberships = /* @__PURE__ */ new Map(),
+  togglingInternalName = null,
   onAction,
   onManage,
+  onToggleExtension,
   lifecycleDisabled
 }) {
   return /* @__PURE__ */ u3("section", { class: "tavernary-companion-installed-section", children: [
@@ -14691,50 +14766,94 @@ function InstalledSection({
       /* @__PURE__ */ u3("h3", { children: section.title }),
       /* @__PURE__ */ u3("span", { children: section.rows.length })
     ] }),
-    section.rows.length === 0 ? /* @__PURE__ */ u3("p", { children: emptyExplanation(section.id) }) : /* @__PURE__ */ u3("ul", { children: section.rows.map((row) => /* @__PURE__ */ u3(
-      InstalledRow,
+    section.rows.length === 0 ? /* @__PURE__ */ u3("p", { children: emptyExplanation(section.id) }) : /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-grid", children: section.rows.map((row) => /* @__PURE__ */ u3(
+      InstalledCard,
       {
         row,
         sectionId: section.id,
+        kitTitles: memberships.get(row.id) ?? [],
+        toggling: togglingInternalName === row.internalName,
         onAction,
         onManage,
+        onToggleExtension,
         lifecycleDisabled
-      }
+      },
+      `${section.id}-${row.id}`
     )) })
   ] });
 }
-function InstalledRow({
+function InstalledCard({
   row,
   sectionId,
+  kitTitles,
+  toggling,
   onAction,
   onManage,
+  onToggleExtension,
   lifecycleDisabled
 }) {
   const unknown = sectionId === "unknown" || row.action.kind === "manage-in-sillytavern";
-  return /* @__PURE__ */ u3("li", { children: [
-    /* @__PURE__ */ u3("div", { children: [
-      /* @__PURE__ */ u3("strong", { children: row.canonicalUrl ? /* @__PURE__ */ u3("a", { href: row.canonicalUrl, target: "_blank", rel: "noopener noreferrer", children: row.name }) : row.name }),
-      /* @__PURE__ */ u3("span", { children: row.detail }),
-      row.enabled !== null ? /* @__PURE__ */ u3("span", { children: row.enabled ? "Enabled" : "Disabled" }) : null
-    ] }),
-    unknown ? /* @__PURE__ */ u3(
-      "button",
-      {
-        type: "button",
-        "aria-label": `Manage ${row.name} in SillyTavern`,
-        onClick: () => onManage?.(),
-        children: row.action.label
-      }
-    ) : /* @__PURE__ */ u3(
-      ProjectLifecycleControl,
-      {
-        projectName: row.name,
-        action: row.action,
-        disabled: lifecycleDisabled,
-        onAction: (action) => onAction?.(row.id, action)
-      }
-    )
-  ] });
+  return /* @__PURE__ */ u3(
+    "article",
+    {
+      class: `tavernary-companion-installed-card${row.enabled !== null ? " is-installed" : " is-missing"}${row.enabled === false ? " is-disabled" : ""}`,
+      children: [
+        /* @__PURE__ */ u3("header", { children: [
+          /* @__PURE__ */ u3("span", { children: sectionLabel(sectionId) }),
+          row.enabled !== null ? /* @__PURE__ */ u3("strong", { children: row.enabled ? "Enabled" : "Disabled" }) : null
+        ] }),
+        /* @__PURE__ */ u3("h4", { children: row.canonicalUrl ? /* @__PURE__ */ u3("a", { href: row.canonicalUrl, target: "_blank", rel: "noopener noreferrer", children: row.name }) : row.name }),
+        /* @__PURE__ */ u3("p", { children: row.detail }),
+        kitTitles.length ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-memberships", children: [
+          "In ",
+          kitTitles.join(", ")
+        ] }) : null,
+        /* @__PURE__ */ u3("footer", { children: [
+          row.toggleable && row.internalName && row.enabled !== null ? /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              role: "switch",
+              class: "tavernary-companion-extension-toggle",
+              "aria-checked": row.enabled,
+              "aria-label": `${row.enabled ? "Disable" : "Enable"} ${row.name}`,
+              disabled: lifecycleDisabled || toggling,
+              onClick: () => onToggleExtension?.(row.id, row.internalName, !row.enabled),
+              children: [
+                /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: /* @__PURE__ */ u3("i", {}) }),
+                /* @__PURE__ */ u3("b", { children: toggling ? "Updating\u2026" : row.enabled ? "Enabled" : "Disabled" })
+              ]
+            }
+          ) : null,
+          unknown ? /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              "aria-label": `Manage ${row.name} in SillyTavern`,
+              onClick: () => onManage?.(),
+              children: row.action.label
+            }
+          ) : /* @__PURE__ */ u3(
+            ProjectLifecycleControl,
+            {
+              projectName: row.name,
+              action: row.action,
+              disabled: lifecycleDisabled,
+              onAction: (action) => onAction?.(row.id, action)
+            }
+          )
+        ] })
+      ]
+    }
+  );
+}
+function sectionLabel(id) {
+  return {
+    managed: "Companion managed",
+    external: "Installed externally",
+    unknown: "Uncataloged",
+    attention: "Needs attention"
+  }[id];
 }
 function emptyExplanation(id) {
   return {
@@ -14748,20 +14867,35 @@ function emptyExplanation(id) {
 // src/ui/installed/installed-route.tsx
 function InstalledRoute({
   sections,
+  kits = [],
+  activeKitId = null,
   refreshing = false,
+  togglingInternalName = null,
   onRefresh,
   onAction,
   onManage,
+  onOpenKit,
+  onUninstallKit,
+  onToggleExtension,
   lifecycleDisabled
 }) {
   h2(() => {
     void onRefresh();
   }, [onRefresh]);
   const populatedSections = sections.filter((section) => section.rows.length > 0);
+  const installedKits = kits;
   const installedCount = populatedSections.reduce(
     (total, section) => total + section.rows.length,
     0
   );
+  const memberships = /* @__PURE__ */ new Map();
+  for (const kit2 of installedKits) {
+    for (const projectId of kit2.installedProjectIds) {
+      const titles = memberships.get(projectId) ?? [];
+      if (!titles.includes(kit2.title)) titles.push(kit2.title);
+      memberships.set(projectId, titles);
+    }
+  }
   return /* @__PURE__ */ u3("section", { class: "tavernary-companion-installed-route", "aria-labelledby": "installed-heading", children: [
     /* @__PURE__ */ u3("h2", { id: "installed-heading", class: "tavernary-companion-sr-only", children: "Installed extensions" }),
     /* @__PURE__ */ u3("header", { class: "tavernary-companion-route-toolbar", children: [
@@ -14773,16 +14907,68 @@ function InstalledRoute({
       ] }),
       refreshing ? /* @__PURE__ */ u3("p", { role: "status", children: "Updating installed extensions\u2026" }) : null
     ] }),
+    installedKits.length ? /* @__PURE__ */ u3(
+      "section",
+      {
+        class: "tavernary-companion-installed-kits",
+        "aria-labelledby": "installed-kits-heading",
+        children: [
+          /* @__PURE__ */ u3("header", { children: [
+            /* @__PURE__ */ u3("h3", { id: "installed-kits-heading", children: "Installed Kits" }),
+            /* @__PURE__ */ u3("span", { children: installedKits.length })
+          ] }),
+          /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-grid", children: installedKits.map((kit2) => {
+            const active = kit2.id === activeKitId || kit2.operationalStatus === "Active";
+            return /* @__PURE__ */ u3(
+              "article",
+              {
+                class: `tavernary-companion-installed-card tavernary-companion-installed-kit-card is-installed${active ? " is-active" : ""}`,
+                children: [
+                  /* @__PURE__ */ u3("header", { children: [
+                    /* @__PURE__ */ u3("span", { children: kit2.originLabel }),
+                    /* @__PURE__ */ u3("strong", { children: active ? "Active Kit" : kit2.operationalStatus })
+                  ] }),
+                  /* @__PURE__ */ u3("h4", { children: kit2.title }),
+                  kit2.description ? /* @__PURE__ */ u3("p", { children: kit2.description }) : null,
+                  /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-kit-components", children: kit2.components.map((component2) => /* @__PURE__ */ u3("span", { children: component2.name }, component2.projectId)) }),
+                  /* @__PURE__ */ u3("footer", { children: kit2.orphaned ? /* @__PURE__ */ u3(
+                    "button",
+                    {
+                      type: "button",
+                      "aria-label": `Uninstall ${kit2.title}`,
+                      onClick: () => onUninstallKit?.(kit2.id),
+                      children: "Uninstall Kit"
+                    }
+                  ) : /* @__PURE__ */ u3(
+                    "button",
+                    {
+                      type: "button",
+                      "aria-label": `Open ${kit2.title}`,
+                      onClick: () => onOpenKit?.(kit2.id),
+                      children: "View Kit"
+                    }
+                  ) })
+                ]
+              },
+              kit2.id
+            );
+          }) })
+        ]
+      }
+    ) : null,
     populatedSections.length ? populatedSections.map((section) => /* @__PURE__ */ u3(
       InstalledSection,
       {
         section,
+        memberships,
+        togglingInternalName,
         onAction,
         onManage,
+        onToggleExtension,
         lifecycleDisabled
       },
       section.id
-    )) : /* @__PURE__ */ u3("p", { children: "No installed extensions were found in this profile." })
+    )) : installedKits.length === 0 ? /* @__PURE__ */ u3("p", { children: "No installed extensions were found in this profile." }) : null
   ] });
 }
 
@@ -14939,128 +15125,388 @@ function KitCard({
   ] });
 }
 
-// src/ui/kits/kit-filter-panel.tsx
-function KitFilterPanel({
-  query,
-  open = false,
-  onChange
+// src/ui/projects/filter-choice.tsx
+function FilterChoice({
+  label: label2,
+  count,
+  checked,
+  onChange,
+  title,
+  class: className
 }) {
-  const update = (change) => onChange({ ...query, ...change });
   return /* @__PURE__ */ u3(
-    "fieldset",
+    "label",
     {
-      id: "tavernary-companion-kit-filters",
-      class: `tavernary-companion-kit-filters${open ? " is-open" : ""}`,
-      children: [
-        /* @__PURE__ */ u3("legend", { children: "Published Kit filters" }),
-        /* @__PURE__ */ u3("label", { children: [
-          "Frontend",
-          " ",
-          /* @__PURE__ */ u3(
-            "input",
-            {
-              value: query.frontends.join(", "),
-              onInput: (event) => update({ frontends: split(event.currentTarget.value) })
-            }
-          )
-        ] }),
-        /* @__PURE__ */ u3("label", { children: [
-          "Purpose",
-          " ",
-          /* @__PURE__ */ u3(
-            "input",
-            {
-              value: query.purposes.join(", "),
-              onInput: (event) => update({ purposes: split(event.currentTarget.value) })
-            }
-          )
-        ] }),
-        /* @__PURE__ */ u3("label", { children: [
-          "Model family",
-          " ",
-          /* @__PURE__ */ u3(
-            "input",
-            {
-              value: (query.modelFamilies ?? []).join(", "),
-              onInput: (event) => update({ modelFamilies: split(event.currentTarget.value) })
-            }
-          )
-        ] }),
-        /* @__PURE__ */ u3("label", { children: [
-          "Includes project",
-          " ",
-          /* @__PURE__ */ u3(
-            "input",
-            {
-              value: query.includesProjectId,
-              onInput: (event) => update({ includesProjectId: event.currentTarget.value.trim() })
-            }
-          )
-        ] }),
-        /* @__PURE__ */ u3("label", { children: [
-          "Minimum components",
-          " ",
-          /* @__PURE__ */ u3(
-            "input",
-            {
-              type: "number",
-              min: "0",
-              max: "50",
-              value: query.minProjects,
-              onInput: (event) => update({ minProjects: event.currentTarget.valueAsNumber || 0 })
-            }
-          )
-        ] }),
-        /* @__PURE__ */ u3("label", { children: [
-          "Maximum components",
-          " ",
-          /* @__PURE__ */ u3(
-            "input",
-            {
-              type: "number",
-              min: "1",
-              max: "100",
-              value: query.maxProjects,
-              onInput: (event) => update({ maxProjects: event.currentTarget.valueAsNumber || 50 })
-            }
-          )
-        ] }),
-        /* @__PURE__ */ u3("label", { children: [
-          /* @__PURE__ */ u3(
-            "input",
-            {
-              type: "checkbox",
-              checked: query.allComponentsAvailable,
-              onChange: (event) => update({ allComponentsAvailable: event.currentTarget.checked })
-            }
-          ),
-          " ",
-          "All components available"
-        ] }),
-        /* @__PURE__ */ u3("label", { children: [
-          "Sort",
-          " ",
-          /* @__PURE__ */ u3(
-            "select",
-            {
-              value: query.sort,
-              onChange: (event) => update({ sort: event.currentTarget.value }),
-              children: [
-                /* @__PURE__ */ u3("option", { value: "trending", children: "Trending" }),
-                /* @__PURE__ */ u3("option", { value: "newest", children: "Newest" }),
-                /* @__PURE__ */ u3("option", { value: "updated", children: "Recently updated" }),
-                /* @__PURE__ */ u3("option", { value: "alphabetical", children: "Alphabetical" }),
-                /* @__PURE__ */ u3("option", { value: "relevance", children: "Relevance" })
-              ]
-            }
-          )
-        ] })
-      ]
+      class: `tavernary-companion-filter-choice${checked ? " is-selected" : ""}${className ? ` ${className}` : ""}`,
+      title,
+      children: /* @__PURE__ */ u3("span", { class: "tavernary-companion-filter-choice__chip", children: [
+        /* @__PURE__ */ u3(
+          "input",
+          {
+            class: "tavernary-companion-filter-choice__input",
+            type: "checkbox",
+            "aria-label": label2,
+            checked,
+            onChange
+          }
+        ),
+        /* @__PURE__ */ u3("span", { class: "tavernary-companion-filter-choice__check", "aria-hidden": "true", children: "\u2713" }),
+        /* @__PURE__ */ u3("span", { children: label2 }),
+        /* @__PURE__ */ u3(
+          "b",
+          {
+            class: "tavernary-companion-filter-choice__count",
+            "aria-label": `${count} ${count === 1 ? "project" : "projects"}`,
+            children: count
+          }
+        )
+      ] })
     }
   );
 }
-function split(value) {
-  return value.split(",").map((part) => part.trim()).filter(Boolean);
+
+// src/ui/projects/filter-controls.tsx
+function FilterGroup({
+  title,
+  options,
+  selected,
+  onToggle,
+  presentation = "list",
+  searchLabel,
+  initialVisibleCount = options.length,
+  kindColors = false,
+  countNoun = "project",
+  selectionMode = "multiple"
+}) {
+  const [search, setSearch] = d2("");
+  const [expanded, setExpanded] = d2(false);
+  if (options.length === 0) return null;
+  const normalizedSearch = search.trim().toLocaleLowerCase();
+  const pinned = options.slice(0, initialVisibleCount);
+  const selectedExtras = options.filter(
+    (option, index) => index >= initialVisibleCount && selected.includes(option.id)
+  );
+  const collapsedIds = new Set([...pinned, ...selectedExtras].map(({ id }) => id));
+  const collapsedOptions = options.filter(({ id }) => collapsedIds.has(id));
+  const visibleOptions = normalizedSearch ? options.filter(({ label: label2 }) => label2.toLocaleLowerCase().includes(normalizedSearch)) : expanded ? options : collapsedOptions;
+  const hiddenCount = options.length - collapsedOptions.length;
+  return /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-filter-group", children: [
+    /* @__PURE__ */ u3("legend", { children: title }),
+    searchLabel ? /* @__PURE__ */ u3(
+      "input",
+      {
+        class: "tavernary-companion-filter-search",
+        type: "search",
+        value: search,
+        placeholder: "Search\u2026",
+        "aria-label": searchLabel,
+        onInput: (event) => setSearch(event.currentTarget.value)
+      }
+    ) : null,
+    /* @__PURE__ */ u3(
+      "div",
+      {
+        class: `tavernary-companion-filter-options tavernary-companion-filter-options--${presentation}`,
+        children: visibleOptions.map(
+          (option) => presentation === "chips" ? /* @__PURE__ */ u3(
+            FilterChoice,
+            {
+              label: option.label,
+              count: option.count,
+              checked: selected.includes(option.id),
+              onChange: () => onToggle(option.id)
+            },
+            option.id
+          ) : /* @__PURE__ */ u3("label", { class: "tavernary-companion-filter-option", children: [
+            /* @__PURE__ */ u3(
+              "input",
+              {
+                type: selectionMode === "single" ? "radio" : "checkbox",
+                name: selectionMode === "single" ? `filter-${title}` : void 0,
+                "aria-label": option.label,
+                checked: selected.includes(option.id),
+                class: kindColors ? "tavernary-companion-kind-checkbox" : void 0,
+                "data-kind": kindColors ? option.id : void 0,
+                onChange: () => onToggle(option.id)
+              }
+            ),
+            /* @__PURE__ */ u3("span", { children: option.label }),
+            /* @__PURE__ */ u3("b", { "aria-label": `${option.count} ${option.count === 1 ? countNoun : `${countNoun}s`}`, children: option.count })
+          ] }, option.id)
+        )
+      }
+    ),
+    !normalizedSearch && (hiddenCount > 0 || expanded) ? /* @__PURE__ */ u3(
+      "button",
+      {
+        class: "tavernary-companion-filter-disclosure",
+        type: "button",
+        "aria-expanded": expanded,
+        onClick: () => setExpanded((value) => !value),
+        children: expanded ? "Show fewer" : `Show ${hiddenCount} more`
+      }
+    ) : null
+  ] });
+}
+
+// src/ui/kits/dual-range.tsx
+function DualRange({
+  label: label2,
+  minimumLabel,
+  maximumLabel,
+  min,
+  max,
+  step: step2 = 1,
+  value,
+  onChange
+}) {
+  const [minimum, maximum] = value;
+  const span = Math.max(1, max - min);
+  const minimumPercent = (minimum - min) / span * 100;
+  const maximumPercent = (maximum - min) / span * 100;
+  const handleKeyDown = (thumb, event) => {
+    if (!["PageUp", "PageDown", "Home", "End"].includes(event.key)) return;
+    event.preventDefault();
+    const current = thumb === "minimum" ? minimum : maximum;
+    const target = event.key === "Home" ? thumb === "minimum" ? min : minimum : event.key === "End" ? thumb === "minimum" ? maximum : max : current + (event.key === "PageUp" ? 5 * step2 : -5 * step2);
+    if (thumb === "minimum") {
+      onChange([Math.max(min, Math.min(target, maximum)), maximum]);
+    } else {
+      onChange([minimum, Math.min(max, Math.max(target, minimum))]);
+    }
+  };
+  return /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-dual-range", children: [
+    /* @__PURE__ */ u3("legend", { children: label2 }),
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-dual-range__readouts", "aria-hidden": "true", children: [
+      /* @__PURE__ */ u3("span", { children: [
+        "Min ",
+        minimum
+      ] }),
+      /* @__PURE__ */ u3("span", { children: [
+        "Max ",
+        maximum
+      ] })
+    ] }),
+    /* @__PURE__ */ u3(
+      "div",
+      {
+        class: "tavernary-companion-dual-range__track",
+        style: `--range-start:${minimumPercent}%;--range-end:${maximumPercent}%`,
+        children: [
+          /* @__PURE__ */ u3(
+            "input",
+            {
+              type: "range",
+              "aria-label": minimumLabel,
+              min,
+              max: maximum,
+              step: step2,
+              value: minimum,
+              onInput: (event) => onChange([Math.min(event.currentTarget.valueAsNumber, maximum), maximum]),
+              onKeyDown: (event) => handleKeyDown("minimum", event)
+            }
+          ),
+          /* @__PURE__ */ u3(
+            "input",
+            {
+              type: "range",
+              "aria-label": maximumLabel,
+              min: minimum,
+              max,
+              step: step2,
+              value: maximum,
+              onInput: (event) => onChange([minimum, Math.max(event.currentTarget.valueAsNumber, minimum)]),
+              onKeyDown: (event) => handleKeyDown("maximum", event)
+            }
+          )
+        ]
+      }
+    ),
+    /* @__PURE__ */ u3("span", { class: "tavernary-companion-sr-only", "aria-live": "polite", children: [
+      minimum,
+      " to ",
+      maximum,
+      " projects"
+    ] })
+  ] });
+}
+
+// src/ui/kits/kit-filter-panel.tsx
+function KitFilterPanel({
+  query,
+  facets,
+  open = false,
+  onChange,
+  onClose
+}) {
+  const panelRef = A2(null);
+  const headingRef = A2(null);
+  const update = (change) => onChange({ ...query, ...change });
+  const toggle2 = (values, id) => values.includes(id) ? values.filter((value) => value !== id) : [...values, id];
+  h2(() => {
+    if (!open || !panelRef.current) return;
+    const panel = panelRef.current;
+    const background = panel.closest(".tavernary-companion-kits-route")?.querySelectorAll(
+      ".tavernary-companion-route-toolbar, .tavernary-companion-kit-switcher, .tavernary-companion-kit-segments, .tavernary-companion-kit-search, .tavernary-companion-published-kit-results"
+    );
+    const previous = [...background ?? []].map((element) => ({
+      element,
+      inert: element.hasAttribute("inert"),
+      ariaHidden: element.getAttribute("aria-hidden")
+    }));
+    for (const { element } of previous) {
+      element.setAttribute("inert", "");
+      element.setAttribute("aria-hidden", "true");
+    }
+    headingRef.current?.focus();
+    const trapFocus = (event) => {
+      if (event.key !== "Tab") return;
+      const focusable = [
+        ...panel.querySelectorAll(
+          'button:not([disabled]), input:not([disabled]), select:not([disabled]), [href], [tabindex]:not([tabindex="-1"])'
+        )
+      ].filter((element) => element.offsetParent !== null || element === document.activeElement);
+      if (!focusable.length) return;
+      const first = focusable[0];
+      const last2 = focusable.at(-1);
+      if (event.shiftKey && (document.activeElement === first || document.activeElement === panel)) {
+        event.preventDefault();
+        last2.focus();
+      } else if (!event.shiftKey && document.activeElement === last2) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    panel.addEventListener("keydown", trapFocus);
+    return () => {
+      panel.removeEventListener("keydown", trapFocus);
+      for (const item of previous) {
+        if (!item.inert) item.element.removeAttribute("inert");
+        if (item.ariaHidden === null) item.element.removeAttribute("aria-hidden");
+        else item.element.setAttribute("aria-hidden", item.ariaHidden);
+      }
+    };
+  }, [open]);
+  return /* @__PURE__ */ u3(S, { children: [
+    open ? /* @__PURE__ */ u3(
+      "button",
+      {
+        type: "button",
+        class: "tavernary-companion-kit-filter-backdrop",
+        "aria-label": "Close Kit filters",
+        onClick: onClose
+      }
+    ) : null,
+    /* @__PURE__ */ u3(
+      "aside",
+      {
+        ref: panelRef,
+        id: "tavernary-companion-kit-filters",
+        class: `tavernary-companion-kit-filter-panel${open ? " is-open" : ""}`,
+        role: open ? "dialog" : void 0,
+        "aria-modal": open || void 0,
+        "aria-label": "Kit filters",
+        children: [
+          /* @__PURE__ */ u3("header", { children: [
+            /* @__PURE__ */ u3("h3", { ref: headingRef, tabIndex: open ? -1 : void 0, children: "Filters" }),
+            /* @__PURE__ */ u3(
+              "button",
+              {
+                type: "button",
+                onClick: () => onChange({ ...structuredClone(DEFAULT_KIT_QUERY), sort: query.sort }),
+                children: "Clear all"
+              }
+            ),
+            /* @__PURE__ */ u3(
+              "button",
+              {
+                type: "button",
+                class: "tavernary-companion-kit-filter-close",
+                "aria-label": "Close Kit filters",
+                onClick: onClose,
+                children: "\xD7"
+              }
+            )
+          ] }),
+          /* @__PURE__ */ u3(
+            FilterGroup,
+            {
+              title: "Compatible frontend",
+              options: facets.frontends,
+              selected: query.frontends,
+              onToggle: (id) => update({ frontends: toggle2(query.frontends, id) }),
+              searchLabel: "Search compatible frontends",
+              initialVisibleCount: 3,
+              countNoun: "Kit"
+            }
+          ),
+          /* @__PURE__ */ u3(
+            FilterGroup,
+            {
+              title: "Purpose",
+              options: facets.purposes,
+              selected: query.purposes,
+              onToggle: (id) => update({ purposes: toggle2(query.purposes, id) }),
+              presentation: "chips",
+              countNoun: "Kit"
+            }
+          ),
+          /* @__PURE__ */ u3(
+            FilterGroup,
+            {
+              title: "Model family",
+              options: facets.modelFamilies,
+              selected: query.modelFamilies ?? [],
+              onToggle: (id) => update({ modelFamilies: toggle2(query.modelFamilies ?? [], id) }),
+              presentation: "chips",
+              countNoun: "Kit"
+            }
+          ),
+          /* @__PURE__ */ u3(
+            FilterGroup,
+            {
+              title: "Includes project",
+              options: facets.projects,
+              selected: query.includesProjectId ? [query.includesProjectId] : [],
+              onToggle: (id) => update({ includesProjectId: id }),
+              searchLabel: "Search included projects",
+              initialVisibleCount: 5,
+              countNoun: "Kit",
+              selectionMode: "single"
+            }
+          ),
+          /* @__PURE__ */ u3(
+            DualRange,
+            {
+              label: "Kit size",
+              minimumLabel: "Minimum projects",
+              maximumLabel: "Maximum projects",
+              min: 3,
+              max: 50,
+              value: [query.minProjects, query.maxProjects],
+              onChange: ([minProjects, maxProjects]) => update({ minProjects, maxProjects })
+            }
+          ),
+          /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-kit-status-filter", children: [
+            /* @__PURE__ */ u3("legend", { children: "Kit status" }),
+            /* @__PURE__ */ u3("label", { class: "tavernary-companion-filter-option", children: [
+              /* @__PURE__ */ u3(
+                "input",
+                {
+                  type: "checkbox",
+                  checked: query.allComponentsAvailable,
+                  "aria-label": "All components available",
+                  onChange: (event) => update({ allComponentsAvailable: event.currentTarget.checked })
+                }
+              ),
+              /* @__PURE__ */ u3("span", { children: "All components available" }),
+              /* @__PURE__ */ u3("b", { "aria-label": `${facets.availableCount} Kits`, children: facets.availableCount })
+            ] })
+          ] })
+        ]
+      }
+    )
+  ] });
 }
 
 // src/ui/kits/kit-switcher.tsx
@@ -15113,7 +15559,32 @@ function KitsRoute({
 }) {
   const [state, setState] = d2(controller.read());
   const [filtersOpen, setFiltersOpen] = d2(false);
+  const filterTriggerRef = A2(null);
   h2(() => controller.subscribe(setState), [controller]);
+  const closeFilters = q2(() => {
+    setFiltersOpen(false);
+    filterTriggerRef.current?.focus();
+  }, []);
+  h2(() => {
+    if (!filtersOpen) return;
+    const handleKeyDown = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      closeFilters();
+    };
+    window.addEventListener("keydown", handleKeyDown);
+    return () => window.removeEventListener("keydown", handleKeyDown);
+  }, [closeFilters, filtersOpen]);
+  const kitResults = (kits) => kits.length ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-grid", children: kits.map((kit2) => /* @__PURE__ */ u3(
+    KitCard,
+    {
+      kit: kit2,
+      disabled: lifecycleDisabled,
+      onOpen: () => onOpenKit(kit2.id),
+      onAction: (action) => onAction(kit2.id, action)
+    },
+    `${kit2.origin}-${kit2.id}`
+  )) }) : /* @__PURE__ */ u3("p", { children: "No Kits match the current view." });
   return /* @__PURE__ */ u3("section", { class: "tavernary-companion-kits-route", "aria-labelledby": "kits-heading", children: [
     /* @__PURE__ */ u3("h2", { id: "kits-heading", class: "tavernary-companion-sr-only", children: "Kits" }),
     /* @__PURE__ */ u3("header", { class: "tavernary-companion-route-toolbar", children: [
@@ -15147,19 +15618,6 @@ function KitsRoute({
         {
           type: "button",
           role: "tab",
-          "aria-selected": state.segment === "published",
-          onClick: () => controller.setSegment("published"),
-          children: [
-            "Published ",
-            /* @__PURE__ */ u3("span", { children: state.publishedCount })
-          ]
-        }
-      ),
-      /* @__PURE__ */ u3(
-        "button",
-        {
-          type: "button",
-          role: "tab",
           "aria-selected": state.segment === "personal",
           onClick: () => {
             setFiltersOpen(false);
@@ -15168,6 +15626,19 @@ function KitsRoute({
           children: [
             "Personal ",
             /* @__PURE__ */ u3("span", { children: state.personalCount })
+          ]
+        }
+      ),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          role: "tab",
+          "aria-selected": state.segment === "published",
+          onClick: () => controller.setSegment("published"),
+          children: [
+            "Published ",
+            /* @__PURE__ */ u3("span", { children: state.publishedCount })
           ]
         }
       )
@@ -15189,6 +15660,7 @@ function KitsRoute({
       /* @__PURE__ */ u3(
         "button",
         {
+          ref: filterTriggerRef,
           type: "button",
           class: "tavernary-companion-kit-filter-trigger",
           "aria-label": "Kit filters",
@@ -15198,25 +15670,43 @@ function KitsRoute({
           children: "Filters"
         }
       ),
-      /* @__PURE__ */ u3(
-        KitFilterPanel,
-        {
-          query: state.query,
-          open: filtersOpen,
-          onChange: (query) => controller.setQuery(query)
-        }
-      )
-    ] }) : null,
-    state.visible.length ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-grid", children: state.visible.map((kit2) => /* @__PURE__ */ u3(
-      KitCard,
-      {
-        kit: kit2,
-        disabled: lifecycleDisabled,
-        onOpen: () => onOpenKit(kit2.id),
-        onAction: (action) => onAction(kit2.id, action)
-      },
-      `${kit2.origin}-${kit2.id}`
-    )) }) : /* @__PURE__ */ u3("p", { children: "No Kits match the current view." })
+      /* @__PURE__ */ u3("div", { class: "tavernary-companion-published-kit-workspace", children: [
+        /* @__PURE__ */ u3(
+          KitFilterPanel,
+          {
+            query: state.query,
+            facets: state.facets,
+            open: filtersOpen,
+            onClose: closeFilters,
+            onChange: (query) => controller.setQuery(query)
+          }
+        ),
+        /* @__PURE__ */ u3("div", { class: "tavernary-companion-published-kit-results", children: [
+          /* @__PURE__ */ u3("label", { class: "tavernary-companion-kit-sort", children: [
+            /* @__PURE__ */ u3("span", { children: "Sort" }),
+            /* @__PURE__ */ u3(
+              "select",
+              {
+                value: state.query.sort,
+                "aria-label": "Sort Published Kits",
+                onChange: (event) => controller.setQuery({
+                  ...state.query,
+                  sort: event.currentTarget.value
+                }),
+                children: [
+                  /* @__PURE__ */ u3("option", { value: "trending", children: "Trending" }),
+                  /* @__PURE__ */ u3("option", { value: "newest", children: "Newest" }),
+                  /* @__PURE__ */ u3("option", { value: "updated", children: "Recently updated" }),
+                  /* @__PURE__ */ u3("option", { value: "alphabetical", children: "Alphabetical" }),
+                  /* @__PURE__ */ u3("option", { value: "relevance", children: "Relevance" })
+                ]
+              }
+            )
+          ] }),
+          kitResults(state.visible)
+        ] })
+      ] })
+    ] }) : kitResults(state.visible)
   ] });
 }
 
@@ -15413,127 +15903,6 @@ function FilterChip({
 }
 function toLabelMap(options) {
   return new Map(options.map(({ id, label: label2 }) => [id, label2]));
-}
-
-// src/ui/projects/filter-choice.tsx
-function FilterChoice({
-  label: label2,
-  count,
-  checked,
-  onChange,
-  title,
-  class: className
-}) {
-  return /* @__PURE__ */ u3(
-    "label",
-    {
-      class: `tavernary-companion-filter-choice${checked ? " is-selected" : ""}${className ? ` ${className}` : ""}`,
-      title,
-      children: /* @__PURE__ */ u3("span", { class: "tavernary-companion-filter-choice__chip", children: [
-        /* @__PURE__ */ u3(
-          "input",
-          {
-            class: "tavernary-companion-filter-choice__input",
-            type: "checkbox",
-            "aria-label": label2,
-            checked,
-            onChange
-          }
-        ),
-        /* @__PURE__ */ u3("span", { class: "tavernary-companion-filter-choice__check", "aria-hidden": "true", children: "\u2713" }),
-        /* @__PURE__ */ u3("span", { children: label2 }),
-        /* @__PURE__ */ u3(
-          "b",
-          {
-            class: "tavernary-companion-filter-choice__count",
-            "aria-label": `${count} ${count === 1 ? "project" : "projects"}`,
-            children: count
-          }
-        )
-      ] })
-    }
-  );
-}
-
-// src/ui/projects/filter-controls.tsx
-function FilterGroup({
-  title,
-  options,
-  selected,
-  onToggle,
-  presentation = "list",
-  searchLabel,
-  initialVisibleCount = options.length,
-  kindColors = false
-}) {
-  const [search, setSearch] = d2("");
-  const [expanded, setExpanded] = d2(false);
-  if (options.length === 0) return null;
-  const normalizedSearch = search.trim().toLocaleLowerCase();
-  const pinned = options.slice(0, initialVisibleCount);
-  const selectedExtras = options.filter(
-    (option, index) => index >= initialVisibleCount && selected.includes(option.id)
-  );
-  const collapsedIds = new Set([...pinned, ...selectedExtras].map(({ id }) => id));
-  const collapsedOptions = options.filter(({ id }) => collapsedIds.has(id));
-  const visibleOptions = normalizedSearch ? options.filter(({ label: label2 }) => label2.toLocaleLowerCase().includes(normalizedSearch)) : expanded ? options : collapsedOptions;
-  const hiddenCount = options.length - collapsedOptions.length;
-  return /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-filter-group", children: [
-    /* @__PURE__ */ u3("legend", { children: title }),
-    searchLabel ? /* @__PURE__ */ u3(
-      "input",
-      {
-        class: "tavernary-companion-filter-search",
-        type: "search",
-        value: search,
-        placeholder: "Search\u2026",
-        "aria-label": searchLabel,
-        onInput: (event) => setSearch(event.currentTarget.value)
-      }
-    ) : null,
-    /* @__PURE__ */ u3(
-      "div",
-      {
-        class: `tavernary-companion-filter-options tavernary-companion-filter-options--${presentation}`,
-        children: visibleOptions.map(
-          (option) => presentation === "chips" ? /* @__PURE__ */ u3(
-            FilterChoice,
-            {
-              label: option.label,
-              count: option.count,
-              checked: selected.includes(option.id),
-              onChange: () => onToggle(option.id)
-            },
-            option.id
-          ) : /* @__PURE__ */ u3("label", { class: "tavernary-companion-filter-option", children: [
-            /* @__PURE__ */ u3(
-              "input",
-              {
-                type: "checkbox",
-                "aria-label": option.label,
-                checked: selected.includes(option.id),
-                class: kindColors ? "tavernary-companion-kind-checkbox" : void 0,
-                "data-kind": kindColors ? option.id : void 0,
-                onChange: () => onToggle(option.id)
-              }
-            ),
-            /* @__PURE__ */ u3("span", { children: option.label }),
-            /* @__PURE__ */ u3("b", { "aria-label": `${option.count} ${option.count === 1 ? "project" : "projects"}`, children: option.count })
-          ] }, option.id)
-        )
-      }
-    ),
-    !normalizedSearch && (hiddenCount > 0 || expanded) ? /* @__PURE__ */ u3(
-      "button",
-      {
-        class: "tavernary-companion-filter-disclosure",
-        type: "button",
-        "aria-expanded": expanded,
-        onClick: () => setExpanded((value) => !value),
-        children: expanded ? "Show fewer" : `Show ${hiddenCount} more`
-      }
-    ) : null
-  ] });
 }
 
 // src/ui/projects/filter-panel.tsx
@@ -16096,7 +16465,7 @@ function TavernKeeperScanIndicator({
       const panel = popover.current;
       const root = trigger.current?.closest(".tavernary-companion-root")?.getBoundingClientRect();
       if (!anchor || !panel || !root) return;
-      const margin = 8;
+      const margin = 9;
       const gap = 8;
       const width = Math.min(320, root.width - margin * 2);
       const maxHeight = root.height - margin * 2;
@@ -16318,9 +16687,25 @@ function ProjectCard({
   return /* @__PURE__ */ u3(
     "article",
     {
-      class: `tavernary-companion-project-card kind-${project2.kind}`,
+      class: `tavernary-companion-project-card kind-${project2.kind}${project2.installed ? " is-installed" : ""}`,
       "data-project-id": project2.id,
       children: [
+        /* @__PURE__ */ u3(
+          "a",
+          {
+            class: "tavernary-companion-project-card__hitarea",
+            href: project2.canonicalUrl,
+            target: "_blank",
+            rel: "noopener noreferrer",
+            "aria-label": `Open ${project2.displayName} repository`,
+            "data-focus-key": `project-${project2.id}`,
+            children: /* @__PURE__ */ u3("span", { class: "tavernary-companion-sr-only", children: [
+              "Open ",
+              project2.displayName,
+              " repository"
+            ] })
+          }
+        ),
         /* @__PURE__ */ u3("header", { class: "tavernary-companion-project-card__top", children: [
           /* @__PURE__ */ u3(
             "span",
@@ -16364,17 +16749,7 @@ function ProjectCard({
           ] })
         ] }),
         /* @__PURE__ */ u3("div", { class: "tavernary-companion-project-card__title", children: [
-          /* @__PURE__ */ u3("h3", { children: /* @__PURE__ */ u3(
-            "a",
-            {
-              class: "tavernary-companion-project-card__source-link",
-              href: project2.canonicalUrl,
-              target: "_blank",
-              rel: "noopener noreferrer",
-              "data-focus-key": `project-${project2.id}`,
-              children: project2.displayName
-            }
-          ) }),
+          /* @__PURE__ */ u3("h3", { children: project2.displayName }),
           project2.tavernKeeper ? /* @__PURE__ */ u3(TavernKeeperScanIndicator, { projectId: project2.id, status: project2.tavernKeeper }) : null
         ] }),
         project2.attributionLabel ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-project-card__attribution", children: project2.attributionLabel }) : null,
@@ -16956,13 +17331,7 @@ function ShellHeader({
   return /* @__PURE__ */ u3("header", { class: "tavernary-companion-shell__header", children: [
     /* @__PURE__ */ u3("div", { class: "tavernary-companion-brand", children: [
       /* @__PURE__ */ u3("span", { class: "tavernary-companion-brand__mark", role: "img", "aria-label": "Tavernary" }),
-      /* @__PURE__ */ u3("div", { class: "tavernary-companion-brand__copy", children: [
-        /* @__PURE__ */ u3("h1", { id: "tavernary-companion-heading", children: [
-          "Tavernary ",
-          /* @__PURE__ */ u3("span", { class: "tavernary-companion-brand__qualifier", children: "Companion" })
-        ] }),
-        /* @__PURE__ */ u3("p", { children: "Where AI roleplay tools gather" })
-      ] })
+      /* @__PURE__ */ u3("div", { class: "tavernary-companion-brand__copy", children: /* @__PURE__ */ u3("h1", { id: "tavernary-companion-heading", children: "Tavernary" }) })
     ] }),
     search ? /* @__PURE__ */ u3("label", { class: "tavernary-companion-header-search", children: [
       /* @__PURE__ */ u3("span", { class: "tavernary-companion-sr-only", children: "Search projects" }),
@@ -17016,10 +17385,13 @@ function CompanionShell({
   onProjectAction,
   onRefreshInventory = noRefresh,
   inventoryRefreshing = false,
+  togglingInternalName = null,
+  onToggleExtension,
   onOpenExtensionManager,
   lifecycleDisabled = false,
   kitDiscovery,
   kitInspectors = {},
+  installedKits = [],
   onKitAction,
   onNewKit,
   onImportKit,
@@ -17151,10 +17523,16 @@ function CompanionShell({
                 InstalledRoute,
                 {
                   sections: discoveryState.installedSections,
+                  kits: installedKits,
+                  activeKitId,
                   refreshing: inventoryRefreshing,
+                  togglingInternalName,
                   onRefresh: onRefreshInventory,
                   onAction: (id, action) => onProjectAction?.(id, action),
                   onManage: onOpenExtensionManager,
+                  onOpenKit: (id) => controller.openDetail({ kind: "kit", id, focusKey: `installed-kit-${id}` }),
+                  onUninstallKit,
+                  onToggleExtension,
                   lifecycleDisabled
                 }
               ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-installed-heading", children: "Installed extensions" }) }) : null,
@@ -17334,6 +17712,7 @@ function CompanionPopupHost({
   );
   const [catalogRefreshing, setCatalogRefreshing] = d2(false);
   const [inventoryRefreshing, setInventoryRefreshing] = d2(false);
+  const [togglingInternalName, setTogglingInternalName] = d2(null);
   const [activeOperation, setActiveOperation] = d2(
     runtime?.lifecycle.lock.read() ?? null
   );
@@ -17353,6 +17732,7 @@ function CompanionPopupHost({
   const [kitEditorSeed, setKitEditorSeed] = d2([]);
   const [importingKit, setImportingKit] = d2(false);
   const [kitInspectors, setKitInspectors] = d2({});
+  const [installedKitCards, setInstalledKitCards] = d2([]);
   const [operationError, setOperationError] = d2(null);
   const syncKits = q2(async () => {
     if (!runtime || !store) return;
@@ -17369,6 +17749,7 @@ function CompanionPopupHost({
       statuses: presentation.statuses
     });
     setKitInspectors(presentation.inspectors);
+    setInstalledKitCards(presentation.installedKits);
   }, [runtime, store]);
   const refreshInventory = q2(async () => {
     if (!runtime || !host || !store) return;
@@ -17451,6 +17832,23 @@ function CompanionPopupHost({
       setOperationError(error instanceof Error ? error.message : "The operation could not finish.");
     }
   };
+  const toggleExtension = async (projectId, internalName, enabled) => {
+    if (!host) return;
+    setOperationError(null);
+    setTogglingInternalName(internalName);
+    try {
+      assertNotCompanionProject(projectId, enabled ? "enable" : "disable");
+      if (enabled) await host.enable(internalName);
+      else await host.disable(internalName);
+      await refreshInventory();
+    } catch (error) {
+      setOperationError(
+        error instanceof Error ? error.message : "The extension state could not be changed."
+      );
+    } finally {
+      setTogglingInternalName(null);
+    }
+  };
   const requestKitOperation = (kitId, operation) => {
     if (!runtime || !store) return;
     const snapshot = runtime.catalog.read();
@@ -17522,15 +17920,18 @@ function CompanionPopupHost({
         catalogSnapshot,
         catalogRefreshing,
         inventoryRefreshing,
+        togglingInternalName,
         onRefreshCatalog: refreshCatalog,
         onRefreshInventory: refreshInventory,
+        onToggleExtension: (projectId, internalName, enabled) => void toggleExtension(projectId, internalName, enabled),
         onProjectAction: (projectId, action) => void runAction(projectId, action),
         onOpenExtensionManager: () => void host?.openExtensionManager(),
         onUpdateCompanion: () => void host?.openExtensionManager(),
         onOpenTavernary: () => host?.openExternal("https://tavernary.org/"),
-        lifecycleDisabled: activeOperation !== null,
+        lifecycleDisabled: activeOperation !== null || togglingInternalName !== null,
         kitDiscovery: runtime?.kitDiscovery,
         kitInspectors,
+        installedKits: installedKitCards,
         onKitAction: requestKitAction,
         onNewKit: () => {
           setKitEditorSeed([]);
@@ -17769,11 +18170,22 @@ function resolveKit(runtime, catalog, kitId) {
   const personal = runtime.kits.readDefinition(kitId);
   if (personal) return { id: personal.id, projectIds: personal.projectIds, origin: "personal" };
   const published = catalog.kits.find((kit2) => kit2.id === kitId);
-  return published ? {
-    id: published.id,
-    projectIds: published.components.map(({ projectId }) => projectId),
+  if (published) {
+    return {
+      id: published.id,
+      projectIds: published.components.map(({ projectId }) => projectId),
+      origin: "published"
+    };
+  }
+  const installed = runtime.kits.readInstalled(kitId);
+  if (!installed) return null;
+  return {
+    id: installed.kitId,
+    projectIds: installed.definitionProjectIds ?? [
+      .../* @__PURE__ */ new Set([...installed.installedProjectIds, ...installed.missingProjectIds])
+    ],
     origin: "published"
-  } : null;
+  };
 }
 async function buildKitPresentation(catalog, kits, inventory) {
   const statuses = /* @__PURE__ */ new Map();
@@ -17816,7 +18228,37 @@ async function buildKitPresentation(catalog, kits, inventory) {
     statuses.set(kit2.id, status);
     inspectors[kit2.id] = toPublishedKitInspector(kit2, status, installed);
   }
-  return { statuses, inspectors };
+  const projectNames = new Map(catalog.projects.map((project2) => [project2.id, project2.name]));
+  const installedKits = kits.readInstalledStates().map((installed) => {
+    const inspector = inspectors[installed.kitId];
+    const currentNames = new Map(
+      inspector?.components.map((component2) => [component2.projectId, component2.name]) ?? []
+    );
+    const topology = installed.definitionProjectIds ?? [
+      .../* @__PURE__ */ new Set([...installed.installedProjectIds, ...installed.missingProjectIds])
+    ];
+    return {
+      id: installed.kitId,
+      title: inspector?.title ?? installed.kitId,
+      description: inspector?.description ?? "This installed Kit is no longer present in the current catalog.",
+      originLabel: inspector?.originLabel ?? "Installed Kit",
+      operationalStatus: installed.kitId === activeId ? "Active" : inspector?.operationalStatus ?? installedStatusLabel(installed.status),
+      components: topology.map((projectId) => ({
+        projectId,
+        name: currentNames.get(projectId) ?? projectNames.get(projectId) ?? projectId
+      })),
+      installedProjectIds: [...installed.installedProjectIds],
+      orphaned: !inspector
+    };
+  });
+  return { statuses, inspectors, installedKits };
+}
+function installedStatusLabel(status) {
+  return {
+    installed: "Installed",
+    incomplete: "Incomplete",
+    drifted: "Drifted"
+  }[status];
 }
 function renderCompanionPopup(container, options = {}) {
   R(/* @__PURE__ */ u3(CompanionPopupHost, { ...options }), container);
@@ -17867,6 +18309,8 @@ function mountCompanionLauncher(input) {
       id: "tavernary-companion",
       wide: true,
       large: true,
+      transparent: true,
+      dismissOnBackdrop: true,
       allowVerticalScrolling: false
     }).finally(() => {
       if (popupContent !== content) {

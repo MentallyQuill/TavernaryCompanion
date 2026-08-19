@@ -2,13 +2,24 @@ import { fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, expect, it, vi } from "vitest";
 import { createKitDiscoveryController } from "../../src/kits/kit-discovery-controller";
 import { KitsRoute } from "../../src/ui/kits/kits-route";
-import { catalogFixture } from "../helpers/catalog-fixtures";
+import {
+  catalogFixture,
+  catalogKitFixture,
+  catalogProjectFixture,
+} from "../helpers/catalog-fixtures";
 
 afterEach(() => document.body.replaceChildren());
 
-it("toggles compact published Kit filters", () => {
+it("opens on Personal Kits and exposes Tavernary filters only after switching to Published", () => {
+  const catalog = catalogFixture();
+  catalog.projects = [
+    catalogProjectFixture({ id: "alpha" }),
+    catalogProjectFixture({ id: "beta" }),
+    catalogProjectFixture({ id: "gamma" }),
+  ];
+  catalog.kits = [catalogKitFixture()];
   const controller = createKitDiscoveryController({
-    catalog: catalogFixture(),
+    catalog,
     personal: [],
     statuses: new Map(),
   });
@@ -16,15 +27,46 @@ it("toggles compact published Kit filters", () => {
     <KitsRoute controller={controller} onOpenKit={() => undefined} onAction={() => undefined} />,
   );
 
+  expect(screen.getByRole("tab", { name: /Personal/u })).toHaveAttribute("aria-selected", "true");
+  expect(screen.queryByRole("button", { name: "Kit filters" })).not.toBeInTheDocument();
+  fireEvent.click(screen.getByRole("tab", { name: /Published/u }));
   const trigger = screen.getByRole("button", { name: "Kit filters" });
   expect(
     screen.queryByText("Save, install, and switch extension collections."),
   ).not.toBeInTheDocument();
-  expect(screen.getByText("0 Kits shown")).toBeVisible();
+  expect(screen.getByText("1 Kit shown")).toBeVisible();
   expect(screen.getByRole("searchbox", { name: "Search Kits" })).toBeVisible();
+  expect(screen.getByRole("complementary", { name: "Kit filters" })).toBeVisible();
+  expect(screen.getByRole("group", { name: "Compatible frontend" })).toBeVisible();
+  expect(screen.getByRole("checkbox", { name: "SillyTavern" })).toBeVisible();
+  expect(screen.getByRole("group", { name: "Purpose" })).toBeVisible();
+  expect(screen.getByRole("group", { name: "Model family" })).toBeVisible();
+  expect(screen.getByRole("group", { name: "Includes project" })).toBeVisible();
+  const includedProject = screen.getByRole("radio", { name: "alpha" });
+  fireEvent.click(includedProject);
+  fireEvent.click(includedProject);
+  expect(includedProject).toBeChecked();
+  expect(screen.getByRole("group", { name: "Kit size" })).toBeVisible();
+  const minimumProjects = screen.getByRole("slider", { name: "Minimum projects" });
+  fireEvent.keyDown(minimumProjects, { key: "PageUp" });
+  expect(minimumProjects).toHaveValue("8");
+  expect(screen.getByRole("checkbox", { name: "All components available" })).toBeVisible();
+  fireEvent.change(screen.getByRole("combobox", { name: "Sort Published Kits" }), {
+    target: { value: "updated" },
+  });
+  fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
+  expect(screen.getByRole("combobox", { name: "Sort Published Kits" })).toHaveValue("updated");
   expect(trigger).toHaveAttribute("aria-expanded", "false");
   fireEvent.click(trigger);
   expect(trigger).toHaveAttribute("aria-expanded", "true");
+  expect(screen.getByRole("dialog", { name: "Kit filters" })).toBeVisible();
+  expect(screen.getByRole("heading", { name: "Filters" })).toHaveFocus();
+  expect(document.querySelector(".tavernary-companion-published-kit-results")).toHaveAttribute(
+    "inert",
+  );
+  fireEvent.keyDown(window, { key: "Escape" });
+  expect(trigger).toHaveAttribute("aria-expanded", "false");
+  expect(trigger).toHaveFocus();
 });
 
 it("switches between published and personal Kit segments", () => {

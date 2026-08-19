@@ -1,4 +1,4 @@
-import type { CatalogProject, CatalogV7 } from "../../src/catalog/catalog-core";
+import type { CatalogKit, CatalogProject, CatalogV7 } from "../../src/catalog/catalog-core";
 import type { CatalogCacheRecord } from "../../src/catalog/catalog-cache";
 
 export function catalogFixture(generatedAt = "2026-08-18T00:00:00.000Z"): CatalogV7 {
@@ -108,5 +108,59 @@ export function catalogProjectFixture({
             manifestPath: "manifest.json",
             folderName,
           },
+  };
+}
+
+export function catalogKitFixture({
+  id = "published-writer-kit",
+  title = "Published Writer Kit",
+  projectIds = ["alpha", "beta", "gamma"],
+}: {
+  id?: string;
+  title?: string;
+  projectIds?: string[];
+} = {}): CatalogKit {
+  return {
+    id,
+    title,
+    description: "A published writing setup.",
+    author: { githubUserId: 1, login: "author" },
+    sourceIssueNumber: 1,
+    sourceIssueUrl: "https://example.com/issues/1",
+    publishedAt: "2026-08-18T00:00:00.000Z",
+    updatedAt: "2026-08-18T00:00:00.000Z",
+    frontends: [{ id: "sillytavern", label: "SillyTavern", description: "SillyTavern" }],
+    purposes: [
+      { id: "generation-reasoning", label: "Generation & Reasoning", description: "Writing" },
+    ],
+    modelFamilies: [{ id: "claude", label: "Claude", description: "Claude" }],
+    components: projectIds.map((projectId) => ({
+      projectId,
+      name: projectId,
+      kind: "extension",
+      primaryFunction: "generation-reasoning",
+      availability: "available",
+      unavailableReason: null,
+      canonicalUrl: `https://example.com/${projectId}`,
+      project: null,
+    })),
+    supporterCount: 4,
+    trendingScore: 4,
+    supportRefreshedAt: "2026-08-18T00:00:00.000Z",
+    supportStale: false,
+    flaggedProjectCount: 0,
+    search: {
+      title: [title],
+      aliases: [],
+      source: [],
+      summary: ["writing"],
+      kind: [],
+      primaryFunction: ["generation-reasoning"],
+      tags: [],
+      frontends: ["sillytavern"],
+      compatibility: [],
+      maintainers: ["author"],
+      relationships: projectIds,
+    },
   };
 }

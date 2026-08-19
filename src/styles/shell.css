@@ -7,21 +7,11 @@
   max-block-size: 100%;
   min-block-size: min(36rem, 90dvh);
   overflow: hidden;
+  border: 1px solid var(--tavernary-color-border-default);
+  border-radius: 10px;
   color: var(--tavernary-color-text-primary);
   background: var(--tavernary-color-bg-canvas);
-  box-shadow:
-    inset 4px 0 var(--tavernary-color-accent-teal),
-    var(--tavernary-shadow-overlay);
-  clip-path: polygon(
-    4px 0,
-    calc(100% - 4px) 0,
-    100% 4px,
-    100% calc(100% - 4px),
-    calc(100% - 4px) 100%,
-    4px 100%,
-    0 calc(100% - 4px),
-    0 4px
-  );
+  box-shadow: var(--tavernary-shadow-overlay);
 }
 
 dialog.popup:has(.tavernary-companion-root) {
@@ -33,6 +23,53 @@ dialog.popup:has(.tavernary-companion-root) {
   max-block-size: min(90dvh, 960px) !important;
   margin: auto !important;
   overflow: hidden !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  outline: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+}
+
+dialog.popup:has(.tavernary-companion-root)::backdrop {
+  background: rgb(0 0 0 / 0.56) !important;
+  backdrop-filter: blur(10px) !important;
+  -webkit-backdrop-filter: blur(10px) !important;
+}
+
+dialog.popup:has(.tavernary-companion-root) > .popup-button-close {
+  position: absolute !important;
+  z-index: 140 !important;
+  inset-block-start: 0 !important;
+  inset-inline-end: max(-52px, calc((92vw - 100vw) / 2 + 4px)) !important;
+  display: grid !important;
+  inline-size: 46px !important;
+  min-inline-size: 46px !important;
+  block-size: 46px !important;
+  min-block-size: 46px !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 1px solid rgb(255 255 255 / 0.16) !important;
+  border-radius: 50% !important;
+  color: rgb(245 245 245) !important;
+  background: rgb(83 87 92 / 0.96) !important;
+  box-shadow: 0 8px 22px rgb(0 0 0 / 0.38) !important;
+  filter: none !important;
+  font-size: 26px !important;
+  font-weight: 700 !important;
+  line-height: 1 !important;
+  cursor: pointer !important;
+  place-items: center !important;
+}
+
+dialog.popup:has(.tavernary-companion-root) > .popup-button-close:hover {
+  background: rgb(105 109 114 / 0.98) !important;
+}
+
+dialog.popup:has(.tavernary-companion-root) > .popup-button-close:focus-visible {
+  outline: 2px solid var(--tavernary-color-focus-ring) !important;
+  outline-offset: 3px !important;
 }
 
 dialog.popup:has(.tavernary-companion-root) > .popup-body,
@@ -43,6 +80,8 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   min-block-size: 0;
   max-inline-size: 100%;
   max-block-size: 100%;
+  margin: 0 !important;
+  padding: 0 !important;
 }
 
 dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
@@ -79,7 +118,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   flex: none;
   align-items: center;
   gap: 1rem;
-  min-block-size: 66px;
+  min-block-size: 58px;
   padding: 0.55rem 1rem;
   border-block-end: 1px solid var(--tavernary-color-border-subtle);
   background: var(--tavernary-color-bg-header);
@@ -94,8 +133,8 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 
 .tavernary-companion-brand__mark {
   flex: none;
-  inline-size: 44px;
-  block-size: 44px;
+  inline-size: 40px;
+  block-size: 40px;
   background: var(--tavernary-brand-mark) center / contain no-repeat;
 }
 
@@ -109,28 +148,9 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   gap: 0.55rem;
   margin: 0;
   color: var(--tavernary-color-functional);
-  font-size: clamp(1.15rem, 2cqi, 1.55rem);
+  font-size: 20px;
   font-weight: 750;
   line-height: 1.15;
-}
-
-.tavernary-companion-brand__qualifier {
-  padding: 0.18rem 0.45rem;
-  border: 1px solid var(--tavernary-color-accent-teal-border);
-  border-radius: 999px;
-  color: var(--tavernary-color-accent-teal-text);
-  background: var(--tavernary-color-accent-teal-bg);
-  font-size: 0.66rem;
-  font-weight: 700;
-  letter-spacing: 0.08em;
-  text-transform: uppercase;
-}
-
-.tavernary-companion-brand p {
-  margin: 0.18rem 0 0;
-  color: var(--tavernary-color-text-secondary);
-  font-size: 0.78rem;
-  line-height: 1.2;
 }
 
 .tavernary-companion-header-search {
@@ -161,6 +181,22 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 .tavernary-companion-shell__utilities {
   min-inline-size: 0;
   color: var(--tavernary-color-text-muted);
+}
+
+.tavernary-companion-catalog-freshness {
+  max-inline-size: 11rem;
+  font-size: 10px;
+  line-height: 1.25;
+  text-align: end;
+}
+
+.tavernary-companion-shell__utilities .tavernary-companion-button[aria-label="Refresh catalog"] {
+  block-size: 32px;
+  min-block-size: 32px;
+  padding: 0 11px;
+  border-radius: 6px;
+  font-size: 10px;
+  line-height: 1;
 }
 
 .tavernary-companion-button--primary {

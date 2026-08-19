@@ -6,7 +6,11 @@ import { DEFAULT_COMPANION_QUERY, type CatalogQuery } from "../../catalog/catalo
 import type { DiscoveryController } from "../../catalog/discovery-controller";
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
 import type { KitDiscoveryController } from "../../kits/kit-discovery-controller";
-import type { KitInspectorViewModel, KitPrimaryAction } from "../../kits/kit-view-model";
+import type {
+  InstalledKitViewModel,
+  KitInspectorViewModel,
+  KitPrimaryAction,
+} from "../../kits/kit-view-model";
 import type { ProjectFacets } from "../projects/filter-panel";
 import { InstalledRoute } from "../installed/installed-route";
 import { KitInspector } from "../kits/kit-inspector";
@@ -24,10 +28,13 @@ interface CompanionShellProps {
   onProjectAction?(id: string, action: ProjectPrimaryAction): void;
   onRefreshInventory?(): void | Promise<void>;
   inventoryRefreshing?: boolean;
+  togglingInternalName?: string | null;
+  onToggleExtension?(projectId: string, internalName: string, enabled: boolean): void;
   onOpenExtensionManager?(): void;
   lifecycleDisabled?: boolean;
   kitDiscovery?: KitDiscoveryController;
   kitInspectors?: Readonly<Record<string, KitInspectorViewModel>>;
+  installedKits?: readonly InstalledKitViewModel[];
   onKitAction?(id: string, action: KitPrimaryAction): void;
   onNewKit?(): void;
   onImportKit?(): void;
@@ -59,10 +66,13 @@ export function CompanionShell({
   onProjectAction,
   onRefreshInventory = noRefresh,
   inventoryRefreshing = false,
+  togglingInternalName = null,
+  onToggleExtension,
   onOpenExtensionManager,
   lifecycleDisabled = false,
   kitDiscovery,
   kitInspectors = {},
+  installedKits = [],
   onKitAction,
   onNewKit,
   onImportKit,
@@ -211,10 +221,18 @@ export function CompanionShell({
               {discoveryState ? (
                 <InstalledRoute
                   sections={discoveryState.installedSections}
+                  kits={installedKits}
+                  activeKitId={activeKitId}
                   refreshing={inventoryRefreshing}
+                  togglingInternalName={togglingInternalName}
                   onRefresh={onRefreshInventory}
                   onAction={(id, action) => onProjectAction?.(id, action)}
                   onManage={onOpenExtensionManager}
+                  onOpenKit={(id) =>
+                    controller.openDetail({ kind: "kit", id, focusKey: `installed-kit-${id}` })
+                  }
+                  onUninstallKit={onUninstallKit}
+                  onToggleExtension={onToggleExtension}
                   lifecycleDisabled={lifecycleDisabled}
                 />
               ) : (

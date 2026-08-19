@@ -15,8 +15,10 @@ const sections: InstalledSectionViewModel[] = [
         id: "alpha",
         name: "Alpha",
         detail: "Alpha",
+        internalName: "third-party/Alpha",
         canonicalUrl: "https://example.test/alpha",
         enabled: true,
+        toggleable: true,
         action: { kind: "uninstall", label: "Uninstall", reason: "Managed by Companion" },
       },
     ],
@@ -30,8 +32,10 @@ const sections: InstalledSectionViewModel[] = [
         id: "third-party/Mystery",
         name: "Mystery",
         detail: "third-party/Mystery",
+        internalName: "third-party/Mystery",
         canonicalUrl: null,
         enabled: false,
+        toggleable: true,
         action: {
           kind: "manage-in-sillytavern",
           label: "Manage in SillyTavern",
@@ -81,6 +85,76 @@ describe("InstalledRoute", () => {
     expect(source).toHaveAttribute("target", "_blank");
     expect(source).toHaveAttribute("rel", expect.stringContaining("noopener"));
     expect(screen.queryByRole("button", { name: "View Alpha" })).not.toBeInTheDocument();
+  });
+
+  it("renders installed Kits before extension cards and toggles an extension in place", () => {
+    const onToggleExtension = vi.fn();
+    const onOpenKit = vi.fn();
+    const { container } = render(
+      <InstalledRoute
+        sections={sections}
+        kits={[
+          {
+            id: "writer-kit",
+            title: "Writer Kit",
+            description: "A focused writing stack.",
+            originLabel: "Personal Kit",
+            operationalStatus: "Active",
+            components: [
+              {
+                projectId: "alpha",
+                name: "Alpha",
+              },
+            ],
+            installedProjectIds: ["alpha"],
+            orphaned: false,
+          },
+        ]}
+        activeKitId="writer-kit"
+        onRefresh={vi.fn()}
+        onOpenKit={onOpenKit}
+        onToggleExtension={onToggleExtension}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Installed Kits" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Writer Kit" })).toBeVisible();
+    expect(screen.getByText("Active Kit")).toBeVisible();
+    expect(screen.getByText("In Writer Kit")).toBeVisible();
+    expect(container.querySelectorAll(".tavernary-companion-installed-card")).toHaveLength(3);
+    const toggle = screen.getByRole("switch", { name: "Disable Alpha" });
+    expect(toggle).toHaveAttribute("aria-checked", "true");
+    fireEvent.click(toggle);
+    expect(onToggleExtension).toHaveBeenCalledWith("alpha", "third-party/Alpha", false);
+    fireEvent.click(screen.getByRole("button", { name: "Open Writer Kit" }));
+    expect(onOpenKit).toHaveBeenCalledWith("writer-kit");
+  });
+
+  it("keeps an orphaned installed Kit visible with an uninstall path", () => {
+    const onUninstallKit = vi.fn();
+    render(
+      <InstalledRoute
+        sections={sections.map((section) => ({ ...section, rows: [] }))}
+        kits={[
+          {
+            id: "removed-kit",
+            title: "removed-kit",
+            description: "No longer cataloged.",
+            originLabel: "Installed Kit",
+            operationalStatus: "Installed",
+            components: [{ projectId: "alpha", name: "Alpha" }],
+            installedProjectIds: ["alpha"],
+            orphaned: true,
+          },
+        ]}
+        onRefresh={vi.fn()}
+        onUninstallKit={onUninstallKit}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "removed-kit" })).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Uninstall removed-kit" }));
+    expect(onUninstallKit).toHaveBeenCalledWith("removed-kit");
   });
 
   it("explains an inventory with no installed extensions", () => {

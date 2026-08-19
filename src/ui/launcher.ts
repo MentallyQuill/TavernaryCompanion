@@ -50,6 +50,8 @@ export function mountCompanionLauncher(input: {
         id: "tavernary-companion",
         wide: true,
         large: true,
+        transparent: true,
+        dismissOnBackdrop: true,
         allowVerticalScrolling: false,
       })
       .finally(() => {
