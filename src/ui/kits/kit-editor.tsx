@@ -5,6 +5,75 @@ import { moveDraftMember, updateKitDraft, type KitDraftState } from "../../kits/
 import { CategoryIcon } from "../shared/category-icon";
 import { KitMemberRow } from "./kit-member-row";
 
+type MotionPhase = "entering" | "entered" | "exiting";
+
+function useTransitionPresence(visible: boolean, durationMs: number) {
+  const [state, setState] = useState<{
+    observedVisible: boolean;
+    present: boolean;
+    phase: MotionPhase;
+  }>(() => ({
+    observedVisible: visible,
+    present: visible,
+    phase: visible ? "entering" : "exiting",
+  }));
+  const frameRef = useRef<number | null>(null);
+  const timerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  if (state.observedVisible !== visible) {
+    setState({
+      observedVisible: visible,
+      present: visible || state.present,
+      phase: visible ? "entering" : "exiting",
+    });
+  }
+
+  useEffect(() => {
+    let cancelled = false;
+    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+
+    if (visible) {
+      const finishEntry = () => {
+        if (cancelled) return;
+        setState((current) =>
+          current.observedVisible ? { ...current, present: true, phase: "entered" } : current,
+        );
+      };
+      if (reducedMotion) queueMicrotask(finishEntry);
+      else {
+        frameRef.current = requestAnimationFrame(() => {
+          frameRef.current = null;
+          finishEntry();
+        });
+      }
+    } else {
+      const finishExit = () => {
+        if (cancelled) return;
+        setState((current) =>
+          current.observedVisible ? current : { ...current, present: false, phase: "exiting" },
+        );
+      };
+      if (reducedMotion) queueMicrotask(finishExit);
+      else {
+        timerRef.current = setTimeout(() => {
+          timerRef.current = null;
+          finishExit();
+        }, durationMs);
+      }
+    }
+
+    return () => {
+      cancelled = true;
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    };
+  }, [durationMs, visible]);
+
+  return { present: state.present, phase: state.phase };
+}
+
 export function KitEditor({
   draft,
   projects,
@@ -28,6 +97,13 @@ export function KitEditor({
   const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [submitAttempted, setSubmitAttempted] = useState(false);
   const panelRef = useRef<HTMLElement>(null);
+  const mobileOpenerRef = useRef<HTMLElement | null>(null);
+  const restoreMobileFocusRef = useRef(false);
+  const lastDraftRef = useRef<KitDraftState | null>(draft);
+  const onCollapseRef = useRef(onCollapse);
+  const discardDialogRef = useRef<HTMLElement>(null);
+  const discardTriggerRef = useRef<HTMLButtonElement>(null);
+  const keepEditingRef = useRef<HTMLButtonElement>(null);
   const stackRef = useRef<HTMLOListElement>(null);
   const dragCleanupRef = useRef<() => void>(() => undefined);
   const titleRef = useRef<HTMLInputElement>(null);
@@ -35,10 +111,18 @@ export function KitEditor({
   const titleCountId = `${formId}-title-count`;
   const titleErrorId = `${formId}-title-error`;
   const descriptionCountId = `${formId}-description-count`;
-  const count = draft?.projectIds.length ?? 0;
+  const discardTitleId = `${formId}-discard-title`;
+  const discardDescriptionId = `${formId}-discard-description`;
+  onCollapseRef.current = onCollapse;
+  if (draft) lastDraftRef.current = draft;
+  const mobileSheetVisible = compact && !collapsed && draft !== null;
+  const mobilePresence = useTransitionPresence(mobileSheetVisible, 220);
+  const renderedDraft = draft ?? (compact && mobilePresence.present ? lastDraftRef.current : null);
+  const count = renderedDraft?.projectIds.length ?? 0;
   const projectCount = `${count} ${count === 1 ? "project" : "projects"}`;
-  const titleIssue = draft?.issues.find((issue) => issue.startsWith("Title"));
-  const compositionIssues = draft?.issues.filter((issue) => issue !== titleIssue) ?? [];
+  const titleIssue = renderedDraft?.issues.find((issue) => issue.startsWith("Title"));
+  const compositionIssues = renderedDraft?.issues.filter((issue) => issue !== titleIssue) ?? [];
+  const mobileModalOpen = compact && mobilePresence.present && renderedDraft !== null;
 
   useEffect(() => {
     const root = panelRef.current?.closest<HTMLElement>(".tavernary-companion-root");
@@ -54,7 +138,7 @@ export function KitEditor({
   }, []);
 
   useEffect(() => {
-    if (!compact || collapsed) return;
+    if (!mobileModalOpen) return;
     const panel = panelRef.current;
     const root = panel?.closest<HTMLElement>(".tavernary-companion-root");
     const background = root
@@ -74,7 +158,7 @@ export function KitEditor({
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onCollapse();
+        onCollapseRef.current();
         return;
       }
       const focusable = controls();
@@ -94,7 +178,59 @@ export function KitEditor({
       window.removeEventListener("keydown", onKeyDown);
       for (const { element, inert } of priorInert) element.inert = inert;
     };
-  }, [collapsed, compact, onCollapse]);
+  }, [mobileModalOpen]);
+
+  useEffect(() => {
+    if (mobileModalOpen) {
+      restoreMobileFocusRef.current = true;
+      return;
+    }
+    if (!restoreMobileFocusRef.current || mobilePresence.present) return;
+    restoreMobileFocusRef.current = false;
+    const timer = window.setTimeout(() => {
+      const opener = mobileOpenerRef.current;
+      if (opener?.isConnected) opener.focus();
+      else
+        panelRef.current
+          ?.querySelector<HTMLButtonElement>('[aria-label="Open Kit Builder"]')
+          ?.focus();
+      mobileOpenerRef.current = null;
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [mobileModalOpen, mobilePresence.present]);
+
+  const closeDiscard = () => {
+    setConfirmDiscard(false);
+    window.setTimeout(() => discardTriggerRef.current?.focus(), 0);
+  };
+
+  useEffect(() => {
+    if (!confirmDiscard) return;
+    keepEditingRef.current?.focus();
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        closeDiscard();
+        return;
+      }
+      if (event.key !== "Tab" || !discardDialogRef.current) return;
+      const buttons = Array.from(
+        discardDialogRef.current.querySelectorAll<HTMLButtonElement>("button"),
+      );
+      const first = buttons[0];
+      const last = buttons.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last?.focus();
+      } else if (!event.shiftKey && document.activeElement === last) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
+  }, [confirmDiscard]);
 
   useEffect(() => {
     if (!draft) {
@@ -104,6 +240,11 @@ export function KitEditor({
   }, [draft]);
 
   useEffect(() => () => dragCleanupRef.current(), []);
+
+  const openBuilder = (event: preact.JSX.TargetedMouseEvent<HTMLButtonElement>) => {
+    mobileOpenerRef.current = event.currentTarget;
+    onStart();
+  };
 
   const beginPointerReorder = (
     currentDraft: KitDraftState,
@@ -168,10 +309,10 @@ export function KitEditor({
     window.addEventListener("pointercancel", cancel);
   };
 
-  if (compact && collapsed && !draft) return null;
+  if (compact && collapsed && !renderedDraft && !mobilePresence.present) return null;
 
-  if (collapsed) {
-    if (compact && draft) {
+  if (collapsed && !(compact && mobilePresence.present)) {
+    if (compact && renderedDraft) {
       return (
         <aside
           ref={panelRef}
@@ -182,9 +323,9 @@ export function KitEditor({
             type="button"
             class="tavernary-companion-kit-draft-pill"
             aria-label="Open Kit Builder"
-            onClick={onStart}
+            onClick={openBuilder}
           >
-            <CategoryIcon name="kit" />
+            <CategoryIcon name="kit-builder" />
             <span>Kit draft</span>
             <small>{projectCount}</small>
           </button>
@@ -197,21 +338,24 @@ export function KitEditor({
         class="tavernary-companion-kit-builder-panel collapsed"
         aria-label="Kit Builder"
       >
-        <button
-          type="button"
-          class="tavernary-companion-kit-builder-rail"
-          aria-label="Open Kit Builder"
-          onClick={onStart}
-        >
-          <CategoryIcon name="kit-builder" />
+        <div class="tavernary-companion-kit-builder-rail">
+          <button
+            type="button"
+            class="tavernary-companion-kit-builder-toggle"
+            aria-label="Open Kit Builder"
+            onClick={openBuilder}
+          >
+            <CategoryIcon name="kit-builder" />
+          </button>
           <span class="tavernary-companion-kit-builder-rail__label">Kit Builder</span>
-          <small>{projectCount} in draft</small>
-        </button>
+          <small aria-hidden="true">{projectCount} in draft</small>
+        </div>
       </aside>
     );
   }
 
-  if (!draft) return null;
+  if (!renderedDraft) return null;
+  const currentDraft = renderedDraft;
   const byId = new Map(projects.map((project) => [project.id, project]));
 
   return (
@@ -222,6 +366,7 @@ export function KitEditor({
       role={compact ? "dialog" : "complementary"}
       aria-modal={compact || undefined}
       data-layout={compact ? "mobile" : "desktop"}
+      data-motion-phase={compact ? mobilePresence.phase : undefined}
     >
       <header class="tavernary-companion-kit-builder-panel__header">
         <h2 tabIndex={-1}>Kit Builder</h2>
@@ -229,15 +374,16 @@ export function KitEditor({
           type="button"
           class="tavernary-companion-kit-builder-collapse"
           aria-label={compact ? "Close Kit Builder" : "Collapse Kit Builder"}
-          onClick={onCollapse}
+          onClick={() => onCollapseRef.current()}
         >
           <CategoryIcon name={compact ? "close" : "kit-builder"} />
         </button>
       </header>
       <div class="tavernary-companion-kit-builder-panel__body">
         <div class="tavernary-companion-kit-builder-heading">
-          <h2>{draft.sourceId ? "Edit Kit" : "Create Kit"}</h2>
+          <h2>{currentDraft.sourceId ? "Edit Kit" : "Create Kit"}</h2>
           <button
+            ref={discardTriggerRef}
             type="button"
             class="tavernary-companion-kit-discard"
             aria-label="Discard draft"
@@ -250,8 +396,8 @@ export function KitEditor({
           class="tavernary-companion-kit-builder"
           onSubmit={(event) => {
             event.preventDefault();
-            if (draft.issues.length === 0) {
-              onSave(draft);
+            if (currentDraft.issues.length === 0) {
+              onSave(currentDraft);
               return;
             }
             setSubmitAttempted(true);
@@ -265,14 +411,14 @@ export function KitEditor({
               id={`${formId}-title`}
               type="text"
               maxLength={60}
-              value={draft.title}
+              value={currentDraft.title}
               aria-describedby={`${titleCountId}${submitAttempted && titleIssue ? ` ${titleErrorId}` : ""}`}
               aria-invalid={(submitAttempted && Boolean(titleIssue)) || undefined}
               onInput={(event) =>
-                onUpdate(updateKitDraft(draft, { title: event.currentTarget.value }))
+                onUpdate(updateKitDraft(currentDraft, { title: event.currentTarget.value }))
               }
             />
-            <small id={titleCountId}>{draft.title.length}/60 characters</small>
+            <small id={titleCountId}>{currentDraft.title.length}/60 characters</small>
             {submitAttempted && titleIssue ? (
               <span id={titleErrorId} class="tavernary-companion-kit-builder-field-error">
                 {titleIssue}
@@ -284,13 +430,13 @@ export function KitEditor({
             <textarea
               id={`${formId}-description`}
               maxLength={600}
-              value={draft.description}
+              value={currentDraft.description}
               aria-describedby={descriptionCountId}
               onInput={(event) =>
-                onUpdate(updateKitDraft(draft, { description: event.currentTarget.value }))
+                onUpdate(updateKitDraft(currentDraft, { description: event.currentTarget.value }))
               }
             />
-            <small id={descriptionCountId}>{draft.description.length}/600 characters</small>
+            <small id={descriptionCountId}>{currentDraft.description.length}/600 characters</small>
           </div>
           <section
             class="tavernary-companion-kit-composition"
@@ -309,10 +455,10 @@ export function KitEditor({
               class="tavernary-companion-kit-builder-stack"
               aria-label="Ordered Kit projects"
             >
-              {draft.projectIds.length === 0 ? (
+              {currentDraft.projectIds.length === 0 ? (
                 <li class="tavernary-companion-kit-builder-empty">Add projects from the catalog</li>
               ) : null}
-              {draft.projectIds.map((id) => {
+              {currentDraft.projectIds.map((id) => {
                 const project = byId.get(id);
                 return (
                   <KitMemberRow
@@ -320,12 +466,14 @@ export function KitEditor({
                     id={id}
                     name={project?.name ?? id}
                     kind={project?.kind ?? "extension"}
-                    onDragStart={(event) => beginPointerReorder(draft, id, event)}
-                    onMove={(direction) => onUpdate(moveDraftMember(draft, id, direction))}
+                    onDragStart={(event) => beginPointerReorder(currentDraft, id, event)}
+                    onMove={(direction) => onUpdate(moveDraftMember(currentDraft, id, direction))}
                     onRemove={() =>
                       onUpdate(
-                        updateKitDraft(draft, {
-                          projectIds: draft.projectIds.filter((candidate) => candidate !== id),
+                        updateKitDraft(currentDraft, {
+                          projectIds: currentDraft.projectIds.filter(
+                            (candidate) => candidate !== id,
+                          ),
                         }),
                       )
                     }
@@ -353,15 +501,36 @@ export function KitEditor({
         </form>
       </div>
       {confirmDiscard ? (
-        <div class="tavernary-companion-kit-discard-backdrop">
-          <section role="alertdialog" aria-label="Discard Kit changes?">
-            <h2>Discard Kit changes?</h2>
-            <p>Your unsaved changes will be lost.</p>
-            <div>
-              <button type="button" onClick={() => setConfirmDiscard(false)}>
+        <div
+          class="tavernary-companion-kit-discard-backdrop"
+          onMouseDown={(event) => {
+            if (event.target === event.currentTarget) closeDiscard();
+          }}
+        >
+          <section
+            ref={discardDialogRef}
+            class="tavernary-companion-kit-discard-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby={discardTitleId}
+            aria-describedby={discardDescriptionId}
+          >
+            <h2 id={discardTitleId}>Discard Kit changes?</h2>
+            <p id={discardDescriptionId}>Your unsaved changes will be lost.</p>
+            <div class="tavernary-companion-kit-discard-actions">
+              <button
+                ref={keepEditingRef}
+                type="button"
+                class="tavernary-companion-kit-discard-keep"
+                onClick={closeDiscard}
+              >
                 Keep editing
               </button>
-              <button type="button" onClick={onDiscard}>
+              <button
+                type="button"
+                class="tavernary-companion-kit-discard-confirm"
+                onClick={onDiscard}
+              >
                 Discard changes
               </button>
             </div>

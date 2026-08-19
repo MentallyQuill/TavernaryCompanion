@@ -14640,6 +14640,63 @@ function KitMemberRow({
 }
 
 // src/ui/kits/kit-editor.tsx
+function useTransitionPresence(visible, durationMs) {
+  const [state, setState] = d2(() => ({
+    observedVisible: visible,
+    present: visible,
+    phase: visible ? "entering" : "exiting"
+  }));
+  const frameRef = A2(null);
+  const timerRef = A2(null);
+  if (state.observedVisible !== visible) {
+    setState({
+      observedVisible: visible,
+      present: visible || state.present,
+      phase: visible ? "entering" : "exiting"
+    });
+  }
+  h2(() => {
+    let cancelled = false;
+    if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+    if (timerRef.current !== null) clearTimeout(timerRef.current);
+    const reducedMotion = window.matchMedia?.("(prefers-reduced-motion: reduce)").matches ?? false;
+    if (visible) {
+      const finishEntry = () => {
+        if (cancelled) return;
+        setState(
+          (current) => current.observedVisible ? { ...current, present: true, phase: "entered" } : current
+        );
+      };
+      if (reducedMotion) queueMicrotask(finishEntry);
+      else {
+        frameRef.current = requestAnimationFrame(() => {
+          frameRef.current = null;
+          finishEntry();
+        });
+      }
+    } else {
+      const finishExit = () => {
+        if (cancelled) return;
+        setState(
+          (current) => current.observedVisible ? current : { ...current, present: false, phase: "exiting" }
+        );
+      };
+      if (reducedMotion) queueMicrotask(finishExit);
+      else {
+        timerRef.current = setTimeout(() => {
+          timerRef.current = null;
+          finishExit();
+        }, durationMs);
+      }
+    }
+    return () => {
+      cancelled = true;
+      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+      if (timerRef.current !== null) clearTimeout(timerRef.current);
+    };
+  }, [durationMs, visible]);
+  return { present: state.present, phase: state.phase };
+}
 function KitEditor({
   draft,
   projects,
@@ -14654,6 +14711,13 @@ function KitEditor({
   const [confirmDiscard, setConfirmDiscard] = d2(false);
   const [submitAttempted, setSubmitAttempted] = d2(false);
   const panelRef = A2(null);
+  const mobileOpenerRef = A2(null);
+  const restoreMobileFocusRef = A2(false);
+  const lastDraftRef = A2(draft);
+  const onCollapseRef = A2(onCollapse);
+  const discardDialogRef = A2(null);
+  const discardTriggerRef = A2(null);
+  const keepEditingRef = A2(null);
   const stackRef = A2(null);
   const dragCleanupRef = A2(() => void 0);
   const titleRef = A2(null);
@@ -14661,10 +14725,18 @@ function KitEditor({
   const titleCountId = `${formId}-title-count`;
   const titleErrorId = `${formId}-title-error`;
   const descriptionCountId = `${formId}-description-count`;
-  const count = draft?.projectIds.length ?? 0;
+  const discardTitleId = `${formId}-discard-title`;
+  const discardDescriptionId = `${formId}-discard-description`;
+  onCollapseRef.current = onCollapse;
+  if (draft) lastDraftRef.current = draft;
+  const mobileSheetVisible = compact && !collapsed && draft !== null;
+  const mobilePresence = useTransitionPresence(mobileSheetVisible, 220);
+  const renderedDraft = draft ?? (compact && mobilePresence.present ? lastDraftRef.current : null);
+  const count = renderedDraft?.projectIds.length ?? 0;
   const projectCount = `${count} ${count === 1 ? "project" : "projects"}`;
-  const titleIssue = draft?.issues.find((issue) => issue.startsWith("Title"));
-  const compositionIssues = draft?.issues.filter((issue) => issue !== titleIssue) ?? [];
+  const titleIssue = renderedDraft?.issues.find((issue) => issue.startsWith("Title"));
+  const compositionIssues = renderedDraft?.issues.filter((issue) => issue !== titleIssue) ?? [];
+  const mobileModalOpen = compact && mobilePresence.present && renderedDraft !== null;
   h2(() => {
     const root = panelRef.current?.closest(".tavernary-companion-root");
     const sync = () => {
@@ -14678,7 +14750,7 @@ function KitEditor({
     return () => observer.disconnect();
   }, []);
   h2(() => {
-    if (!compact || collapsed) return;
+    if (!mobileModalOpen) return;
     const panel = panelRef.current;
     const root = panel?.closest(".tavernary-companion-root");
     const background = root ? Array.from(
@@ -14695,7 +14767,7 @@ function KitEditor({
     const onKeyDown = (event) => {
       if (event.key === "Escape") {
         event.preventDefault();
-        onCollapse();
+        onCollapseRef.current();
         return;
       }
       const focusable = controls();
@@ -14715,7 +14787,54 @@ function KitEditor({
       window.removeEventListener("keydown", onKeyDown);
       for (const { element, inert } of priorInert) element.inert = inert;
     };
-  }, [collapsed, compact, onCollapse]);
+  }, [mobileModalOpen]);
+  h2(() => {
+    if (mobileModalOpen) {
+      restoreMobileFocusRef.current = true;
+      return;
+    }
+    if (!restoreMobileFocusRef.current || mobilePresence.present) return;
+    restoreMobileFocusRef.current = false;
+    const timer = window.setTimeout(() => {
+      const opener = mobileOpenerRef.current;
+      if (opener?.isConnected) opener.focus();
+      else
+        panelRef.current?.querySelector('[aria-label="Open Kit Builder"]')?.focus();
+      mobileOpenerRef.current = null;
+    }, 0);
+    return () => window.clearTimeout(timer);
+  }, [mobileModalOpen, mobilePresence.present]);
+  const closeDiscard = () => {
+    setConfirmDiscard(false);
+    window.setTimeout(() => discardTriggerRef.current?.focus(), 0);
+  };
+  h2(() => {
+    if (!confirmDiscard) return;
+    keepEditingRef.current?.focus();
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopImmediatePropagation();
+        closeDiscard();
+        return;
+      }
+      if (event.key !== "Tab" || !discardDialogRef.current) return;
+      const buttons = Array.from(
+        discardDialogRef.current.querySelectorAll("button")
+      );
+      const first = buttons[0];
+      const last2 = buttons.at(-1);
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last2?.focus();
+      } else if (!event.shiftKey && document.activeElement === last2) {
+        event.preventDefault();
+        first?.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown, { capture: true });
+    return () => window.removeEventListener("keydown", onKeyDown, { capture: true });
+  }, [confirmDiscard]);
   h2(() => {
     if (!draft) {
       setConfirmDiscard(false);
@@ -14723,11 +14842,15 @@ function KitEditor({
     }
   }, [draft]);
   h2(() => () => dragCleanupRef.current(), []);
-  const beginPointerReorder = (currentDraft, projectId, event) => {
+  const openBuilder = (event) => {
+    mobileOpenerRef.current = event.currentTarget;
+    onStart();
+  };
+  const beginPointerReorder = (currentDraft2, projectId, event) => {
     if (event.button !== 0) return;
     dragCleanupRef.current();
     event.preventDefault();
-    const sourceIndex = currentDraft.projectIds.indexOf(projectId);
+    const sourceIndex = currentDraft2.projectIds.indexOf(projectId);
     if (sourceIndex < 0) return;
     const pointerId = event.pointerId;
     const originY = event.clientY;
@@ -14764,10 +14887,10 @@ function KitEditor({
     const finish = (pointerEvent) => {
       if (pointerEvent.pointerId !== pointerId) return;
       if (dragging && targetIndex !== sourceIndex) {
-        const projectIds = [...currentDraft.projectIds];
+        const projectIds = [...currentDraft2.projectIds];
         const [moved] = projectIds.splice(sourceIndex, 1);
         projectIds.splice(targetIndex, 0, moved);
-        onUpdate(updateKitDraft(currentDraft, { projectIds }));
+        onUpdate(updateKitDraft(currentDraft2, { projectIds }));
       }
       cleanup2();
     };
@@ -14779,9 +14902,9 @@ function KitEditor({
     window.addEventListener("pointerup", finish);
     window.addEventListener("pointercancel", cancel);
   };
-  if (compact && collapsed && !draft) return null;
-  if (collapsed) {
-    if (compact && draft) {
+  if (compact && collapsed && !renderedDraft && !mobilePresence.present) return null;
+  if (collapsed && !(compact && mobilePresence.present)) {
+    if (compact && renderedDraft) {
       return /* @__PURE__ */ u3(
         "aside",
         {
@@ -14794,9 +14917,9 @@ function KitEditor({
               type: "button",
               class: "tavernary-companion-kit-draft-pill",
               "aria-label": "Open Kit Builder",
-              onClick: onStart,
+              onClick: openBuilder,
               children: [
-                /* @__PURE__ */ u3(CategoryIcon, { name: "kit" }),
+                /* @__PURE__ */ u3(CategoryIcon, { name: "kit-builder" }),
                 /* @__PURE__ */ u3("span", { children: "Kit draft" }),
                 /* @__PURE__ */ u3("small", { children: projectCount })
               ]
@@ -14811,27 +14934,28 @@ function KitEditor({
         ref: panelRef,
         class: "tavernary-companion-kit-builder-panel collapsed",
         "aria-label": "Kit Builder",
-        children: /* @__PURE__ */ u3(
-          "button",
-          {
-            type: "button",
-            class: "tavernary-companion-kit-builder-rail",
-            "aria-label": "Open Kit Builder",
-            onClick: onStart,
-            children: [
-              /* @__PURE__ */ u3(CategoryIcon, { name: "kit-builder" }),
-              /* @__PURE__ */ u3("span", { class: "tavernary-companion-kit-builder-rail__label", children: "Kit Builder" }),
-              /* @__PURE__ */ u3("small", { children: [
-                projectCount,
-                " in draft"
-              ] })
-            ]
-          }
-        )
+        children: /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-builder-rail", children: [
+          /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              class: "tavernary-companion-kit-builder-toggle",
+              "aria-label": "Open Kit Builder",
+              onClick: openBuilder,
+              children: /* @__PURE__ */ u3(CategoryIcon, { name: "kit-builder" })
+            }
+          ),
+          /* @__PURE__ */ u3("span", { class: "tavernary-companion-kit-builder-rail__label", children: "Kit Builder" }),
+          /* @__PURE__ */ u3("small", { "aria-hidden": "true", children: [
+            projectCount,
+            " in draft"
+          ] })
+        ] })
       }
     );
   }
-  if (!draft) return null;
+  if (!renderedDraft) return null;
+  const currentDraft = renderedDraft;
   const byId = new Map(projects.map((project2) => [project2.id, project2]));
   return /* @__PURE__ */ u3(
     "aside",
@@ -14842,6 +14966,7 @@ function KitEditor({
       role: compact ? "dialog" : "complementary",
       "aria-modal": compact || void 0,
       "data-layout": compact ? "mobile" : "desktop",
+      "data-motion-phase": compact ? mobilePresence.phase : void 0,
       children: [
         /* @__PURE__ */ u3("header", { class: "tavernary-companion-kit-builder-panel__header", children: [
           /* @__PURE__ */ u3("h2", { tabIndex: -1, children: "Kit Builder" }),
@@ -14851,17 +14976,18 @@ function KitEditor({
               type: "button",
               class: "tavernary-companion-kit-builder-collapse",
               "aria-label": compact ? "Close Kit Builder" : "Collapse Kit Builder",
-              onClick: onCollapse,
+              onClick: () => onCollapseRef.current(),
               children: /* @__PURE__ */ u3(CategoryIcon, { name: compact ? "close" : "kit-builder" })
             }
           )
         ] }),
         /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-builder-panel__body", children: [
           /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-builder-heading", children: [
-            /* @__PURE__ */ u3("h2", { children: draft.sourceId ? "Edit Kit" : "Create Kit" }),
+            /* @__PURE__ */ u3("h2", { children: currentDraft.sourceId ? "Edit Kit" : "Create Kit" }),
             /* @__PURE__ */ u3(
               "button",
               {
+                ref: discardTriggerRef,
                 type: "button",
                 class: "tavernary-companion-kit-discard",
                 "aria-label": "Discard draft",
@@ -14876,8 +15002,8 @@ function KitEditor({
               class: "tavernary-companion-kit-builder",
               onSubmit: (event) => {
                 event.preventDefault();
-                if (draft.issues.length === 0) {
-                  onSave(draft);
+                if (currentDraft.issues.length === 0) {
+                  onSave(currentDraft);
                   return;
                 }
                 setSubmitAttempted(true);
@@ -14893,14 +15019,14 @@ function KitEditor({
                       id: `${formId}-title`,
                       type: "text",
                       maxLength: 60,
-                      value: draft.title,
+                      value: currentDraft.title,
                       "aria-describedby": `${titleCountId}${submitAttempted && titleIssue ? ` ${titleErrorId}` : ""}`,
                       "aria-invalid": submitAttempted && Boolean(titleIssue) || void 0,
-                      onInput: (event) => onUpdate(updateKitDraft(draft, { title: event.currentTarget.value }))
+                      onInput: (event) => onUpdate(updateKitDraft(currentDraft, { title: event.currentTarget.value }))
                     }
                   ),
                   /* @__PURE__ */ u3("small", { id: titleCountId, children: [
-                    draft.title.length,
+                    currentDraft.title.length,
                     "/60 characters"
                   ] }),
                   submitAttempted && titleIssue ? /* @__PURE__ */ u3("span", { id: titleErrorId, class: "tavernary-companion-kit-builder-field-error", children: titleIssue }) : null
@@ -14912,13 +15038,13 @@ function KitEditor({
                     {
                       id: `${formId}-description`,
                       maxLength: 600,
-                      value: draft.description,
+                      value: currentDraft.description,
                       "aria-describedby": descriptionCountId,
-                      onInput: (event) => onUpdate(updateKitDraft(draft, { description: event.currentTarget.value }))
+                      onInput: (event) => onUpdate(updateKitDraft(currentDraft, { description: event.currentTarget.value }))
                     }
                   ),
                   /* @__PURE__ */ u3("small", { id: descriptionCountId, children: [
-                    draft.description.length,
+                    currentDraft.description.length,
                     "/600 characters"
                   ] })
                 ] }),
@@ -14945,8 +15071,8 @@ function KitEditor({
                       class: "tavernary-companion-kit-builder-stack",
                       "aria-label": "Ordered Kit projects",
                       children: [
-                        draft.projectIds.length === 0 ? /* @__PURE__ */ u3("li", { class: "tavernary-companion-kit-builder-empty", children: "Add projects from the catalog" }) : null,
-                        draft.projectIds.map((id) => {
+                        currentDraft.projectIds.length === 0 ? /* @__PURE__ */ u3("li", { class: "tavernary-companion-kit-builder-empty", children: "Add projects from the catalog" }) : null,
+                        currentDraft.projectIds.map((id) => {
                           const project2 = byId.get(id);
                           return /* @__PURE__ */ u3(
                             KitMemberRow,
@@ -14954,11 +15080,13 @@ function KitEditor({
                               id,
                               name: project2?.name ?? id,
                               kind: project2?.kind ?? "extension",
-                              onDragStart: (event) => beginPointerReorder(draft, id, event),
-                              onMove: (direction) => onUpdate(moveDraftMember(draft, id, direction)),
+                              onDragStart: (event) => beginPointerReorder(currentDraft, id, event),
+                              onMove: (direction) => onUpdate(moveDraftMember(currentDraft, id, direction)),
                               onRemove: () => onUpdate(
-                                updateKitDraft(draft, {
-                                  projectIds: draft.projectIds.filter((candidate) => candidate !== id)
+                                updateKitDraft(currentDraft, {
+                                  projectIds: currentDraft.projectIds.filter(
+                                    (candidate) => candidate !== id
+                                  )
                                 })
                               )
                             },
@@ -14985,14 +15113,51 @@ function KitEditor({
             }
           )
         ] }),
-        confirmDiscard ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-discard-backdrop", children: /* @__PURE__ */ u3("section", { role: "alertdialog", "aria-label": "Discard Kit changes?", children: [
-          /* @__PURE__ */ u3("h2", { children: "Discard Kit changes?" }),
-          /* @__PURE__ */ u3("p", { children: "Your unsaved changes will be lost." }),
-          /* @__PURE__ */ u3("div", { children: [
-            /* @__PURE__ */ u3("button", { type: "button", onClick: () => setConfirmDiscard(false), children: "Keep editing" }),
-            /* @__PURE__ */ u3("button", { type: "button", onClick: onDiscard, children: "Discard changes" })
-          ] })
-        ] }) }) : null
+        confirmDiscard ? /* @__PURE__ */ u3(
+          "div",
+          {
+            class: "tavernary-companion-kit-discard-backdrop",
+            onMouseDown: (event) => {
+              if (event.target === event.currentTarget) closeDiscard();
+            },
+            children: /* @__PURE__ */ u3(
+              "section",
+              {
+                ref: discardDialogRef,
+                class: "tavernary-companion-kit-discard-dialog",
+                role: "dialog",
+                "aria-modal": "true",
+                "aria-labelledby": discardTitleId,
+                "aria-describedby": discardDescriptionId,
+                children: [
+                  /* @__PURE__ */ u3("h2", { id: discardTitleId, children: "Discard Kit changes?" }),
+                  /* @__PURE__ */ u3("p", { id: discardDescriptionId, children: "Your unsaved changes will be lost." }),
+                  /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-discard-actions", children: [
+                    /* @__PURE__ */ u3(
+                      "button",
+                      {
+                        ref: keepEditingRef,
+                        type: "button",
+                        class: "tavernary-companion-kit-discard-keep",
+                        onClick: closeDiscard,
+                        children: "Keep editing"
+                      }
+                    ),
+                    /* @__PURE__ */ u3(
+                      "button",
+                      {
+                        type: "button",
+                        class: "tavernary-companion-kit-discard-confirm",
+                        onClick: onDiscard,
+                        children: "Discard changes"
+                      }
+                    )
+                  ] })
+                ]
+              }
+            )
+          }
+        ) : null
       ]
     }
   );

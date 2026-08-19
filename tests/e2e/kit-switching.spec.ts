@@ -103,6 +103,116 @@ test("builds and removes a personal Kit from project-card selection", async ({ p
   await expect(page.getByRole("heading", { name: "Quick Kit" })).not.toBeVisible();
 });
 
+test("animates the desktop Kit Builder track open and closed", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openHarness(page);
+  await page
+    .locator('[data-project-id="alpha"]')
+    .getByRole("button", { name: "Add Alpha to Kit" })
+    .click();
+  await page
+    .getByRole("region", { name: "1 project selected" })
+    .getByRole("button", { name: "Add 1 project to Kit" })
+    .click();
+
+  await page.getByRole("button", { name: "Open Kit Builder" }).click();
+  await page.waitForTimeout(250);
+  const expandedWidth = (await page
+    .getByRole("complementary", { name: "Kit Builder" })
+    .boundingBox())!.width;
+  const expandedBodyWidth = (await page
+    .locator(".tavernary-companion-kit-builder-panel__body")
+    .boundingBox())!.width;
+  await page.getByRole("button", { name: "Collapse Kit Builder" }).click();
+  await page.waitForTimeout(250);
+
+  const openingFrame = await page.evaluate(
+    ({ finalPanelWidth }) =>
+      new Promise<{ bodyWidth: number; panelWidth: number }>((resolve, reject) => {
+        const open = document.querySelector<HTMLButtonElement>('[aria-label="Open Kit Builder"]');
+        if (!open) return reject(new Error("Kit Builder open control is missing"));
+        const deadline = performance.now() + 1_000;
+        const sample = () => {
+          const panel = document.querySelector<HTMLElement>(
+            ".tavernary-companion-kit-builder-panel",
+          );
+          const body = document.querySelector<HTMLElement>(
+            ".tavernary-companion-kit-builder-panel__body",
+          );
+          if (!panel || !body) return reject(new Error("Kit Builder did not open"));
+          const panelWidth = panel.getBoundingClientRect().width;
+          if (panelWidth > 73 && panelWidth < finalPanelWidth - 1) {
+            resolve({ bodyWidth: body.getBoundingClientRect().width, panelWidth });
+            return;
+          }
+          if (performance.now() >= deadline) {
+            reject(new Error("Kit Builder did not expose an opening frame"));
+            return;
+          }
+          requestAnimationFrame(sample);
+        };
+        open.click();
+        requestAnimationFrame(sample);
+      }),
+    { finalPanelWidth: expandedWidth },
+  );
+
+  expect(openingFrame.panelWidth).toBeGreaterThan(72);
+  expect(openingFrame.panelWidth).toBeLessThan(expandedWidth);
+  expect(openingFrame.bodyWidth).toBeCloseTo(expandedBodyWidth, 0);
+
+  await page.waitForTimeout(250);
+  const closingFrame = await page.evaluate(
+    ({ finalPanelWidth }) =>
+      new Promise<{
+        panelRight: number;
+        panelWidth: number;
+        railWidth: number;
+        workspaceRight: number;
+      }>((resolve, reject) => {
+        const collapse = document.querySelector<HTMLButtonElement>(
+          '[aria-label="Collapse Kit Builder"]',
+        );
+        if (!collapse) return reject(new Error("Kit Builder collapse control is missing"));
+        const deadline = performance.now() + 1_000;
+        const sample = () => {
+          const panel = document.querySelector<HTMLElement>(
+            ".tavernary-companion-kit-builder-panel",
+          );
+          const rail = document.querySelector<HTMLElement>(".tavernary-companion-kit-builder-rail");
+          const workspace = panel?.parentElement;
+          if (!panel || !rail || !workspace) {
+            reject(new Error("Kit Builder collapsed rail is missing"));
+            return;
+          }
+          const panelRect = panel.getBoundingClientRect();
+          if (panelRect.width > 73 && panelRect.width < finalPanelWidth - 1) {
+            resolve({
+              panelRight: panelRect.right,
+              panelWidth: panelRect.width,
+              railWidth: rail.getBoundingClientRect().width,
+              workspaceRight: workspace.getBoundingClientRect().right,
+            });
+            return;
+          }
+          if (performance.now() >= deadline) {
+            reject(new Error("Kit Builder did not expose a closing frame"));
+            return;
+          }
+          requestAnimationFrame(sample);
+        };
+        collapse.click();
+        requestAnimationFrame(sample);
+      }),
+    { finalPanelWidth: expandedWidth },
+  );
+
+  expect(closingFrame.panelWidth).toBeGreaterThan(72);
+  expect(closingFrame.panelWidth).toBeLessThan(expandedWidth);
+  expect(closingFrame.railWidth).toBeCloseTo(71, 0);
+  expect(closingFrame.panelRight).toBeCloseTo(closingFrame.workspaceRight, 0);
+});
+
 test("uses Tavernary's full-screen Kit Builder sheet on mobile", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openHarness(page);
@@ -136,7 +246,46 @@ test("uses Tavernary's full-screen Kit Builder sheet on mobile", async ({ page }
   await expect(page).toHaveScreenshot("kit-builder-mobile-390x844.png");
   await page.keyboard.press("Escape");
   await expect(builder).not.toBeVisible();
-  await expect(page.getByRole("button", { name: "Open Kit Builder" })).toBeVisible();
+  const reopenedDraftPill = page.getByRole("button", { name: "Open Kit Builder" });
+  await expect(reopenedDraftPill).toBeVisible();
+  await expect(reopenedDraftPill).toBeFocused();
+});
+
+test("matches Tavernary's compact mobile discard confirmation", async ({ page }) => {
+  await page.setViewportSize({ width: 390, height: 844 });
+  await openHarness(page);
+  await page
+    .locator('[data-project-id="alpha"]')
+    .getByRole("button", { name: "Add Alpha to Kit" })
+    .click();
+  await page
+    .getByRole("region", { name: "1 project selected" })
+    .getByRole("button", { name: "Add 1 project to Kit" })
+    .click();
+  await page.getByRole("button", { name: "Open Kit Builder" }).click();
+  await page.getByRole("button", { name: "Discard draft" }).click();
+
+  const dialog = page.getByRole("dialog", { name: "Discard Kit changes?" });
+  const heading = dialog.getByRole("heading", { name: "Discard Kit changes?" });
+  const keep = dialog.getByRole("button", { name: "Keep editing" });
+  const discard = dialog.getByRole("button", { name: "Discard changes" });
+  await expect(dialog).toBeVisible();
+  await expect(heading).toHaveCSS("font-size", "18px");
+  await expect(dialog.getByText("Your unsaved changes will be lost.")).toHaveCSS(
+    "font-size",
+    "14px",
+  );
+  await expect(dialog.locator(".tavernary-companion-kit-discard-actions")).toHaveCSS(
+    "display",
+    "grid",
+  );
+  await expect(keep).toHaveCSS("font-size", "14px");
+  await expect(keep).toHaveCSS("min-height", "44px");
+  await expect(discard).toHaveCSS("min-height", "44px");
+  await expect(discard).toHaveCSS("background-color", "rgb(61, 27, 31)");
+  await expect(discard).toHaveCSS("border-color", "rgb(140, 47, 53)");
+  await expect(keep).toBeFocused();
+  await expect(dialog).toHaveScreenshot("kit-discard-mobile-390x844.png");
 });
 
 test("reorders Kit members from Tavernary's drag handles", async ({ page }) => {
@@ -240,12 +389,12 @@ test("confirms Kit Builder draft discard and imports a personal Kit", async ({ p
   const editor = page.getByRole("complementary", { name: "Kit Builder" });
   await editor.getByLabel("Title").fill("Unsaved Kit");
   await editor.getByRole("button", { name: "Discard draft" }).click();
-  const discard = page.getByRole("alertdialog", { name: "Discard Kit changes?" });
+  const discard = page.getByRole("dialog", { name: "Discard Kit changes?" });
   await expect(discard).toBeVisible();
   await discard.getByRole("button", { name: "Keep editing" }).click();
   await editor.getByRole("button", { name: "Discard draft" }).click();
   await page
-    .getByRole("alertdialog", { name: "Discard Kit changes?" })
+    .getByRole("dialog", { name: "Discard Kit changes?" })
     .getByRole("button", { name: "Discard changes" })
     .click();
 
