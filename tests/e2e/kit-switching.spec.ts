@@ -342,7 +342,7 @@ test("preserves a shared extension while uninstalling one Kit", async ({ page })
     .getByRole("dialog", { name: "Uninstall Kit review" })
     .getByRole("button", { name: "Uninstall Kit" })
     .click();
-  await expect(page.getByRole("heading", { name: "Kit completed" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kit finished" })).toBeVisible();
   await page.getByRole("button", { name: "Dismiss" }).click();
   await page.getByRole("button", { name: "Back" }).click();
 
@@ -365,10 +365,10 @@ test("surfaces failed activation and interrupted recovery receipts", async ({ pa
     .getByRole("dialog", { name: "Activate Kit review" })
     .getByRole("button", { name: "Activate Kit" })
     .click();
-  await expect(page.getByRole("heading", { name: "Kit failed" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kit didn't finish" })).toBeVisible();
 
   await openHarness(page, "interrupted");
-  await expect(page.getByRole("heading", { name: "Kit interrupted" })).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Kit was interrupted" })).toBeVisible();
   await page.getByRole("button", { name: "Dismiss" }).click();
   await page
     .getByRole("navigation", { name: "Catalog categories" })

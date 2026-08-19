@@ -1,4 +1,5 @@
 import type { TavernKeeperFreshness } from "../catalog/catalog-core";
+import type { InstallTargetChoice } from "../lifecycle/install-target-resolver";
 
 export type KitOperation = "install" | "activate" | "deactivate" | "uninstall";
 
@@ -8,12 +9,17 @@ export interface KitProjectStep {
   internalName: string | null;
 }
 
+export interface KitInstallStep extends KitProjectStep {
+  targetChoice: InstallTargetChoice | null;
+}
+
 export interface KitWarning {
   projectId: string;
   projectName: string;
   severity: "material" | "high";
   freshness: TavernKeeperFreshness;
   reportUrl: string | null;
+  scannedSha: string | null;
 }
 
 export interface KitIssue {
@@ -35,7 +41,8 @@ export interface KitPlan {
   inventoryFingerprint: string;
   requiredProjectIds: string[];
   actionableProjectIds: string[];
-  install: KitProjectStep[];
+  installTargetsPrepared: boolean;
+  install: KitInstallStep[];
   enable: KitProjectStep[];
   disable: KitProjectStep[];
   remove: KitProjectStep[];
@@ -49,11 +56,11 @@ export interface KitPlan {
 }
 
 export function freezeKitPlan(plan: KitPlan): Readonly<KitPlan> {
-  for (const value of Object.values(plan)) {
-    if (Array.isArray(value)) {
-      for (const item of value) if (typeof item === "object" && item) Object.freeze(item);
-      Object.freeze(value);
-    }
-  }
-  return Object.freeze(plan);
+  return deepFreeze(plan);
+}
+
+function deepFreeze<T>(value: T): T {
+  if (typeof value !== "object" || value === null || Object.isFrozen(value)) return value;
+  for (const nested of Object.values(value)) deepFreeze(nested);
+  return Object.freeze(value);
 }

@@ -7,6 +7,7 @@ import type { TrustPrompt, TrustPromptInput } from "./trust-types";
 
 export function selectTrustPrompts({
   trustAcknowledgedAt,
+  target,
   assessment,
 }: TrustPromptInput): TrustPrompt[] {
   const prompts: TrustPrompt[] = [];
@@ -17,7 +18,10 @@ export function selectTrustPrompts({
     });
   }
   if (assessment?.riskLevel === "material" || assessment?.riskLevel === "high") {
-    const stale = assessment.freshness === "stale";
+    const stale =
+      target.requestedSha === null ||
+      assessment.scannedSha === null ||
+      target.requestedSha.toLowerCase() !== assessment.scannedSha.toLowerCase();
     prompts.push({
       kind: "assessment-warning",
       severity: assessment.riskLevel,
@@ -25,7 +29,7 @@ export function selectTrustPrompts({
       reportUrl: assessment.reportUrl,
       reviewDisabledReason: assessment.reportUrl
         ? null
-        : "No TavernKeeper Scan Review link is available.",
+        : "No TavernKeeper check link is available.",
       copy: stale ? STALE_ASSESSMENT_WARNING : CURRENT_ASSESSMENT_WARNING,
     });
   }

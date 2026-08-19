@@ -6,8 +6,17 @@ import type { InstalledKitStateV1 } from "../../src/kits/kit-types";
 import { createKitExecutor } from "../../src/kits/kit-executor";
 import type { KitPlan } from "../../src/kits/kit-plan";
 import type { KitApproval } from "../../src/kits/kit-receipt";
+import {
+  computeInstallTargetBinding,
+  initialInstallTargetSelections,
+  prepareKitInstallTargets,
+  type KitInstallTargetSelection,
+} from "../../src/kits/kit-install-targets";
 import { KitStore } from "../../src/kits/kit-store";
 import { OperationLock } from "../../src/lifecycle/operation-lock";
+import { InstallTargetFallbackBroker } from "../../src/lifecycle/install-target-fallback-broker";
+import type { CatalogProject } from "../../src/catalog/catalog-core";
+import type { TrustPrompt } from "../../src/trust/trust-types";
 import { ProfileStore } from "../../src/state/profile-store";
 import { createFakeHost, type FakeHostOptions } from "./fake-host";
 
@@ -21,7 +30,11 @@ export function extension(folderName: string, enabled = true): HostExtension {
   };
 }
 
-export async function executorFixture(catalog: CatalogV7, hostOptions: FakeHostOptions = {}) {
+export async function executorFixture(
+  catalog: CatalogV7,
+  hostOptions: FakeHostOptions = {},
+  options: { confirm?: (prompt: TrustPrompt, project: CatalogProject) => Promise<boolean> } = {},
+) {
   const extensionSettings: Record<string, unknown> = {};
   const profile = new ProfileStore({ extensionSettings, saveSettingsDebounced: () => undefined });
   const kits = new KitStore(profile, { now: () => "2026-08-18T12:00:00.000Z" });
@@ -30,6 +43,7 @@ export async function executorFixture(catalog: CatalogV7, hostOptions: FakeHostO
   let currentCatalog = catalog;
   const fingerprintCheckOperations: Array<string | null> = [];
   const lock = new OperationLock();
+  const fallbacks = new InstallTargetFallbackBroker();
   const executor = createKitExecutor({
     host,
     profile,
@@ -40,6 +54,8 @@ export async function executorFixture(catalog: CatalogV7, hostOptions: FakeHostO
       fingerprintCheckOperations.push(lock.read()?.operationId ?? null);
       return currentFingerprint;
     },
+    fallbacks,
+    confirm: options.confirm ?? (async () => true),
     now: () => "2026-08-18T12:00:00.000Z",
     operationId: () => "operation-1",
   });
@@ -49,12 +65,21 @@ export async function executorFixture(catalog: CatalogV7, hostOptions: FakeHostO
     profile,
     kits,
     lock,
+    fallbacks,
     fingerprintCheckOperations,
     setFingerprint(value: string) {
       currentFingerprint = value;
     },
     setCatalog(value: CatalogV7) {
       currentCatalog = value;
+    },
+    prepare(plan: Readonly<KitPlan>) {
+      return prepareKitInstallTargets({
+        plan,
+        catalog: currentCatalog,
+        host,
+        now: () => "2026-08-18T12:00:00.000Z",
+      });
     },
     async inventory() {
       return reconcileInventory({
@@ -82,12 +107,17 @@ export async function executorFixture(catalog: CatalogV7, hostOptions: FakeHostO
   };
 }
 
-export function approve(plan: Readonly<KitPlan>): KitApproval {
+export function approve(
+  plan: Readonly<KitPlan>,
+  selectedInstallTargets: KitInstallTargetSelection[] = initialInstallTargetSelections(plan),
+): KitApproval {
   return {
     planId: plan.id,
     inventoryFingerprint: plan.inventoryFingerprint,
     catalogGeneratedAt: plan.catalogGeneratedAt,
     catalogBinding: plan.catalogBinding,
     acceptedWarningProjectIds: plan.warnings.map(({ projectId }) => projectId),
+    selectedInstallTargets,
+    installTargetBinding: computeInstallTargetBinding(selectedInstallTargets),
   };
 }

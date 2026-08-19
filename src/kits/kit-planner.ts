@@ -38,6 +38,7 @@ export function planKitOperation(input: PlanKitOperationInput): Readonly<KitPlan
     inventoryFingerprint: inventoryFingerprint(input),
     requiredProjectIds: [...input.kit.projectIds],
     actionableProjectIds: [],
+    installTargetsPrepared: false,
     install: [],
     enable: [],
     disable: [],
@@ -102,7 +103,7 @@ export function planKitOperation(input: PlanKitOperationInput): Readonly<KitPlan
       case "install":
       case "activate":
         if (!managedEntry) {
-          plan.install.push(stepFor(project, null));
+          plan.install.push({ ...stepFor(project, null), targetChoice: null });
           addWarning(plan, project);
         }
         if (input.operation === "activate" && (!managedEntry || !managedEntry.extension.enabled))
@@ -211,5 +212,6 @@ function addWarning(plan: KitPlan, project: CatalogProject): void {
     severity: assessment.riskLevel,
     freshness: assessment.freshness,
     reportUrl: assessment.report?.reportUrl ?? null,
+    scannedSha: assessment.report?.scannedSha ?? null,
   });
 }

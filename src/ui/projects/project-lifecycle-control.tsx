@@ -8,7 +8,7 @@ interface ProjectLifecycleControlProps {
   projectName: string;
   action: ProjectPrimaryAction;
   disabled?: boolean;
-  onAction(action: ProjectPrimaryAction): void;
+  onAction(action: ProjectPrimaryAction, anchor: HTMLButtonElement): void;
 }
 
 export function ProjectLifecycleControl({
@@ -36,7 +36,7 @@ export function ProjectLifecycleControl({
           aria-describedby={disabled ? disabledReasonId : undefined}
           aria-pressed={installed}
           disabled={disabled}
-          onClick={() => onAction(action)}
+          onClick={(event) => onAction(action, event.currentTarget)}
         >
           <span class="tavernary-companion-project-lifecycle__face" aria-hidden="true">
             {installed ? <UninstallIcon /> : <InstallIcon />}

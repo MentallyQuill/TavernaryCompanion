@@ -516,6 +516,10 @@
 }
 
 @media (pointer: coarse) {
+  .tavernary-companion-install-version-chooser > button {
+    min-block-size: 48px;
+  }
+
   .tavernary-companion-shell__header .tavernary-companion-catalog-freshness {
     display: none;
   }

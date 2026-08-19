@@ -6985,7 +6985,7 @@ var SillyTavernHostAdapter = class {
     return capabilities;
   }
   async resolveRemoteRevision(input) {
-    const repositoryUrl = parseRepositoryUrl(input.repositoryUrl);
+    const repositoryUrl = parseRepositoryUrl(input.repositoryUrl, "resolveRevision");
     let response;
     try {
       response = await this.#dependencies.fetch("/api/extensions/resolve", {
@@ -7011,7 +7011,7 @@ var SillyTavernHostAdapter = class {
     return { sha: parseCommitSha(body.sha, "resolveRevision") };
   }
   async install(input) {
-    const repositoryUrl = parseRepositoryUrl(input.repositoryUrl);
+    const repositoryUrl = parseRepositoryUrl(input.repositoryUrl, "install");
     const commitSha = input.commitSha !== null && input.commitSha !== void 0 ? parseCommitSha(input.commitSha, "install") : void 0;
     if (commitSha) {
       const capabilities = await this.getInstallCapabilities();
@@ -7146,13 +7146,13 @@ function parseCommitSha(value, operation) {
 function isExplicitUnavailableCommitError(cause) {
   return typeof cause === "object" && cause !== null && "code" in cause && cause.code === "COMMIT_UNAVAILABLE";
 }
-function parseRepositoryUrl(input) {
+function parseRepositoryUrl(input, operation) {
   let url;
   try {
     url = new URL(input);
   } catch (cause) {
     throw new HostOperationError(
-      "install",
+      operation,
       "Extension repositories require an HTTP or HTTPS URL.",
       {
         cause
@@ -7160,7 +7160,7 @@ function parseRepositoryUrl(input) {
     );
   }
   if (url.protocol !== "http:" && url.protocol !== "https:") {
-    throw new HostOperationError("install", "Extension repositories require an HTTP or HTTPS URL.");
+    throw new HostOperationError(operation, "Extension repositories require an HTTP or HTTPS URL.");
   }
   return url.href;
 }
@@ -11637,6 +11637,9 @@ var legacyInstallProvenance = () => ({
   catalogGeneratedAt: null,
   tavernKeeperReportId: null
 });
+function isFullCommitSha(value) {
+  return /^[0-9a-f]{40}$/i.test(value);
+}
 
 // src/inventory/managed-registry.ts
 function folderIdentity(value) {
@@ -12361,13 +12364,14 @@ function reconcileInventory({
 }
 
 // src/trust/trust-copy.ts
-var CURRENT_ASSESSMENT_WARNING = "TavernKeeper\u2019s latest assessment identified potential security concerns in this project. Extensions can run code inside SillyTavern. Responsibility for safety falls upon you. Review the scan and project before continuing.";
-var STALE_ASSESSMENT_WARNING = "TavernKeeper\u2019s latest available assessment identified potential security concerns in this project. Extensions can run code inside SillyTavern. Responsibility for safety falls upon you. Review the scan and project before continuing. This assessment covers an older version of the project.";
+var CURRENT_ASSESSMENT_WARNING = "TavernKeeper found concerns in this version. You can view the check before choosing whether to install it.";
+var STALE_ASSESSMENT_WARNING = "TavernKeeper checked an older version of this project. The newest changes have not been checked yet.";
 var UNSANDBOXED_CODE_DISCLOSURE = "Third-party extensions run unsandboxed code inside SillyTavern. Companion installs only from Tavernary\u2019s validated install contract. TavernKeeper provides evidence, not a guarantee of safety. Responsibility for safety falls upon you.";
 
 // src/trust/trust-policy.ts
 function selectTrustPrompts({
   trustAcknowledgedAt,
+  target,
   assessment
 }) {
   const prompts = [];
@@ -12378,13 +12382,13 @@ function selectTrustPrompts({
     });
   }
   if (assessment?.riskLevel === "material" || assessment?.riskLevel === "high") {
-    const stale = assessment.freshness === "stale";
+    const stale = target.requestedSha === null || assessment.scannedSha === null || target.requestedSha.toLowerCase() !== assessment.scannedSha.toLowerCase();
     prompts.push({
       kind: "assessment-warning",
       severity: assessment.riskLevel,
       stale,
       reportUrl: assessment.reportUrl,
-      reviewDisabledReason: assessment.reportUrl ? null : "No TavernKeeper Scan Review link is available.",
+      reviewDisabledReason: assessment.reportUrl ? null : "No TavernKeeper check link is available.",
       copy: stale ? STALE_ASSESSMENT_WARNING : CURRENT_ASSESSMENT_WARNING
     });
   }
@@ -12451,6 +12455,130 @@ function installedEntry(projectId, managed, external) {
   return externalEntry ? { ownership: "external", entry: externalEntry } : null;
 }
 
+// src/lifecycle/install-target-resolver.ts
+var LEGACY_CHECKED_DISABLED_REASON = "Update SillyTavern to use the checked version.";
+var NEWEST_LOOKUP_FAILED_REASON = "We couldn't find the newest version. Try again.";
+var InstallTargetPreparationError = class extends Error {
+  reason;
+  constructor(reason, options = {}) {
+    super(reason, options);
+    this.name = "InstallTargetPreparationError";
+    this.reason = reason;
+  }
+};
+var DefaultInstallTargetResolver = class {
+  #host;
+  #snapshot;
+  #now;
+  constructor(options) {
+    this.#host = options.host;
+    this.#snapshot = options.snapshot;
+    this.#now = options.now ?? (() => (/* @__PURE__ */ new Date()).toISOString());
+  }
+  async prepare(project2) {
+    const currentProject = this.#currentProject(project2.id);
+    if (!currentProject?.install) {
+      throw new InstallTargetPreparationError("This project is not available for installation.");
+    }
+    const report2 = checkedTarget(currentProject);
+    const capabilities = await this.#host.getInstallCapabilities();
+    if (!capabilities.pinnedCommitInstall || !capabilities.remoteRevisionLookup) {
+      return legacyChoice(report2, currentProject.tavernKeeper?.currentSha ?? null);
+    }
+    const newest = await this.#resolveNewest(currentProject);
+    if (!report2) return { kind: "single", target: newest };
+    if (report2.requestedSha === newest.requestedSha) return { kind: "single", target: report2 };
+    return {
+      kind: "choose",
+      checked: { target: report2, disabledReason: null },
+      newest
+    };
+  }
+  #currentProject(projectId) {
+    if (!("catalog" in this.#snapshot)) return null;
+    return this.#snapshot.catalog.projects.find((candidate) => candidate.id === projectId) ?? null;
+  }
+  async #resolveNewest(project2) {
+    try {
+      const resolved = await this.#host.resolveRemoteRevision({
+        repositoryUrl: project2.install.repositoryUrl,
+        branch: project2.install.branch
+      });
+      if (!isFullCommitSha(resolved.sha)) {
+        throw new Error("The host returned an invalid newest revision.");
+      }
+      return {
+        kind: "newest",
+        requestedSha: resolved.sha.toLowerCase(),
+        resolvedAt: this.#now()
+      };
+    } catch (cause) {
+      throw new InstallTargetPreparationError(NEWEST_LOOKUP_FAILED_REASON, { cause });
+    }
+  }
+};
+function createInstallTargetResolver(options) {
+  return new DefaultInstallTargetResolver(options);
+}
+async function prepareInstallTargetChoice(options) {
+  return createInstallTargetResolver(options).prepare(options.project);
+}
+async function prepareNewestInstallTarget(options) {
+  const currentProject = "catalog" in options.snapshot ? options.snapshot.catalog.projects.find(({ id }) => id === options.project.id) ?? null : null;
+  if (!currentProject?.install) {
+    throw new InstallTargetPreparationError("This project is not available for installation.");
+  }
+  const capabilities = await options.host.getInstallCapabilities();
+  if (!capabilities.pinnedCommitInstall || !capabilities.remoteRevisionLookup) {
+    return { kind: "newest", requestedSha: null, resolvedAt: null };
+  }
+  try {
+    const resolved = await options.host.resolveRemoteRevision({
+      repositoryUrl: currentProject.install.repositoryUrl,
+      branch: currentProject.install.branch
+    });
+    if (!isFullCommitSha(resolved.sha)) {
+      throw new Error("The host returned an invalid newest revision.");
+    }
+    return {
+      kind: "newest",
+      requestedSha: resolved.sha.toLowerCase(),
+      resolvedAt: (options.now ?? (() => (/* @__PURE__ */ new Date()).toISOString()))()
+    };
+  } catch (cause) {
+    throw new InstallTargetPreparationError(NEWEST_LOOKUP_FAILED_REASON, { cause });
+  }
+}
+function checkedTarget(project2) {
+  const report2 = project2.tavernKeeper?.report;
+  if (!report2 || !isFullCommitSha(report2.scannedSha) || typeof report2.scannedAt !== "string" || typeof report2.reportId !== "string" || typeof report2.reportUrl !== "string") {
+    return null;
+  }
+  return {
+    kind: "checked",
+    requestedSha: report2.scannedSha.toLowerCase(),
+    checkedAt: report2.scannedAt,
+    reportId: report2.reportId,
+    reportUrl: report2.reportUrl
+  };
+}
+function legacyChoice(checked, catalogCurrentSha) {
+  const newest = {
+    kind: "newest",
+    requestedSha: null,
+    resolvedAt: null
+  };
+  const normalizedCatalogCurrentSha = typeof catalogCurrentSha === "string" ? catalogCurrentSha.toLowerCase() : null;
+  if (!checked || !normalizedCatalogCurrentSha || !isFullCommitSha(normalizedCatalogCurrentSha) || checked.requestedSha === normalizedCatalogCurrentSha) {
+    return { kind: "single", target: newest };
+  }
+  return {
+    kind: "choose",
+    checked: { target: checked, disabledReason: LEGACY_CHECKED_DISABLED_REASON },
+    newest
+  };
+}
+
 // src/lifecycle/operation-lock.ts
 var OperationInProgressError = class extends Error {
   active;
@@ -12514,6 +12642,7 @@ function createReceipt(input) {
     reloadRequired: input.reloadRequired,
     ...input.installProvenance === void 0 ? {} : { installProvenance: structuredClone(input.installProvenance) },
     ...input.cleanupOutcome === void 0 ? {} : { cleanupOutcome: input.cleanupOutcome },
+    ...input.tavernKeeperReportUrl === void 0 ? {} : { tavernKeeperReportUrl: input.tavernKeeperReportUrl },
     steps: order.map((id, index) => ({
       id,
       status: id === input.failedAt ? "failed" : index <= completedIndex ? "succeeded" : input.status === "cancelled" || input.status === "rejected" ? "skipped" : "pending"
@@ -12582,7 +12711,150 @@ function isRecord3(value) {
   return typeof value === "object" && value !== null && !Array.isArray(value);
 }
 
+// src/lifecycle/verified-install.ts
+var VerifiedInstallError = class extends Error {
+  stage;
+  subtype;
+  cleanupOutcome;
+  requestedSha;
+  installedSha;
+  constructor(input) {
+    super(input.message, { cause: input.cause });
+    this.name = "VerifiedInstallError";
+    this.stage = input.stage;
+    this.subtype = input.subtype;
+    this.cleanupOutcome = input.cleanupOutcome;
+    this.requestedSha = input.requestedSha;
+    this.installedSha = input.installedSha;
+  }
+};
+async function executeVerifiedInstall(input) {
+  if (!input.project.install) {
+    throw new VerifiedInstallError({
+      message: "The project has no install contract.",
+      stage: "preflight",
+      subtype: "invalid-install-contract",
+      cleanupOutcome: "not-needed",
+      requestedSha: input.target.requestedSha,
+      installedSha: null
+    });
+  }
+  const contract = parseInstallContract(input.project.install);
+  const capabilities = await input.host.getInstallCapabilities();
+  if (input.target.requestedSha !== null && !capabilities.localRevisionLookup) {
+    throw new VerifiedInstallError({
+      message: "The selected revision cannot be verified on this host.",
+      stage: "preflight",
+      subtype: "local-revision-lookup-unavailable",
+      cleanupOutcome: "not-needed",
+      requestedSha: input.target.requestedSha,
+      installedSha: null
+    });
+  }
+  await input.host.install({
+    repositoryUrl: contract.repositoryUrl,
+    branch: contract.branch,
+    ...input.target.requestedSha === null ? {} : { commitSha: input.target.requestedSha }
+  });
+  const installed = exactFolder(await input.host.discover(), contract.folderName);
+  if (!installed) {
+    throw new VerifiedInstallError({
+      message: "The expected installed extension was not found.",
+      stage: "post-install-verification",
+      subtype: "expected-extension-missing",
+      cleanupOutcome: "not-needed",
+      requestedSha: input.target.requestedSha,
+      installedSha: null
+    });
+  }
+  let installedSha = null;
+  if (capabilities.localRevisionLookup) {
+    try {
+      installedSha = await input.host.readLocalRevision({
+        internalName: installed.internalName,
+        type: installed.type
+      });
+    } catch (cause) {
+      if (input.target.requestedSha === null) throw cause;
+      throw await cleanupMismatch({
+        host: input.host,
+        extension: installed,
+        expectedFolderName: contract.folderName,
+        requestedSha: input.target.requestedSha,
+        installedSha: null,
+        subtype: "local-revision-read-failed",
+        message: "SillyTavern could not report the installed revision."
+      });
+    }
+  }
+  if (input.target.requestedSha !== null && installedSha !== input.target.requestedSha) {
+    throw await cleanupMismatch({
+      host: input.host,
+      extension: installed,
+      expectedFolderName: contract.folderName,
+      requestedSha: input.target.requestedSha,
+      installedSha,
+      subtype: "revision-mismatch",
+      message: "The installed revision did not match the selected revision."
+    });
+  }
+  return { extension: installed, installedSha, cleanupOutcome: "not-needed" };
+}
+async function cleanupMismatch(input) {
+  try {
+    await input.host.remove({
+      internalName: input.extension.internalName,
+      type: input.extension.type
+    });
+    const afterCleanup = await input.host.discover();
+    if (hasFolder(afterCleanup, input.expectedFolderName)) {
+      throw new Error("The installed extension remained after cleanup.");
+    }
+    return new VerifiedInstallError({
+      message: input.message,
+      stage: "post-install-verification",
+      subtype: input.subtype,
+      cleanupOutcome: "succeeded",
+      requestedSha: input.requestedSha,
+      installedSha: input.installedSha
+    });
+  } catch (cause) {
+    if (cause instanceof VerifiedInstallError) return cause;
+    return new VerifiedInstallError({
+      message: `${input.message} Cleanup failed.`,
+      stage: "post-install-verification",
+      subtype: input.subtype,
+      cleanupOutcome: "failed",
+      requestedSha: input.requestedSha,
+      installedSha: input.installedSha,
+      cause
+    });
+  }
+}
+function exactFolder(extensions, folderName) {
+  const identity = folderIdentity3(folderName);
+  const matches = extensions.filter(
+    ({ folderName: candidate }) => folderIdentity3(candidate) === identity
+  );
+  return matches.length === 1 ? matches[0] : null;
+}
+function hasFolder(extensions, folderName) {
+  const identity = folderIdentity3(folderName);
+  return extensions.some(({ folderName: candidate }) => folderIdentity3(candidate) === identity);
+}
+function folderIdentity3(value) {
+  return value.normalize("NFKC").toLocaleLowerCase("en-US");
+}
+
 // src/lifecycle/lifecycle-coordinator.ts
+var INSTALL_CHOICE_STALE_REASON = "This install choice is out of date. Choose a version again.";
+var InstallPreparationStaleError = class extends Error {
+  reason = INSTALL_CHOICE_STALE_REASON;
+  constructor() {
+    super(INSTALL_CHOICE_STALE_REASON);
+    this.name = "InstallPreparationStaleError";
+  }
+};
 var DefaultLifecycleCoordinator = class {
   lock;
   #host;
@@ -12600,8 +12872,42 @@ var DefaultLifecycleCoordinator = class {
     this.#createId = options.createId ?? (() => crypto.randomUUID());
     this.lock = options.lock ?? new OperationLock();
   }
-  install(projectId) {
+  async prepareInstall(projectId) {
+    const snapshot = this.#getSnapshot();
+    const project2 = eligibleProjectForPreparation(projectId, snapshot);
+    const catalog = "catalog" in snapshot ? snapshot.catalog : null;
+    if (!project2 || !catalog) {
+      throw new InstallTargetPreparationError("This project is not eligible for installation.");
+    }
+    const choice = await prepareInstallTargetChoice({
+      host: this.#host,
+      snapshot,
+      project: project2,
+      now: this.#now
+    });
+    return bindInstallTargetChoice(choice, project2, catalog.generatedAt);
+  }
+  async prepareNewestInstall(projectId) {
+    const snapshot = this.#getSnapshot();
+    const project2 = eligibleProjectForPreparation(projectId, snapshot);
+    const catalog = "catalog" in snapshot ? snapshot.catalog : null;
+    if (!project2 || !catalog) {
+      throw new InstallTargetPreparationError("This project is not eligible for installation.");
+    }
+    const target = await prepareNewestInstallTarget({
+      host: this.#host,
+      snapshot,
+      project: project2,
+      now: this.#now
+    });
+    return {
+      target,
+      binding: createPreparationBinding(project2, target, catalog.generatedAt)
+    };
+  }
+  install(projectId, selection) {
     return this.lock.runExclusive(`install:${projectId}`, async ({ setPhase }) => {
+      const selectedTarget = selection.target;
       const startedAt = this.#now();
       const id = this.#createId();
       const snapshot = this.#getSnapshot();
@@ -12614,6 +12920,13 @@ var DefaultLifecycleCoordinator = class {
           projectName: project2?.name ?? projectId,
           startedAt
         });
+      }
+      if (!project2 || !catalog || !matchesPreparationBinding(
+        selection,
+        eligibleProjectForPreparation(projectId, snapshot),
+        catalog.generatedAt
+      )) {
+        throw new InstallPreparationStaleError();
       }
       setPhase("discovering");
       const before = await this.#host.discover();
@@ -12630,7 +12943,7 @@ var DefaultLifecycleCoordinator = class {
         project: project2,
         context: { snapshot, inventory }
       });
-      if (decision.kind !== "allowed" || decision.operation !== "install" || !project2) {
+      if (decision.kind !== "allowed" || decision.operation !== "install" || !project2 || !catalog) {
         return this.#rejected({
           id,
           projectId,
@@ -12641,9 +12954,10 @@ var DefaultLifecycleCoordinator = class {
       const state = this.#store.read();
       const prompts = selectTrustPrompts({
         trustAcknowledgedAt: state.trustAcknowledgedAt,
+        target: selectedTarget,
         assessment: project2.tavernKeeper ? {
           riskLevel: project2.tavernKeeper.riskLevel,
-          freshness: project2.tavernKeeper.freshness,
+          scannedSha: project2.tavernKeeper.report?.scannedSha ?? null,
           reportUrl: project2.tavernKeeper.report?.reportUrl ?? null
         } : null
       });
@@ -12668,18 +12982,80 @@ var DefaultLifecycleCoordinator = class {
         }
         if (prompt.kind === "unsandboxed-disclosure") disclosureAccepted = true;
       }
+      const executionBefore = await this.#host.discover();
+      const executionSnapshot = this.#getSnapshot();
+      const executionCatalog = "catalog" in executionSnapshot ? executionSnapshot.catalog : null;
+      const executionProject = executionCatalog?.projects.find((candidate) => candidate.id === projectId) ?? null;
+      if (!executionProject || !executionCatalog || !matchesPreparationBinding(
+        selection,
+        eligibleProjectForPreparation(projectId, executionSnapshot),
+        executionCatalog.generatedAt
+      )) {
+        throw new InstallPreparationStaleError();
+      }
+      const executionRegistry = new ManagedRegistry(
+        normalizeManagedExtensionMap(this.#store.read().managedExtensions)
+      );
+      const executionInventory = reconcileInventory({
+        projects: executionCatalog?.projects ?? [],
+        hostExtensions: executionBefore,
+        managed: executionRegistry.read()
+      });
+      const executionDecision = evaluateLifecycle({
+        operation: "install",
+        project: executionProject,
+        context: { snapshot: executionSnapshot, inventory: executionInventory }
+      });
+      if (executionDecision.kind !== "allowed" || executionDecision.operation !== "install" || !executionProject || !executionCatalog) {
+        throw new InstallPreparationStaleError();
+      }
       setPhase("host-request");
+      let verified;
       try {
-        await this.#host.install({
-          repositoryUrl: decision.contract.repositoryUrl,
-          branch: decision.contract.branch
+        verified = await executeVerifiedInstall({
+          host: this.#host,
+          project: executionProject,
+          target: selectedTarget
         });
-      } catch {
+      } catch (error) {
+        if (error instanceof HostRevisionUnavailableError) {
+          if (disclosureAccepted) {
+            await this.#persistAcknowledgement().catch(() => void 0);
+          }
+          throw error;
+        }
+        if (error instanceof VerifiedInstallError) {
+          const failedBeforeMutation = error.stage === "preflight";
+          const receipt3 = createReceipt({
+            id,
+            kind: "install",
+            projectId,
+            projectName: executionProject.name,
+            startedAt,
+            finishedAt: this.#now(),
+            status: failedBeforeMutation ? "failed" : "verification-failed",
+            completedThrough: failedBeforeMutation ? "requested" : "host-accepted",
+            failedAt: failedBeforeMutation ? "host-accepted" : "verified",
+            safeError: verificationFailureCopy(error),
+            reloadRequired: false,
+            ...failedBeforeMutation ? {} : {
+              installProvenance: createInstallProvenance({
+                target: selectedTarget,
+                installedSha: error.installedSha,
+                catalogGeneratedAt: executionCatalog.generatedAt
+              })
+            },
+            cleanupOutcome: error.cleanupOutcome,
+            tavernKeeperReportUrl: selectedTarget.kind === "checked" ? selectedTarget.reportUrl : null
+          });
+          await this.#persistNonMutation(receipt3, disclosureAccepted ? this.#now() : null);
+          return receipt3;
+        }
         const receipt2 = createReceipt({
           id,
           kind: "install",
           projectId,
-          projectName: project2.name,
+          projectName: executionProject.name,
           startedAt,
           finishedAt: this.#now(),
           status: "failed",
@@ -12692,49 +13068,38 @@ var DefaultLifecycleCoordinator = class {
         return receipt2;
       }
       setPhase("verifying");
-      const after = await this.#host.discover();
-      const installed = exactFolder(after, decision.contract.folderName);
-      if (!installed) {
-        const receipt2 = createReceipt({
-          id,
-          kind: "install",
-          projectId,
-          projectName: project2.name,
-          startedAt,
-          finishedAt: this.#now(),
-          status: "verification-failed",
-          completedThrough: "host-accepted",
-          failedAt: "verified",
-          safeError: "SillyTavern did not report the expected installed extension.",
-          reloadRequired: false
-        });
-        await this.#persistNonMutation(receipt2, disclosureAccepted ? this.#now() : null);
-        return receipt2;
-      }
-      registry.recordInstalled({
+      const provenance = createInstallProvenance({
+        target: selectedTarget,
+        installedSha: verified.installedSha,
+        catalogGeneratedAt: executionCatalog.generatedAt
+      });
+      executionRegistry.recordInstalled({
         projectId,
-        expectedFolderName: decision.contract.folderName,
-        extension: installed,
+        expectedFolderName: executionDecision.contract.folderName,
+        extension: verified.extension,
         installedAt: this.#now(),
         installedBy: "individual",
-        provenance: legacyInstallProvenance()
+        provenance
       });
       const receipt = createReceipt({
         id,
         kind: "install",
         projectId,
-        projectName: project2.name,
+        projectName: executionProject.name,
         startedAt,
         finishedAt: this.#now(),
         status: "succeeded",
         completedThrough: "recorded",
         safeError: null,
-        reloadRequired: true
+        reloadRequired: true,
+        installProvenance: provenance,
+        cleanupOutcome: verified.cleanupOutcome,
+        tavernKeeperReportUrl: selectedTarget.kind === "checked" ? selectedTarget.reportUrl : null
       });
       setPhase("recording");
       try {
         await this.#store.update((draft) => {
-          draft.managedExtensions = registry.read();
+          draft.managedExtensions = executionRegistry.read();
           if (disclosureAccepted && !draft.trustAcknowledgedAt) {
             draft.trustAcknowledgedAt = this.#now();
           }
@@ -12746,14 +13111,17 @@ var DefaultLifecycleCoordinator = class {
           id,
           kind: "install",
           projectId,
-          projectName: project2.name,
+          projectName: executionProject.name,
           startedAt,
           finishedAt: this.#now(),
           status: "installed-unrecorded",
           completedThrough: "verified",
           failedAt: "recorded",
           safeError: "The extension is installed, but Companion could not record ownership. Reopen Companion to reconcile it.",
-          reloadRequired: true
+          reloadRequired: true,
+          installProvenance: provenance,
+          cleanupOutcome: verified.cleanupOutcome,
+          tavernKeeperReportUrl: selectedTarget.kind === "checked" ? selectedTarget.reportUrl : null
         });
       }
     });
@@ -12941,6 +13309,11 @@ var DefaultLifecycleCoordinator = class {
       reloadRequired: false
     });
   }
+  async #persistAcknowledgement() {
+    await this.#store.update((draft) => {
+      if (!draft.trustAcknowledgedAt) draft.trustAcknowledgedAt = this.#now();
+    });
+  }
   async #persistNonMutation(receipt, trustAcknowledgedAt) {
     await this.#store.update((draft) => {
       if (trustAcknowledgedAt && !draft.trustAcknowledgedAt) {
@@ -12950,6 +13323,19 @@ var DefaultLifecycleCoordinator = class {
     }).catch(() => void 0);
   }
 };
+function eligibleProjectForPreparation(projectId, snapshot) {
+  const project2 = ("catalog" in snapshot ? snapshot.catalog.projects.find(({ id }) => id === projectId) : null) ?? null;
+  if (projectId === COMPANION_PROJECT_ID || !project2 || !snapshot.canMutate || project2.kind !== "extension" || !project2.frontends.some(({ id }) => id === "sillytavern")) {
+    return null;
+  }
+  try {
+    if (!project2.install) throw new Error("Install contract is missing.");
+    const contract = parseInstallContract(project2.install);
+    return contract.folderName === project2.install.folderName ? project2 : null;
+  } catch {
+    return null;
+  }
+}
 function removalKitTitles(personalKits, publishedKits) {
   const titles = Object.fromEntries(publishedKits.map(({ id, title }) => [id, title]));
   for (const [id, value] of Object.entries(personalKits)) {
@@ -12959,16 +13345,117 @@ function removalKitTitles(personalKits, publishedKits) {
   }
   return titles;
 }
-function exactFolder(extensions, folder) {
-  const identity = folder.normalize("NFKC").toLocaleLowerCase("en-US");
-  const matches = extensions.filter(
-    (extension) => extension.folderName.normalize("NFKC").toLocaleLowerCase("en-US") === identity
-  );
-  return matches.length === 1 ? matches[0] : null;
+function bindInstallTargetChoice(choice, project2, catalogGeneratedAt) {
+  const bind = (target) => ({
+    target,
+    binding: createPreparationBinding(project2, target, catalogGeneratedAt)
+  });
+  if (choice.kind === "single") return { kind: "single", selection: bind(choice.target) };
+  return {
+    kind: "choose",
+    checked: {
+      selection: bind(choice.checked.target),
+      disabledReason: choice.checked.disabledReason
+    },
+    newest: { selection: bind(choice.newest) }
+  };
+}
+function createPreparationBinding(project2, target, catalogGeneratedAt) {
+  if (!project2.install) throw new Error("Install contract is missing.");
+  const install = parseInstallContract(project2.install);
+  const report2 = project2.tavernKeeper?.report ?? null;
+  return {
+    projectId: project2.id,
+    catalogGeneratedAt,
+    install: {
+      kind: install.kind,
+      repositoryUrl: install.repositoryUrl,
+      branch: install.branch,
+      manifestPath: install.manifestPath,
+      folderName: install.folderName
+    },
+    report: report2 ? { reportId: report2.reportId, scannedSha: report2.scannedSha } : null,
+    target: { kind: target.kind, requestedSha: target.requestedSha }
+  };
+}
+function matchesPreparationBinding(selection, project2, catalogGeneratedAt) {
+  if (!project2 || !selection.target || !selection.binding) return false;
+  const report2 = project2.tavernKeeper?.report ?? null;
+  if (selection.target.kind === "checked" && (!report2 || selection.target.reportId !== report2.reportId || selection.target.requestedSha.toLowerCase() !== report2.scannedSha.toLowerCase())) {
+    return false;
+  }
+  const expected = createPreparationBinding(project2, selection.target, catalogGeneratedAt);
+  const actual = selection.binding;
+  return actual.projectId === expected.projectId && actual.catalogGeneratedAt === expected.catalogGeneratedAt && actual.install.kind === expected.install.kind && actual.install.repositoryUrl === expected.install.repositoryUrl && actual.install.branch === expected.install.branch && actual.install.manifestPath === expected.install.manifestPath && actual.install.folderName === expected.install.folderName && actual.target.kind === expected.target.kind && actual.target.requestedSha === expected.target.requestedSha && sameReportIdentity(actual.report, expected.report);
+}
+function sameReportIdentity(left, right) {
+  if (left === null || right === null) return left === right;
+  return left.reportId === right.reportId && left.scannedSha === right.scannedSha;
+}
+function createInstallProvenance(input) {
+  return {
+    targetKind: input.target.kind,
+    requestedSha: input.target.requestedSha,
+    installedSha: input.installedSha,
+    catalogGeneratedAt: input.catalogGeneratedAt,
+    tavernKeeperReportId: input.target.kind === "checked" ? input.target.reportId : null
+  };
+}
+function verificationFailureCopy(error) {
+  if (error.stage === "preflight") {
+    return error.subtype === "local-revision-lookup-unavailable" ? "SillyTavern can't verify the selected version, so Companion did not install it." : "Companion could not prepare this install request.";
+  }
+  if (error.cleanupOutcome === "succeeded") {
+    return "The install didn't finish correctly, so Companion cleaned it up.";
+  }
+  if (error.cleanupOutcome === "failed") {
+    return "The install didn't finish correctly, and cleanup needs attention in SillyTavern.";
+  }
+  return "SillyTavern did not report the expected installed extension.";
 }
 function createLifecycleCoordinator(options) {
   return new DefaultLifecycleCoordinator(options);
 }
+
+// src/lifecycle/install-target-fallback-broker.ts
+var CHECKED_VERSION_UNAVAILABLE_REASON = "That checked version isn't available anymore. You can choose the newest version or cancel.";
+var InstallTargetFallbackBroker = class {
+  #listeners = /* @__PURE__ */ new Set();
+  #pending = null;
+  read() {
+    return this.#pending?.request ?? null;
+  }
+  subscribe(listener) {
+    this.#listeners.add(listener);
+    listener(this.read());
+    return () => this.#listeners.delete(listener);
+  }
+  request(request) {
+    if (this.#pending) throw new Error("Another install version choice is already waiting.");
+    return new Promise((resolve) => {
+      this.#pending = { request, resolve };
+      this.#emit();
+    });
+  }
+  respond(selection) {
+    return this.#settle(selection);
+  }
+  cancel() {
+    return this.#settle(null);
+  }
+  #settle(selection) {
+    const pending = this.#pending;
+    if (!pending) return false;
+    this.#pending = null;
+    pending.resolve(selection);
+    this.#emit();
+    return true;
+  }
+  #emit() {
+    const request = this.read();
+    for (const listener of this.#listeners) listener(request);
+  }
+};
 
 // src/lifecycle/trust-prompt-broker.ts
 var TrustPromptBroker = class {
@@ -13253,6 +13740,106 @@ async function applyActivationMutations({
   return { changed, failures };
 }
 
+// src/kits/kit-plan.ts
+function freezeKitPlan(plan) {
+  return deepFreeze(plan);
+}
+function deepFreeze(value) {
+  if (typeof value !== "object" || value === null || Object.isFrozen(value)) return value;
+  for (const nested of Object.values(value)) deepFreeze(nested);
+  return Object.freeze(value);
+}
+
+// src/kits/kit-install-targets.ts
+async function prepareKitInstallTargets(input) {
+  const plan = structuredClone(input.plan);
+  if (plan.blockingIssues.some(({ code }) => code === "catalog-incompatible")) {
+    throw new Error("Update Companion before changing Kits.");
+  }
+  const snapshot = {
+    state: "ready-current",
+    canMutate: true,
+    checkedAt: null,
+    catalog: structuredClone(input.catalog)
+  };
+  const projects = new Map(input.catalog.projects.map((project2) => [project2.id, project2]));
+  for (const step2 of plan.install) {
+    const project2 = projects.get(step2.projectId);
+    if (!project2) throw new Error(`${step2.projectName} is no longer available.`);
+    step2.targetChoice = await prepareInstallTargetChoice({
+      host: input.host,
+      snapshot,
+      project: project2,
+      now: input.now
+    });
+  }
+  plan.installTargetsPrepared = true;
+  return freezeKitPlan(plan);
+}
+function initialInstallTargetSelections(plan) {
+  return plan.install.flatMap(
+    (step2) => step2.targetChoice?.kind === "single" ? [{ projectId: step2.projectId, target: structuredClone(step2.targetChoice.target) }] : []
+  );
+}
+function computeInstallTargetBinding(selections) {
+  return sha256Hex(
+    JSON.stringify(
+      selections.map(({ projectId, target }) => [projectId, normalizeTarget(target)]).sort(([left], [right]) => left.localeCompare(right))
+    )
+  );
+}
+function validateInstallTargetApproval(plan, selections, binding) {
+  if (plan.install.length > 0 && !plan.installTargetsPrepared) {
+    throw new Error("Kit install targets were not prepared.");
+  }
+  if (binding !== computeInstallTargetBinding(selections)) {
+    throw new Error("Kit install target binding does not match the selected versions.");
+  }
+  const selected = /* @__PURE__ */ new Map();
+  for (const selection of selections) {
+    if (selected.has(selection.projectId))
+      throw new Error("A Kit install target was selected twice.");
+    selected.set(selection.projectId, selection.target);
+  }
+  if (selected.size !== plan.install.length) {
+    throw new Error("Every Kit install target must be selected.");
+  }
+  for (const step2 of plan.install) {
+    const target = selected.get(step2.projectId);
+    const choice = step2.targetChoice;
+    if (!target || !choice) throw new Error("Every Kit install target must be selected.");
+    if (choice.kind === "single") {
+      if (!sameTarget(target, choice.target)) throw new Error("A Kit install target changed.");
+      continue;
+    }
+    const checkedSelected = sameTarget(target, choice.checked.target);
+    const newestSelected = sameTarget(target, choice.newest);
+    if (!checkedSelected && !newestSelected) throw new Error("A Kit install target changed.");
+    if (checkedSelected && choice.checked.disabledReason) {
+      throw new Error("The checked version is not available for this Kit install.");
+    }
+  }
+}
+function sameInstallTarget(left, right) {
+  return sameTarget(left, right);
+}
+function sameTarget(left, right) {
+  return JSON.stringify(normalizeTarget(left)) === JSON.stringify(normalizeTarget(right));
+}
+function normalizeTarget(target) {
+  return target.kind === "checked" ? {
+    kind: target.kind,
+    requestedSha: target.requestedSha.toLowerCase(),
+    checkedAt: target.checkedAt,
+    reportId: target.reportId,
+    reportUrl: target.reportUrl
+  } : {
+    kind: target.kind,
+    requestedSha: target.requestedSha?.toLowerCase() ?? null,
+    resolvedAt: target.resolvedAt
+  };
+}
+
 // src/kits/kit-operation-journal.ts
 var KitOperationJournal = class {
   #profile;
@@ -13278,18 +13865,16 @@ var KitOperationJournal = class {
 function isJournal(value) {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const journal = value;
-  return journal.formatVersion === 1 && typeof journal.operationId === "string" && typeof journal.planId === "string" && typeof journal.kitId === "string" && (journal.operation === "install" || journal.operation === "activate" || journal.operation === "deactivate" || journal.operation === "uninstall") && typeof journal.phase === "string" && typeof journal.startedAt === "string" && (journal.currentProjectId === null || typeof journal.currentProjectId === "string") && Array.isArray(journal.completedProjects) && Array.isArray(journal.requiredProjectIds) && (!Object.hasOwn(journal, "actionableProjectIds") || Array.isArray(journal.actionableProjectIds) && journal.actionableProjectIds.every((value2) => typeof value2 === "string")) && (journal.preOperationActiveKitId === null || typeof journal.preOperationActiveKitId === "string");
+  return journal.formatVersion === 1 && typeof journal.operationId === "string" && typeof journal.planId === "string" && typeof journal.kitId === "string" && (journal.operation === "install" || journal.operation === "activate" || journal.operation === "deactivate" || journal.operation === "uninstall") && typeof journal.phase === "string" && typeof journal.startedAt === "string" && (journal.currentProjectId === null || typeof journal.currentProjectId === "string") && Array.isArray(journal.completedProjects) && Array.isArray(journal.requiredProjectIds) && (!Object.hasOwn(journal, "actionableProjectIds") || Array.isArray(journal.actionableProjectIds) && journal.actionableProjectIds.every((value2) => typeof value2 === "string")) && (!Object.hasOwn(journal, "selectedInstallTargets") || Array.isArray(journal.selectedInstallTargets) && journal.selectedInstallTargets.every(isInstallTargetSelection)) && (journal.preOperationActiveKitId === null || typeof journal.preOperationActiveKitId === "string");
 }
-
-// src/kits/kit-plan.ts
-function freezeKitPlan(plan) {
-  for (const value of Object.values(plan)) {
-    if (Array.isArray(value)) {
-      for (const item of value) if (typeof item === "object" && item) Object.freeze(item);
-      Object.freeze(value);
-    }
+function isInstallTargetSelection(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const selection = value;
+  if (typeof selection.projectId !== "string" || !selection.target) return false;
+  if (selection.target.kind === "checked") {
+    return typeof selection.target.requestedSha === "string" && typeof selection.target.checkedAt === "string" && typeof selection.target.reportId === "string" && typeof selection.target.reportUrl === "string";
   }
-  return Object.freeze(plan);
+  return selection.target.kind === "newest" && (selection.target.requestedSha === null || typeof selection.target.requestedSha === "string") && (selection.target.resolvedAt === null || typeof selection.target.resolvedAt === "string");
 }
 
 // src/kits/kit-reference-index.ts
@@ -13324,6 +13909,7 @@ function planKitOperation(input) {
     inventoryFingerprint: inventoryFingerprint(input),
     requiredProjectIds: [...input.kit.projectIds],
     actionableProjectIds: [],
+    installTargetsPrepared: false,
     install: [],
     enable: [],
     disable: [],
@@ -13388,7 +13974,7 @@ function planKitOperation(input) {
       case "install":
       case "activate":
         if (!managedEntry) {
-          plan.install.push(stepFor(project2, null));
+          plan.install.push({ ...stepFor(project2, null), targetChoice: null });
           addWarning(plan, project2);
         }
         if (input.operation === "activate" && (!managedEntry || !managedEntry.extension.enabled))
@@ -13477,7 +14063,8 @@ function addWarning(plan, project2) {
     projectName: project2.name,
     severity: assessment.riskLevel,
     freshness: assessment.freshness,
-    reportUrl: assessment.report?.reportUrl ?? null
+    reportUrl: assessment.report?.reportUrl ?? null,
+    scannedSha: assessment.report?.scannedSha ?? null
   });
 }
 
@@ -13633,6 +14220,8 @@ var KitExecutor = class {
   #lock;
   #getCatalog;
   #getInventoryFingerprint;
+  #fallbacks;
+  #confirm;
   #now;
   #operationId;
   journal;
@@ -13643,6 +14232,8 @@ var KitExecutor = class {
     this.#lock = deps.lock;
     this.#getCatalog = deps.getCatalog;
     this.#getInventoryFingerprint = deps.getInventoryFingerprint;
+    this.#fallbacks = deps.fallbacks;
+    this.#confirm = deps.confirm;
     this.#now = deps.now ?? (() => (/* @__PURE__ */ new Date()).toISOString());
     this.#operationId = deps.operationId ?? (() => crypto.randomUUID());
     this.journal = new KitOperationJournal(deps.profile);
@@ -13656,6 +14247,11 @@ var KitExecutor = class {
       const catalog = structuredClone(this.#getCatalog());
       if (catalogMutationBinding(catalog, plan.requiredProjectIds) !== plan.catalogBinding)
         throw new Error("Kit catalog changed. Review the plan again.");
+      validateInstallTargetApproval(
+        plan,
+        approval.selectedInstallTargets,
+        approval.installTargetBinding
+      );
       const startedAt = this.#now();
       const previousActiveKitId = this.#kits.readActiveId();
       const journal = {
@@ -13670,7 +14266,8 @@ var KitExecutor = class {
         completedProjects: [],
         preOperationActiveKitId: previousActiveKitId,
         requiredProjectIds: [...plan.requiredProjectIds],
-        actionableProjectIds: [...plan.actionableProjectIds]
+        actionableProjectIds: [...plan.actionableProjectIds],
+        selectedInstallTargets: structuredClone(approval.selectedInstallTargets)
       };
       await this.journal.write(journal);
       let receipt;
@@ -13683,7 +14280,8 @@ var KitExecutor = class {
               journal,
               previousActiveKitId,
               setPhase,
-              catalog
+              catalog,
+              structuredClone(approval.selectedInstallTargets)
             );
             break;
           case "deactivate":
@@ -13791,44 +14389,122 @@ var KitExecutor = class {
       lastVerifiedAt: this.#now()
     });
   }
-  async #installOrActivate(plan, journal, previousActiveKitId, setPhase, catalog) {
+  async #installOrActivate(plan, journal, previousActiveKitId, setPhase, catalog, selectedInstallTargets) {
     const byId = new Map(catalog.projects.map((project2) => [project2.id, project2]));
+    const selected = new Map(
+      selectedInstallTargets.map((selection) => [selection.projectId, selection.target])
+    );
     const results = [];
     let changed = false;
-    for (const step2 of plan.install) {
+    let stopRemainingInstalls = false;
+    for (let index = 0; index < plan.install.length; index += 1) {
+      const step2 = plan.install[index];
       journal.currentProjectId = step2.projectId;
       journal.phase = "installing";
       setPhase(`installing:${step2.projectId}`);
       await this.journal.write(journal);
       const project2 = byId.get(step2.projectId);
+      let target = selected.get(step2.projectId) ?? null;
       try {
-        if (!project2?.install || project2.id === "mentallyquill-tavernary-companion")
+        if (!project2?.install || !target || project2.id === "mentallyquill-tavernary-companion")
           throw new Error("Install contract is unavailable.");
-        await this.#host.install({
-          repositoryUrl: project2.install.repositoryUrl,
-          branch: project2.install.branch
-        });
+        let verified;
+        try {
+          verified = await executeVerifiedInstall({ host: this.#host, project: project2, target });
+        } catch (error) {
+          if (!(error instanceof HostRevisionUnavailableError) || target.kind !== "checked") {
+            throw error;
+          }
+          const newest = await prepareNewestInstallTarget({
+            host: this.#host,
+            snapshot: {
+              state: "ready-current",
+              canMutate: true,
+              checkedAt: null,
+              catalog
+            },
+            project: project2,
+            now: this.#now
+          });
+          const replacement = await this.#fallbacks.request({
+            projectId: project2.id,
+            projectName: project2.name,
+            checked: preparedSelection(project2, target, catalog.generatedAt),
+            newest: preparedSelection(project2, newest, catalog.generatedAt)
+          });
+          if (!replacement) {
+            results.push(
+              result(step2.projectId, "install", "failed", CHECKED_VERSION_UNAVAILABLE_REASON, true)
+            );
+            appendUntouchedResults(results, plan.install.slice(index + 1));
+            stopRemainingInstalls = true;
+            break;
+          }
+          if (replacement.target.kind !== "newest" || !sameInstallTarget(replacement.target, newest))
+            throw new Error("The replacement Kit install target changed.");
+          target = replacement.target;
+          selected.set(step2.projectId, target);
+          journal.selectedInstallTargets = [...selected.entries()].map(([projectId, value]) => ({
+            projectId,
+            target: structuredClone(value)
+          }));
+          await this.journal.write(journal);
+          if (!await this.#confirmChangedTarget(project2, target)) {
+            results.push(
+              result(
+                step2.projectId,
+                "install",
+                "failed",
+                "The newest version was not installed.",
+                true
+              )
+            );
+            appendUntouchedResults(results, plan.install.slice(index + 1));
+            stopRemainingInstalls = true;
+            break;
+          }
+          verified = await executeVerifiedInstall({ host: this.#host, project: project2, target });
+        }
         changed = true;
-        const extensions = await this.#host.discover();
-        const extension = exactFolder2(extensions, project2.install.folderName);
-        if (!extension) throw new Error("Installed extension could not be verified.");
-        await this.#recordManaged(project2, extension);
+        const provenance = installProvenance(target, verified.installedSha, catalog.generatedAt);
+        await this.#recordManaged(project2, verified.extension, provenance);
         results.push(
-          result(step2.projectId, "install", "verified", "Installed and verified.", false)
+          result(
+            step2.projectId,
+            "install",
+            "verified",
+            target.kind === "checked" ? "Installed the checked version." : "Installed the newest version.",
+            false,
+            provenance
+          )
         );
       } catch (error) {
-        results.push(result(step2.projectId, "install", "failed", message(error), true));
+        if (error instanceof VerifiedInstallError && error.stage === "post-install-verification") {
+          changed = true;
+        }
+        results.push(
+          result(step2.projectId, "install", "failed", kitInstallFailureMessage(error), true)
+        );
       }
+      journal.completedProjects = structuredClone(results);
+      await this.journal.write(journal);
+    }
+    if (stopRemainingInstalls) {
       journal.completedProjects = structuredClone(results);
       await this.journal.write(journal);
     }
     const discovered = await this.#host.discover();
     const present = presentProjectIds(catalog.projects, discovered);
     const requiredActionable = plan.actionableProjectIds;
-    const missing = requiredActionable.filter((id) => !present.has(id));
+    const attemptedInstalls = new Set(plan.install.map(({ projectId }) => projectId));
+    const managed = normalizeManagedExtensionMap(this.#profile.read().managedExtensions);
+    const installed = requiredActionable.filter(
+      (id) => present.has(id) && (!attemptedInstalls.has(id) || Boolean(managed[id]))
+    );
+    const missing = requiredActionable.filter((id) => !installed.includes(id));
     await this.#recordKitState(
       plan,
-      requiredActionable.filter((id) => present.has(id)),
+      installed,
       missing,
       missing.length ? "incomplete" : "installed"
     );
@@ -14011,7 +14687,7 @@ var KitExecutor = class {
       results
     );
   }
-  async #recordManaged(project2, extension) {
+  async #recordManaged(project2, extension, provenance) {
     if (!project2.install) throw new Error("Missing install contract.");
     await this.#profile.update((draft) => {
       const registry = new ManagedRegistry(normalizeManagedExtensionMap(draft.managedExtensions));
@@ -14021,10 +14697,33 @@ var KitExecutor = class {
         extension,
         installedAt: this.#now(),
         installedBy: "kit",
-        provenance: legacyInstallProvenance()
+        provenance
       });
       draft.managedExtensions = registry.read();
     });
+  }
+  async #confirmChangedTarget(project2, target) {
+    const state = this.#profile.read();
+    const prompts = selectTrustPrompts({
+      trustAcknowledgedAt: state.trustAcknowledgedAt,
+      target,
+      assessment: project2.tavernKeeper ? {
+        riskLevel: project2.tavernKeeper.riskLevel,
+        scannedSha: project2.tavernKeeper.report?.scannedSha ?? null,
+        reportUrl: project2.tavernKeeper.report?.reportUrl ?? null
+      } : null
+    });
+    let disclosureAccepted = Boolean(state.trustAcknowledgedAt);
+    for (const prompt of prompts) {
+      if (!await this.#confirm(prompt, project2)) return false;
+      if (prompt.kind === "unsandboxed-disclosure") disclosureAccepted = true;
+    }
+    if (disclosureAccepted && !state.trustAcknowledgedAt) {
+      await this.#profile.update((draft) => {
+        if (!draft.trustAcknowledgedAt) draft.trustAcknowledgedAt = this.#now();
+      });
+    }
+    return true;
   }
   async #recordKitState(plan, installed, missing, status) {
     await this.#kits.recordInstalledState({
@@ -14093,6 +14792,11 @@ function createKitExecutor(deps) {
 function validateApproval(plan, approval) {
   if (approval.planId !== plan.id || approval.inventoryFingerprint !== plan.inventoryFingerprint || approval.catalogGeneratedAt !== plan.catalogGeneratedAt || approval.catalogBinding !== plan.catalogBinding)
     throw new Error("Kit approval does not match this plan.");
+  validateInstallTargetApproval(
+    plan,
+    approval.selectedInstallTargets,
+    approval.installTargetBinding
+  );
   const accepted = new Set(approval.acceptedWarningProjectIds);
   if (plan.warnings.some(({ projectId }) => !accepted.has(projectId)))
     throw new Error("Every project warning must be accepted.");
@@ -14108,11 +14812,77 @@ function presentProjectIds(projects, extensions) {
     projects.filter((project2) => project2.install && exactFolder2(extensions, project2.install.folderName)).map(({ id }) => id)
   );
 }
-function result(projectId, action, status, messageText, retryable) {
-  return { projectId, action, status, message: messageText, retryable };
+function result(projectId, action, status, messageText, retryable, installProvenance2) {
+  return {
+    projectId,
+    action,
+    status,
+    message: messageText,
+    retryable,
+    ...installProvenance2 ? { installProvenance: installProvenance2 } : {}
+  };
 }
 function message(error) {
   return error instanceof Error ? error.message : "Host operation failed.";
+}
+function preparedSelection(project2, target, catalogGeneratedAt) {
+  if (!project2.install) throw new Error("Install contract is unavailable.");
+  const report2 = project2.tavernKeeper?.report ?? null;
+  return {
+    target,
+    binding: {
+      projectId: project2.id,
+      catalogGeneratedAt,
+      install: {
+        kind: project2.install.kind,
+        repositoryUrl: project2.install.repositoryUrl,
+        branch: project2.install.branch,
+        manifestPath: project2.install.manifestPath,
+        folderName: project2.install.folderName
+      },
+      report: report2 ? { reportId: report2.reportId, scannedSha: report2.scannedSha } : null,
+      target: { kind: target.kind, requestedSha: target.requestedSha }
+    }
+  };
+}
+function appendUntouchedResults(results, steps) {
+  for (const step2 of steps) {
+    results.push(
+      result(
+        step2.projectId,
+        "install",
+        "untouched",
+        "Not started. You can try the Kit again.",
+        true
+      )
+    );
+  }
+}
+function installProvenance(target, installedSha, catalogGeneratedAt) {
+  return {
+    targetKind: target.kind,
+    requestedSha: target.requestedSha,
+    installedSha,
+    catalogGeneratedAt,
+    tavernKeeperReportId: target.kind === "checked" ? target.reportId : null
+  };
+}
+function kitInstallFailureMessage(error) {
+  if (error instanceof HostRevisionUnavailableError) {
+    return "We couldn't find the newest version. Try again.";
+  }
+  if (error instanceof VerifiedInstallError) {
+    if (error.stage === "preflight") {
+      return "SillyTavern couldn't check the selected version, so Companion did not install it.";
+    }
+    if (error.cleanupOutcome === "succeeded") {
+      return "The install didn't finish correctly, so Companion cleaned it up.";
+    }
+    if (error.cleanupOutcome === "failed") {
+      return "The install didn't finish correctly, and cleanup needs attention in SillyTavern.";
+    }
+  }
+  return "The install could not finish. Try again.";
 }
 
 // src/kits/kit-portability.ts
@@ -15299,7 +16069,7 @@ function KitReceipt({
   return /* @__PURE__ */ u3("article", { class: "tavernary-companion-kit-receipt", children: [
     /* @__PURE__ */ u3("header", { children: [
       /* @__PURE__ */ u3("div", { children: [
-        /* @__PURE__ */ u3("h3", { children: receipt.operation === "activate" && receipt.outcome === "completed" ? "Managed Kit activated" : `Kit ${receipt.outcome}` }),
+        /* @__PURE__ */ u3("h3", { children: receipt.operation === "activate" && receipt.outcome === "completed" ? "Managed Kit activated" : receiptHeading(receipt.outcome) }),
         receipt.previousActiveKitId && receipt.activeKitId === receipt.previousActiveKitId && receipt.outcome !== "completed" ? /* @__PURE__ */ u3("p", { children: [
           receipt.previousActiveKitId,
           " remains active."
@@ -15310,14 +16080,42 @@ function KitReceipt({
     /* @__PURE__ */ u3("ul", { children: receipt.projects.map((project2, index) => /* @__PURE__ */ u3("li", { children: [
       /* @__PURE__ */ u3("strong", { children: project2.projectId }),
       /* @__PURE__ */ u3("span", { children: [
-        project2.action,
+        actionLabel(project2.action),
         " \xB7 ",
-        project2.status
+        statusLabel2(project2.status)
       ] }),
       /* @__PURE__ */ u3("span", { children: project2.message })
     ] }, `${project2.projectId}-${project2.action}-${index}`)) }),
-    receipt.projects.some(({ retryable }) => retryable) ? /* @__PURE__ */ u3("button", { type: "button", onClick: onRetry, children: "Review retry" }) : null
+    receipt.projects.some(({ retryable }) => retryable) ? /* @__PURE__ */ u3("button", { type: "button", onClick: onRetry, children: "Try again" }) : null
   ] });
+}
+function receiptHeading(outcome) {
+  return {
+    completed: "Kit finished",
+    partial: "Kit partly finished",
+    failed: "Kit didn't finish",
+    interrupted: "Kit was interrupted"
+  }[outcome];
+}
+function actionLabel(action) {
+  return {
+    install: "Install",
+    enable: "Enable",
+    disable: "Disable",
+    remove: "Remove",
+    keep: "Keep",
+    context: "Check"
+  }[action];
+}
+function statusLabel2(status) {
+  return {
+    verified: "Finished",
+    failed: "Needs attention",
+    untouched: "Not started",
+    kept: "Kept",
+    external: "Left as is",
+    context: "No change needed"
+  }[status];
 }
 
 // src/ui/kits/kit-operation-tray.tsx
@@ -15349,7 +16147,6 @@ function phase(value) {
 
 // src/ui/kits/kit-impact-summary.tsx
 var groups = [
-  { key: "install", title: "Install" },
   { key: "enable", title: "Enable" },
   { key: "disable", title: "Disable" },
   { key: "remove", title: "Remove" },
@@ -15380,144 +16177,33 @@ function ImpactGroup({
 // src/ui/kits/kit-warning-group.tsx
 function KitWarningGroup({
   warnings,
+  selectedInstallTargets,
   onReview
 }) {
   if (!warnings.length) return null;
+  const selected = new Map(
+    (selectedInstallTargets ?? []).map((selection) => [selection.projectId, selection.target])
+  );
   return /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-warnings", role: "alert", children: [
-    /* @__PURE__ */ u3("h3", { children: "Security concerns" }),
+    /* @__PURE__ */ u3("h3", { children: "Before you install" }),
     /* @__PURE__ */ u3("p", { children: CURRENT_ASSESSMENT_WARNING }),
     /* @__PURE__ */ u3("ul", { children: warnings.map((warning) => /* @__PURE__ */ u3("li", { children: [
       /* @__PURE__ */ u3("span", { children: [
         /* @__PURE__ */ u3("strong", { children: warning.projectName }),
         " \xB7",
         " ",
-        warning.severity === "high" ? "Immediate danger" : "Potential concern",
-        warning.freshness === "stale" ? " \xB7 stale assessment" : ""
+        warning.severity === "high" ? "High concern" : "Needs a closer look",
+        warningIsOlder(warning, selected.get(warning.projectId)) ? " \xB7 TavernKeeper checked an older version" : ""
       ] }),
-      warning.reportUrl ? /* @__PURE__ */ u3("button", { type: "button", onClick: () => onReview(warning.reportUrl), children: "Scan Review" }) : /* @__PURE__ */ u3("span", { children: "No scan link available" })
+      warning.reportUrl ? /* @__PURE__ */ u3("button", { type: "button", onClick: () => onReview(warning.reportUrl), children: "View check" }) : /* @__PURE__ */ u3("span", { children: "No scan link available" })
     ] }, warning.projectId)) })
   ] });
 }
-
-// src/ui/kits/kit-preflight-dialog.tsx
-function KitPreflightDialog({
-  plan,
-  onCancel,
-  onReview,
-  onConfirm
-}) {
-  const confirm = plan.warnings.length ? "Install anyway" : {
-    install: "Install Kit",
-    activate: "Activate Kit",
-    deactivate: "Deactivate Kit",
-    uninstall: "Uninstall Kit"
-  }[plan.operation];
-  return /* @__PURE__ */ u3(DialogFrame, { label: `${confirm} review`, onCancel, children: [
-    /* @__PURE__ */ u3("header", { children: [
-      /* @__PURE__ */ u3("h2", { children: [
-        "Review ",
-        plan.operation,
-        " changes"
-      ] }),
-      /* @__PURE__ */ u3("p", { children: "Companion changes only extensions it manages. External extensions remain untouched." })
-    ] }),
-    /* @__PURE__ */ u3(KitImpactSummary, { plan }),
-    /* @__PURE__ */ u3(KitWarningGroup, { warnings: plan.warnings, onReview }),
-    /* @__PURE__ */ u3("footer", { children: [
-      /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" }),
-      /* @__PURE__ */ u3(
-        "button",
-        {
-          type: "button",
-          disabled: plan.blockingIssues.length > 0,
-          onClick: () => onConfirm({
-            planId: plan.id,
-            inventoryFingerprint: plan.inventoryFingerprint,
-            catalogGeneratedAt: plan.catalogGeneratedAt,
-            catalogBinding: plan.catalogBinding,
-            acceptedWarningProjectIds: plan.warnings.map(({ projectId }) => projectId)
-          }),
-          children: confirm
-        }
-      )
-    ] })
-  ] });
-}
-
-// src/ui/lifecycle/assessment-warning-dialog.tsx
-function AssessmentWarningDialog({
-  projectName,
-  prompt,
-  onReview,
-  onCancel,
-  onConfirm
-}) {
-  const high = prompt.severity === "high";
-  return /* @__PURE__ */ u3(
-    DialogFrame,
-    {
-      label: `Security warning for ${projectName}`,
-      className: high ? "is-high" : "is-material",
-      onCancel,
-      children: [
-        /* @__PURE__ */ u3("p", { class: "tavernary-companion-dialog__severity", children: high ? "Immediate danger" : "Material concern" }),
-        /* @__PURE__ */ u3("h2", { children: [
-          "Review before installing ",
-          projectName
-        ] }),
-        /* @__PURE__ */ u3("p", { children: prompt.copy }),
-        prompt.reviewDisabledReason ? /* @__PURE__ */ u3("p", { children: prompt.reviewDisabledReason }) : null,
-        /* @__PURE__ */ u3("div", { class: "tavernary-companion-dialog__actions", children: [
-          /* @__PURE__ */ u3(
-            "button",
-            {
-              type: "button",
-              onClick: () => prompt.reportUrl && onReview(prompt.reportUrl),
-              disabled: !prompt.reportUrl,
-              children: "Scan Review"
-            }
-          ),
-          /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" }),
-          /* @__PURE__ */ u3("button", { type: "button", class: "is-danger", onClick: onConfirm, children: "Install anyway" })
-        ] })
-      ]
-    }
-  );
-}
-
-// src/ui/lifecycle/operation-receipt.tsx
-function OperationReceipt({
-  receipt,
-  onDismiss
-}) {
-  const succeeded = receipt.status === "succeeded";
-  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-operation-receipt", "aria-label": "Operation receipt", children: [
-    /* @__PURE__ */ u3("h3", { children: receiptHeading(receipt) }),
-    receipt.safeError ? /* @__PURE__ */ u3("p", { children: receipt.safeError }) : null,
-    receipt.reloadRequired ? /* @__PURE__ */ u3("p", { children: "Reload required" }) : null,
-    /* @__PURE__ */ u3("ol", { children: receipt.steps.map((step2) => /* @__PURE__ */ u3("li", { "data-status": step2.status, children: [
-      stepLabel(step2.id),
-      ": ",
-      step2.status
-    ] })) }),
-    /* @__PURE__ */ u3("p", { children: succeeded ? "Verified against SillyTavern." : "No unverified success was recorded." }),
-    onDismiss ? /* @__PURE__ */ u3("button", { type: "button", onClick: onDismiss, children: "Dismiss" }) : null
-  ] });
-}
-function receiptHeading(receipt) {
-  if (receipt.status === "succeeded") {
-    return `${receipt.projectName} ${receipt.kind === "install" ? "installed" : "removed"} and verified`;
+function warningIsOlder(warning, target) {
+  if (warning.scannedSha && target?.requestedSha) {
+    return warning.scannedSha.toLowerCase() !== target.requestedSha.toLowerCase();
   }
-  if (receipt.status === "cancelled") return `${receipt.projectName} operation cancelled`;
-  return `${receipt.projectName} ${receipt.kind} did not complete`;
-}
-function stepLabel(id) {
-  return {
-    requested: "Requested",
-    "host-accepted": "Host accepted",
-    verified: "Verified",
-    recorded: "Recorded"
-  }[id];
+  return warning.freshness === "stale";
 }
 
 // node_modules/preact/compat/dist/compat.module.js
@@ -15716,9 +16402,471 @@ l.diffed = function(n2) {
   null != e3 && "textarea" === n2.type && "value" in t3 && t3.value !== e3.value && (e3.value = null == t3.value ? "" : t3.value), rn = null;
 };
 
+// src/ui/lifecycle/install-version-chooser.tsx
+var VIEWPORT_MARGIN = 8;
+var ANCHOR_GAP = 8;
+function InstallVersionChooser({
+  projectId,
+  projectName,
+  anchor,
+  choice,
+  notice = null,
+  onSelect,
+  onCancel
+}) {
+  const surfaceRef = A2(null);
+  const checkedRef = A2(null);
+  const newestRef = A2(null);
+  const settled = A2(false);
+  const [position, setPosition] = d2({
+    left: VIEWPORT_MARGIN,
+    top: VIEWPORT_MARGIN,
+    visibility: "hidden"
+  });
+  const headingId = `install-version-${projectId}-heading`;
+  const checkedDescriptionId = `${headingId}-checked-description`;
+  const checkedDisabledId = `${headingId}-checked-disabled`;
+  const newestDescriptionId = `${headingId}-newest-description`;
+  const cancel = q2(() => {
+    if (settled.current) return;
+    settled.current = true;
+    onCancel();
+    const restoreFocus = () => {
+      if (anchor.isConnected) anchor.focus({ preventScroll: true });
+    };
+    restoreFocus();
+    queueMicrotask(restoreFocus);
+  }, [anchor, onCancel]);
+  const select = q2(
+    (selection) => {
+      if (settled.current) return;
+      settled.current = true;
+      onSelect(selection);
+    },
+    [onSelect]
+  );
+  const updatePosition = q2(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    setPosition(positionChooser(anchor.getBoundingClientRect(), surface.getBoundingClientRect()));
+  }, [anchor]);
+  _2(() => {
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    window.visualViewport?.addEventListener("resize", updatePosition);
+    window.visualViewport?.addEventListener("scroll", updatePosition);
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updatePosition);
+    observer?.observe(anchor);
+    if (surfaceRef.current) observer?.observe(surfaceRef.current);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+      window.visualViewport?.removeEventListener("resize", updatePosition);
+      window.visualViewport?.removeEventListener("scroll", updatePosition);
+      observer?.disconnect();
+    };
+  }, [anchor, updatePosition]);
+  h2(() => {
+    const dismissOutside = (event) => {
+      const target = event.target;
+      if (!(target instanceof Node)) return;
+      if (surfaceRef.current?.contains(target)) return;
+      cancel();
+    };
+    const dismissEscape = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      cancel();
+    };
+    document.addEventListener("pointerdown", dismissOutside);
+    document.addEventListener("keydown", dismissEscape, true);
+    const firstChoice = choice.checked.disabledReason ? newestRef.current : checkedRef.current;
+    firstChoice?.focus({ preventScroll: true });
+    return () => {
+      document.removeEventListener("pointerdown", dismissOutside);
+      document.removeEventListener("keydown", dismissEscape, true);
+    };
+  }, [cancel, choice.checked.disabledReason]);
+  if (typeof document === "undefined") return null;
+  const checkedDescription = checkedVersionDescription(choice.checked.selection.target.checkedAt);
+  const checkedDescribedBy = choice.checked.disabledReason ? `${checkedDescriptionId} ${checkedDisabledId}` : checkedDescriptionId;
+  return $2(
+    /* @__PURE__ */ u3(
+      "section",
+      {
+        ref: surfaceRef,
+        class: "tavernary-companion-install-version-chooser",
+        role: "dialog",
+        "aria-labelledby": headingId,
+        "data-project-name": projectName,
+        style: { position: "fixed", ...position },
+        children: [
+          /* @__PURE__ */ u3("h2", { id: headingId, children: "Which version would you like?" }),
+          notice ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-install-version-chooser__notice", role: "status", children: notice }) : null,
+          /* @__PURE__ */ u3(
+            "button",
+            {
+              ref: checkedRef,
+              type: "button",
+              "aria-label": "Checked version",
+              "aria-describedby": checkedDescribedBy,
+              disabled: choice.checked.disabledReason !== null,
+              onClick: () => select(choice.checked.selection),
+              children: [
+                /* @__PURE__ */ u3("strong", { children: "Checked version" }),
+                /* @__PURE__ */ u3("span", { id: checkedDescriptionId, children: checkedDescription }),
+                choice.checked.disabledReason ? /* @__PURE__ */ u3("span", { id: checkedDisabledId, children: choice.checked.disabledReason }) : null
+              ]
+            }
+          ),
+          /* @__PURE__ */ u3(
+            "button",
+            {
+              ref: newestRef,
+              type: "button",
+              "aria-label": "Newest version",
+              "aria-describedby": newestDescriptionId,
+              onClick: () => select(choice.newest.selection),
+              children: [
+                /* @__PURE__ */ u3("strong", { children: "Newest version" }),
+                /* @__PURE__ */ u3("span", { id: newestDescriptionId, children: "The latest version from the creator. It may include changes TavernKeeper hasn't checked yet." })
+              ]
+            }
+          ),
+          /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              class: "tavernary-companion-install-version-chooser__cancel",
+              onClick: cancel,
+              children: "Cancel"
+            }
+          )
+        ]
+      }
+    ),
+    document.body
+  );
+}
+function dispatchPreparedInstallChoice(choice, onInstall, onChoose) {
+  if (choice.kind === "single") onInstall(choice.selection);
+  else onChoose(choice);
+}
+function checkedVersionDescription(checkedAt) {
+  const date = new Date(checkedAt);
+  const label2 = Number.isNaN(date.valueOf()) ? "recently" : new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC"
+  }).format(date);
+  return `TavernKeeper checked this version on ${label2}.`;
+}
+function positionChooser(anchor, chooser) {
+  const viewport = viewportBounds();
+  const maxWidth = Math.max(0, viewport.width - VIEWPORT_MARGIN * 2);
+  const width = Math.min(360, maxWidth);
+  const measuredWidth = Math.min(chooser.width || width, maxWidth);
+  const measuredHeight = Math.min(chooser.height, viewport.height - VIEWPORT_MARGIN * 2);
+  const left = clamp(
+    anchor.right - measuredWidth,
+    viewport.left + VIEWPORT_MARGIN,
+    viewport.left + viewport.width - measuredWidth - VIEWPORT_MARGIN
+  );
+  const below = anchor.bottom + ANCHOR_GAP;
+  const above = anchor.top - measuredHeight - ANCHOR_GAP;
+  const top = clamp(
+    below + measuredHeight <= viewport.top + viewport.height - VIEWPORT_MARGIN ? below : above,
+    viewport.top + VIEWPORT_MARGIN,
+    viewport.top + viewport.height - measuredHeight - VIEWPORT_MARGIN
+  );
+  return { left, top, width, visibility: "visible" };
+}
+function viewportBounds() {
+  const viewport = window.visualViewport;
+  return viewport ? {
+    height: viewport.height,
+    left: viewport.offsetLeft,
+    top: viewport.offsetTop,
+    width: viewport.width
+  } : { height: window.innerHeight, left: 0, top: 0, width: window.innerWidth };
+}
+function clamp(value, minimum, maximum) {
+  return Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
+}
+
+// src/ui/kits/kit-version-choices.tsx
+function KitVersionChoices({
+  steps,
+  selections,
+  onChange
+}) {
+  if (!steps.length) return null;
+  const selected = new Map(selections.map((selection) => [selection.projectId, selection.target]));
+  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-version-choices", "aria-labelledby": "kit-versions-heading", children: [
+    /* @__PURE__ */ u3("h3", { id: "kit-versions-heading", children: "Install" }),
+    /* @__PURE__ */ u3("p", { children: "Choose a version for each project that has two options." }),
+    steps.map((step2) => /* @__PURE__ */ u3(
+      ProjectVersionChoice,
+      {
+        step: step2,
+        selected: selected.get(step2.projectId) ?? null,
+        onChange: (target) => onChange(step2.projectId, target)
+      },
+      step2.projectId
+    ))
+  ] });
+}
+function ProjectVersionChoice({
+  step: step2,
+  selected,
+  onChange
+}) {
+  const choice = step2.targetChoice;
+  if (!choice) {
+    return /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-version-choice", role: "status", children: [
+      /* @__PURE__ */ u3("strong", { children: step2.projectName }),
+      /* @__PURE__ */ u3("span", { children: "We couldn't find the newest version. Try again." })
+    ] });
+  }
+  if (choice.kind === "single") {
+    return /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-version-choice", children: [
+      /* @__PURE__ */ u3("strong", { children: step2.projectName }),
+      /* @__PURE__ */ u3("span", { children: targetLabel(choice.target) }),
+      /* @__PURE__ */ u3("small", { children: targetDescription(choice.target) })
+    ] });
+  }
+  const checkedDescriptionId = `kit-version-${step2.projectId}-checked-description`;
+  const checkedDisabledId = `kit-version-${step2.projectId}-checked-disabled`;
+  const newestDescriptionId = `kit-version-${step2.projectId}-newest-description`;
+  return /* @__PURE__ */ u3("fieldset", { class: "tavernary-companion-kit-version-choice", children: [
+    /* @__PURE__ */ u3("legend", { children: step2.projectName }),
+    /* @__PURE__ */ u3("label", { children: [
+      /* @__PURE__ */ u3(
+        "input",
+        {
+          type: "radio",
+          name: `kit-version-${step2.projectId}`,
+          "aria-label": `Checked version for ${step2.projectName}`,
+          "aria-describedby": choice.checked.disabledReason ? `${checkedDescriptionId} ${checkedDisabledId}` : checkedDescriptionId,
+          checked: Boolean(selected && sameInstallTarget(selected, choice.checked.target)),
+          disabled: choice.checked.disabledReason !== null,
+          onChange: () => onChange(choice.checked.target)
+        }
+      ),
+      /* @__PURE__ */ u3("span", { children: [
+        /* @__PURE__ */ u3("strong", { children: "Checked version" }),
+        /* @__PURE__ */ u3("small", { id: checkedDescriptionId, children: checkedVersionDescription(choice.checked.target.checkedAt) }),
+        choice.checked.disabledReason ? /* @__PURE__ */ u3("small", { id: checkedDisabledId, children: choice.checked.disabledReason }) : null
+      ] })
+    ] }),
+    /* @__PURE__ */ u3("label", { children: [
+      /* @__PURE__ */ u3(
+        "input",
+        {
+          type: "radio",
+          name: `kit-version-${step2.projectId}`,
+          "aria-label": `Newest version for ${step2.projectName}`,
+          "aria-describedby": newestDescriptionId,
+          checked: Boolean(selected && sameInstallTarget(selected, choice.newest)),
+          onChange: () => onChange(choice.newest)
+        }
+      ),
+      /* @__PURE__ */ u3("span", { children: [
+        /* @__PURE__ */ u3("strong", { children: "Newest version" }),
+        /* @__PURE__ */ u3("small", { id: newestDescriptionId, children: targetDescription(choice.newest) })
+      ] })
+    ] })
+  ] });
+}
+function targetLabel(target) {
+  return target.kind === "checked" ? "Checked version" : "Newest version";
+}
+function targetDescription(target) {
+  return target.kind === "checked" ? checkedVersionDescription(target.checkedAt) : "The latest version from the creator. It may include changes TavernKeeper hasn't checked yet.";
+}
+
+// src/ui/kits/kit-preflight-dialog.tsx
+function KitPreflightDialog({
+  plan,
+  onCancel,
+  onReview,
+  onConfirm
+}) {
+  const [selectedInstallTargets, setSelectedInstallTargets] = d2(
+    () => initialInstallTargetSelections(plan)
+  );
+  h2(() => {
+    setSelectedInstallTargets(initialInstallTargetSelections(plan));
+  }, [plan]);
+  const everyVersionChosen = plan.installTargetsPrepared && selectedInstallTargets.length === plan.install.length;
+  const confirm = plan.warnings.length ? "Install anyway" : {
+    install: "Install Kit",
+    activate: "Activate Kit",
+    deactivate: "Deactivate Kit",
+    uninstall: "Uninstall Kit"
+  }[plan.operation];
+  return /* @__PURE__ */ u3(DialogFrame, { label: `${confirm} review`, onCancel, children: [
+    /* @__PURE__ */ u3("header", { children: [
+      /* @__PURE__ */ u3("h2", { children: [
+        "Review ",
+        plan.operation,
+        " changes"
+      ] }),
+      /* @__PURE__ */ u3("p", { children: "Companion changes only extensions it manages. External extensions remain untouched." })
+    ] }),
+    /* @__PURE__ */ u3(KitImpactSummary, { plan }),
+    /* @__PURE__ */ u3(
+      KitVersionChoices,
+      {
+        steps: plan.install,
+        selections: selectedInstallTargets,
+        onChange: (projectId, target) => setSelectedInstallTargets((current) => [
+          ...current.filter((selection) => selection.projectId !== projectId),
+          { projectId, target }
+        ])
+      }
+    ),
+    /* @__PURE__ */ u3(
+      KitWarningGroup,
+      {
+        warnings: plan.warnings,
+        selectedInstallTargets,
+        onReview
+      }
+    ),
+    /* @__PURE__ */ u3("footer", { children: [
+      /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" }),
+      /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          disabled: plan.blockingIssues.length > 0 || !everyVersionChosen,
+          onClick: () => onConfirm({
+            planId: plan.id,
+            inventoryFingerprint: plan.inventoryFingerprint,
+            catalogGeneratedAt: plan.catalogGeneratedAt,
+            catalogBinding: plan.catalogBinding,
+            acceptedWarningProjectIds: plan.warnings.map(({ projectId }) => projectId),
+            selectedInstallTargets,
+            installTargetBinding: computeInstallTargetBinding(selectedInstallTargets)
+          }),
+          children: confirm
+        }
+      )
+    ] })
+  ] });
+}
+
+// src/ui/lifecycle/assessment-warning-dialog.tsx
+function AssessmentWarningDialog({
+  projectName,
+  prompt,
+  onReview,
+  onCancel,
+  onConfirm
+}) {
+  const high = prompt.severity === "high";
+  return /* @__PURE__ */ u3(
+    DialogFrame,
+    {
+      label: `Security warning for ${projectName}`,
+      className: high ? "is-high" : "is-material",
+      onCancel,
+      children: [
+        /* @__PURE__ */ u3("p", { class: "tavernary-companion-dialog__severity", children: high ? "High concern" : "Needs a closer look" }),
+        /* @__PURE__ */ u3("h2", { children: [
+          "Review before installing ",
+          projectName
+        ] }),
+        /* @__PURE__ */ u3("p", { children: prompt.copy }),
+        prompt.reviewDisabledReason ? /* @__PURE__ */ u3("p", { children: prompt.reviewDisabledReason }) : null,
+        /* @__PURE__ */ u3("div", { class: "tavernary-companion-dialog__actions", children: [
+          /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              onClick: () => prompt.reportUrl && onReview(prompt.reportUrl),
+              disabled: !prompt.reportUrl,
+              children: "View check"
+            }
+          ),
+          /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Go back" }),
+          /* @__PURE__ */ u3("button", { type: "button", class: "is-danger", onClick: onConfirm, children: "Install this version" })
+        ] })
+      ]
+    }
+  );
+}
+
+// src/ui/lifecycle/operation-receipt.tsx
+function OperationReceipt({
+  receipt,
+  onDismiss
+}) {
+  const succeeded = receipt.status === "succeeded";
+  return /* @__PURE__ */ u3("section", { class: "tavernary-companion-operation-receipt", "aria-label": "Operation receipt", children: [
+    /* @__PURE__ */ u3("h3", { children: receiptHeading2(receipt) }),
+    receipt.safeError ? /* @__PURE__ */ u3("p", { children: receipt.safeError }) : null,
+    receipt.reloadRequired ? /* @__PURE__ */ u3("p", { children: "Reload required" }) : null,
+    /* @__PURE__ */ u3("ol", { children: receipt.steps.map((step2) => /* @__PURE__ */ u3("li", { "data-status": step2.status, children: [
+      stepLabel(step2.id),
+      ": ",
+      step2.status
+    ] })) }),
+    /* @__PURE__ */ u3("p", { children: succeeded ? "Verified against SillyTavern." : "No unverified success was recorded." }),
+    receipt.installProvenance?.targetKind === "checked" || receipt.installProvenance?.targetKind === "newest" ? /* @__PURE__ */ u3(InstallDetails, { receipt }) : null,
+    onDismiss ? /* @__PURE__ */ u3("button", { type: "button", onClick: onDismiss, children: "Dismiss" }) : null
+  ] });
+}
+function receiptHeading2(receipt) {
+  if (receipt.status === "succeeded") {
+    if (receipt.kind === "install" && receipt.installProvenance?.targetKind === "checked") {
+      return "Installed the checked version.";
+    }
+    if (receipt.kind === "install" && receipt.installProvenance?.targetKind === "newest") {
+      return "Installed the newest version.";
+    }
+    return `${receipt.projectName} ${receipt.kind === "install" ? "installed" : "removed"} and verified`;
+  }
+  if (receipt.status === "cancelled") return `${receipt.projectName} operation cancelled`;
+  return `${receipt.projectName} ${receipt.kind} did not complete`;
+}
+function InstallDetails({ receipt }) {
+  const provenance = receipt.installProvenance;
+  return /* @__PURE__ */ u3("details", { class: "tavernary-companion-operation-receipt__details", children: [
+    /* @__PURE__ */ u3("summary", { children: "Details" }),
+    /* @__PURE__ */ u3("dl", { children: [
+      /* @__PURE__ */ u3("dt", { children: "Requested SHA" }),
+      /* @__PURE__ */ u3("dd", { children: provenance.requestedSha ? /* @__PURE__ */ u3("code", { children: provenance.requestedSha }) : "Not available" }),
+      /* @__PURE__ */ u3("dt", { children: "Installed SHA" }),
+      /* @__PURE__ */ u3("dd", { children: provenance.installedSha ? /* @__PURE__ */ u3("code", { children: provenance.installedSha }) : "Not available" }),
+      /* @__PURE__ */ u3("dt", { children: "Catalog time" }),
+      /* @__PURE__ */ u3("dd", { children: provenance.catalogGeneratedAt ? /* @__PURE__ */ u3("time", { dateTime: provenance.catalogGeneratedAt, children: formatTechnicalDate(provenance.catalogGeneratedAt) }) : "Not available" }),
+      receipt.tavernKeeperReportUrl ? /* @__PURE__ */ u3(S, { children: [
+        /* @__PURE__ */ u3("dt", { children: "TavernKeeper" }),
+        /* @__PURE__ */ u3("dd", { children: /* @__PURE__ */ u3("a", { href: receipt.tavernKeeperReportUrl, target: "_blank", rel: "noopener noreferrer", children: "TavernKeeper check" }) })
+      ] }) : null
+    ] })
+  ] });
+}
+function formatTechnicalDate(value) {
+  const date = new Date(value);
+  return Number.isNaN(date.valueOf()) ? value : date.toISOString();
+}
+function stepLabel(id) {
+  return {
+    requested: "Requested",
+    "host-accepted": "Host accepted",
+    verified: "Verified",
+    recorded: "Recorded"
+  }[id];
+}
+
 // src/ui/lifecycle/operation-success-notification.tsx
 var DISPLAY_DURATION_MS = 4500;
-var VIEWPORT_MARGIN = 8;
+var VIEWPORT_MARGIN2 = 8;
 var PANEL_GAP = 8;
 function OperationSuccessNotification({
   receipt,
@@ -15783,9 +16931,9 @@ function OperationSuccessNotification({
     const panel = document.querySelector(".tavernary-companion-root");
     if (!notification || !panel) {
       setPosition({
-        insetBlockStart: `${VIEWPORT_MARGIN}px`,
+        insetBlockStart: `${VIEWPORT_MARGIN2}px`,
         insetInlineStart: "50%",
-        maxInlineSize: `calc(100vw - ${VIEWPORT_MARGIN * 2}px)`,
+        maxInlineSize: `calc(100vw - ${VIEWPORT_MARGIN2 * 2}px)`,
         visibility: "visible"
       });
       return;
@@ -15797,13 +16945,13 @@ function OperationSuccessNotification({
         0,
         Math.min(
           520,
-          panelRect.width - VIEWPORT_MARGIN * 2,
-          window.innerWidth - VIEWPORT_MARGIN * 2
+          panelRect.width - VIEWPORT_MARGIN2 * 2,
+          window.innerWidth - VIEWPORT_MARGIN2 * 2
         )
       );
       setPosition({
         insetBlockStart: `${Math.max(
-          VIEWPORT_MARGIN,
+          VIEWPORT_MARGIN2,
           panelRect.top - notificationRect.height - PANEL_GAP
         )}px`,
         insetInlineStart: `${panelRect.left + panelRect.width / 2}px`,
@@ -15824,9 +16972,9 @@ function OperationSuccessNotification({
     };
   }, [receipt.id]);
   if (typeof document === "undefined") return null;
-  const title = `${receipt.projectName} ${receipt.kind === "install" ? "installed" : "removed"}`;
+  const title = successTitle(receipt);
   const detail = successDetail(receipt);
-  const statusLabel2 = receipt.kind === "install" ? "Installation complete" : "Removal complete";
+  const statusLabel3 = receipt.kind === "install" ? "Installation complete" : "Removal complete";
   return $2(
     /* @__PURE__ */ u3(
       "aside",
@@ -15834,7 +16982,7 @@ function OperationSuccessNotification({
         ref: notificationRef,
         class: "tavernary-companion-operation-notification",
         role: "status",
-        "aria-label": statusLabel2,
+        "aria-label": statusLabel3,
         "aria-live": "polite",
         "aria-atomic": "true",
         style: position,
@@ -15875,6 +17023,15 @@ function OperationSuccessNotification({
     ),
     document.body
   );
+}
+function successTitle(receipt) {
+  if (receipt.kind === "install" && receipt.installProvenance?.targetKind === "checked") {
+    return "Installed the checked version.";
+  }
+  if (receipt.kind === "install" && receipt.installProvenance?.targetKind === "newest") {
+    return "Installed the newest version.";
+  }
+  return `${receipt.projectName} ${receipt.kind === "install" ? "installed" : "removed"}`;
 }
 function successDetail(receipt) {
   if (receipt.kind === "install") {
@@ -16004,24 +17161,24 @@ function resolveOverlayPortalTarget(source) {
 }
 
 // src/ui/shared/tooltip.tsx
-var VIEWPORT_MARGIN2 = 8;
+var VIEWPORT_MARGIN3 = 8;
 var TOOLTIP_GAP = 8;
-function clamp(value, minimum, maximum) {
+function clamp2(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
 }
 function tooltipPosition(trigger, tooltip) {
-  const left = clamp(
+  const left = clamp2(
     trigger.left + trigger.width / 2 - tooltip.width / 2,
-    VIEWPORT_MARGIN2,
-    window.innerWidth - tooltip.width - VIEWPORT_MARGIN2
+    VIEWPORT_MARGIN3,
+    window.innerWidth - tooltip.width - VIEWPORT_MARGIN3
   );
   const above = trigger.top - tooltip.height - TOOLTIP_GAP;
   const below = trigger.bottom + TOOLTIP_GAP;
-  const preferredTop = above >= VIEWPORT_MARGIN2 ? above : below;
-  const top = clamp(
+  const preferredTop = above >= VIEWPORT_MARGIN3 ? above : below;
+  const top = clamp2(
     preferredTop,
-    VIEWPORT_MARGIN2,
-    window.innerHeight - tooltip.height - VIEWPORT_MARGIN2
+    VIEWPORT_MARGIN3,
+    window.innerHeight - tooltip.height - VIEWPORT_MARGIN3
   );
   return { left, top };
 }
@@ -16198,7 +17355,7 @@ function ProjectLifecycleControl({
             "aria-describedby": disabled ? disabledReasonId : void 0,
             "aria-pressed": installed,
             disabled,
-            onClick: () => onAction(action),
+            onClick: (event) => onAction(action, event.currentTarget),
             children: /* @__PURE__ */ u3("span", { class: "tavernary-companion-project-lifecycle__face", "aria-hidden": "true", children: installed ? /* @__PURE__ */ u3(UninstallIcon, {}) : /* @__PURE__ */ u3(InstallIcon, {}) })
           }
         )
@@ -16295,7 +17452,7 @@ function InstalledCard({
               projectName: row.name,
               action: row.action,
               disabled: lifecycleDisabled,
-              onAction: (action) => onAction?.(row.id, action)
+              onAction: (action, anchor) => onAction?.(row.id, action, anchor)
             }
           )
         ] })
@@ -17777,13 +18934,13 @@ function accessibleStatus(status) {
   return `${riskGradeLabels[status.report.riskLevel]}; ${freshnessLabels[status.freshness]}.`;
 }
 var CLOSE_DELAY = 150;
-var VIEWPORT_MARGIN3 = 8;
+var VIEWPORT_MARGIN4 = 8;
 var POPOVER_GAP = 8;
 var activeDismiss = null;
-function clamp2(value, minimum, maximum) {
+function clamp3(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
 }
-function viewportBounds() {
+function viewportBounds2() {
   const viewport = window.visualViewport;
   return viewport ? {
     height: viewport.height,
@@ -17793,18 +18950,18 @@ function viewportBounds() {
   } : { height: window.innerHeight, left: 0, top: 0, width: window.innerWidth };
 }
 function popoverPosition(trigger, popover) {
-  const viewport = viewportBounds();
-  const left = clamp2(
+  const viewport = viewportBounds2();
+  const left = clamp3(
     trigger.left + trigger.width / 2 - popover.width / 2,
-    viewport.left + VIEWPORT_MARGIN3,
-    viewport.left + viewport.width - popover.width - VIEWPORT_MARGIN3
+    viewport.left + VIEWPORT_MARGIN4,
+    viewport.left + viewport.width - popover.width - VIEWPORT_MARGIN4
   );
   const above = trigger.top - popover.height - POPOVER_GAP;
   const below = trigger.bottom + POPOVER_GAP;
-  const top = clamp2(
-    above >= viewport.top + VIEWPORT_MARGIN3 ? above : below,
-    viewport.top + VIEWPORT_MARGIN3,
-    viewport.top + viewport.height - popover.height - VIEWPORT_MARGIN3
+  const top = clamp3(
+    above >= viewport.top + VIEWPORT_MARGIN4 ? above : below,
+    viewport.top + VIEWPORT_MARGIN4,
+    viewport.top + viewport.height - popover.height - VIEWPORT_MARGIN4
   );
   return { left, top };
 }
@@ -18400,7 +19557,7 @@ function ProjectGrid({
           ProjectCard,
           {
             project: project2,
-            onAction: (action) => onProjectAction(project2.id, action),
+            onAction: (action, anchor) => onProjectAction(project2.id, action, anchor),
             onManageInSillyTavern,
             density,
             lifecycleDisabled,
@@ -19110,7 +20267,7 @@ function CompanionShell({
                     state: discoveryState,
                     facets: facets ?? discoveryState.facets,
                     onQueryChange: updateProjectQuery,
-                    onProjectAction: (id, action) => onProjectAction?.(id, action),
+                    onProjectAction: (id, action, anchor) => onProjectAction?.(id, action, anchor),
                     onManageInSillyTavern: onOpenExtensionManager,
                     lifecycleDisabled,
                     kitSelectionActive: kitSelection !== null,
@@ -19162,7 +20319,7 @@ function CompanionShell({
                     refreshing: inventoryRefreshing,
                     togglingInternalName,
                     onRefresh: onRefreshInventory,
-                    onAction: (id, action) => onProjectAction?.(id, action),
+                    onAction: (id, action, anchor) => onProjectAction?.(id, action, anchor),
                     onManage: onOpenExtensionManager,
                     onOpenKit: (id) => controller.openDetail({ kind: "kit", id, focusKey: `installed-kit-${id}` }),
                     onUninstallKit,
@@ -19370,6 +20527,20 @@ function CompanionPopupHost({
   const [kitInspectors, setKitInspectors] = d2({});
   const [installedKitCards, setInstalledKitCards] = d2([]);
   const [operationError, setOperationError] = d2(null);
+  const [preparingInstall, setPreparingInstall] = d2(false);
+  const [preparingKitPlan, setPreparingKitPlan] = d2(false);
+  const [pendingInstallChoice, setPendingInstallChoice] = d2(null);
+  const localInstallFallbacks = T2(() => new InstallTargetFallbackBroker(), []);
+  const installFallbacks = runtime?.installFallbacks ?? localInstallFallbacks;
+  const [pendingInstallFallback, setPendingInstallFallback] = d2(installFallbacks.read());
+  const fallbackAnchor = A2(null);
+  h2(() => {
+    const unsubscribe = installFallbacks.subscribe(setPendingInstallFallback);
+    return () => {
+      unsubscribe();
+      installFallbacks.cancel();
+    };
+  }, [installFallbacks]);
   const syncKits = q2(async () => {
     if (!runtime || !store) return;
     const snapshot = runtime.catalog.read();
@@ -19451,22 +20622,65 @@ function CompanionPopupHost({
       window.removeEventListener("focus", onFocus);
     };
   }, [refreshInventory, runtime, store, syncKits]);
-  const runAction = async (projectId, action) => {
+  const executeInstallSelection = async (projectId, projectName, anchor, selection, allowUnavailableFallback = true) => {
+    if (!runtime) return;
+    try {
+      const result2 = await runtime.lifecycle.install(projectId, selection);
+      setReceipt(result2);
+      await refreshInventory();
+    } catch (error) {
+      if (allowUnavailableFallback && error instanceof HostRevisionUnavailableError && selection.target.kind === "checked") {
+        const newest = await runtime.lifecycle.prepareNewestInstall(projectId);
+        fallbackAnchor.current = anchor;
+        const replacement = await installFallbacks.request({
+          projectId,
+          projectName,
+          checked: selection,
+          newest
+        });
+        if (replacement) {
+          await executeInstallSelection(projectId, projectName, anchor, replacement, false);
+        }
+        fallbackAnchor.current = null;
+        return;
+      }
+      if (error instanceof HostRevisionUnavailableError && selection.target.kind === "newest") {
+        throw new InstallTargetPreparationError(NEWEST_LOOKUP_FAILED_REASON, { cause: error });
+      }
+      throw error;
+    }
+  };
+  const runAction = async (projectId, action, anchor) => {
     if (!runtime || !host) return;
     setOperationError(null);
     try {
       if (action.kind === "install") {
-        const result2 = await runtime.lifecycle.install(projectId);
-        setReceipt(result2);
-        await refreshInventory();
+        setPreparingInstall(true);
+        const prepared = await runtime.lifecycle.prepareInstall(projectId);
+        const snapshot = runtime.catalog.read();
+        const projectName = ("catalog" in snapshot ? snapshot.catalog.projects.find(({ id }) => id === projectId)?.name : null) ?? projectId;
+        dispatchPreparedInstallChoice(
+          prepared,
+          (selection) => {
+            void executeInstallSelection(projectId, projectName, anchor, selection).catch(
+              showOperationError
+            );
+          },
+          (choice) => setPendingInstallChoice({ projectId, projectName, anchor, choice })
+        );
       } else if (action.kind === "uninstall") {
         setRemovalImpact(await runtime.lifecycle.previewRemoval(projectId));
       } else if (action.kind === "update-required" || action.kind === "manage-in-sillytavern") {
         await host.openExtensionManager();
       }
     } catch (error) {
-      setOperationError(error instanceof Error ? error.message : "The operation could not finish.");
+      showOperationError(error);
+    } finally {
+      setPreparingInstall(false);
     }
+  };
+  const showOperationError = (error) => {
+    setOperationError(error instanceof Error ? error.message : "The operation could not finish.");
   };
   const toggleExtension = async (projectId, internalName, enabled) => {
     if (!host) return;
@@ -19485,28 +20699,41 @@ function CompanionPopupHost({
       setTogglingInternalName(null);
     }
   };
-  const requestKitOperation = (kitId, operation) => {
-    if (!runtime || !store) return;
-    const snapshot = runtime.catalog.read();
-    if (!("catalog" in snapshot)) return;
-    const kit2 = resolveKit(runtime, snapshot.catalog, kitId);
-    if (!kit2) return;
-    const plan = planKitOperation({
-      operation,
-      kit: kit2,
-      catalog: snapshot.catalog,
-      inventory: runtime.kitContext.inventory,
-      managed: normalizeManagedExtensionMap(store.read().managedExtensions),
-      installedKits: runtime.kits.readInstalledStates(),
-      activeKitId: runtime.kits.readActiveId(),
-      catalogCanMutate: snapshot.canMutate
-    });
-    if (!store.read().trustAcknowledgedAt && plan.install.length) setKitDisclosurePlan(plan);
-    else setPendingKitPlan(plan);
+  const requestKitOperation = async (kitId, operation) => {
+    if (!runtime || !store || !host) return;
+    setOperationError(null);
+    setPreparingKitPlan(true);
+    try {
+      const snapshot = runtime.catalog.read();
+      if (!("catalog" in snapshot)) return;
+      const kit2 = resolveKit(runtime, snapshot.catalog, kitId);
+      if (!kit2) return;
+      const planned = planKitOperation({
+        operation,
+        kit: kit2,
+        catalog: snapshot.catalog,
+        inventory: runtime.kitContext.inventory,
+        managed: normalizeManagedExtensionMap(store.read().managedExtensions),
+        installedKits: runtime.kits.readInstalledStates(),
+        activeKitId: runtime.kits.readActiveId(),
+        catalogCanMutate: snapshot.canMutate
+      });
+      const plan = await prepareKitInstallTargets({
+        plan: planned,
+        catalog: snapshot.catalog,
+        host
+      });
+      if (!store.read().trustAcknowledgedAt && plan.install.length) setKitDisclosurePlan(plan);
+      else setPendingKitPlan(plan);
+    } catch (error) {
+      showOperationError(error);
+    } finally {
+      setPreparingKitPlan(false);
+    }
   };
   const requestKitAction = (kitId, action) => {
     if (action !== "uninstall" && (action.kind === "review" || action.kind === "view")) return;
-    requestKitOperation(
+    void requestKitOperation(
       kitId,
       action === "uninstall" ? "uninstall" : action.kind === "activate" ? "activate" : action.kind === "deactivate" ? "deactivate" : "install"
     );
@@ -19560,11 +20787,11 @@ function CompanionPopupHost({
         onRefreshCatalog: refreshCatalog,
         onRefreshInventory: refreshInventory,
         onToggleExtension: (projectId, internalName, enabled) => void toggleExtension(projectId, internalName, enabled),
-        onProjectAction: (projectId, action) => void runAction(projectId, action),
+        onProjectAction: (projectId, action, anchor) => void runAction(projectId, action, anchor),
         onOpenExtensionManager: () => void host?.openExtensionManager(),
         onUpdateCompanion: () => void host?.openExtensionManager(),
         onOpenTavernary: () => host?.openExternal("https://tavernary.org/"),
-        lifecycleDisabled: activeOperation !== null || togglingInternalName !== null,
+        lifecycleDisabled: activeOperation !== null || togglingInternalName !== null || preparingInstall || pendingInstallChoice !== null || pendingInstallFallback !== null || preparingKitPlan,
         kitDiscovery: runtime?.kitDiscovery,
         kitInspectors,
         installedKits: installedKitCards,
@@ -19683,6 +20910,44 @@ function CompanionPopupHost({
         onConfirm: () => runtime?.prompts.respond(true)
       }
     ) : null,
+    pendingInstallChoice ? /* @__PURE__ */ u3(
+      InstallVersionChooser,
+      {
+        projectId: pendingInstallChoice.projectId,
+        projectName: pendingInstallChoice.projectName,
+        anchor: pendingInstallChoice.anchor,
+        choice: pendingInstallChoice.choice,
+        onCancel: () => setPendingInstallChoice(null),
+        onSelect: (selection) => {
+          const pending = pendingInstallChoice;
+          setPendingInstallChoice(null);
+          void executeInstallSelection(
+            pending.projectId,
+            pending.projectName,
+            pending.anchor,
+            selection
+          ).catch(showOperationError);
+        }
+      }
+    ) : null,
+    pendingInstallFallback && (fallbackAnchor.current ?? document.querySelector(".tavernary-companion-root")) ? /* @__PURE__ */ u3(
+      InstallVersionChooser,
+      {
+        projectId: pendingInstallFallback.projectId,
+        projectName: pendingInstallFallback.projectName,
+        anchor: fallbackAnchor.current ?? document.querySelector(".tavernary-companion-root"),
+        choice: {
+          kind: "choose",
+          checked: {
+            selection: pendingInstallFallback.checked,
+            disabledReason: CHECKED_VERSION_UNAVAILABLE_REASON
+          },
+          newest: { selection: pendingInstallFallback.newest }
+        },
+        onCancel: () => installFallbacks.cancel(),
+        onSelect: (selection) => installFallbacks.respond(selection)
+      }
+    ) : null,
     removalImpact ? /* @__PURE__ */ u3(
       RemovalDialog,
       {
@@ -19723,7 +20988,7 @@ function CompanionPopupHost({
         },
         onRetry: () => {
           if (!kitReceipt) return;
-          requestKitOperation(kitReceipt.kitId, retryKitOperation(kitReceipt));
+          void requestKitOperation(kitReceipt.kitId, retryKitOperation(kitReceipt));
         }
       }
     )
@@ -19750,6 +21015,7 @@ function createPopupRuntime(store, host) {
     statuses: /* @__PURE__ */ new Map()
   });
   const prompts = new TrustPromptBroker();
+  const installFallbacks = new InstallTargetFallbackBroker();
   const lifecycle = createLifecycleCoordinator({
     host,
     store,
@@ -19783,9 +21049,21 @@ function createPopupRuntime(store, host) {
         installedKits: kits.readInstalledStates(),
         activeKitId: kits.readActiveId()
       });
-    }
+    },
+    fallbacks: installFallbacks,
+    confirm: (prompt, project2) => prompts.request(prompt, project2)
   });
-  return { catalog, discovery, lifecycle, prompts, kits, kitDiscovery, kitExecutor, kitContext };
+  return {
+    catalog,
+    discovery,
+    lifecycle,
+    prompts,
+    installFallbacks,
+    kits,
+    kitDiscovery,
+    kitExecutor,
+    kitContext
+  };
 }
 function parseReceipt(value) {
   if (!value || typeof value.id !== "string" || value.kind !== "install" && value.kind !== "remove" || typeof value.projectId !== "string" || typeof value.projectName !== "string" || !Array.isArray(value.steps)) {
@@ -19811,7 +21089,7 @@ function isNullableString(value) {
 function isKitProjectResult(value) {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const result2 = value;
-  return typeof result2.projectId === "string" && (result2.action === "install" || result2.action === "enable" || result2.action === "disable" || result2.action === "remove" || result2.action === "keep" || result2.action === "context") && (result2.status === "verified" || result2.status === "failed" || result2.status === "kept" || result2.status === "external") && typeof result2.message === "string" && typeof result2.retryable === "boolean";
+  return typeof result2.projectId === "string" && (result2.action === "install" || result2.action === "enable" || result2.action === "disable" || result2.action === "remove" || result2.action === "keep" || result2.action === "context") && (result2.status === "verified" || result2.status === "failed" || result2.status === "untouched" || result2.status === "kept" || result2.status === "external" || result2.status === "context") && typeof result2.message === "string" && typeof result2.retryable === "boolean";
 }
 function resolveKit(runtime, catalog, kitId) {
   const personal = runtime.kits.readDefinition(kitId);

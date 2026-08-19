@@ -81,6 +81,17 @@ it("rejects malformed remote revision hashes", async () => {
   );
 });
 
+it("classifies malformed remote repository URLs as revision lookup failures", async () => {
+  const host = createSillyTavernHost();
+
+  const error = await host
+    .resolveRemoteRevision({ repositoryUrl: "not a repository URL", branch: null })
+    .catch((cause: unknown) => cause);
+
+  expect(error).toBeInstanceOf(HostOperationError);
+  expect(error).toMatchObject({ operation: "resolveRevision" });
+});
+
 it("sanitizes bounded details from failed revision lookups", async () => {
   const host = createSillyTavernHost({
     fetch: vi.fn().mockResolvedValue(new Response(`\u0000${"x".repeat(600)}`, { status: 502 })),

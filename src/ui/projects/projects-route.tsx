@@ -14,7 +14,7 @@ interface ProjectsRouteProps {
   state: DiscoveryState;
   facets?: ProjectFacets;
   onQueryChange(query: CatalogQuery): void;
-  onProjectAction?(id: string, action: ProjectPrimaryAction): void;
+  onProjectAction?(id: string, action: ProjectPrimaryAction, anchor: HTMLButtonElement): void;
   onManageInSillyTavern?(): void;
   lifecycleDisabled?: boolean;
   kitSelectionActive?: boolean;

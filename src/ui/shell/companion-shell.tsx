@@ -25,7 +25,7 @@ interface CompanionShellProps {
   controller: ShellController;
   discovery?: DiscoveryController;
   facets?: ProjectFacets;
-  onProjectAction?(id: string, action: ProjectPrimaryAction): void;
+  onProjectAction?(id: string, action: ProjectPrimaryAction, anchor: HTMLButtonElement): void;
   onRefreshInventory?(): void | Promise<void>;
   inventoryRefreshing?: boolean;
   togglingInternalName?: string | null;
@@ -161,7 +161,7 @@ export function CompanionShell({
                     state={discoveryState}
                     facets={facets ?? discoveryState.facets}
                     onQueryChange={updateProjectQuery}
-                    onProjectAction={(id, action) => onProjectAction?.(id, action)}
+                    onProjectAction={(id, action, anchor) => onProjectAction?.(id, action, anchor)}
                     onManageInSillyTavern={onOpenExtensionManager}
                     lifecycleDisabled={lifecycleDisabled}
                     kitSelectionActive={kitSelection !== null}
@@ -229,7 +229,7 @@ export function CompanionShell({
                     refreshing={inventoryRefreshing}
                     togglingInternalName={togglingInternalName}
                     onRefresh={onRefreshInventory}
-                    onAction={(id, action) => onProjectAction?.(id, action)}
+                    onAction={(id, action, anchor) => onProjectAction?.(id, action, anchor)}
                     onManage={onOpenExtensionManager}
                     onOpenKit={(id) =>
                       controller.openDetail({ kind: "kit", id, focusKey: `installed-kit-${id}` })

@@ -7,6 +7,7 @@ import { CURRENT_ASSESSMENT_WARNING } from "../../src/trust/trust-copy";
 import type { TrustPrompt } from "../../src/trust/trust-types";
 import { AssessmentWarningDialog } from "../../src/ui/lifecycle/assessment-warning-dialog";
 import { OperationTray } from "../../src/ui/lifecycle/operation-tray";
+import { OperationReceipt } from "../../src/ui/lifecycle/operation-receipt";
 
 afterEach(() => {
   vi.useRealTimers();
@@ -35,9 +36,10 @@ describe("lifecycle UI", () => {
     );
 
     expect(screen.getByText(CURRENT_ASSESSMENT_WARNING)).toBeVisible();
-    expect(screen.getByRole("button", { name: "Scan Review" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Install anyway" })).toBeVisible();
+    expect(screen.getByText("Needs a closer look")).toBeVisible();
+    expect(screen.getByRole("button", { name: "View check" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Go back" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Install this version" })).toBeVisible();
   });
 
   it("keeps the decision pending after Scan Review and cancels with Escape", () => {
@@ -54,7 +56,7 @@ describe("lifecycle UI", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Scan Review" }));
+    fireEvent.click(screen.getByRole("button", { name: "View check" }));
     expect(onReview).toHaveBeenCalledWith(warning.reportUrl);
     expect(onConfirm).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog")).toBeVisible();
@@ -79,9 +81,9 @@ describe("lifecycle UI", () => {
       />,
     );
 
-    expect(screen.getByText("Immediate danger")).toBeVisible();
+    expect(screen.getByText("High concern")).toBeVisible();
     expect(screen.getByRole("dialog")).toHaveClass("is-high");
-    expect(screen.getByRole("button", { name: "Scan Review" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "View check" })).toBeDisabled();
     expect(screen.getByText("No TavernKeeper Scan Review link is available.")).toBeVisible();
   });
 
@@ -118,6 +120,69 @@ describe("lifecycle UI", () => {
       "Verified in SillyTavern · Reload to finish installation",
     );
     expect(screen.queryByRole("list")).not.toBeInTheDocument();
+  });
+
+  it("keeps install success plain and puts hashes only inside closed Details", () => {
+    const receipt = createReceipt({
+      id: "receipt-target",
+      kind: "install",
+      projectId: "alpha",
+      projectName: "Alpha",
+      startedAt: "2026-08-18T10:00:00.000Z",
+      finishedAt: "2026-08-18T10:01:00.000Z",
+      status: "succeeded",
+      completedThrough: "recorded",
+      safeError: null,
+      reloadRequired: true,
+      installProvenance: {
+        targetKind: "checked",
+        requestedSha: "a".repeat(40),
+        installedSha: "a".repeat(40),
+        catalogGeneratedAt: "2026-08-18T09:00:00.000Z",
+        tavernKeeperReportId: "report-alpha",
+      },
+      tavernKeeperReportUrl: "https://tavernary.org/scan/alpha",
+    });
+
+    render(<OperationReceipt receipt={receipt} />);
+
+    expect(screen.getByRole("heading", { name: "Installed the checked version." })).toBeVisible();
+    const details = screen.getByText("Details").closest("details");
+    expect(details).not.toHaveAttribute("open");
+    expect(
+      screen.getAllByText("a".repeat(40)).every((value) => value.closest("details") === details),
+    ).toBe(true);
+    expect(screen.getByRole("link", { name: "TavernKeeper check" }).closest("details")).toBe(
+      details,
+    );
+  });
+
+  it("announces the selected version in a successful install notification", () => {
+    const receipt = createReceipt({
+      id: "receipt-newest",
+      kind: "install",
+      projectId: "alpha",
+      projectName: "Alpha",
+      startedAt: "2026-08-18T10:00:00.000Z",
+      finishedAt: "2026-08-18T10:01:00.000Z",
+      status: "succeeded",
+      completedThrough: "recorded",
+      safeError: null,
+      reloadRequired: true,
+      installProvenance: {
+        targetKind: "newest",
+        requestedSha: "b".repeat(40),
+        installedSha: "b".repeat(40),
+        catalogGeneratedAt: "2026-08-18T09:00:00.000Z",
+        tavernKeeperReportId: null,
+      },
+    });
+
+    render(<OperationTray active={null} receipt={receipt} />);
+
+    expect(screen.getByRole("status", { name: "Installation complete" })).toHaveTextContent(
+      "Installed the newest version.",
+    );
   });
 
   it("dismisses a successful receipt when its notification is clicked", () => {

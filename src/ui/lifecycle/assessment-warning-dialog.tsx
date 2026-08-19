@@ -24,7 +24,7 @@ export function AssessmentWarningDialog({
       onCancel={onCancel}
     >
       <p class="tavernary-companion-dialog__severity">
-        {high ? "Immediate danger" : "Material concern"}
+        {high ? "High concern" : "Needs a closer look"}
       </p>
       <h2>Review before installing {projectName}</h2>
       <p>{prompt.copy}</p>
@@ -35,13 +35,13 @@ export function AssessmentWarningDialog({
           onClick={() => prompt.reportUrl && onReview(prompt.reportUrl)}
           disabled={!prompt.reportUrl}
         >
-          Scan Review
+          View check
         </button>
         <button type="button" onClick={onCancel}>
-          Cancel
+          Go back
         </button>
         <button type="button" class="is-danger" onClick={onConfirm}>
-          Install anyway
+          Install this version
         </button>
       </div>
     </DialogFrame>
