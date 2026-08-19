@@ -555,6 +555,10 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   block-size: 16px;
   flex: none;
 }
+.tavernary-companion-category-navigation button > span:last-child,
+.tavernary-companion-category-navigation button[data-category=developer-infrastructure] svg {
+  transform: translateY(1px);
+}
 .tavernary-companion-category-navigation button[data-category=frontend] svg {
   color: var(--tavernary-color-frontend);
 }
