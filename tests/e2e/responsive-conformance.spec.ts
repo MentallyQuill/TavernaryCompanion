@@ -46,6 +46,41 @@ test("mobile Installed matches the shared catalog grammar", async ({ page }) => 
   await expect(page).toHaveScreenshot("installed-390x844.png");
 });
 
+test("mobile TavernKeeper assessment matches the card grammar", async ({ page }) => {
+  await prepare(page, { width: 390, height: 844 });
+  await page
+    .locator(".tavernary-companion-shell__header")
+    .getByRole("searchbox", { name: "Search projects" })
+    .fill("Alpha");
+  await page.getByRole("button", { name: "TavernKeeper scan: Not assessed" }).click();
+  await expect(page.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toBeVisible();
+  await expect(page).toHaveScreenshot("tavernkeeper-390x844.png");
+});
+
+test("mobile Kit selection keeps install and Kit meanings distinct", async ({ page }) => {
+  await prepare(page, { width: 390, height: 844 });
+  await page
+    .locator(".tavernary-companion-shell__header")
+    .getByRole("searchbox", { name: "Search projects" })
+    .fill("Alpha");
+  await page.getByRole("button", { name: "Add Alpha to Kit" }).click();
+  await expect(page.getByText("1 selected")).toBeVisible();
+  await expect(page).toHaveScreenshot("kit-selection-390x844.png");
+});
+
+test("mobile lifecycle disclosure matches Tavernary surfaces", async ({ page }) => {
+  await prepare(page, { width: 390, height: 844 });
+  await page
+    .locator(".tavernary-companion-shell__header")
+    .getByRole("searchbox", { name: "Search projects" })
+    .fill("Alpha");
+  await page.getByRole("button", { name: "Install Alpha" }).click();
+  await expect(
+    page.getByRole("dialog", { name: "Third-party extension disclosure" }),
+  ).toBeVisible();
+  await expect(page).toHaveScreenshot("lifecycle-disclosure-390x844.png");
+});
+
 async function prepare(page: Page, viewport: { width: number; height: number }): Promise<void> {
   await page.setViewportSize(viewport);
   await page.clock.setFixedTime(new Date("2026-08-18T18:00:00-06:00"));
