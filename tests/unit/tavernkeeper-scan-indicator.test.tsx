@@ -1,10 +1,13 @@
-import { fireEvent, render, screen, within } from "@testing-library/preact";
+import { act, fireEvent, render, screen, within } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { TavernKeeperCardStatus } from "../../src/catalog/catalog-core";
 import { TavernKeeperScanIndicator } from "../../src/ui/projects/tavernkeeper-scan-indicator";
 
-afterEach(() => document.body.replaceChildren());
+afterEach(() => {
+  vi.useRealTimers();
+  document.body.replaceChildren();
+});
 
 function status(overrides: Partial<TavernKeeperCardStatus> = {}): TavernKeeperCardStatus {
   return {
@@ -88,6 +91,24 @@ describe("TavernKeeperScanIndicator", () => {
       "https://tavernary.org/security/tavernkeeper/reports/report-alpha/",
     );
     expect(report).toHaveAttribute("target", "_blank");
+  });
+
+  it("keeps a tapped scan panel open when the touch pointer leaves", () => {
+    vi.useFakeTimers();
+    render(<TavernKeeperScanIndicator projectId="alpha" status={status()} />);
+    const trigger = screen.getByRole("button", {
+      name: "TavernKeeper scan: Low concern; current.",
+    });
+
+    fireEvent.pointerDown(trigger, { pointerType: "touch" });
+    fireEvent.click(trigger);
+    fireEvent.pointerLeave(trigger, { pointerType: "touch" });
+    act(() => {
+      vi.advanceTimersByTime(150);
+    });
+
+    expect(trigger).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toBeVisible();
   });
 
   it("uses literal unsupported, unassessed, and stale state language", () => {
@@ -188,7 +209,7 @@ describe("TavernKeeperScanIndicator", () => {
       name: "TavernKeeper scan: Low concern; current.",
     });
 
-    fireEvent.mouseEnter(trigger);
+    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
     const dialog = screen.getByRole("dialog", { name: "TavernKeeper Scan Results" });
     expect(dialog).toHaveTextContent("A complete sentence.");
     expect(dialog).not.toHaveTextContent("Findings:");

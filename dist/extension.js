@@ -17231,6 +17231,12 @@ function TavernKeeperScanIndicator({
     },
     [openPopover]
   );
+  const delayCloseFromPointer = q2(
+    (event) => {
+      if (event.pointerType !== "touch") delayClose();
+    },
+    [delayClose]
+  );
   const rememberPointerOpenState = q2(
     (event) => {
       pointerOpenState.current = event.pointerType === "touch" ? open : null;
@@ -17335,11 +17341,9 @@ function TavernKeeperScanIndicator({
         onClick: togglePopover,
         onFocus: openPopover,
         onKeyDown: focusFirstLink,
-        onMouseEnter: openPopover,
-        onMouseLeave: delayClose,
         onPointerDown: rememberPointerOpenState,
         onPointerEnter: openFromPointer,
-        onPointerLeave: delayClose,
+        onPointerLeave: delayCloseFromPointer,
         ref: triggerRef,
         type: "button",
         children: [
@@ -17357,10 +17361,8 @@ function TavernKeeperScanIndicator({
           id: popoverId,
           onBlurCapture: closeOnFocusExit,
           onFocusCapture: openPopover,
-          onMouseEnter: openPopover,
-          onMouseLeave: delayClose,
           onPointerEnter: openFromPointer,
-          onPointerLeave: delayClose,
+          onPointerLeave: delayCloseFromPointer,
           ref: popoverRef,
           role: "dialog",
           style: {
