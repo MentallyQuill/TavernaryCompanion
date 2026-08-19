@@ -402,6 +402,78 @@ it("checks remove responses and exposes only bounded printable error details", a
   );
 });
 
+it("stops reporting a removed extension when SillyTavern's module inventory is stale", async () => {
+  const host = createSillyTavernHost({
+    getExtensionNames: () => ["third-party/Alpha"],
+    getExtensionTypes: () => ({ "third-party/Alpha": "local" }),
+    getExtensionManifest: () => ({ key: "alpha", display_name: "Alpha" }),
+    fetch: vi.fn().mockResolvedValue(new Response("removed")),
+  });
+
+  await host.remove({ internalName: "third-party/Alpha", type: "local" });
+
+  await expect(host.discover()).resolves.toEqual([]);
+});
+
+it("reports an extension again after SillyTavern successfully reinstalls it", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(new Response("removed"))
+    .mockResolvedValueOnce(Response.json([{ name: "third-party/Alpha", type: "local" }]));
+  const host = createSillyTavernHost({
+    getExtensionNames: () => ["third-party/Alpha"],
+    getExtensionTypes: () => ({ "third-party/Alpha": "local" }),
+    getExtensionManifest: () => ({ key: "alpha", display_name: "Alpha" }),
+    installExtension: vi.fn().mockResolvedValue(true),
+    fetch: fetchMock,
+  });
+
+  await host.remove({ internalName: "third-party/Alpha", type: "local" });
+  await host.install({ repositoryUrl, branch: null });
+
+  await expect(host.discover()).resolves.toEqual([
+    expect.objectContaining({ internalName: "third-party/Alpha", type: "local" }),
+  ]);
+});
+
+it("uses SillyTavern's refreshed module inventory when reinstall discovery is unavailable", async () => {
+  const host = createSillyTavernHost({
+    getExtensionNames: () => ["third-party/Alpha"],
+    getExtensionTypes: () => ({ "third-party/Alpha": "local" }),
+    getExtensionManifest: () => ({ key: "alpha", display_name: "Alpha" }),
+    installExtension: vi.fn().mockResolvedValue(true),
+    fetch: vi
+      .fn()
+      .mockResolvedValueOnce(new Response("removed"))
+      .mockRejectedValueOnce(new Error("discover unavailable")),
+  });
+
+  await host.remove({ internalName: "third-party/Alpha", type: "local" });
+  await host.install({ repositoryUrl, branch: null });
+
+  await expect(host.discover()).resolves.toEqual([
+    expect.objectContaining({ internalName: "third-party/Alpha", type: "local" }),
+  ]);
+});
+
+it("keeps a removed identity hidden after installing a different extension", async () => {
+  const host = createSillyTavernHost({
+    getExtensionNames: () => ["third-party/Alpha"],
+    getExtensionTypes: () => ({ "third-party/Alpha": "local" }),
+    getExtensionManifest: () => ({ key: "alpha", display_name: "Alpha" }),
+    installExtension: vi.fn().mockResolvedValue(true),
+    fetch: vi
+      .fn()
+      .mockResolvedValueOnce(new Response("removed"))
+      .mockResolvedValueOnce(Response.json([{ name: "third-party/Beta", type: "local" }])),
+  });
+
+  await host.remove({ internalName: "third-party/Alpha", type: "local" });
+  await host.install({ repositoryUrl: "https://github.com/example/Beta", branch: null });
+
+  await expect(host.discover()).resolves.toEqual([]);
+});
+
 it("records native presentation calls in order", async () => {
   const host = createFakeHost();
   const content = document.createElement("section");

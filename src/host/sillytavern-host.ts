@@ -12,6 +12,7 @@ export interface SillyTavernHostDependencies {
   getExtensionTypes(): Readonly<Record<string, string>>;
   getDisabledExtensions(): readonly string[];
   getExtensionManifest(name: string): Record<string, unknown> | null;
+  /** A true result means SillyTavern refreshed extensionNames and extensionTypes. */
   installExtension(
     url: string,
     global: boolean,
@@ -30,6 +31,7 @@ export interface SillyTavernHostDependencies {
 
 export class SillyTavernHostAdapter implements HostExtensionAdapter {
   readonly #dependencies: SillyTavernHostDependencies;
+  readonly #removedExtensions = new Set<string>();
 
   constructor(dependencies: SillyTavernHostDependencies) {
     this.#dependencies = dependencies;
@@ -42,6 +44,12 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
     return this.#dependencies
       .getExtensionNames()
       .filter((internalName) => types[internalName] === "local" || types[internalName] === "global")
+      .filter(
+        (internalName) =>
+          !this.#removedExtensions.has(
+            extensionIdentity(internalName, types[internalName] as "local" | "global"),
+          ),
+      )
       .map((internalName) => {
         const manifest = this.#dependencies.getExtensionManifest(internalName);
         return {
@@ -160,6 +168,7 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
     if (!installed) {
       throw new HostOperationError("install", "SillyTavern could not install the extension.");
     }
+    await this.#reconcileRemovedExtensions();
     await this.discover();
   }
 
@@ -219,6 +228,7 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
       });
     }
 
+    this.#removedExtensions.add(extensionIdentity(input.internalName, input.type));
     await this.discover();
   }
 
@@ -247,6 +257,41 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
   async showPopup(content: HTMLElement, options: HostPopupOptions): Promise<void> {
     await this.#dependencies.showPopup(content, options);
   }
+
+  async #reconcileRemovedExtensions(): Promise<void> {
+    if (this.#removedExtensions.size === 0) return;
+    let records: unknown = null;
+    try {
+      const response = await this.#dependencies.fetch("/api/extensions/discover", {
+        method: "GET",
+        headers: this.#dependencies.getRequestHeaders(),
+      });
+      if (response.ok) records = await response.json();
+    } catch {
+      // Fall back to the module inventory refreshed by installExtension.
+    }
+    if (Array.isArray(records)) {
+      for (const record of records) {
+        if (!record || typeof record !== "object") continue;
+        const { name, type } = record as { name?: unknown; type?: unknown };
+        if (typeof name === "string" && (type === "local" || type === "global")) {
+          this.#removedExtensions.delete(extensionIdentity(name, type));
+        }
+      }
+      return;
+    }
+    const types = this.#dependencies.getExtensionTypes();
+    for (const internalName of this.#dependencies.getExtensionNames()) {
+      const type = types[internalName];
+      if (type === "local" || type === "global") {
+        this.#removedExtensions.delete(extensionIdentity(internalName, type));
+      }
+    }
+  }
+}
+
+function extensionIdentity(internalName: string, type: "local" | "global"): string {
+  return `${type}:${internalName}`;
 }
 
 function legacyInstallCapabilities(): HostInstallCapabilities {

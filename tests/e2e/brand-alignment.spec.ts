@@ -248,6 +248,16 @@ test("desktop filters use Tavernary's persistent flush rail", async ({ page }) =
   await modelFamily.check({ force: true });
   await expect(modelFamilyChip).toHaveCSS("order", "0");
 
+  await page.addStyleTag({
+    content: `
+      input[type="checkbox"]::before {
+        box-shadow: inset 1em 1em rgb(255 0 255);
+        clip-path: polygon(14% 44%, 0 65%, 50% 100%, 100% 16%, 80% 0%, 43% 62%);
+        transform-origin: bottom left;
+      }
+    `,
+  });
+
   const selectedIndicators = await Promise.all(
     [
       surface.getByRole("checkbox", { name: "SillyTavern" }),
@@ -260,13 +270,27 @@ test("desktop filters use Tavernary's persistent flush rail", async ({ page }) =
           appearance: control.appearance,
           background: control.backgroundColor,
           mark: mark.borderBlockEndColor,
+          markBoxShadow: mark.boxShadow,
+          markClipPath: mark.clipPath,
         };
       }),
     ),
   );
   expect(selectedIndicators).toEqual([
-    { appearance: "none", background: "rgb(27, 74, 70)", mark: "rgb(240, 245, 247)" },
-    { appearance: "none", background: "rgb(27, 74, 70)", mark: "rgb(240, 245, 247)" },
+    {
+      appearance: "none",
+      background: "rgb(27, 74, 70)",
+      mark: "rgb(240, 245, 247)",
+      markBoxShadow: "none",
+      markClipPath: "none",
+    },
+    {
+      appearance: "none",
+      background: "rgb(27, 74, 70)",
+      mark: "rgb(240, 245, 247)",
+      markBoxShadow: "none",
+      markClipPath: "none",
+    },
   ]);
 });
 

@@ -856,6 +856,8 @@
 }
 
 .tavernary-companion-filter-option input[type="checkbox"]:checked::before {
+  all: unset;
+  display: block;
   inline-size: 6px;
   block-size: 3px;
   border-block-end: 2px solid var(--tavernary-color-checkbox-checkmark);
