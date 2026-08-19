@@ -17331,7 +17331,10 @@ function ShellHeader({
   return /* @__PURE__ */ u3("header", { class: "tavernary-companion-shell__header", children: [
     /* @__PURE__ */ u3("div", { class: "tavernary-companion-brand", children: [
       /* @__PURE__ */ u3("span", { class: "tavernary-companion-brand__mark", role: "img", "aria-label": "Tavernary" }),
-      /* @__PURE__ */ u3("div", { class: "tavernary-companion-brand__copy", children: /* @__PURE__ */ u3("h1", { id: "tavernary-companion-heading", children: "Tavernary" }) })
+      /* @__PURE__ */ u3("div", { class: "tavernary-companion-brand__copy", children: /* @__PURE__ */ u3("h1", { id: "tavernary-companion-heading", "aria-label": "Tavernary Companion", children: [
+        /* @__PURE__ */ u3("span", { class: "tavernary-companion-brand__name", children: "Tavernary" }),
+        /* @__PURE__ */ u3("span", { class: "tavernary-companion-brand__companion", children: "Companion" })
+      ] }) })
     ] }),
     search ? /* @__PURE__ */ u3("label", { class: "tavernary-companion-header-search", children: [
       /* @__PURE__ */ u3("span", { class: "tavernary-companion-sr-only", children: "Search projects" }),

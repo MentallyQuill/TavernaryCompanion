@@ -24,7 +24,10 @@ export function ShellHeader({
       <div class="tavernary-companion-brand">
         <span class="tavernary-companion-brand__mark" role="img" aria-label="Tavernary" />
         <div class="tavernary-companion-brand__copy">
-          <h1 id="tavernary-companion-heading">Tavernary</h1>
+          <h1 id="tavernary-companion-heading" aria-label="Tavernary Companion">
+            <span class="tavernary-companion-brand__name">Tavernary</span>
+            <span class="tavernary-companion-brand__companion">Companion</span>
+          </h1>
         </div>
       </div>
       {search ? (

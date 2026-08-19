@@ -8,7 +8,7 @@ test("shell uses Tavernary's production brand lockup and visual tokens", async (
 
   await expect(page.getByRole("img", { name: "Tavernary" })).toBeVisible();
   await expect(page.getByText("Where AI roleplay tools gather")).toHaveCount(0);
-  await expect(page.getByText("Companion", { exact: true })).toHaveCount(0);
+  await expect(page.getByText("Companion", { exact: true })).toBeVisible();
   await expect(
     page.locator(".tavernary-companion-shell__header").getByRole("searchbox", {
       name: "Search projects",
@@ -26,6 +26,11 @@ test("shell uses Tavernary's production brand lockup and visual tokens", async (
     )!;
     const styles = getComputedStyle(root);
     const wordmark = getComputedStyle(document.querySelector(".tavernary-companion-brand h1")!);
+    const name = document.querySelector<HTMLElement>(".tavernary-companion-brand__name")!;
+    const companion = document.querySelector<HTMLElement>(".tavernary-companion-brand__companion")!;
+    const nameBox = name.getBoundingClientRect();
+    const companionBox = companion.getBoundingClientRect();
+    const companionStyles = getComputedStyle(companion);
     const freshness = getComputedStyle(
       document.querySelector(".tavernary-companion-catalog-freshness")!,
     );
@@ -39,6 +44,13 @@ test("shell uses Tavernary's production brand lockup and visual tokens", async (
       focus: styles.getPropertyValue("--tavernary-color-focus-ring").trim(),
       primary: styles.getPropertyValue("--tavernary-color-action-primary-bg").trim(),
       wordmarkSize: Number.parseFloat(wordmark.fontSize),
+      companionColor: companionStyles.color,
+      companionFont: companionStyles.fontFamily,
+      companionTransform: companionStyles.textTransform,
+      nameWidth: nameBox.width,
+      companionWidth: companionBox.width,
+      nameTop: nameBox.top,
+      companionTop: companionBox.top,
       freshnessSize: Number.parseFloat(freshness.fontSize),
       refreshSize: Number.parseFloat(refresh.fontSize),
       refreshHeight: Number.parseFloat(refresh.height),
@@ -54,11 +66,20 @@ test("shell uses Tavernary's production brand lockup and visual tokens", async (
     focus: "#5eead4",
     primary: "#e18a24",
     wordmarkSize: expect.any(Number),
+    companionColor: "rgb(168, 179, 186)",
+    companionFont: expect.stringContaining("Inter Variable"),
+    companionTransform: "uppercase",
+    nameWidth: expect.any(Number),
+    companionWidth: expect.any(Number),
+    nameTop: expect.any(Number),
+    companionTop: expect.any(Number),
     freshnessSize: expect.any(Number),
     refreshSize: expect.any(Number),
     refreshHeight: expect.any(Number),
   });
   expect(tokens.wordmarkSize).toBeLessThanOrEqual(22);
+  expect(Math.abs(tokens.nameWidth - tokens.companionWidth)).toBeLessThanOrEqual(1);
+  expect(tokens.companionTop).toBeGreaterThan(tokens.nameTop);
   expect(tokens.freshnessSize).toBeLessThanOrEqual(11);
   expect(tokens.refreshSize).toBeLessThanOrEqual(11);
   expect(tokens.refreshHeight).toBeLessThanOrEqual(34);

@@ -143,14 +143,35 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 }
 
 .tavernary-companion-brand h1 {
-  display: flex;
-  align-items: center;
-  gap: 0.55rem;
+  display: inline-grid;
+  grid-template-columns: max-content;
+  row-gap: 2px;
   margin: 0;
   color: var(--tavernary-color-functional);
   font-size: 20px;
   font-weight: 750;
-  line-height: 1.15;
+  line-height: 1;
+}
+
+.tavernary-companion-brand__name,
+.tavernary-companion-brand__companion {
+  grid-column: 1;
+  inline-size: 100%;
+}
+
+.tavernary-companion-brand__name {
+  grid-row: 1;
+}
+
+.tavernary-companion-brand__companion {
+  grid-row: 2;
+  color: var(--tavernary-color-text-secondary);
+  font-size: 0.5em;
+  font-weight: 550;
+  letter-spacing: 0.34em;
+  line-height: 1;
+  text-align: center;
+  text-transform: uppercase;
 }
 
 .tavernary-companion-header-search {

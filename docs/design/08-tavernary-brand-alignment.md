@@ -22,8 +22,9 @@ Host theme variables may not replace Tavernary's identity. Companion remains leg
 Companion carries Tavernary's production trihex mark and the lockup:
 
 - **Tavernary**
-- **Where AI roleplay tools gather**
-- A small **Companion** product qualifier that does not replace or visually dominate the Tavernary name.
+- A restrained **Companion** sub-wordmark stacked beneath it, set in Inter Variable, colored with the secondary-text token, and letter-spaced to the Tavernary wordmark's width.
+
+The compact Companion surface omits Tavernary's marketing tagline. The product qualifier identifies the extension without replacing or visually dominating the Tavernary name.
 
 Companion uses Tavernary's Inter Variable typography and production color system. The foundational values are:
 
@@ -48,7 +49,7 @@ The complete semantic token set is copied from Tavernary, retaining its hover, p
 
 ## Shell mapping
 
-The overlay header uses Tavernary's production header treatment: trihex brand lockup on the left, a compact product qualifier, and catalog freshness plus external/open controls on the right. The Projects, Kits, and Installed routes use Tavernary's category-navigation visual grammar, with teal active surfaces and consistent icons.
+The overlay header uses Tavernary's production header treatment: trihex brand lockup on the left, the stacked Companion sub-wordmark, and catalog freshness plus external/open controls on the right. The Projects, Kits, and Installed routes use Tavernary's category-navigation visual grammar, with teal active surfaces and consistent icons.
 
 Search, sort, result count, active query, and filters form one Tavernary-shaped discovery toolbar. Catalog freshness appears once. Companion does not show duplicate refresh rows.
 
@@ -91,6 +92,7 @@ Only the active primary route is mounted. Project results use bounded incrementa
 ## Acceptance
 
 - Side-by-side screenshots at 1440x960 and 390x844 read as the same brand and component family as Tavernary.
+- The Companion sub-wordmark remains visible, secondary, and aligned to the Tavernary wordmark at desktop and mobile sizes.
 - Tavernary's trihex, Inter typography, exact foundational tokens, card surfaces, kind colors, chips, controls, and filter treatment are visible in Companion.
 - No critical header, route, filter, Kit, or lifecycle action is clipped by SillyTavern's native popup.
 - Catalog freshness and manual refresh appear once.
