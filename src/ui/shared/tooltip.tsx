@@ -2,6 +2,8 @@ import type { ComponentChildren } from "preact";
 import { createPortal } from "preact/compat";
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "preact/hooks";
 
+import { resolveOverlayPortalTarget } from "./overlay-portal";
+
 const VIEWPORT_MARGIN = 8;
 const TOOLTIP_GAP = 8;
 
@@ -153,7 +155,7 @@ export function Tooltip({
             >
               {label}
             </span>,
-            document.body,
+            resolveOverlayPortalTarget(triggerRef.current),
           )
         : null}
     </>

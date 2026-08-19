@@ -36,6 +36,32 @@ describe("Tooltip", () => {
     window.removeEventListener("keydown", hostEscape);
   });
 
+  it("ports into the owning native dialog so the tooltip stays in the top layer", () => {
+    Object.defineProperty(window, "matchMedia", {
+      configurable: true,
+      value: vi.fn().mockReturnValue({
+        matches: false,
+        addEventListener: vi.fn(),
+        removeEventListener: vi.fn(),
+      }),
+    });
+    const dialog = document.createElement("dialog");
+    dialog.setAttribute("open", "");
+    const container = document.createElement("div");
+    dialog.append(container);
+    document.body.append(dialog);
+    render(
+      <Tooltip id="dialog-tip" label="Visible above the native popup">
+        <button type="button">Dialog action</button>
+      </Tooltip>,
+      { container },
+    );
+
+    fireEvent.focus(screen.getByRole("button", { name: "Dialog action" }));
+
+    expect(screen.getByRole("tooltip").parentElement).toBe(dialog);
+  });
+
   it("suppresses hover tooltips at Tavernary's mobile breakpoint", () => {
     Object.defineProperty(window, "matchMedia", {
       configurable: true,

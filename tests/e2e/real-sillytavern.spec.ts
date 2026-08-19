@@ -8,6 +8,41 @@ const realCatalogPath = process.env.REAL_SILLYTAVERN_CATALOG_PATH;
 test.describe("real SillyTavern acceptance", () => {
   test.skip(!realHostUrl, "Set REAL_SILLYTAVERN_URL to run against an installed extension.");
 
+  test("keeps installed desktop overlays in the owning popup top layer", async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width: 1440, height: 960 });
+    await openInstalledCompanion(page);
+
+    const root = page.locator("[data-tavernary-companion-popup]");
+    const dialog = page.locator("dialog.popup").filter({ has: root });
+    const card = root.locator(".tavernary-companion-project-card").first();
+    await expect(card).toBeVisible({ timeout: 30_000 });
+
+    await card.locator(".tavernary-companion-project-card__kind").hover();
+    await expectOwnedOverlay(page.getByRole("tooltip"), dialog);
+
+    const actionCard = root
+      .locator(
+        ".tavernary-companion-project-card:has([data-testid='project-lifecycle-action']):has(.tavernary-companion-project-kit-control)",
+      )
+      .first();
+    await actionCard.locator("[data-testid='project-lifecycle-action']").hover();
+    await expectOwnedOverlay(
+      page.getByRole("tooltip", { name: /^(?:Install|Uninstall)$/u }),
+      dialog,
+    );
+    await actionCard.locator(".tavernary-companion-project-kit-control").hover();
+    await expectOwnedOverlay(
+      page.getByRole("tooltip", { name: /^(?:Add to Kit|Remove from selection)$/u }),
+      dialog,
+    );
+
+    await card.getByRole("button", { name: /^TavernKeeper scan:/u }).hover();
+    const scanPanel = page.getByRole("dialog", { name: "TavernKeeper Scan Results" });
+    await expectOwnedOverlay(scanPanel, dialog);
+    expect(await isTopmostAtCenter(scanPanel)).toBe(true);
+  });
+
   test("playtests the installed Companion overlay and card hit targets", async ({ page }) => {
     test.setTimeout(120_000);
     await page.setViewportSize({ width: 1440, height: 960 });
@@ -78,9 +113,7 @@ test.describe("real SillyTavern acceptance", () => {
     const titleTooltip = page.getByRole("tooltip");
     await expect(titleTooltip).toBeVisible();
     await expect(titleTooltip).not.toBeEmpty();
-    expect(await titleTooltip.evaluate((element) => element.parentElement === document.body)).toBe(
-      true,
-    );
+    await expectOwnedOverlay(titleTooltip, dialog);
     await page.keyboard.press("Escape");
     await title.click();
     expect(
@@ -94,10 +127,8 @@ test.describe("real SillyTavern acceptance", () => {
     await expect(scan).toHaveCSS("cursor", "pointer");
     await scan.hover();
     const scanPanel = page.getByRole("dialog", { name: "TavernKeeper Scan Results" });
-    await expect(scanPanel).toBeVisible();
-    expect(await scanPanel.evaluate((element) => element.parentElement === document.body)).toBe(
-      true,
-    );
+    await expectOwnedOverlay(scanPanel, dialog);
+    expect(await isTopmostAtCenter(scanPanel)).toBe(true);
     await page.keyboard.press("Escape");
 
     const [topBox, titleRowBox] = await Promise.all([
@@ -142,6 +173,16 @@ test.describe("real SillyTavern acceptance", () => {
     const [lifecycleBox, kitBox] = await Promise.all([lifecycle.boundingBox(), kit.boundingBox()]);
     expect(kitBox!.x - (lifecycleBox!.x + lifecycleBox!.width)).toBeCloseTo(4, 0);
     await expect(kit.getByText("Kit", { exact: true })).toHaveCSS("color", "rgb(22, 16, 8)");
+    await lifecycle.hover();
+    await expectOwnedOverlay(
+      page.getByRole("tooltip", { name: /^(?:Install|Uninstall)$/u }),
+      dialog,
+    );
+    await kit.hover();
+    await expectOwnedOverlay(
+      page.getByRole("tooltip", { name: /^(?:Add to Kit|Remove from selection)$/u }),
+      dialog,
+    );
 
     const navigation = root.getByRole("navigation", { name: "Catalog categories" });
     await navigation.getByRole("button", { name: "Kits" }).click();
@@ -186,6 +227,24 @@ test.describe("real SillyTavern acceptance", () => {
 
     await page.mouse.click(8, 8);
     await expect(root).toBeHidden();
+  });
+
+  test("opens the installed mobile scan panel from touch input", async ({ page }) => {
+    test.setTimeout(120_000);
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openInstalledCompanion(page);
+    const root = page.locator("[data-tavernary-companion-popup]");
+    const dialog = page.locator("dialog.popup").filter({ has: root });
+    const scan = root
+      .locator(".tavernary-companion-project-card")
+      .first()
+      .getByRole("button", { name: /^TavernKeeper scan:/u });
+    await scan.dispatchEvent("pointerdown", { bubbles: true, pointerType: "touch" });
+    await scan.evaluate((element) => (element as HTMLElement).click());
+
+    const scanPanel = page.getByRole("dialog", { name: "TavernKeeper Scan Results" });
+    await expectOwnedOverlay(scanPanel, dialog);
+    expect(await isTopmostAtCenter(scanPanel)).toBe(true);
   });
 });
 
@@ -240,4 +299,25 @@ async function hitTarget(page: Page, locator: Locator) {
     { x, y },
   );
   return { ...target, x, y };
+}
+
+async function expectOwnedOverlay(overlay: Locator, owner: Locator): Promise<void> {
+  await expect(overlay).toBeVisible();
+  expect(
+    await overlay.evaluate(
+      (element, ownerElement) => element.parentElement === ownerElement,
+      await owner.elementHandle(),
+    ),
+  ).toBe(true);
+}
+
+async function isTopmostAtCenter(overlay: Locator): Promise<boolean> {
+  return overlay.evaluate((element) => {
+    const bounds = element.getBoundingClientRect();
+    const hit = document.elementFromPoint(
+      bounds.left + bounds.width / 2,
+      bounds.top + bounds.height / 2,
+    );
+    return hit !== null && element.contains(hit);
+  });
 }
