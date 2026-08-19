@@ -4,6 +4,7 @@ import { HostRevisionUnavailableError } from "../host/host-errors";
 import type { HostExtensionAdapter } from "../host/host-types";
 import { reconcileInventory } from "../inventory/inventory-reconciler";
 import { ManagedRegistry, normalizeManagedExtensionMap } from "../inventory/managed-registry";
+import { createRuntimeId } from "../runtime-id";
 import type { ProfileStore } from "../state/profile-store";
 import { selectTrustPrompts } from "../trust/trust-policy";
 import type { TrustPrompt } from "../trust/trust-types";
@@ -105,7 +106,7 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
     this.#getSnapshot = options.getSnapshot;
     this.#confirm = options.confirm;
     this.#now = options.now ?? (() => new Date().toISOString());
-    this.#createId = options.createId ?? (() => crypto.randomUUID());
+    this.#createId = options.createId ?? createRuntimeId;
     this.lock = options.lock ?? new OperationLock();
   }
 

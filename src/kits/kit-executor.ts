@@ -10,6 +10,7 @@ import {
 import type { PreparedInstallSelection } from "../lifecycle/lifecycle-coordinator";
 import { prepareNewestInstallTarget } from "../lifecycle/install-target-resolver";
 import type { OperationLock } from "../lifecycle/operation-lock";
+import { createRuntimeId } from "../runtime-id";
 import type { ProfileStore } from "../state/profile-store";
 import { selectTrustPrompts } from "../trust/trust-policy";
 import type { TrustPrompt } from "../trust/trust-types";
@@ -63,7 +64,7 @@ export class KitExecutor {
     this.#fallbacks = deps.fallbacks;
     this.#confirm = deps.confirm;
     this.#now = deps.now ?? (() => new Date().toISOString());
-    this.#operationId = deps.operationId ?? (() => crypto.randomUUID());
+    this.#operationId = deps.operationId ?? createRuntimeId;
     this.journal = new KitOperationJournal(deps.profile);
   }
 

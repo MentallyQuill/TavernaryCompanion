@@ -1,4 +1,5 @@
 import type { ProfileStore } from "../state/profile-store";
+import { createRuntimeId } from "../runtime-id";
 import type { CreatePersonalKitInput, InstalledKitStateV1, PersonalKitV1 } from "./kit-types";
 import type { CatalogKit } from "../catalog/catalog-core";
 import { parseInstalledKitState, parsePersonalKit } from "./kit-validation";
@@ -15,7 +16,7 @@ export class KitStore {
 
   constructor(profile: ProfileStore, dependencies: KitStoreDependencies = {}) {
     this.#profile = profile;
-    this.#uuid = dependencies.uuid ?? (() => crypto.randomUUID());
+    this.#uuid = dependencies.uuid ?? createRuntimeId;
     this.#now = dependencies.now ?? (() => new Date().toISOString());
   }
 

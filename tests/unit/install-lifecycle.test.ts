@@ -55,10 +55,12 @@ function setup({
   folderName = "Alpha",
   saveSettingsDebounced = vi.fn(),
   confirm = vi.fn(async () => true),
+  createId = () => "receipt-1",
 }: {
   folderName?: string;
   saveSettingsDebounced?: () => void | Promise<void>;
   confirm?: (prompt: TrustPrompt) => Promise<boolean>;
+  createId?: (() => string) | null;
 } = {}) {
   const project = catalogProjectFixture({ id: "alpha", folderName: "Alpha" });
   project.name = "Alpha";
@@ -89,7 +91,7 @@ function setup({
     getSnapshot: () => snapshot,
     confirm,
     now: () => "2026-08-18T10:00:00.000Z",
-    createId: () => "receipt-1",
+    ...(createId ? { createId } : {}),
   });
   return { coordinator, host, store, project, extensionSettings, confirm };
 }
@@ -104,6 +106,29 @@ async function prepareSingleSelection(
 }
 
 describe("install lifecycle", () => {
+  it("installs when randomUUID is unavailable in an insecure browser context", async () => {
+    Object.defineProperty(globalThis.crypto, "randomUUID", {
+      configurable: true,
+      value: undefined,
+    });
+
+    try {
+      const { coordinator } = setup({ createId: null });
+      const selection = await prepareSingleSelection(coordinator);
+
+      const receipt = await coordinator.install("alpha", selection);
+
+      expect(receipt).toMatchObject({
+        id: expect.stringMatching(
+          /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/,
+        ),
+        status: "succeeded",
+      });
+    } finally {
+      Reflect.deleteProperty(globalThis.crypto, "randomUUID");
+    }
+  });
+
   it("installs, rediscovers, and records only verified ownership", async () => {
     const { coordinator, host, store, project } = setup();
 

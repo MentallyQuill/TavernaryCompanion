@@ -1,3 +1,4 @@
+import { createRuntimeId } from "../runtime-id";
 import type { PersonalKitV1 } from "./kit-types";
 import { parsePersonalKit } from "./kit-validation";
 
@@ -39,7 +40,7 @@ export function parseKitBytes(bytes: Uint8Array): PersonalKitV1 {
 export function prepareImportedKit(
   kit: PersonalKitV1,
   existingIds: ReadonlySet<string>,
-  uuid: () => string = () => crypto.randomUUID(),
+  uuid: () => string = createRuntimeId,
   now: () => string = () => new Date().toISOString(),
 ): PersonalKitV1 {
   if (!existingIds.has(kit.id)) return structuredClone(kit);

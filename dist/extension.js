@@ -12402,6 +12402,17 @@ function reconcileInventory({
   return snapshot;
 }
 
+// src/runtime-id.ts
+function createRuntimeId() {
+  const cryptoApi = globalThis.crypto;
+  if (typeof cryptoApi.randomUUID === "function") return cryptoApi.randomUUID();
+  const bytes = cryptoApi.getRandomValues(new Uint8Array(16));
+  bytes[6] = bytes[6] & 15 | 64;
+  bytes[8] = bytes[8] & 63 | 128;
+  const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, "0")).join("");
+  return `${hex.slice(0, 8)}-${hex.slice(8, 12)}-${hex.slice(12, 16)}-${hex.slice(16, 20)}-${hex.slice(20)}`;
+}
+
 // src/trust/trust-copy.ts
 var CURRENT_ASSESSMENT_WARNING = "TavernKeeper found concerns in this version. You can view the check before choosing whether to install it.";
 var STALE_ASSESSMENT_WARNING = "TavernKeeper checked an older version of this project. The newest changes have not been checked yet.";
@@ -12908,7 +12919,7 @@ var DefaultLifecycleCoordinator = class {
     this.#getSnapshot = options.getSnapshot;
     this.#confirm = options.confirm;
     this.#now = options.now ?? (() => (/* @__PURE__ */ new Date()).toISOString());
-    this.#createId = options.createId ?? (() => crypto.randomUUID());
+    this.#createId = options.createId ?? createRuntimeId;
     this.lock = options.lock ?? new OperationLock();
   }
   async prepareInstall(projectId) {
@@ -14274,7 +14285,7 @@ var KitExecutor = class {
     this.#fallbacks = deps.fallbacks;
     this.#confirm = deps.confirm;
     this.#now = deps.now ?? (() => (/* @__PURE__ */ new Date()).toISOString());
-    this.#operationId = deps.operationId ?? (() => crypto.randomUUID());
+    this.#operationId = deps.operationId ?? createRuntimeId;
     this.journal = new KitOperationJournal(deps.profile);
   }
   async execute(plan, approval) {
@@ -14946,7 +14957,7 @@ function parseKitText(text2) {
   }
   return parsePersonalKit(value);
 }
-function prepareImportedKit(kit2, existingIds, uuid = () => crypto.randomUUID(), now = () => (/* @__PURE__ */ new Date()).toISOString()) {
+function prepareImportedKit(kit2, existingIds, uuid = createRuntimeId, now = () => (/* @__PURE__ */ new Date()).toISOString()) {
   if (!existingIds.has(kit2.id)) return structuredClone(kit2);
   const timestamp = now();
   return parsePersonalKit({
@@ -14968,7 +14979,7 @@ var KitStore = class {
   #now;
   constructor(profile, dependencies = {}) {
     this.#profile = profile;
-    this.#uuid = dependencies.uuid ?? (() => crypto.randomUUID());
+    this.#uuid = dependencies.uuid ?? createRuntimeId;
     this.#now = dependencies.now ?? (() => (/* @__PURE__ */ new Date()).toISOString());
   }
   readDefinitions() {
