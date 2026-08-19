@@ -1,5 +1,6 @@
 import type { CatalogSnapshot } from "../catalog/catalog-client";
 import { parseInstallContract, type CatalogProject } from "../catalog/catalog-core";
+import { HostRevisionUnavailableError } from "../host/host-errors";
 import type { HostExtensionAdapter } from "../host/host-types";
 import { reconcileInventory } from "../inventory/inventory-reconciler";
 import { ManagedRegistry, normalizeManagedExtensionMap } from "../inventory/managed-registry";
@@ -7,7 +8,7 @@ import type { ProfileStore } from "../state/profile-store";
 import { selectTrustPrompts } from "../trust/trust-policy";
 import type { TrustPrompt } from "../trust/trust-types";
 import { evaluateLifecycle } from "./lifecycle-policy";
-import { legacyInstallProvenance } from "./install-target";
+import type { InstallTarget, ManagedInstallProvenance } from "./install-target";
 import {
   InstallTargetPreparationError,
   prepareInstallTargetChoice,
@@ -21,11 +22,12 @@ import {
   type RemovalImpact,
 } from "./removal-impact";
 import { COMPANION_PROJECT_ID } from "./self-protection";
+import { executeVerifiedInstall, VerifiedInstallError } from "./verified-install";
 
 export interface LifecycleCoordinator {
   readonly lock: OperationLock;
   prepareInstall(projectId: string): Promise<InstallTargetChoice>;
-  install(projectId: string): Promise<LifecycleReceipt>;
+  install(projectId: string, target?: InstallTarget): Promise<LifecycleReceipt>;
   previewRemoval(projectId: string): Promise<RemovalImpact>;
   remove(projectId: string): Promise<LifecycleReceipt>;
 }
@@ -75,8 +77,9 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
     });
   }
 
-  install(projectId: string): Promise<LifecycleReceipt> {
+  install(projectId: string, target?: InstallTarget): Promise<LifecycleReceipt> {
     return this.lock.runExclusive(`install:${projectId}`, async ({ setPhase }) => {
+      const selectedTarget = target ?? legacyNewestTarget();
       const startedAt = this.#now();
       const id = this.#createId();
       const snapshot = this.#getSnapshot();
@@ -106,7 +109,7 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
         project,
         context: { snapshot, inventory },
       });
-      if (decision.kind !== "allowed" || decision.operation !== "install" || !project) {
+      if (decision.kind !== "allowed" || decision.operation !== "install" || !project || !catalog) {
         return this.#rejected({
           id,
           projectId,
@@ -118,10 +121,11 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
       const state = this.#store.read();
       const prompts = selectTrustPrompts({
         trustAcknowledgedAt: state.trustAcknowledgedAt,
+        target: selectedTarget,
         assessment: project.tavernKeeper
           ? {
               riskLevel: project.tavernKeeper.riskLevel,
-              freshness: project.tavernKeeper.freshness,
+              scannedSha: project.tavernKeeper.report?.scannedSha ?? null,
               reportUrl: project.tavernKeeper.report?.reportUrl ?? null,
             }
           : null,
@@ -149,12 +153,43 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
       }
 
       setPhase("host-request");
+      let verified: Awaited<ReturnType<typeof executeVerifiedInstall>>;
       try {
-        await this.#host.install({
-          repositoryUrl: decision.contract.repositoryUrl,
-          branch: decision.contract.branch,
+        verified = await executeVerifiedInstall({
+          host: this.#host,
+          project,
+          target: selectedTarget,
         });
-      } catch {
+      } catch (error) {
+        if (error instanceof HostRevisionUnavailableError) {
+          if (disclosureAccepted) {
+            await this.#persistAcknowledgement().catch(() => undefined);
+          }
+          throw error;
+        }
+        if (error instanceof VerifiedInstallError) {
+          const receipt = createReceipt({
+            id,
+            kind: "install",
+            projectId,
+            projectName: project.name,
+            startedAt,
+            finishedAt: this.#now(),
+            status: "verification-failed",
+            completedThrough: "host-accepted",
+            failedAt: "verified",
+            safeError: verificationFailureCopy(error.cleanupOutcome),
+            reloadRequired: false,
+            installProvenance: createInstallProvenance({
+              target: selectedTarget,
+              installedSha: error.installedSha,
+              catalogGeneratedAt: catalog.generatedAt,
+            }),
+            cleanupOutcome: error.cleanupOutcome,
+          });
+          await this.#persistNonMutation(receipt, disclosureAccepted ? this.#now() : null);
+          return receipt;
+        }
         const receipt = createReceipt({
           id,
           kind: "install",
@@ -173,33 +208,18 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
       }
 
       setPhase("verifying");
-      const after = await this.#host.discover();
-      const installed = exactFolder(after, decision.contract.folderName);
-      if (!installed) {
-        const receipt = createReceipt({
-          id,
-          kind: "install",
-          projectId,
-          projectName: project.name,
-          startedAt,
-          finishedAt: this.#now(),
-          status: "verification-failed",
-          completedThrough: "host-accepted",
-          failedAt: "verified",
-          safeError: "SillyTavern did not report the expected installed extension.",
-          reloadRequired: false,
-        });
-        await this.#persistNonMutation(receipt, disclosureAccepted ? this.#now() : null);
-        return receipt;
-      }
-
+      const provenance = createInstallProvenance({
+        target: selectedTarget,
+        installedSha: verified.installedSha,
+        catalogGeneratedAt: catalog.generatedAt,
+      });
       registry.recordInstalled({
         projectId,
         expectedFolderName: decision.contract.folderName,
-        extension: installed,
+        extension: verified.extension,
         installedAt: this.#now(),
         installedBy: "individual",
-        provenance: legacyInstallProvenance(),
+        provenance,
       });
       const receipt = createReceipt({
         id,
@@ -212,6 +232,8 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
         completedThrough: "recorded",
         safeError: null,
         reloadRequired: true,
+        installProvenance: provenance,
+        cleanupOutcome: verified.cleanupOutcome,
       });
       setPhase("recording");
       try {
@@ -237,6 +259,8 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
           safeError:
             "The extension is installed, but Companion could not record ownership. Reopen Companion to reconcile it.",
           reloadRequired: true,
+          installProvenance: provenance,
+          cleanupOutcome: verified.cleanupOutcome,
         });
       }
     });
@@ -453,6 +477,12 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
     });
   }
 
+  async #persistAcknowledgement(): Promise<void> {
+    await this.#store.update((draft) => {
+      if (!draft.trustAcknowledgedAt) draft.trustAcknowledgedAt = this.#now();
+    });
+  }
+
   async #persistNonMutation(receipt: LifecycleReceipt, trustAcknowledgedAt: string | null) {
     await this.#store
       .update((draft) => {
@@ -508,15 +538,32 @@ function removalKitTitles(
   return titles;
 }
 
-function exactFolder(
-  extensions: Awaited<ReturnType<HostExtensionAdapter["discover"]>>,
-  folder: string,
-) {
-  const identity = folder.normalize("NFKC").toLocaleLowerCase("en-US");
-  const matches = extensions.filter(
-    (extension) => extension.folderName.normalize("NFKC").toLocaleLowerCase("en-US") === identity,
-  );
-  return matches.length === 1 ? matches[0] : null;
+function legacyNewestTarget(): InstallTarget {
+  return { kind: "newest", requestedSha: null, resolvedAt: null };
+}
+
+function createInstallProvenance(input: {
+  target: InstallTarget;
+  installedSha: string | null;
+  catalogGeneratedAt: string;
+}): ManagedInstallProvenance {
+  return {
+    targetKind: input.target.kind,
+    requestedSha: input.target.requestedSha,
+    installedSha: input.installedSha,
+    catalogGeneratedAt: input.catalogGeneratedAt,
+    tavernKeeperReportId: input.target.kind === "checked" ? input.target.reportId : null,
+  };
+}
+
+function verificationFailureCopy(cleanupOutcome: VerifiedInstallError["cleanupOutcome"]): string {
+  if (cleanupOutcome === "succeeded") {
+    return "The install didn't finish correctly, so Companion cleaned it up.";
+  }
+  if (cleanupOutcome === "failed") {
+    return "The install didn't finish correctly, and cleanup needs attention in SillyTavern.";
+  }
+  return "SillyTavern did not report the expected installed extension.";
 }
 
 export function createLifecycleCoordinator(

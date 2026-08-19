@@ -35,9 +35,10 @@ describe("lifecycle UI", () => {
     );
 
     expect(screen.getByText(CURRENT_ASSESSMENT_WARNING)).toBeVisible();
-    expect(screen.getByRole("button", { name: "Scan Review" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Cancel" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Install anyway" })).toBeVisible();
+    expect(screen.getByText("Needs a closer look")).toBeVisible();
+    expect(screen.getByRole("button", { name: "View check" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Go back" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Install this version" })).toBeVisible();
   });
 
   it("keeps the decision pending after Scan Review and cancels with Escape", () => {
@@ -54,7 +55,7 @@ describe("lifecycle UI", () => {
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Scan Review" }));
+    fireEvent.click(screen.getByRole("button", { name: "View check" }));
     expect(onReview).toHaveBeenCalledWith(warning.reportUrl);
     expect(onConfirm).not.toHaveBeenCalled();
     expect(screen.getByRole("dialog")).toBeVisible();
@@ -79,9 +80,9 @@ describe("lifecycle UI", () => {
       />,
     );
 
-    expect(screen.getByText("Immediate danger")).toBeVisible();
+    expect(screen.getByText("High concern")).toBeVisible();
     expect(screen.getByRole("dialog")).toHaveClass("is-high");
-    expect(screen.getByRole("button", { name: "Scan Review" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "View check" })).toBeDisabled();
     expect(screen.getByText("No TavernKeeper Scan Review link is available.")).toBeVisible();
   });
 

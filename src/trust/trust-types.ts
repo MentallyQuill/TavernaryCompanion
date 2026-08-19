@@ -1,8 +1,9 @@
-import type { TavernKeeperFreshness, TavernKeeperRiskLevel } from "../catalog/catalog-core";
+import type { TavernKeeperRiskLevel } from "../catalog/catalog-core";
+import type { InstallTarget } from "../lifecycle/install-target";
 
 export interface AssessmentTrustInput {
   riskLevel: TavernKeeperRiskLevel | null;
-  freshness: TavernKeeperFreshness;
+  scannedSha: string | null;
   reportUrl: string | null;
 }
 
@@ -22,5 +23,6 @@ export type TrustPrompt =
 
 export interface TrustPromptInput {
   trustAcknowledgedAt: string | null;
+  target: InstallTarget;
   assessment: AssessmentTrustInput | null;
 }

@@ -1,8 +1,8 @@
 export const CURRENT_ASSESSMENT_WARNING =
-  "TavernKeeper’s latest assessment identified potential security concerns in this project. Extensions can run code inside SillyTavern. Responsibility for safety falls upon you. Review the scan and project before continuing.";
+  "TavernKeeper found concerns in this version. You can view the check before choosing whether to install it.";
 
 export const STALE_ASSESSMENT_WARNING =
-  "TavernKeeper’s latest available assessment identified potential security concerns in this project. Extensions can run code inside SillyTavern. Responsibility for safety falls upon you. Review the scan and project before continuing. This assessment covers an older version of the project.";
+  "TavernKeeper checked an older version of this project. The newest changes have not been checked yet.";
 
 export const UNSANDBOXED_CODE_DISCLOSURE =
   "Third-party extensions run unsandboxed code inside SillyTavern. Companion installs only from Tavernary’s validated install contract. TavernKeeper provides evidence, not a guarantee of safety. Responsibility for safety falls upon you.";
