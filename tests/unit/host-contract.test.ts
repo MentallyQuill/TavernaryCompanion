@@ -155,6 +155,16 @@ it("refuses a checked commit when pinned installs are unavailable", async () => 
   expect(installExtension).not.toHaveBeenCalled();
 });
 
+it.each(["", "   "])("rejects a supplied invalid install commit SHA %j", async (commitSha) => {
+  const installExtension = vi.fn().mockResolvedValue(true);
+  const host = createSillyTavernHost({ installExtension });
+
+  await expect(host.install({ repositoryUrl, branch: null, commitSha })).rejects.toThrow(
+    "valid commit",
+  );
+  expect(installExtension).not.toHaveBeenCalled();
+});
+
 it("maps only an explicit unavailable-commit failure to the typed host error", async () => {
   const unavailable = Object.assign(new Error("commit missing"), { code: "COMMIT_UNAVAILABLE" });
   const networkFailure = new TypeError("network failed");

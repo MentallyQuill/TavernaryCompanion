@@ -129,7 +129,10 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
     commitSha?: string | null;
   }): Promise<void> {
     const repositoryUrl = parseRepositoryUrl(input.repositoryUrl);
-    const commitSha = input.commitSha ? parseCommitSha(input.commitSha, "install") : undefined;
+    const commitSha =
+      input.commitSha !== null && input.commitSha !== undefined
+        ? parseCommitSha(input.commitSha, "install")
+        : undefined;
     if (commitSha) {
       const capabilities = await this.getInstallCapabilities();
       if (!capabilities.pinnedCommitInstall) {
