@@ -10,7 +10,6 @@ interface ProjectGridProps {
   onProjectAction(id: string, action: ProjectPrimaryAction): void;
   onManageInSillyTavern?(): void;
   lifecycleDisabled?: boolean;
-  kitSelectionActive?: boolean;
   selectedKitProjectIds?: readonly string[];
   onToggleKitSelection?(projectId: string): void;
   visibleCount?: number;
@@ -23,7 +22,6 @@ export function ProjectGrid({
   onProjectAction,
   onManageInSillyTavern,
   lifecycleDisabled,
-  kitSelectionActive = false,
   selectedKitProjectIds = [],
   onToggleKitSelection,
   visibleCount: controlledVisibleCount,
@@ -53,7 +51,6 @@ export function ProjectGrid({
             onAction={(action) => onProjectAction(project.id, action)}
             onManageInSillyTavern={onManageInSillyTavern}
             lifecycleDisabled={lifecycleDisabled}
-            kitSelectionActive={kitSelectionActive}
             selectedForKit={selectedKitProjectIds.includes(project.id)}
             onToggleKitSelection={onToggleKitSelection}
           />

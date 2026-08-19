@@ -20,7 +20,6 @@ interface ProjectsRouteProps {
   lifecycleDisabled?: boolean;
   kitSelectionActive?: boolean;
   selectedKitProjectIds?: readonly string[];
-  onBeginKitSelection?(): void;
   onToggleKitSelection?(projectId: string): void;
   onReviewKitSelection?(): void;
   onCancelKitSelection?(): void;
@@ -61,7 +60,6 @@ export function ProjectsRoute({
   lifecycleDisabled,
   kitSelectionActive = false,
   selectedKitProjectIds = [],
-  onBeginKitSelection,
   onToggleKitSelection,
   onReviewKitSelection,
   onCancelKitSelection,
@@ -207,9 +205,7 @@ export function ProjectsRoute({
       <ProjectResultsToolbar
         query={state.query}
         resultCount={state.projects.length}
-        kitSelectionActive={kitSelectionActive}
         onQueryChange={onQueryChange}
-        onBeginKitSelection={onBeginKitSelection}
       />
       {hasChangedFilters ? (
         <ActiveFilterChips query={state.query} facets={facets} onQueryChange={onQueryChange} />
@@ -254,7 +250,6 @@ export function ProjectsRoute({
           onProjectAction={onProjectAction}
           onManageInSillyTavern={onManageInSillyTavern}
           lifecycleDisabled={lifecycleDisabled}
-          kitSelectionActive={kitSelectionActive}
           selectedKitProjectIds={selectedKitProjectIds}
           onToggleKitSelection={onToggleKitSelection}
           visibleCount={visibleProjectCount}

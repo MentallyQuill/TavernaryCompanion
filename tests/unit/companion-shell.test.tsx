@@ -75,6 +75,38 @@ describe("CompanionShell", () => {
     expect(discovery.read().query.search).toBe("memory");
   });
 
+  it("starts Kit selection from the card plus and selects that project immediately", () => {
+    const catalog = catalogFixture();
+    const project = catalogProjectFixture();
+    project.name = "SillyTavern Alpha";
+    catalog.projects = [project];
+    const discovery = createDiscoveryController({
+      snapshot: {
+        state: "ready-current",
+        canMutate: true,
+        checkedAt: null,
+        catalog,
+      },
+      inventory: emptyInventory,
+    });
+    render(
+      <CompanionShell
+        controller={createShellController({ initialRoute: "projects" })}
+        discovery={discovery}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: "Select for Kit" })).not.toBeInTheDocument();
+    const add = screen.getByRole("button", { name: "Add Alpha to Kit" });
+    expect(add.querySelector('svg[data-kit-glyph="add"]')).not.toBeNull();
+    expect(within(add).getByText("Kit")).toBeVisible();
+    fireEvent.click(add);
+
+    expect(screen.getByText("1 selected")).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Remove Alpha from Kit" }));
+    expect(screen.getByText("0 selected")).toBeVisible();
+  });
+
   it("navigates primary routes with the compact Browse menu", () => {
     render(<CompanionShell controller={createShellController({ initialRoute: "projects" })} />);
 

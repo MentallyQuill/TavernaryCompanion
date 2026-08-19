@@ -61,6 +61,7 @@ describe("project view models", () => {
     });
 
     expect(view.displayName).toBe("Alpha");
+    expect(view.canonicalUrl).toBe(project.canonicalUrl);
     expect(view.primaryFunctionId).toBe("memory-retrieval");
     expect(view.tagChips).toEqual([{ label: "Memory", facet: "goal" }]);
     expect(view.licenseLabel).toBe("MIT");

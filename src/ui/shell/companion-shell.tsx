@@ -170,7 +170,6 @@ export function CompanionShell({
                   lifecycleDisabled={lifecycleDisabled}
                   kitSelectionActive={kitSelection !== null}
                   selectedKitProjectIds={kitSelection ?? []}
-                  onBeginKitSelection={() => setKitSelection([])}
                   onToggleKitSelection={(projectId) =>
                     setKitSelection((current) => {
                       if (!current) return [projectId];

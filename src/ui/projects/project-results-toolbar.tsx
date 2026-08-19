@@ -3,9 +3,7 @@ import type { CatalogQuery, CatalogSort } from "../../catalog/catalog-core";
 interface ProjectResultsToolbarProps {
   query: CatalogQuery;
   resultCount: number;
-  kitSelectionActive: boolean;
   onQueryChange(query: CatalogQuery): void;
-  onBeginKitSelection?(): void;
 }
 
 const sorts: Array<{ id: CatalogSort; label: string }> = [
@@ -20,9 +18,7 @@ const sorts: Array<{ id: CatalogSort; label: string }> = [
 export function ProjectResultsToolbar({
   query,
   resultCount,
-  kitSelectionActive,
   onQueryChange,
-  onBeginKitSelection,
 }: ProjectResultsToolbarProps): preact.JSX.Element {
   return (
     <div class="tavernary-companion-results-toolbar">
@@ -40,14 +36,6 @@ export function ProjectResultsToolbar({
           <option value={id}>{label}</option>
         ))}
       </select>
-      <button
-        type="button"
-        class="tavernary-companion-select-kit"
-        disabled={kitSelectionActive}
-        onClick={onBeginKitSelection}
-      >
-        Select for Kit
-      </button>
     </div>
   );
 }

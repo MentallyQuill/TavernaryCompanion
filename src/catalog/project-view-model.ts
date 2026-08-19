@@ -34,6 +34,7 @@ export interface ProjectCardViewModel {
   id: string;
   name: string;
   displayName: string;
+  canonicalUrl: string;
   summary: string;
   kind: CatalogProject["kind"];
   frontends: string[];
@@ -70,7 +71,6 @@ export interface ProjectCardViewModel {
 }
 
 export interface ProjectDetailViewModel extends ProjectCardViewModel {
-  canonicalUrl: string;
   primaryFunction: string;
   tags: string[];
   license: CatalogProject["license"];
@@ -167,6 +167,7 @@ export function toProjectCardViewModel(
     id: project.id,
     name: project.name,
     displayName: projectDisplayName(project.name),
+    canonicalUrl: project.canonicalUrl,
     summary: project.summary,
     kind: project.kind,
     frontends: project.frontends.map(({ label }) => label),
@@ -268,7 +269,6 @@ export function toProjectDetailViewModel(
 ): ProjectDetailViewModel {
   return {
     ...toProjectCardViewModel(project, context),
-    canonicalUrl: project.canonicalUrl,
     primaryFunction: primaryFunctionLabel(project.primaryFunction),
     tags: project.tags.map(({ label }) => label),
     license: structuredClone(project.license),
