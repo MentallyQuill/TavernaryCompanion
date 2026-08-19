@@ -109,6 +109,38 @@ export async function prepareInstallTargetChoice(
   return createInstallTargetResolver(options).prepare(options.project);
 }
 
+export async function prepareNewestInstallTarget(
+  options: InstallTargetResolverOptions & { project: CatalogProject },
+): Promise<Extract<InstallTarget, { kind: "newest" }>> {
+  const currentProject =
+    "catalog" in options.snapshot
+      ? (options.snapshot.catalog.projects.find(({ id }) => id === options.project.id) ?? null)
+      : null;
+  if (!currentProject?.install) {
+    throw new InstallTargetPreparationError("This project is not available for installation.");
+  }
+  const capabilities = await options.host.getInstallCapabilities();
+  if (!capabilities.pinnedCommitInstall || !capabilities.remoteRevisionLookup) {
+    return { kind: "newest", requestedSha: null, resolvedAt: null };
+  }
+  try {
+    const resolved = await options.host.resolveRemoteRevision({
+      repositoryUrl: currentProject.install.repositoryUrl,
+      branch: currentProject.install.branch,
+    });
+    if (!isFullCommitSha(resolved.sha)) {
+      throw new Error("The host returned an invalid newest revision.");
+    }
+    return {
+      kind: "newest",
+      requestedSha: resolved.sha.toLowerCase(),
+      resolvedAt: (options.now ?? (() => new Date().toISOString()))(),
+    };
+  } catch (cause) {
+    throw new InstallTargetPreparationError(NEWEST_LOOKUP_FAILED_REASON, { cause });
+  }
+}
+
 function checkedTarget(
   project: CatalogProject,
 ): Extract<InstallTarget, { kind: "checked" }> | null {

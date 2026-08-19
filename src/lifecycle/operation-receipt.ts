@@ -27,6 +27,7 @@ export interface LifecycleReceipt extends Record<string, unknown> {
   reloadRequired: boolean;
   installProvenance?: ManagedInstallProvenance;
   cleanupOutcome?: "not-needed" | "succeeded" | "failed" | null;
+  tavernKeeperReportUrl?: string | null;
 }
 
 interface CreateReceiptInput {
@@ -41,6 +42,7 @@ interface CreateReceiptInput {
   reloadRequired: boolean;
   installProvenance?: ManagedInstallProvenance;
   cleanupOutcome?: "not-needed" | "succeeded" | "failed" | null;
+  tavernKeeperReportUrl?: string | null;
   completedThrough?: LifecycleReceiptStep["id"];
   failedAt?: LifecycleReceiptStep["id"];
 }
@@ -67,6 +69,9 @@ export function createReceipt(input: CreateReceiptInput): LifecycleReceipt {
       ? {}
       : { installProvenance: structuredClone(input.installProvenance) }),
     ...(input.cleanupOutcome === undefined ? {} : { cleanupOutcome: input.cleanupOutcome }),
+    ...(input.tavernKeeperReportUrl === undefined
+      ? {}
+      : { tavernKeeperReportUrl: input.tavernKeeperReportUrl }),
     steps: order.map((id, index) => ({
       id,
       status:

@@ -12,6 +12,7 @@ import type { InstallTarget, ManagedInstallProvenance } from "./install-target";
 import {
   InstallTargetPreparationError,
   prepareInstallTargetChoice,
+  prepareNewestInstallTarget,
   type InstallTargetChoice,
 } from "./install-target-resolver";
 import { OperationLock } from "./operation-lock";
@@ -27,7 +28,10 @@ import { executeVerifiedInstall, VerifiedInstallError } from "./verified-install
 export interface LifecycleCoordinator {
   readonly lock: OperationLock;
   prepareInstall(projectId: string): Promise<PreparedInstallTargetChoice>;
-  install(projectId: string, selection?: PreparedInstallSelection): Promise<LifecycleReceipt>;
+  prepareNewestInstall(
+    projectId: string,
+  ): Promise<PreparedInstallSelection<Extract<InstallTarget, { kind: "newest" }>>>;
+  install(projectId: string, selection: PreparedInstallSelection): Promise<LifecycleReceipt>;
   previewRemoval(projectId: string): Promise<RemovalImpact>;
   remove(projectId: string): Promise<LifecycleReceipt>;
 }
@@ -121,26 +125,35 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
     return bindInstallTargetChoice(choice, project, catalog.generatedAt);
   }
 
-  install(projectId: string, selection?: PreparedInstallSelection): Promise<LifecycleReceipt> {
+  async prepareNewestInstall(
+    projectId: string,
+  ): Promise<PreparedInstallSelection<Extract<InstallTarget, { kind: "newest" }>>> {
+    const snapshot = this.#getSnapshot();
+    const project = eligibleProjectForPreparation(projectId, snapshot);
+    const catalog = "catalog" in snapshot ? snapshot.catalog : null;
+    if (!project || !catalog) {
+      throw new InstallTargetPreparationError("This project is not eligible for installation.");
+    }
+    const target = await prepareNewestInstallTarget({
+      host: this.#host,
+      snapshot,
+      project,
+      now: this.#now,
+    });
+    return {
+      target,
+      binding: createPreparationBinding(project, target, catalog.generatedAt),
+    };
+  }
+
+  install(projectId: string, selection: PreparedInstallSelection): Promise<LifecycleReceipt> {
     return this.lock.runExclusive(`install:${projectId}`, async ({ setPhase }) => {
-      const selectedTarget = selection?.target ?? legacyNewestTarget();
+      const selectedTarget = selection.target;
       const startedAt = this.#now();
       const id = this.#createId();
       const snapshot = this.#getSnapshot();
       const catalog = "catalog" in snapshot ? snapshot.catalog : null;
       const project = catalog?.projects.find((candidate) => candidate.id === projectId) ?? null;
-      if (
-        selection &&
-        (!project ||
-          !catalog ||
-          !matchesPreparationBinding(
-            selection,
-            eligibleProjectForPreparation(projectId, snapshot),
-            catalog.generatedAt,
-          ))
-      ) {
-        throw new InstallPreparationStaleError();
-      }
       if (projectId === COMPANION_PROJECT_ID) {
         return this.#rejected({
           id,
@@ -148,6 +161,17 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
           projectName: project?.name ?? projectId,
           startedAt,
         });
+      }
+      if (
+        !project ||
+        !catalog ||
+        !matchesPreparationBinding(
+          selection,
+          eligibleProjectForPreparation(projectId, snapshot),
+          catalog.generatedAt,
+        )
+      ) {
+        throw new InstallPreparationStaleError();
       }
 
       setPhase("discovering");
@@ -210,19 +234,17 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
 
       const executionBefore = await this.#host.discover();
       const executionSnapshot = this.#getSnapshot();
-      const executionCatalog =
-        "catalog" in executionSnapshot ? executionSnapshot.catalog : null;
+      const executionCatalog = "catalog" in executionSnapshot ? executionSnapshot.catalog : null;
       const executionProject =
         executionCatalog?.projects.find((candidate) => candidate.id === projectId) ?? null;
       if (
-        selection &&
-        (!executionProject ||
-          !executionCatalog ||
-          !matchesPreparationBinding(
-            selection,
-            eligibleProjectForPreparation(projectId, executionSnapshot),
-            executionCatalog.generatedAt,
-          ))
+        !executionProject ||
+        !executionCatalog ||
+        !matchesPreparationBinding(
+          selection,
+          eligibleProjectForPreparation(projectId, executionSnapshot),
+          executionCatalog.generatedAt,
+        )
       ) {
         throw new InstallPreparationStaleError();
       }
@@ -245,13 +267,7 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
         !executionProject ||
         !executionCatalog
       ) {
-        if (selection) throw new InstallPreparationStaleError();
-        return this.#rejected({
-          id,
-          projectId,
-          projectName: executionProject?.name ?? projectId,
-          startedAt,
-        });
+        throw new InstallPreparationStaleError();
       }
 
       setPhase("host-request");
@@ -293,6 +309,8 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
                   }),
                 }),
             cleanupOutcome: error.cleanupOutcome,
+            tavernKeeperReportUrl:
+              selectedTarget.kind === "checked" ? selectedTarget.reportUrl : null,
           });
           await this.#persistNonMutation(receipt, disclosureAccepted ? this.#now() : null);
           return receipt;
@@ -341,6 +359,7 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
         reloadRequired: true,
         installProvenance: provenance,
         cleanupOutcome: verified.cleanupOutcome,
+        tavernKeeperReportUrl: selectedTarget.kind === "checked" ? selectedTarget.reportUrl : null,
       });
       setPhase("recording");
       try {
@@ -368,6 +387,8 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
           reloadRequired: true,
           installProvenance: provenance,
           cleanupOutcome: verified.cleanupOutcome,
+          tavernKeeperReportUrl:
+            selectedTarget.kind === "checked" ? selectedTarget.reportUrl : null,
         });
       }
     });
@@ -643,10 +664,6 @@ function removalKitTitles(
     }
   }
   return titles;
-}
-
-function legacyNewestTarget(): InstallTarget {
-  return { kind: "newest", requestedSha: null, resolvedAt: null };
 }
 
 function bindInstallTargetChoice(

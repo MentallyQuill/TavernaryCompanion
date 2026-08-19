@@ -4,6 +4,7 @@ import type { CatalogSnapshot } from "../../src/catalog/catalog-client";
 import {
   NEWEST_LOOKUP_FAILED_REASON,
   createInstallTargetResolver,
+  prepareNewestInstallTarget,
 } from "../../src/lifecycle/install-target-resolver";
 import { catalogFixture, catalogProjectFixture } from "../helpers/catalog-fixtures";
 import { createFakeHost } from "../helpers/fake-host";
@@ -101,6 +102,24 @@ describe("install target resolver", () => {
         checkedAt,
         reportId: "report-123",
       },
+    });
+  });
+
+  it("can freshly prepare Newest even when normal preparation collapses to Checked", async () => {
+    const project = projectWithReport({ scannedSha: newestSha, currentSha: newestSha });
+    const { host } = capableResolver(project);
+
+    await expect(
+      prepareNewestInstallTarget({
+        host,
+        snapshot: readySnapshot(project),
+        project,
+        now: () => "2026-08-19T12:00:00.000Z",
+      }),
+    ).resolves.toEqual({
+      kind: "newest",
+      requestedSha: newestSha,
+      resolvedAt: "2026-08-19T12:00:00.000Z",
     });
   });
 

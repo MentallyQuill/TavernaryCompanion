@@ -107,9 +107,11 @@ describe("install lifecycle", () => {
   it("installs, rediscovers, and records only verified ownership", async () => {
     const { coordinator, host, store, project } = setup();
 
-    const receipt = await coordinator.install("alpha");
+    const selection = await prepareSingleSelection(coordinator);
+    const receipt = await coordinator.install("alpha", selection);
 
     expect(host.calls.map(({ operation }) => operation)).toEqual([
+      "getInstallCapabilities",
       "discover",
       "discover",
       "getInstallCapabilities",
@@ -133,17 +135,22 @@ describe("install lifecycle", () => {
 
   it("cancels before the host install call and persists no acknowledgement", async () => {
     const { coordinator, host, store } = setup({ confirm: vi.fn(async () => false) });
-    const receipt = await coordinator.install("alpha");
+    const selection = await prepareSingleSelection(coordinator);
+    const receipt = await coordinator.install("alpha", selection);
 
     expect(receipt.status).toBe("cancelled");
-    expect(host.calls.map(({ operation }) => operation)).toEqual(["discover"]);
+    expect(host.calls.map(({ operation }) => operation)).toEqual([
+      "getInstallCapabilities",
+      "discover",
+    ]);
     expect(store.read().trustAcknowledgedAt).toBeNull();
     expect(store.read().managedExtensions).toEqual({});
   });
 
   it("does not record ownership when rediscovery finds the wrong folder", async () => {
     const { coordinator, store } = setup({ folderName: "Wrong" });
-    const receipt = await coordinator.install("alpha");
+    const selection = await prepareSingleSelection(coordinator);
+    const receipt = await coordinator.install("alpha", selection);
 
     expect(receipt.status).toBe("verification-failed");
     expect(store.read().managedExtensions).toEqual({});
@@ -152,7 +159,8 @@ describe("install lifecycle", () => {
   it("returns a safe host failure receipt", async () => {
     const fixture = setup();
     vi.spyOn(fixture.host, "install").mockRejectedValue(new Error("host refused token=secret"));
-    const receipt = await fixture.coordinator.install("alpha");
+    const selection = await prepareSingleSelection(fixture.coordinator);
+    const receipt = await fixture.coordinator.install("alpha", selection);
 
     expect(receipt.status).toBe("failed");
     expect(receipt.safeError).toBe("SillyTavern did not complete the install request.");
@@ -162,10 +170,13 @@ describe("install lifecycle", () => {
   it("rejects an accidental concurrent request instead of queuing it", async () => {
     const pending = deferred<boolean>();
     const fixture = setup({ confirm: vi.fn(() => pending.promise) });
-    const first = fixture.coordinator.install("alpha");
-    await vi.waitFor(() => expect(fixture.host.calls).toHaveLength(1));
+    const selection = await prepareSingleSelection(fixture.coordinator);
+    const first = fixture.coordinator.install("alpha", selection);
+    await vi.waitFor(() => expect(fixture.host.calls).toHaveLength(2));
 
-    await expect(fixture.coordinator.install("alpha")).rejects.toThrow(OperationInProgressError);
+    await expect(fixture.coordinator.install("alpha", selection)).rejects.toThrow(
+      OperationInProgressError,
+    );
     pending.resolve(false);
     await first;
   });
@@ -174,7 +185,8 @@ describe("install lifecycle", () => {
     const fixture = setup({
       saveSettingsDebounced: vi.fn().mockRejectedValue(new Error("storage unavailable")),
     });
-    const receipt = await fixture.coordinator.install("alpha");
+    const selection = await prepareSingleSelection(fixture.coordinator);
+    const receipt = await fixture.coordinator.install("alpha", selection);
 
     expect(receipt.status).toBe("installed-unrecorded");
     expect(receipt.safeError).toMatch(/reopen Companion/i);
@@ -531,7 +543,10 @@ describe("install lifecycle", () => {
       .mockImplementationOnce(() => approval.promise)
       .mockResolvedValue(true);
     const host = createFakeHost();
-    const store = new ProfileStore({ extensionSettings: {}, saveSettingsDebounced: () => undefined });
+    const store = new ProfileStore({
+      extensionSettings: {},
+      saveSettingsDebounced: () => undefined,
+    });
     const coordinator = createLifecycleCoordinator({
       host,
       store,
@@ -578,10 +593,11 @@ describe("install lifecycle", () => {
       type: "local" as const,
       manifest: null,
     };
-    vi.spyOn(host, "discover")
-      .mockResolvedValueOnce([])
-      .mockResolvedValue([concurrentExtension]);
-    const store = new ProfileStore({ extensionSettings: {}, saveSettingsDebounced: () => undefined });
+    vi.spyOn(host, "discover").mockResolvedValueOnce([]).mockResolvedValue([concurrentExtension]);
+    const store = new ProfileStore({
+      extensionSettings: {},
+      saveSettingsDebounced: () => undefined,
+    });
     const coordinator = createLifecycleCoordinator({
       host,
       store,

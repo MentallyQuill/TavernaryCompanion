@@ -1,5 +1,5 @@
 import { render } from "preact";
-import { useCallback, useEffect, useMemo, useState } from "preact/hooks";
+import { useCallback, useEffect, useMemo, useRef, useState } from "preact/hooks";
 
 import { createCatalogClient, type CatalogSnapshot } from "../catalog/catalog-client";
 import { createDiscoveryController } from "../catalog/discovery-controller";
@@ -12,9 +12,21 @@ import { normalizeManagedExtensionMap } from "../inventory/managed-registry";
 import {
   createLifecycleCoordinator,
   type LifecycleCoordinator,
+  type PreparedInstallSelection,
+  type PreparedInstallTargetChoice,
 } from "../lifecycle/lifecycle-coordinator";
 import type { ActiveOperation } from "../lifecycle/operation-lock";
 import type { LifecycleReceipt } from "../lifecycle/operation-receipt";
+import {
+  InstallTargetPreparationError,
+  NEWEST_LOOKUP_FAILED_REASON,
+} from "../lifecycle/install-target-resolver";
+import {
+  CHECKED_VERSION_UNAVAILABLE_REASON,
+  InstallTargetFallbackBroker,
+  type InstallTargetFallbackRequest,
+} from "../lifecycle/install-target-fallback-broker";
+import { HostRevisionUnavailableError } from "../host/host-errors";
 import type { RemovalImpact } from "../lifecycle/removal-impact";
 import { assertNotCompanionProject } from "../lifecycle/self-protection";
 import { TrustPromptBroker, type PendingTrustPrompt } from "../lifecycle/trust-prompt-broker";
@@ -46,6 +58,10 @@ import { KitOperationTray } from "./kits/kit-operation-tray";
 import { KitPreflightDialog } from "./kits/kit-preflight-dialog";
 import { AssessmentWarningDialog } from "./lifecycle/assessment-warning-dialog";
 import { OperationTray } from "./lifecycle/operation-tray";
+import {
+  dispatchPreparedInstallChoice,
+  InstallVersionChooser,
+} from "./lifecycle/install-version-chooser";
 import { RemovalDialog } from "./lifecycle/removal-dialog";
 import { TrustDisclosureDialog } from "./lifecycle/trust-disclosure-dialog";
 import { CompanionShell } from "./shell/companion-shell";
@@ -120,6 +136,25 @@ export function CompanionPopupHost({
   const [kitInspectors, setKitInspectors] = useState<Record<string, KitInspectorViewModel>>({});
   const [installedKitCards, setInstalledKitCards] = useState<InstalledKitViewModel[]>([]);
   const [operationError, setOperationError] = useState<string | null>(null);
+  const [preparingInstall, setPreparingInstall] = useState(false);
+  const [pendingInstallChoice, setPendingInstallChoice] = useState<{
+    projectId: string;
+    projectName: string;
+    anchor: HTMLButtonElement;
+    choice: Extract<PreparedInstallTargetChoice, { kind: "choose" }>;
+  } | null>(null);
+  const installFallbacks = useMemo(() => new InstallTargetFallbackBroker(), []);
+  const [pendingInstallFallback, setPendingInstallFallback] =
+    useState<InstallTargetFallbackRequest | null>(installFallbacks.read());
+  const fallbackAnchor = useRef<HTMLButtonElement | null>(null);
+
+  useEffect(() => {
+    const unsubscribe = installFallbacks.subscribe(setPendingInstallFallback);
+    return () => {
+      unsubscribe();
+      installFallbacks.cancel();
+    };
+  }, [installFallbacks]);
 
   const syncKits = useCallback(async () => {
     if (!runtime || !store) return;
@@ -206,22 +241,84 @@ export function CompanionPopupHost({
     };
   }, [refreshInventory, runtime, store, syncKits]);
 
-  const runAction = async (projectId: string, action: ProjectPrimaryAction) => {
+  const executeInstallSelection = async (
+    projectId: string,
+    projectName: string,
+    anchor: HTMLButtonElement,
+    selection: PreparedInstallSelection,
+    allowUnavailableFallback = true,
+  ): Promise<void> => {
+    if (!runtime) return;
+    try {
+      const result = await runtime.lifecycle.install(projectId, selection);
+      setReceipt(result);
+      await refreshInventory();
+    } catch (error) {
+      if (
+        allowUnavailableFallback &&
+        error instanceof HostRevisionUnavailableError &&
+        selection.target.kind === "checked"
+      ) {
+        const newest = await runtime.lifecycle.prepareNewestInstall(projectId);
+        fallbackAnchor.current = anchor;
+        const replacement = await installFallbacks.request({
+          projectId,
+          projectName,
+          checked: selection as InstallTargetFallbackRequest["checked"],
+          newest,
+        });
+        if (replacement) {
+          await executeInstallSelection(projectId, projectName, anchor, replacement, false);
+        }
+        fallbackAnchor.current = null;
+        return;
+      }
+      if (error instanceof HostRevisionUnavailableError && selection.target.kind === "newest") {
+        throw new InstallTargetPreparationError(NEWEST_LOOKUP_FAILED_REASON, { cause: error });
+      }
+      throw error;
+    }
+  };
+
+  const runAction = async (
+    projectId: string,
+    action: ProjectPrimaryAction,
+    anchor: HTMLButtonElement,
+  ) => {
     if (!runtime || !host) return;
     setOperationError(null);
     try {
       if (action.kind === "install") {
-        const result = await runtime.lifecycle.install(projectId);
-        setReceipt(result);
-        await refreshInventory();
+        setPreparingInstall(true);
+        const prepared = await runtime.lifecycle.prepareInstall(projectId);
+        const snapshot = runtime.catalog.read();
+        const projectName =
+          ("catalog" in snapshot
+            ? snapshot.catalog.projects.find(({ id }) => id === projectId)?.name
+            : null) ?? projectId;
+        dispatchPreparedInstallChoice(
+          prepared,
+          (selection) => {
+            void executeInstallSelection(projectId, projectName, anchor, selection).catch(
+              showOperationError,
+            );
+          },
+          (choice) => setPendingInstallChoice({ projectId, projectName, anchor, choice }),
+        );
       } else if (action.kind === "uninstall") {
         setRemovalImpact(await runtime.lifecycle.previewRemoval(projectId));
       } else if (action.kind === "update-required" || action.kind === "manage-in-sillytavern") {
         await host.openExtensionManager();
       }
     } catch (error) {
-      setOperationError(error instanceof Error ? error.message : "The operation could not finish.");
+      showOperationError(error);
+    } finally {
+      setPreparingInstall(false);
     }
+  };
+
+  const showOperationError = (error: unknown) => {
+    setOperationError(error instanceof Error ? error.message : "The operation could not finish.");
   };
 
   const toggleExtension = async (projectId: string, internalName: string, enabled: boolean) => {
@@ -332,11 +429,17 @@ export function CompanionPopupHost({
         onToggleExtension={(projectId, internalName, enabled) =>
           void toggleExtension(projectId, internalName, enabled)
         }
-        onProjectAction={(projectId, action) => void runAction(projectId, action)}
+        onProjectAction={(projectId, action, anchor) => void runAction(projectId, action, anchor)}
         onOpenExtensionManager={() => void host?.openExtensionManager()}
         onUpdateCompanion={() => void host?.openExtensionManager()}
         onOpenTavernary={() => host?.openExternal("https://tavernary.org/")}
-        lifecycleDisabled={activeOperation !== null || togglingInternalName !== null}
+        lifecycleDisabled={
+          activeOperation !== null ||
+          togglingInternalName !== null ||
+          preparingInstall ||
+          pendingInstallChoice !== null ||
+          pendingInstallFallback !== null
+        }
         kitDiscovery={runtime?.kitDiscovery}
         kitInspectors={kitInspectors}
         installedKits={installedKitCards}
@@ -448,6 +551,40 @@ export function CompanionPopupHost({
           onReview={(url) => host?.openExternal(url)}
           onCancel={() => runtime?.prompts.respond(false)}
           onConfirm={() => runtime?.prompts.respond(true)}
+        />
+      ) : null}
+      {pendingInstallChoice ? (
+        <InstallVersionChooser
+          projectName={pendingInstallChoice.projectName}
+          anchor={pendingInstallChoice.anchor}
+          choice={pendingInstallChoice.choice}
+          onCancel={() => setPendingInstallChoice(null)}
+          onSelect={(selection) => {
+            const pending = pendingInstallChoice;
+            setPendingInstallChoice(null);
+            void executeInstallSelection(
+              pending.projectId,
+              pending.projectName,
+              pending.anchor,
+              selection,
+            ).catch(showOperationError);
+          }}
+        />
+      ) : null}
+      {pendingInstallFallback && fallbackAnchor.current ? (
+        <InstallVersionChooser
+          projectName={pendingInstallFallback.projectName}
+          anchor={fallbackAnchor.current}
+          choice={{
+            kind: "choose",
+            checked: {
+              selection: pendingInstallFallback.checked,
+              disabledReason: CHECKED_VERSION_UNAVAILABLE_REASON,
+            },
+            newest: { selection: pendingInstallFallback.newest },
+          }}
+          onCancel={() => installFallbacks.cancel()}
+          onSelect={(selection) => installFallbacks.respond(selection)}
         />
       ) : null}
       {removalImpact ? (

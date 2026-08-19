@@ -7,7 +7,7 @@ const PROJECT_BATCH_SIZE = 60;
 interface ProjectGridProps {
   projects: ProjectCardViewModel[];
   density?: "standard" | "compact";
-  onProjectAction(id: string, action: ProjectPrimaryAction): void;
+  onProjectAction(id: string, action: ProjectPrimaryAction, anchor: HTMLButtonElement): void;
   onManageInSillyTavern?(): void;
   lifecycleDisabled?: boolean;
   selectedKitProjectIds?: readonly string[];
@@ -50,7 +50,7 @@ export function ProjectGrid({
           <ProjectCard
             key={project.id}
             project={project}
-            onAction={(action) => onProjectAction(project.id, action)}
+            onAction={(action, anchor) => onProjectAction(project.id, action, anchor)}
             onManageInSillyTavern={onManageInSillyTavern}
             lifecycleDisabled={lifecycleDisabled}
             selectedForKit={selectedKitProjectIds.includes(project.id)}

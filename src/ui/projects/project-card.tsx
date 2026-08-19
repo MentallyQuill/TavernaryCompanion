@@ -9,7 +9,7 @@ import { TavernKeeperScanIndicator } from "./tavernkeeper-scan-indicator";
 
 interface ProjectCardProps {
   project: ProjectCardViewModel;
-  onAction(action: ProjectPrimaryAction): void;
+  onAction(action: ProjectPrimaryAction, anchor: HTMLButtonElement): void;
   onManageInSillyTavern?(): void;
   lifecycleDisabled?: boolean;
   selectedForKit?: boolean;
