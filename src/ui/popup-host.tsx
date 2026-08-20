@@ -72,7 +72,6 @@ import { KitOperationTray } from "./kits/kit-operation-tray";
 import { KitPreflightDialog } from "./kits/kit-preflight-dialog";
 import { AssessmentWarningDialog } from "./lifecycle/assessment-warning-dialog";
 import { OperationTray } from "./lifecycle/operation-tray";
-import { InstallVersionAwareness } from "./lifecycle/install-version-awareness";
 import {
   dispatchPreparedInstallChoice,
   InstallVersionChooser,
@@ -88,7 +87,10 @@ import {
   type PreparedUpdateChoice,
 } from "../updates/update-coordinator";
 import type { PreparedUpdateSelection } from "../updates/update-types";
-import { UpdateVersionChooser } from "./installed/update-version-chooser";
+import {
+  dispatchPreparedUpdateChoice,
+  UpdateVersionChooser,
+} from "./installed/update-version-chooser";
 import { AddToKitDialog, type AddToKitTarget } from "./installed/add-to-kit-dialog";
 import {
   clearInstalledSelection,
@@ -212,12 +214,6 @@ export function CompanionPopupHost({
     projectName: string;
     anchor: HTMLButtonElement;
     choice: Extract<PreparedInstallTargetChoice, { kind: "choose" }>;
-  } | null>(null);
-  const [pendingInstallAwareness, setPendingInstallAwareness] = useState<{
-    projectId: string;
-    projectName: string;
-    anchor: HTMLButtonElement;
-    selection: PreparedInstallSelection;
   } | null>(null);
   const [pendingUpdateChoice, setPendingUpdateChoice] = useState<{
     projectId: string;
@@ -469,7 +465,6 @@ export function CompanionPopupHost({
             );
           },
           (choice) => setPendingInstallChoice({ projectId, projectName, anchor, choice }),
-          (selection) => setPendingInstallAwareness({ projectId, projectName, anchor, selection }),
         );
       } else if (action.kind === "uninstall") {
         setRemovalImpact(await runtime.lifecycle.previewRemoval(projectId));
@@ -487,26 +482,26 @@ export function CompanionPopupHost({
     setOperationError(error instanceof Error ? error.message : "The operation could not finish.");
   };
 
-  const requestUpdate = (projectId: string, projectName: string, anchor: HTMLButtonElement) => {
-    if (!runtime) return;
-    setOperationError(null);
-    try {
-      setPendingUpdateChoice({
-        projectId,
-        projectName,
-        anchor,
-        choice: runtime.updates.prepare(projectId),
-      });
-    } catch (error) {
-      showOperationError(error);
-    }
-  };
-
   const executeUpdateSelection = async (selection: PreparedUpdateSelection): Promise<void> => {
     if (!runtime) return;
     try {
       const result = await runtime.updates.update(selection);
       setReceipt(result);
+    } catch (error) {
+      showOperationError(error);
+    }
+  };
+
+  const requestUpdate = (projectId: string, projectName: string, anchor: HTMLButtonElement) => {
+    if (!runtime) return;
+    setOperationError(null);
+    try {
+      const choice = runtime.updates.prepare(projectId);
+      dispatchPreparedUpdateChoice(
+        choice,
+        (selection) => void executeUpdateSelection(selection),
+        (prepared) => setPendingUpdateChoice({ projectId, projectName, anchor, choice: prepared }),
+      );
     } catch (error) {
       showOperationError(error);
     }
@@ -697,7 +692,6 @@ export function CompanionPopupHost({
           togglingInternalName !== null ||
           preparingInstall ||
           pendingInstallChoice !== null ||
-          pendingInstallAwareness !== null ||
           pendingUpdateChoice !== null ||
           pendingInstallFallback !== null ||
           preparingKitPlan ||
@@ -838,25 +832,6 @@ export function CompanionPopupHost({
           onSelect={(selection) => {
             const pending = pendingInstallChoice;
             setPendingInstallChoice(null);
-            void executeInstallSelection(
-              pending.projectId,
-              pending.projectName,
-              pending.anchor,
-              selection,
-            ).catch(showOperationError);
-          }}
-        />
-      ) : null}
-      {pendingInstallAwareness ? (
-        <InstallVersionAwareness
-          projectId={pendingInstallAwareness.projectId}
-          projectName={pendingInstallAwareness.projectName}
-          anchor={pendingInstallAwareness.anchor}
-          selection={pendingInstallAwareness.selection}
-          onCancel={() => setPendingInstallAwareness(null)}
-          onConfirm={(selection) => {
-            const pending = pendingInstallAwareness;
-            setPendingInstallAwareness(null);
             void executeInstallSelection(
               pending.projectId,
               pending.projectName,

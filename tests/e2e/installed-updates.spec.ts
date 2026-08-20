@@ -2,7 +2,7 @@ import { expect, test } from "@playwright/test";
 
 import { openHarness } from "./harness";
 
-test("checks, confirms, and applies an Installed extension update", async ({ page }) => {
+test("checks and directly applies a single Installed extension update", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await openHarness(page, "installed-update");
   await page
@@ -28,13 +28,7 @@ test("checks, confirms, and applies an Installed extension update", async ({ pag
   ).toBe(true);
 
   await update.click();
-  const chooser = page.getByRole("dialog", { name: "Update Writer Tool" });
-  await expect(chooser).toContainText("You already have the latest scanned version.");
-  await expect(chooser.getByRole("button", { name: "Latest scanned" })).toHaveCount(0);
-  await expect(chooser.getByRole("button", { name: "Latest from creator" })).toBeVisible();
-  expect(await chooser.textContent()).not.toMatch(/\b[0-9a-f]{40}\b/iu);
-
-  await chooser.getByRole("button", { name: "Latest from creator" }).click();
+  await expect(page.getByRole("dialog", { name: "Update Writer Tool" })).toHaveCount(0);
   const reload = page.getByRole("status", { name: "Update complete" });
   await expect(reload).toContainText(
     "Updated to the latest version from the creator. Reload to apply updates.",
@@ -114,7 +108,7 @@ test.describe("touch update choice", () => {
 
 test("keeps the update chooser inside a narrow viewport", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
-  await openHarness(page, "installed-update");
+  await openHarness(page, "installed-update-both");
   await page.getByRole("button", { name: "Browse categories" }).click();
   await page
     .getByRole("group", { name: "Browse categories menu" })
@@ -156,10 +150,7 @@ test("uses native SillyTavern updates without showing extension attention", asyn
   await expect(card.getByText("Needs attention")).toHaveCount(0);
 
   await card.getByRole("button", { name: "Update Writer Tool" }).click();
-  const chooser = page.getByRole("dialog", { name: "Update Writer Tool" });
-  await expect(chooser.getByRole("button", { name: "Latest from creator" })).toBeVisible();
-  await expect(chooser.getByRole("button", { name: "Latest scanned" })).toHaveCount(0);
-  await chooser.getByRole("button", { name: "Latest from creator" }).click();
+  await expect(page.getByRole("dialog", { name: "Update Writer Tool" })).toHaveCount(0);
 
   await expect(page.getByRole("status", { name: "Update complete" })).toContainText(
     "Updated to the latest version from the creator. Reload to apply updates.",

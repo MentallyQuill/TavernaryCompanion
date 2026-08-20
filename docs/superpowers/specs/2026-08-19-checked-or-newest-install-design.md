@@ -25,7 +25,6 @@ The choices are never labelled "safe version," "secure version," "risky version,
 Supporting messages use the same tone:
 
 - Unavailable checked version: "That checked version isn't available anymore. You can choose the newest version or cancel."
-- Older SillyTavern: "Update SillyTavern to use the checked version."
 - Latest lookup failed: "We couldn't find the newest version. Try again."
 - Install mismatch after cleanup: "The install didn't finish correctly, so Companion cleaned it up."
 - Success: "Installed the checked version." or "Installed the newest version."
@@ -40,8 +39,8 @@ Companion asks only when there is a real choice.
 | --- | --- |
 | No usable TavernKeeper report | Keep the current single Install action and install the newest resolved version. |
 | Checked and newest revisions match | Keep the current single Install action and install that exact revision. |
-| Checked and newest revisions differ | Open the two-choice version chooser. |
-| Checked revision exists but the host cannot pin commits | Show the chooser when the catalog indicates a difference, disable Checked version with the update message, and keep Newest version available. |
+| Checked and newest revisions differ on a capable host | Open the two-choice version chooser. |
+| Host cannot pin commits | Install Newest through the existing path without showing a version popup. |
 | Newest revision cannot be resolved on a capable host | Do not guess from stale data. Show the retry message and leave the project unmodified. |
 
 The chooser is a compact non-modal surface anchored to the existing Install control. It has a visible heading, two full-width choice buttons, outside-click dismissal, Escape dismissal, and focus restoration to Install. Selecting a choice starts the existing install flow immediately; there is no extra Continue step.
@@ -126,7 +125,7 @@ Kit installation keeps one preflight surface. Every project that will be install
 
 - A project with distinct checked and newest revisions gets a labelled two-choice radio group.
 - A project with one meaningful target shows that target without requiring another decision.
-- Checked is disabled with the plain update message when the host lacks pinned-install support.
+- A host without pinned-install support shows every install as a single Newest target with no version controls.
 - The Kit action remains disabled until every project with a real choice has a selection.
 
 Preflight resolves and validates all selected targets before the first mutation. The frozen Kit plan includes the target for every install step, and approval binds the exact target set along with the existing catalog and inventory fingerprints.
@@ -163,7 +162,7 @@ Provenance describes the verified installation event, not permanent current stat
 
 ## Failure and compatibility behavior
 
-- Capability lookup absent or unsupported: Checked is unavailable; Newest remains compatible with the existing install path.
+- Capability lookup absent or unsupported: start Newest through the existing install path without showing version selection.
 - Remote head lookup failure on a capable host: no mutation; Retry only.
 - Malformed report SHA: treat the report as unusable for installation while leaving its display evidence intact.
 - Checked commit unavailable: offer Newest or Cancel before mutation.
@@ -176,7 +175,7 @@ All errors avoid blame and security theatre. Detailed host failures remain sanit
 
 ## Accessibility and responsive behavior
 
-The individual chooser is reachable from the existing 44px lifecycle control. Its heading is announced, each choice has one accessible name plus descriptive text, and disabled Checked copy is associated with the disabled control. Keyboard users can open, select, dismiss with Escape, and return focus without entering a modal focus trap.
+The individual chooser is reachable from the existing 44px lifecycle control only when both targets are executable. Its heading is announced and each choice has one accessible name plus descriptive text. Keyboard users can open, select, dismiss with Escape, and return focus without entering a modal focus trap.
 
 The chooser remains within the Companion popup's top layer and repositions within the viewport. At mobile widths it may use the same compact overlay at available width, but it must not become a full-screen confirmation page. It must remain usable at 200% text, with reduced motion, touch input, and screen-reader navigation.
 
@@ -187,6 +186,7 @@ Kit target choices use native radio semantics grouped by project name. Errors an
 Unit coverage includes:
 
 - every report/current-revision/capability state;
+- legacy-host direct installation without a chooser or disabled target;
 - plain-language copy and prohibited safety claims;
 - exact target construction and validation;
 - target-aware trust freshness;
@@ -212,6 +212,8 @@ Browser coverage exercises desktop, mobile, touch, keyboard, 200% text, and redu
 3. Add the individual chooser and Kit preflight selections.
 4. Run focused, full, browser, packaging, and real-host gates.
 5. Ship Companion with graceful behavior on older SillyTavern versions.
+
+Until step 1 lands in a host, Companion keeps the two-version chooser dormant and routes its single executable Newest target directly.
 
 ## Non-goals
 

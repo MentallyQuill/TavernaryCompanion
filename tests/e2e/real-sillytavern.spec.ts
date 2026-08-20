@@ -8,7 +8,7 @@ const realCatalogPath = process.env.REAL_SILLYTAVERN_CATALOG_PATH;
 test.describe("real SillyTavern acceptance", () => {
   test.skip(!realHostUrl, "Set REAL_SILLYTAVERN_URL to run against an installed extension.");
 
-  test("installs Story Engine with its version chooser above the Companion panel", async ({
+  test("installs Story Engine directly when the host has no exact-version support", async ({
     page,
   }, testInfo) => {
     test.skip(
@@ -20,7 +20,6 @@ test.describe("real SillyTavern acceptance", () => {
     await openInstalledCompanion(page);
 
     const root = page.locator("[data-tavernary-companion-popup]");
-    const owner = page.locator("dialog.popup").filter({ has: root });
     await root.getByRole("searchbox", { name: "Search projects" }).fill("Story Engine");
     const storyEngine = root.locator('[data-project-id="zdost-story-engine"]');
     await expect(storyEngine).toBeVisible();
@@ -37,24 +36,15 @@ test.describe("real SillyTavern acceptance", () => {
         timeout: 90_000,
       });
     }
-    await storyEngine.getByRole("button", { name: "Install Story Engine" }).click();
-
-    const chooser = page.locator(".tavernary-companion-install-version-chooser");
-    await expect(chooser).toBeAttached({ timeout: 30_000 });
-    await page.screenshot({ path: testInfo.outputPath("story-engine-version-chooser.png") });
-    await expectOwnedOverlay(chooser, owner);
-    expect(await isTopmostAtCenter(chooser)).toBe(true);
-
     if (realHostUser !== "companion-acceptance-v1") {
-      await chooser.getByRole("button", { name: "Cancel" }).click();
-      await expect(chooser).toHaveCount(0);
       return;
     }
 
-    await expect(chooser.getByRole("button", { name: "Latest scanned" })).toBeDisabled();
-    await chooser.getByRole("button", { name: "Latest from creator" }).click();
+    await storyEngine.getByRole("button", { name: "Install Story Engine" }).click();
+    await expect(page.locator(".tavernary-companion-install-version-chooser")).toHaveCount(0);
     const nativeConfirm = page.getByRole("button", { name: "Yes, install it" });
     await expect(nativeConfirm).toBeVisible();
+    await page.screenshot({ path: testInfo.outputPath("story-engine-direct-install.png") });
     expect(await isTopmostAtCenter(nativeConfirm)).toBe(true);
     await nativeConfirm.click();
     await expect(storyEngine.getByRole("button", { name: "Uninstall Story Engine" })).toBeVisible({

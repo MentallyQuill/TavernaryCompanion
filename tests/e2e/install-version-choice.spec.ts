@@ -154,28 +154,42 @@ test("installs an exact scanned latest target without asking", async ({ page }) 
   ).toBeVisible();
 });
 
-test("gently confirms a latest-only version whose exact scan status is unknown", async ({
-  page,
-}) => {
+test("installs a latest-only version without a version popup", async ({ page }) => {
   await openVersionChoice(page, "version-unscanned");
   await installAlpha(page).click();
-  const awareness = page.getByRole("dialog", { name: "Install latest from creator?" });
-  await expect(awareness).toContainText("This installs the creator’s latest version.");
-  await expect(awareness).toContainText("TavernKeeper has not scanned this exact version.");
-  await awareness.getByRole("button", { name: "Install latest" }).click();
+  await expect(page.getByRole("dialog", { name: /version|latest from creator/iu })).toHaveCount(0);
   await expect(
     page.getByText("Installed the latest version from the creator.", { exact: true }),
   ).toBeVisible();
 });
 
-test("keeps Latest scanned visible but unavailable on an older host", async ({ page }) => {
+test("installs directly when an older host has only its normal newest path", async ({ page }) => {
   await openVersionChoice(page, "version-legacy");
   await installAlpha(page).click();
+  await expect(page.getByRole("dialog", { name: /version|latest from creator/iu })).toHaveCount(0);
+  await expect(
+    page.getByText("Installed the latest version from the creator.", { exact: true }),
+  ).toBeVisible();
+});
 
-  const chooser = page.getByRole("dialog", { name: "Choose a version for Alpha" });
-  await expect(chooser.getByRole("button", { name: "Latest scanned" })).toBeDisabled();
-  await expect(chooser).toContainText("Update SillyTavern to use the latest scanned version.");
-  await expect(chooser.getByRole("button", { name: "Latest from creator" })).toBeEnabled();
+test("keeps legacy Kit review but removes fake version choices", async ({ page }) => {
+  await page.setViewportSize({ width: 512, height: 384 });
+  await openHarness(page, "kit-version-legacy");
+  await page.getByRole("button", { name: "Browse categories" }).click();
+  await page
+    .getByRole("group", { name: "Browse categories menu" })
+    .getByRole("button", { name: "Kits" })
+    .click();
+  await page.getByRole("tab", { name: /Personal/u }).click();
+  await page.getByRole("button", { name: "Install Kit" }).click();
+
+  const preflight = page.getByRole("dialog", { name: "Install Kit review" });
+  await expect(preflight).toContainText("Same Version");
+  await expect(preflight).toContainText("Different Version");
+  await expect(preflight).toContainText("No Check Yet");
+  await expect(preflight.getByRole("radio")).toHaveCount(0);
+  await expect(preflight).not.toContainText("Update SillyTavern");
+  await expect(preflight.getByRole("button", { name: "Install Kit" })).toBeEnabled();
 });
 
 test("keeps mixed Kit choices in one preflight list at 200% zoom", async ({ page }) => {

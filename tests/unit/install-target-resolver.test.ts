@@ -134,7 +134,7 @@ describe("install target resolver", () => {
     });
   });
 
-  it("uses legacy newest and disables checked only when catalog evidence shows a difference", async () => {
+  it("uses one executable newest target when a legacy host cannot install the scanned commit", async () => {
     const project = projectWithReport({ currentSha: newestSha });
     const host = createFakeHost({
       capabilities: {
@@ -145,13 +145,9 @@ describe("install target resolver", () => {
     });
     const resolver = createInstallTargetResolver({ host, snapshot: readySnapshot(project) });
 
-    await expect(resolver.prepare(project)).resolves.toMatchObject({
-      kind: "choose",
-      checked: {
-        target: { kind: "checked", requestedSha: checkedSha },
-        disabledReason: "Update SillyTavern to use the latest scanned version.",
-      },
-      newest: { kind: "newest", requestedSha: null, resolvedAt: null },
+    await expect(resolver.prepare(project)).resolves.toEqual({
+      kind: "single",
+      target: { kind: "newest", requestedSha: null, resolvedAt: null },
     });
   });
 

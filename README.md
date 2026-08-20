@@ -78,9 +78,7 @@ Sometimes TavernKeeper checked one version, but the creator has published a newe
 - **Latest scanned** is the exact version TavernKeeper looked at. The scan date and icon appear beside it.
 - **Latest from creator** is the newest version published by the creator. Newer changes may not have been scanned yet.
 
-If both choices are the same, Companion skips the extra question.
-
-If only the creator’s latest version can be installed and Companion cannot match it to the scan, a short note explains that before you continue.
+Companion shows this chooser only when SillyTavern can install both exact versions. If the host has only its normal creator-latest install path, clicking **Install** proceeds directly without a version popup.
 
 ## Build a Kit when you find a setup you like
 

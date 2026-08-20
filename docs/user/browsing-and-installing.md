@@ -43,7 +43,7 @@ Read the reason beside a disabled action. “Browse-only,” “Install contract
 
 *Choose the version yourself. Latest scanned is the version TavernKeeper examined. Latest from creator may include newer changes that have not been scanned yet.*
 
-If the two choices point to the same version, Companion skips the extra question. If only Latest from creator can be installed and its exact scan status is unknown, Companion shows a short note before continuing. If Latest scanned is no longer available, Companion stops instead of silently switching versions.
+Companion shows the chooser only when SillyTavern can install both exact versions. If there is only one executable version, clicking **Install** continues directly without a version popup. If a selected Latest scanned commit later becomes unavailable, Companion stops instead of silently switching versions.
 
 ## Add projects to a Kit
 

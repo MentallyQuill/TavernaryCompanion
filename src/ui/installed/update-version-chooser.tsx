@@ -169,6 +169,15 @@ export function UpdateVersionChooser({
   );
 }
 
+export function dispatchPreparedUpdateChoice(
+  choice: PreparedUpdateChoice,
+  onUpdate: (selection: PreparedUpdateSelection) => void,
+  onChoose: (choice: PreparedUpdateChoice) => void,
+): void {
+  if (choice.selections.length === 1) onUpdate(choice.selections[0]);
+  else onChoose(choice);
+}
+
 function positionChooser(anchor: DOMRect, chooser: DOMRect): preact.JSX.CSSProperties {
   const width = Math.min(360, Math.max(0, window.innerWidth - VIEWPORT_MARGIN * 2));
   const measuredWidth = Math.min(chooser.width || width, width);

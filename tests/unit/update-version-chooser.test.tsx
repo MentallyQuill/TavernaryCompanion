@@ -2,8 +2,12 @@ import { cleanup, fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { TavernKeeperCardStatus } from "../../src/catalog/catalog-core";
+import type { PreparedUpdateChoice } from "../../src/updates/update-coordinator";
 import type { PreparedUpdateSelection } from "../../src/updates/update-types";
-import { UpdateVersionChooser } from "../../src/ui/installed/update-version-chooser";
+import {
+  dispatchPreparedUpdateChoice,
+  UpdateVersionChooser,
+} from "../../src/ui/installed/update-version-chooser";
 
 afterEach(() => {
   cleanup();
@@ -187,5 +191,33 @@ describe("UpdateVersionChooser", () => {
     fireEvent.keyDown(document, { key: "Escape" });
     expect(onCancel).toHaveBeenCalledOnce();
     expect(updateButton).toHaveFocus();
+  });
+});
+
+describe("dispatchPreparedUpdateChoice", () => {
+  it("updates directly when there is only one executable target", () => {
+    const onUpdate = vi.fn();
+    const onChoose = vi.fn();
+    const only = selection("newest");
+    const choice: PreparedUpdateChoice = { notice: null, selections: [only] };
+
+    dispatchPreparedUpdateChoice(choice, onUpdate, onChoose);
+
+    expect(onUpdate).toHaveBeenCalledWith(only);
+    expect(onChoose).not.toHaveBeenCalled();
+  });
+
+  it("opens the chooser when both executable targets are available", () => {
+    const onUpdate = vi.fn();
+    const onChoose = vi.fn();
+    const choice: PreparedUpdateChoice = {
+      notice: null,
+      selections: [selection("checked"), selection("newest")],
+    };
+
+    dispatchPreparedUpdateChoice(choice, onUpdate, onChoose);
+
+    expect(onUpdate).not.toHaveBeenCalled();
+    expect(onChoose).toHaveBeenCalledWith(choice);
   });
 });

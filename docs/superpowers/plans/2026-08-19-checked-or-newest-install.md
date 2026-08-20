@@ -19,7 +19,7 @@
 - Never silently substitute Newest when Checked was selected.
 - A pinned install succeeds only after local `HEAD` exactly equals the selected 40-character SHA.
 - Existing managed records remain owned and normalize to `legacy-unknown` provenance.
-- Older SillyTavern hosts retain Newest installation and expose a plain disabled Checked explanation.
+- Older SillyTavern hosts retain direct Newest installation without exposing a fake version choice.
 - Individual and Kit installs use the same target and verification services.
 - Preserve Companion self-protection, operation locking, sanitized errors, and post-host rediscovery.
 
@@ -215,7 +215,7 @@ expect(await resolver.prepare(projectWithOlderReport)).toMatchObject({
 });
 ```
 
-Add legacy-host, malformed-report, missing-report, and failed-newest-lookup cases. Assert the exact legacy copy: `Update SillyTavern to use the checked version.`
+Add legacy-host, malformed-report, missing-report, and failed-newest-lookup cases. Assert that a legacy host produces one null-SHA Newest target and never exposes a disabled Checked choice.
 
 - [ ] **Step 2: Run the resolver tests and confirm failure**
 
@@ -235,7 +235,7 @@ export type InstallTargetChoice =
     };
 ```
 
-Use live host resolution on capable hosts. On legacy hosts, use a null-SHA Newest target and only expose the disabled Checked row when catalog evidence shows a difference. Do not catch a capable-host lookup failure into a legacy install.
+Use live host resolution on capable hosts. On legacy hosts, use a single null-SHA Newest target and bypass the chooser. Do not catch a capable-host lookup failure into a legacy install.
 
 - [ ] **Step 4: Run the resolver and existing lifecycle tests**
 
@@ -367,7 +367,7 @@ expect(screen.getByRole("button", { name: "Newest version" })).toHaveAccessibleD
 );
 ```
 
-Prove selection calls the exact target once, disabled Checked exposes the update sentence, unavailable Checked uses `That checked version isn't available anymore. You can choose the newest version or cancel.`, outside click and Escape close, focus returns to Install, and a single target bypasses the chooser. Prove the fallback broker resolves exactly once and cancellation returns `null`.
+Prove selection calls the exact target once, unavailable Checked uses `That checked version isn't available anymore. You can choose the newest version or cancel.`, outside click and Escape close, focus returns to Install, and every single target bypasses the chooser. Prove the fallback broker resolves exactly once and cancellation returns `null`.
 
 - [ ] **Step 2: Run UI tests and confirm missing-component failures**
 
@@ -490,7 +490,7 @@ git commit -m "feat(kits): choose install versions"
 
 - [ ] **Step 1: Add failing browser scenarios**
 
-Exercise divergent versions, matching versions, no scan, disabled Checked on a legacy host, Escape/focus restoration, touch choice, mobile clipping, 200% text, and Kit mixed selection. Assert the UI contains no default-view 40-character hashes and no prohibited safety claims.
+Exercise divergent versions on a capable host, matching versions, no scan, direct legacy installation, Escape/focus restoration, touch choice, mobile clipping, 200% text, and Kit mixed selection. Assert the UI contains no default-view 40-character hashes and no prohibited safety claims.
 
 - [ ] **Step 2: Run the new browser test and inspect the expected failure**
 

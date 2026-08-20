@@ -183,53 +183,6 @@
   place-items: center;
 }
 
-.tavernary-companion-install-version-chooser-backdrop.is-awareness {
-  display: grid;
-  padding: 8px;
-  background: rgb(0 0 0 / 32%);
-  backdrop-filter: blur(4px);
-  -webkit-backdrop-filter: blur(4px);
-  pointer-events: auto;
-  place-items: center;
-}
-
-.tavernary-companion-install-version-awareness {
-  position: static !important;
-  inline-size: min(360px, calc(100vw - 16px));
-}
-
-.tavernary-companion-install-version-awareness p {
-  margin: 0;
-  color: var(--tavernary-color-text-secondary);
-  font-size: 12px;
-}
-
-.tavernary-companion-install-version-awareness__actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 8px;
-  margin-block-start: 4px;
-}
-
-.tavernary-companion-install-version-awareness__actions button {
-  min-block-size: 36px;
-  padding: 7px 12px;
-  border: 1px solid var(--tavernary-color-control-border);
-  border-radius: 6px;
-  color: var(--tavernary-color-text-primary);
-  background: var(--tavernary-color-control-bg);
-}
-
-.tavernary-companion-install-version-awareness__actions button:hover {
-  border-color: var(--tavernary-color-border-hover);
-  background: var(--tavernary-color-bg-surface-hover);
-}
-
-.tavernary-companion-install-version-awareness__actions button:focus-visible {
-  outline: 2px solid var(--tavernary-color-focus-ring);
-  outline-offset: 2px;
-}
-
 .tavernary-companion-install-version-chooser
   > .tavernary-companion-install-version-chooser__cancel {
   min-block-size: 36px;

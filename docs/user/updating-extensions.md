@@ -34,9 +34,9 @@ Choose **Update** on the extension. Companion shows the versions that are actual
 - **Latest scanned** is the newest forward version TavernKeeper has scanned.
 - **Latest from creator** is the newest version published by the creator. Newer changes may not have been scanned yet.
 
-On a standard SillyTavern host, only **Latest from creator** may be available because that host does not accept a specific commit. Companion still checks that the installed extension changed before it reports success.
+On a standard SillyTavern host, only **Latest from creator** is executable because that host does not accept a specific commit. Clicking **Update** starts that update directly instead of opening a one-option chooser. Companion still checks that the installed extension changed before it reports success.
 
-If the latest scanned version is already installed, Companion does not ask you to install it again. It offers only a newer creator version, if one exists.
+If the latest scanned version is already installed and only a newer creator version is executable, Companion starts that single update directly.
 
 The choice is tied to the installed state Companion just checked. If the catalog or the extension changes before the update begins, Companion stops and asks you to check again.
 

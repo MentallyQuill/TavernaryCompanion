@@ -3,8 +3,6 @@ import type { CatalogProject } from "../catalog/catalog-core";
 import type { HostExtensionAdapter } from "../host/host-types";
 import { isFullCommitSha, type InstallTarget } from "./install-target";
 
-export const LEGACY_CHECKED_DISABLED_REASON =
-  "Update SillyTavern to use the latest scanned version.";
 export const NEWEST_LOOKUP_FAILED_REASON =
   "We couldn't find the latest version from the creator. Try again.";
 
@@ -59,7 +57,10 @@ class DefaultInstallTargetResolver implements InstallTargetResolver {
     const report = checkedTarget(currentProject);
     const capabilities = await this.#host.getInstallCapabilities();
     if (!capabilities.pinnedCommitInstall || !capabilities.remoteRevisionLookup) {
-      return legacyChoice(report, currentProject.tavernKeeper?.currentSha ?? null);
+      return {
+        kind: "single",
+        target: { kind: "newest", requestedSha: null, resolvedAt: null },
+      };
     }
 
     const newest = await this.#resolveNewest(currentProject);
@@ -162,31 +163,5 @@ function checkedTarget(
     checkedAt: report.scannedAt,
     reportId: report.reportId,
     reportUrl: report.reportUrl,
-  };
-}
-
-function legacyChoice(
-  checked: Extract<InstallTarget, { kind: "checked" }> | null,
-  catalogCurrentSha: string | null,
-): InstallTargetChoice {
-  const newest: Extract<InstallTarget, { kind: "newest" }> = {
-    kind: "newest",
-    requestedSha: null,
-    resolvedAt: null,
-  };
-  const normalizedCatalogCurrentSha =
-    typeof catalogCurrentSha === "string" ? catalogCurrentSha.toLowerCase() : null;
-  if (
-    !checked ||
-    !normalizedCatalogCurrentSha ||
-    !isFullCommitSha(normalizedCatalogCurrentSha) ||
-    checked.requestedSha === normalizedCatalogCurrentSha
-  ) {
-    return { kind: "single", target: newest };
-  }
-  return {
-    kind: "choose",
-    checked: { target: checked, disabledReason: LEGACY_CHECKED_DISABLED_REASON },
-    newest,
   };
 }

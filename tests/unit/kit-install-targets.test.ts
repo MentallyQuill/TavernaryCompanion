@@ -72,7 +72,7 @@ describe("Kit install targets", () => {
     expect(Object.isFrozen(prepared.install[0].targetChoice)).toBe(true);
   });
 
-  it("rejects missing, altered, disabled, or differently bound selections", async () => {
+  it("preselects the only executable target on a legacy host", async () => {
     const different = scannedProject("different", "Different", checkedSha);
     different.tavernKeeper!.currentSha = newestSha;
     const catalog = { ...catalogFixture(), projects: [different] };
@@ -98,8 +98,17 @@ describe("Kit install targets", () => {
       host,
     });
     const choice = prepared.install[0].targetChoice;
-    if (choice?.kind !== "choose") throw new Error("Expected a choice.");
-    const newest = [{ projectId: "different", target: choice.newest }];
+    expect(choice).toEqual({
+      kind: "single",
+      target: { kind: "newest", requestedSha: null, resolvedAt: null },
+    });
+    const newest = initialInstallTargetSelections(prepared);
+    expect(newest).toEqual([
+      {
+        projectId: "different",
+        target: { kind: "newest", requestedSha: null, resolvedAt: null },
+      },
+    ]);
     const binding = computeInstallTargetBinding(newest);
 
     expect(binding).toMatch(/^[0-9a-f]{64}$/u);
@@ -110,17 +119,15 @@ describe("Kit install targets", () => {
     expect(() =>
       validateInstallTargetApproval(
         prepared,
-        [{ projectId: "different", target: { ...choice.newest, requestedSha: newestSha } }],
+        [
+          {
+            projectId: "different",
+            target: { kind: "newest", requestedSha: newestSha, resolvedAt: null },
+          },
+        ],
         binding,
       ),
     ).toThrow(/target/i);
-    expect(() =>
-      validateInstallTargetApproval(
-        prepared,
-        [{ projectId: "different", target: choice.checked.target }],
-        computeInstallTargetBinding([{ projectId: "different", target: choice.checked.target }]),
-      ),
-    ).toThrow(/available/i);
     expect(() => validateInstallTargetApproval(prepared, newest, "changed-binding")).toThrow(
       /binding/i,
     );

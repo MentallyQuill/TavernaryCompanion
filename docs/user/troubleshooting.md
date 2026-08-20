@@ -59,7 +59,7 @@ After a successful check, Companion automatically cleans up old management infor
 
 - **Could not check:** choose **Retry**.
 - **Needs attention:** use SillyTavern's extension manager to inspect the repository, branch, history, or local files.
-- **Latest from creator only:** this host does not accept a specific TavernKeeper-scanned revision. Choose the creator’s latest version if you want to continue.
+- **Latest from creator only:** this host does not accept a specific TavernKeeper-scanned revision, so Companion uses the host’s normal creator-latest update path without opening a version chooser.
 - **Local changes:** Companion will not stash, reset, force, roll back, or downgrade your work.
 
 A catalog-matched extension installed outside Companion can sometimes update, but it stays external. Companion does not adopt it into a Kit or gain uninstall ownership.

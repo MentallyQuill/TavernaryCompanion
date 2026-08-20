@@ -182,10 +182,8 @@ export function dispatchPreparedInstallChoice(
   choice: PreparedInstallTargetChoice,
   onInstall: (selection: PreparedInstallSelection) => void,
   onChoose: (choice: VersionChoice) => void,
-  onAware: (selection: PreparedInstallSelection) => void,
 ): void {
   if (choice.kind === "choose") onChoose(choice);
-  else if (choice.selection.target.kind === "newest") onAware(choice.selection);
   else onInstall(choice.selection);
 }
 

@@ -1,8 +1,10 @@
-import { fireEvent, render, screen } from "@testing-library/preact";
-import { expect, it, vi } from "vitest";
+import { cleanup, fireEvent, render, screen } from "@testing-library/preact";
+import { afterEach, expect, it, vi } from "vitest";
 import type { KitPlan } from "../../src/kits/kit-plan";
 import { computeInstallTargetBinding } from "../../src/kits/kit-install-targets";
 import { KitPreflightDialog } from "../../src/ui/kits/kit-preflight-dialog";
+
+afterEach(cleanup);
 
 it("consolidates warnings, preserves review, and binds approval to the plan", () => {
   const confirm = vi.fn();
@@ -100,4 +102,54 @@ it("consolidates warnings, preserves review, and binds approval to the plan", ()
       installTargetBinding: computeInstallTargetBinding(selectedInstallTargets),
     }),
   );
+});
+
+it("reviews legacy installs without asking the player to choose an unavailable version", () => {
+  const confirm = vi.fn();
+  const plan: KitPlan = {
+    id: "legacy-plan",
+    operation: "install",
+    kitId: "legacy-kit",
+    catalogGeneratedAt: "2026-08-18T00:00:00.000Z",
+    catalogBinding: "legacy-catalog-binding",
+    inventoryFingerprint: "legacy-fp",
+    requiredProjectIds: ["alpha"],
+    actionableProjectIds: ["alpha"],
+    installTargetsPrepared: true,
+    install: [
+      {
+        projectId: "alpha",
+        projectName: "Alpha",
+        internalName: null,
+        targetChoice: {
+          kind: "single",
+          target: { kind: "newest", requestedSha: null, resolvedAt: null },
+        },
+      },
+    ],
+    enable: [],
+    disable: [],
+    remove: [],
+    alreadyManaged: [],
+    externalContext: [],
+    contextOnly: [],
+    keptForOtherKits: [],
+    warnings: [],
+    blockingIssues: [],
+    reloadRequired: true,
+  };
+
+  render(
+    <KitPreflightDialog
+      plan={plan}
+      onCancel={() => undefined}
+      onReview={() => undefined}
+      onConfirm={confirm}
+    />,
+  );
+
+  expect(screen.getByText("Companion will install the versions shown below.")).toBeVisible();
+  expect(screen.getByText("SillyTavern will install the creator’s current version.")).toBeVisible();
+  expect(screen.queryByRole("radio")).not.toBeInTheDocument();
+  expect(screen.getByRole("button", { name: "Install Kit" })).toBeEnabled();
 });

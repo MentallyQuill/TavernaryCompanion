@@ -10,7 +10,7 @@ TavernKeeper examines a specific version of a project. That check is useful evid
 
 *A project can be unscanned. Read the result instead of treating an empty or gray state as approval.*
 
-If a project has a scan, open the result when you want more detail. If Companion shows a short note, read it before continuing. You can cancel at any time.
+If a project has a scan, open the result when you want more detail. You can cancel any disclosure or warning before Companion changes the installation.
 
 ## Read the first-install disclosure
 
@@ -26,14 +26,14 @@ Choose **I understand** only when you have read the message and want to continue
 
 ## Latest scanned or Latest from creator?
 
-When TavernKeeper checked an older version and the creator has published something newer, Companion gives you a choice:
+When TavernKeeper checked an older version, the creator has published something newer, and SillyTavern can install exact commits, Companion gives you a choice:
 
 - **Latest scanned:** the exact version TavernKeeper examined. It has a scan date and a scan-result icon you can hover, focus, click, or tap.
 - **Latest from creator:** the newest version published by the creator. Its newer changes may not have been scanned yet.
 
 Neither choice is automatically better. Choose the one that fits what you want to try.
 
-Companion does not switch versions by itself. If Latest scanned is no longer available, it stops and lets you choose Latest from creator or cancel. If only Latest from creator is available and Companion cannot match it to a scan, a short note explains that before installation.
+Companion does not switch versions by itself. If Latest scanned is no longer available, it stops and lets you choose Latest from creator or cancel. On a standard host that can install only the creator’s current branch, Companion skips version selection and starts the normal install flow directly.
 
 ## Who controls an extension?
 

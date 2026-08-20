@@ -176,28 +176,6 @@ describe("InstallVersionChooser", () => {
     expect(screen.queryByRole("button", { name: /TavernKeeper scan:/u })).not.toBeInTheDocument();
   });
 
-  it("explains an older SillyTavern without changing the Newest choice", () => {
-    const installButton = anchor();
-    render(
-      <InstallVersionChooser
-        projectId="alpha"
-        projectName="Alpha"
-        anchor={installButton}
-        choice={choice("Update SillyTavern to use the latest scanned version.")}
-        onSelect={vi.fn()}
-        onCancel={vi.fn()}
-      />,
-    );
-
-    const checked = screen.getByRole("button", { name: "Latest scanned" });
-    expect(checked).toBeDisabled();
-    expect(checked).toHaveAccessibleDescription(
-      "Scanned Aug 17 · older than latest. Update SillyTavern to use the latest scanned version.",
-    );
-    expect(screen.getByText("Update SillyTavern to use the latest scanned version.")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Latest from creator" })).toBeEnabled();
-  });
-
   it("uses the approved sentence when the checked version disappeared", () => {
     const installButton = anchor();
     const unavailable =
@@ -270,20 +248,18 @@ describe("InstallVersionChooser", () => {
 });
 
 describe("dispatchPreparedInstallChoice", () => {
-  it("routes a newest-only target through gentle awareness", () => {
+  it("installs a newest-only target directly when there is no version choice", () => {
     const onInstall = vi.fn();
     const onChoose = vi.fn();
-    const onAware = vi.fn();
     const single: PreparedInstallTargetChoice = {
       kind: "single",
       selection: selection("newest"),
     };
 
-    dispatchPreparedInstallChoice(single, onInstall, onChoose, onAware);
+    dispatchPreparedInstallChoice(single, onInstall, onChoose);
 
-    expect(onInstall).not.toHaveBeenCalled();
+    expect(onInstall).toHaveBeenCalledWith(single.selection);
     expect(onChoose).not.toHaveBeenCalled();
-    expect(onAware).toHaveBeenCalledWith(single.selection);
   });
 
   it("lets Escape close scan results before dismissing the chooser", () => {
@@ -340,15 +316,13 @@ describe("dispatchPreparedInstallChoice", () => {
 
   it("keeps a single exact scanned target direct", () => {
     const onInstall = vi.fn();
-    const onAware = vi.fn();
     const single: PreparedInstallTargetChoice = {
       kind: "single",
       selection: selection("checked"),
     };
 
-    dispatchPreparedInstallChoice(single, onInstall, vi.fn(), onAware);
+    dispatchPreparedInstallChoice(single, onInstall, vi.fn());
 
     expect(onInstall).toHaveBeenCalledWith(single.selection);
-    expect(onAware).not.toHaveBeenCalled();
   });
 });

@@ -189,8 +189,6 @@ test("card body and title open the repository while nested controls keep their o
   expect(installHit.cursor).toBe("pointer");
   await page.mouse.click(installHit.x, installHit.y);
   expect(await repositoryClicks(page)).toBe(2);
-  await expect(page.getByRole("dialog", { name: "Install latest from creator?" })).toBeVisible();
-  await page.getByRole("button", { name: "Install latest" }).click();
   await expect(
     page.getByRole("dialog", { name: "Third-party extension disclosure" }),
   ).toBeVisible();

@@ -31,7 +31,7 @@ async function main() {
     scenario === "version-matching" ||
     scenario === "version-unscanned" ||
     scenario === "version-legacy";
-  const kitVersionScenario = scenario === "kit-version-choice";
+  const kitVersionScenario = scenario === "kit-version-choice" || scenario === "kit-version-legacy";
   if (scenario === "launcher") {
     const toolbar = document.createElement("div");
     toolbar.dataset.sillyTavernLauncherFixture = "";
@@ -355,7 +355,8 @@ async function main() {
       ? catalog.projects.filter(({ id }) => id === "alpha")
       : [];
   const capableVersionHost =
-    (individualVersionScenario && scenario !== "version-legacy") || kitVersionScenario;
+    (individualVersionScenario && scenario !== "version-legacy") ||
+    (kitVersionScenario && scenario !== "kit-version-legacy");
   const writerProject = catalog.projects.find(({ id }) => id === "writer-tool")!;
   const writerInstalledSha = scenario === "installed-update-both" ? "b".repeat(40) : "c".repeat(40);
   const writerUpdateAvailable =

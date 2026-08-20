@@ -20,10 +20,15 @@ export function KitVersionChoices({
 }): preact.JSX.Element | null {
   if (!steps.length) return null;
   const selected = new Map(selections.map((selection) => [selection.projectId, selection.target]));
+  const hasVersionChoice = steps.some((step) => step.targetChoice?.kind === "choose");
   return (
     <section class="tavernary-companion-kit-version-choices" aria-labelledby="kit-versions-heading">
       <h3 id="kit-versions-heading">Install</h3>
-      <p>Choose a version for each project that has two options.</p>
+      <p>
+        {hasVersionChoice
+          ? "Choose a version for each project that has two options."
+          : "Companion will install the versions shown below."}
+      </p>
       {steps.map((step) => (
         <ProjectVersionChoice
           key={step.projectId}
@@ -116,7 +121,8 @@ function targetLabel(target: InstallTarget): string {
 }
 
 function targetDescription(target: InstallTarget): string {
-  return target.kind === "checked"
-    ? scannedVersionDescription(target.checkedAt, false)
+  if (target.kind === "checked") return scannedVersionDescription(target.checkedAt, false);
+  return target.requestedSha === null
+    ? "SillyTavern will install the creator’s current version."
     : LATEST_CREATOR_DESCRIPTION;
 }
