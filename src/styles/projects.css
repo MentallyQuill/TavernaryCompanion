@@ -1991,7 +1991,7 @@
 
 .tavernary-companion-installed-grid {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 12px;
 }
 
@@ -2118,9 +2118,12 @@
 
 .tavernary-companion-installed-card h4 {
   margin: 8px 0 5px;
+  overflow: hidden;
   color: var(--tavernary-color-heading);
   font-size: 15px;
   line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .tavernary-companion-installed-card h4 a {

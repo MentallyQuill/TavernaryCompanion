@@ -99,7 +99,9 @@ async function main() {
       index === 0
         ? "Alpha"
         : index === 1
-          ? "Writer Tool"
+          ? scenario === "installed-long-name"
+            ? "SillyTavern Extension With An Intentionally Long Installed Name"
+            : "Writer Tool"
           : index === 2
             ? "Beta Preset"
             : index === 3

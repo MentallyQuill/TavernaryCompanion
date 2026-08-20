@@ -2,6 +2,47 @@ import { expect, test } from "@playwright/test";
 
 import { openHarness } from "./harness";
 
+test("Installed uses four desktop columns when its content width permits them", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openHarness(page);
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Installed" })
+    .click();
+
+  const grid = page.locator(".tavernary-companion-installed-grid").first();
+  const columns = await grid.evaluate((element) =>
+    getComputedStyle(element).gridTemplateColumns.trim().split(/\s+/u),
+  );
+  expect(columns).toHaveLength(4);
+  expect(await grid.evaluate((element) => element.scrollWidth <= element.clientWidth)).toBe(true);
+});
+
+test("Installed clips extension names that exceed their card width", async ({ page }) => {
+  await page.setViewportSize({ width: 1280, height: 720 });
+  await openHarness(page, "installed-long-name");
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Installed" })
+    .click();
+
+  const title = page.getByRole("heading", {
+    name: "SillyTavern Extension With An Intentionally Long Installed Name",
+  });
+  await expect(title).toHaveCSS("overflow", "hidden");
+  await expect(title).toHaveCSS("text-overflow", "ellipsis");
+  await expect(title).toHaveCSS("white-space", "nowrap");
+  expect(
+    await title.evaluate((element) => ({
+      clientWidth: element.clientWidth,
+      scrollWidth: element.scrollWidth,
+    })),
+  ).toMatchObject({ clientWidth: expect.any(Number), scrollWidth: expect.any(Number) });
+  expect(await title.evaluate((element) => element.scrollWidth > element.clientWidth)).toBe(true);
+});
+
 test("Installed groups Kits and lets extensions be enabled and restored from cards", async ({
   page,
 }) => {
