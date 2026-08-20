@@ -715,9 +715,7 @@ test("desktop Installed content starts on the compact route rhythm", async ({ pa
 
   const route = page.locator(".tavernary-companion-installed-route");
   const firstGroup = route
-    .locator(
-      "> .tavernary-companion-installed-kits, > .tavernary-companion-installed-section",
-    )
+    .locator("> .tavernary-companion-installed-kits, > .tavernary-companion-installed-section")
     .first();
   const [routeBox, firstGroupBox] = await Promise.all([
     route.boundingBox(),
@@ -746,9 +744,7 @@ test("desktop Installed refresh status preserves the compact route rhythm", asyn
     element.insertBefore(status, element.lastElementChild);
   });
   const firstGroup = route
-    .locator(
-      "> .tavernary-companion-installed-kits, > .tavernary-companion-installed-section",
-    )
+    .locator("> .tavernary-companion-installed-kits, > .tavernary-companion-installed-section")
     .first();
   const [routeBox, firstGroupBox] = await Promise.all([
     route.boundingBox(),
