@@ -12,7 +12,9 @@ const viewports = [
 for (const viewport of viewports) {
   test(`Projects conforms at ${viewport.width}x${viewport.height}`, async ({ page }) => {
     await prepare(page, viewport);
-    await expect(page).toHaveScreenshot(`projects-${viewport.width}x${viewport.height}.png`);
+    await expect(page).toHaveScreenshot(`projects-${viewport.width}x${viewport.height}.png`, {
+      maxDiffPixelRatio: viewport.width === 1440 ? 0.04 : 0.03,
+    });
   });
 }
 

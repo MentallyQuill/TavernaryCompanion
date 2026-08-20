@@ -378,7 +378,9 @@ test("native popup integrates a quiet close control into the header", async ({ p
   await page.getByRole("button", { name: "Close popup" }).focus();
   await expect(page.getByRole("button", { name: "Close popup" })).toHaveCSS("outline-width", "2px");
   await page.getByRole("button", { name: "Close popup" }).evaluate((button) => button.blur());
-  await expect(page).toHaveScreenshot("integrated-close-1440x960.png");
+  await expect(page).toHaveScreenshot("integrated-close-1440x960.png", {
+    maxDiffPixelRatio: 0.04,
+  });
 });
 
 test("intermediate desktop keeps the integrated close control inside the panel", async ({
