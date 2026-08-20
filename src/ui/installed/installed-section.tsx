@@ -99,9 +99,9 @@ function InstalledCard({
   onToggleSelection?: (projectId: string) => void;
 }): preact.JSX.Element {
   const unknown =
-    (sectionId === "ambiguous" ||
-      sectionId === "unknown" ||
-      row.action.kind === "manage-in-sillytavern");
+    sectionId === "ambiguous" ||
+    sectionId === "unknown" ||
+    row.action.kind === "manage-in-sillytavern";
   return (
     <article
       class={`tavernary-companion-installed-card is-installed${row.enabled === false ? " is-disabled" : ""}${selected ? " is-selected" : ""}`}

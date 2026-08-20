@@ -12821,22 +12821,41 @@ function extensionIdentity2(extension) {
 }
 async function discoverAndPruneManagedRecords({
   host,
-  store
+  store,
+  canPrune = () => true
 }) {
   const observedManaged = normalizeManagedExtensionMap(store.read().managedExtensions);
   const extensions = await host.discover();
+  if (!canPrune()) return extensions;
   const observedRegistry = new ManagedRegistry(observedManaged);
-  if (observedRegistry.pruneAbsent(extensions).length === 0) return extensions;
+  const absentProjectIds = observedRegistry.pruneAbsent(extensions);
+  if (absentProjectIds.length === 0) return extensions;
   const confirmedExtensions = await host.discover();
-  await pruneAbsentManagedRecords({ observedManaged, hostExtensions: confirmedExtensions, store });
+  if (!canPrune()) return confirmedExtensions;
+  await pruneAbsentManagedRecords({
+    candidateProjectIds: absentProjectIds,
+    observedManaged,
+    hostExtensions: confirmedExtensions,
+    store,
+    canPrune
+  });
   return confirmedExtensions;
 }
 async function pruneAbsentManagedRecords({
+  candidateProjectIds,
   observedManaged,
   hostExtensions,
-  store
+  store,
+  canPrune
 }) {
-  const observedRegistry = new ManagedRegistry(observedManaged);
+  if (!canPrune()) return [];
+  const observedCandidates = Object.fromEntries(
+    candidateProjectIds.flatMap((projectId) => {
+      const record2 = observedManaged[projectId];
+      return record2 ? [[projectId, record2]] : [];
+    })
+  );
+  const observedRegistry = new ManagedRegistry(observedCandidates);
   const absentProjectIds = observedRegistry.pruneAbsent(hostExtensions);
   if (absentProjectIds.length === 0) return [];
   const currentBeforeUpdate = normalizeManagedExtensionMap(store.read().managedExtensions);
@@ -12845,8 +12864,10 @@ async function pruneAbsentManagedRecords({
     return observed && sameManagedRecord(currentBeforeUpdate[projectId], observed);
   });
   if (removableProjectIds.length === 0) return [];
+  if (!canPrune()) return [];
   const removedProjectIds = [];
   await store.update((draft) => {
+    if (!canPrune()) return;
     const currentRegistry = new ManagedRegistry(
       normalizeManagedExtensionMap(draft.managedExtensions)
     );
@@ -22498,7 +22519,11 @@ function CompanionPopupHost({
     setOperationError(null);
     setInventoryRefreshing(true);
     try {
-      const extensions = await discoverAndPruneManagedRecords({ host, store });
+      const extensions = await discoverAndPruneManagedRecords({
+        host,
+        store,
+        canPrune: () => runtime.lifecycle.lock.read() === null
+      });
       const snapshot = runtime.catalog.read();
       const inventory = await reconcileHostInventory({
         projects: "catalog" in snapshot ? snapshot.catalog.projects : [],

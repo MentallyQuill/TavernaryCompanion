@@ -269,7 +269,11 @@ export function CompanionPopupHost({
     setOperationError(null);
     setInventoryRefreshing(true);
     try {
-      const extensions = await discoverAndPruneManagedRecords({ host, store });
+      const extensions = await discoverAndPruneManagedRecords({
+        host,
+        store,
+        canPrune: () => runtime.lifecycle.lock.read() === null,
+      });
       const snapshot = runtime.catalog.read();
       const inventory = await reconcileHostInventory({
         projects: "catalog" in snapshot ? snapshot.catalog.projects : [],

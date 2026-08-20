@@ -1,6 +1,6 @@
 import { expect, it, vi } from "vitest";
 
-import type { HostExtension } from "../../src/host/host-types";
+import type { HostExtension, HostExtensionAdapter } from "../../src/host/host-types";
 import { discoverAndPruneManagedRecords } from "../../src/inventory/inventory-reconciler";
 import type { ManagedExtensionRecord } from "../../src/inventory/inventory-types";
 import { ProfileStore } from "../../src/state/profile-store";
@@ -20,6 +20,13 @@ const installedStory: HostExtension = {
   enabled: true,
   type: "local",
   manifest: { display_name: "Story Engine" },
+};
+
+const otherRecord: ManagedExtensionRecord = {
+  ...storyRecord,
+  projectId: "other",
+  internalName: "third-party/Other",
+  folderName: "Other",
 };
 
 async function createStore(record: ManagedExtensionRecord = storyRecord) {
@@ -86,6 +93,46 @@ it("retains an extension reinstalled between absence detection and confirmation"
   expect(store.read().managedExtensions).toHaveProperty("story-engine");
   expect(saveSettings).not.toHaveBeenCalled();
   expect(discover).toHaveBeenCalledTimes(2);
+});
+
+it("only prunes identities absent from both discovery snapshots", async () => {
+  const { saveSettings, store } = await createStore();
+  await store.update((draft) => {
+    draft.managedExtensions[otherRecord.projectId] = otherRecord;
+  });
+  saveSettings.mockClear();
+  const host = createFakeHost();
+  vi.spyOn(host, "discover").mockResolvedValueOnce([installedStory]).mockResolvedValueOnce([]);
+
+  await expect(discoverAndPruneManagedRecords({ host, store })).resolves.toEqual([]);
+
+  expect(store.read().managedExtensions).toHaveProperty("story-engine");
+  expect(store.read().managedExtensions).not.toHaveProperty("other");
+  expect(saveSettings).toHaveBeenCalledOnce();
+});
+
+it("skips pruning when a lifecycle mutation starts during confirmation", async () => {
+  const { saveSettings, store } = await createStore();
+  const host = createFakeHost();
+  let lifecycleIdle = true;
+  vi.spyOn(host, "discover")
+    .mockResolvedValueOnce([])
+    .mockImplementationOnce(async () => {
+      lifecycleIdle = false;
+      return [];
+    });
+  const discoverWithLifecycleGuard = discoverAndPruneManagedRecords as (input: {
+    host: HostExtensionAdapter;
+    store: ProfileStore;
+    canPrune: () => boolean;
+  }) => Promise<HostExtension[]>;
+
+  await expect(
+    discoverWithLifecycleGuard({ host, store, canPrune: () => lifecycleIdle }),
+  ).resolves.toEqual([]);
+
+  expect(store.read().managedExtensions).toHaveProperty("story-engine");
+  expect(saveSettings).not.toHaveBeenCalled();
 });
 
 it("retains a record rewritten while discovery is in flight", async () => {
