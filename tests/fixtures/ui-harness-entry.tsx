@@ -555,6 +555,7 @@ async function main() {
     kitExecutor,
     kitContext,
     inventoryRefresh,
+    kitPresentation: { inspectors: {}, installedKits: [] },
   };
 
   const root = document.createElement("div");

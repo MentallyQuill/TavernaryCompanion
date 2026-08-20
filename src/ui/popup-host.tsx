@@ -128,6 +128,12 @@ export interface PopupRuntime {
   kitExecutor: KitExecutor;
   kitContext: { inventory: InventorySnapshot };
   inventoryRefresh: InventoryRefreshCoordinator;
+  kitPresentation: KitPresentationSnapshot;
+}
+
+interface KitPresentationSnapshot {
+  inspectors: Record<string, KitInspectorViewModel>;
+  installedKits: InstalledKitViewModel[];
 }
 
 const emptyInventory = { managed: [], external: [], unknown: [], missingManaged: [] };
@@ -212,8 +218,12 @@ export function CompanionPopupHost({
   const [kitDraftOrigin, setKitDraftOrigin] = useState<"installed-selection" | null>(null);
   const [pendingAddToKitIds, setPendingAddToKitIds] = useState<string[] | null>(null);
   const [kitBuilderCollapsed, setKitBuilderCollapsed] = useState(true);
-  const [kitInspectors, setKitInspectors] = useState<Record<string, KitInspectorViewModel>>({});
-  const [installedKitCards, setInstalledKitCards] = useState<InstalledKitViewModel[]>([]);
+  const [kitInspectors, setKitInspectors] = useState<Record<string, KitInspectorViewModel>>(
+    runtime?.kitPresentation.inspectors ?? {},
+  );
+  const [installedKitCards, setInstalledKitCards] = useState<InstalledKitViewModel[]>(
+    runtime?.kitPresentation.installedKits ?? [],
+  );
   const [installedSelection, setInstalledSelection] =
     useState<InstalledSelectionState>(EMPTY_INSTALLED_SELECTION);
   const [operationError, setOperationError] = useState<string | null>(null);
@@ -265,6 +275,10 @@ export function CompanionPopupHost({
       personal: runtime.kits.readDefinitions(),
       statuses: presentation.statuses,
     });
+    runtime.kitPresentation = {
+      inspectors: presentation.inspectors,
+      installedKits: presentation.installedKits,
+    };
     setKitInspectors(presentation.inspectors);
     setInstalledKitCards(presentation.installedKits);
     setInstalledSelection((current) =>
@@ -1020,6 +1034,7 @@ export function createPopupRuntime(
     discovery.setInventory(inventory);
     updates.invalidate();
   });
+  const kitPresentation: KitPresentationSnapshot = { inspectors: {}, installedKits: [] };
   return {
     catalog,
     discovery,
@@ -1032,6 +1047,7 @@ export function createPopupRuntime(
     kitExecutor,
     kitContext,
     inventoryRefresh,
+    kitPresentation,
   };
 }
 

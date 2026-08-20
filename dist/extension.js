@@ -22423,8 +22423,12 @@ function CompanionPopupHost({
   const [kitDraftOrigin, setKitDraftOrigin] = d2(null);
   const [pendingAddToKitIds, setPendingAddToKitIds] = d2(null);
   const [kitBuilderCollapsed, setKitBuilderCollapsed] = d2(true);
-  const [kitInspectors, setKitInspectors] = d2({});
-  const [installedKitCards, setInstalledKitCards] = d2([]);
+  const [kitInspectors, setKitInspectors] = d2(
+    runtime?.kitPresentation.inspectors ?? {}
+  );
+  const [installedKitCards, setInstalledKitCards] = d2(
+    runtime?.kitPresentation.installedKits ?? []
+  );
   const [installedSelection, setInstalledSelection] = d2(EMPTY_INSTALLED_SELECTION);
   const [operationError, setOperationError] = d2(null);
   const [preparingInstall, setPreparingInstall] = d2(false);
@@ -22461,6 +22465,10 @@ function CompanionPopupHost({
       personal: runtime.kits.readDefinitions(),
       statuses: presentation.statuses
     });
+    runtime.kitPresentation = {
+      inspectors: presentation.inspectors,
+      installedKits: presentation.installedKits
+    };
     setKitInspectors(presentation.inspectors);
     setInstalledKitCards(presentation.installedKits);
     setInstalledSelection(
@@ -23150,6 +23158,7 @@ function createPopupRuntime(store, host) {
     discovery.setInventory(inventory);
     updates.invalidate();
   });
+  const kitPresentation = { inspectors: {}, installedKits: [] };
   return {
     catalog,
     discovery,
@@ -23161,7 +23170,8 @@ function createPopupRuntime(store, host) {
     kitDiscovery,
     kitExecutor,
     kitContext,
-    inventoryRefresh
+    inventoryRefresh,
+    kitPresentation
   };
 }
 function parseReceipt(value) {

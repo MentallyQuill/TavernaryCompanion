@@ -51,6 +51,11 @@ test("Installed retains confirmed inventory across popup remounts", async ({ pag
     .getByRole("button", { name: "Installed" });
   await installed.click();
   await expect(page.getByText("1 installed extension")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Writer's Kit" })).toBeVisible();
+  await expect(page.getByText("In Writer's Kit")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Select 1 installed extension from Writer's Kit" }),
+  ).toBeVisible();
   await expect(page.getByText("Updating installed extensions…")).toHaveCount(0);
 
   await page.evaluate(() => {
@@ -59,6 +64,11 @@ test("Installed retains confirmed inventory across popup remounts", async ({ pag
   if ((await installed.getAttribute("aria-pressed")) !== "true") await installed.click();
 
   await expect(page.getByText("1 installed extension")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Writer's Kit" })).toBeVisible();
+  await expect(page.getByText("In Writer's Kit")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Select 1 installed extension from Writer's Kit" }),
+  ).toBeVisible();
   await expect(page.getByText("Updating installed extensions…")).toBeVisible();
   await expect(page.getByText("Loading installed extensions…")).toHaveCount(0);
 
@@ -67,6 +77,8 @@ test("Installed retains confirmed inventory across popup remounts", async ({ pag
   });
   await expect(page.getByText("Updating installed extensions…")).toHaveCount(0);
   await expect(page.getByText("1 installed extension")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Writer's Kit" })).toBeVisible();
+  await expect(page.getByText("In Writer's Kit")).toBeVisible();
 });
 
 test("Installed uses four desktop columns when its content width permits them", async ({
