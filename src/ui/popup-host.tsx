@@ -28,6 +28,14 @@ import {
   type InstallTargetFallbackRequest,
 } from "../lifecycle/install-target-fallback-broker";
 import { HostRevisionUnavailableError } from "../host/host-errors";
+import {
+  BulkRemovalPlanChangedError,
+  executeBulkRemoval,
+  parseBulkRemovalReceipt,
+  prepareBulkRemoval,
+  type BulkRemovalPlan,
+  type BulkRemovalReceipt,
+} from "../lifecycle/bulk-removal";
 import type { RemovalImpact } from "../lifecycle/removal-impact";
 import { assertNotCompanionProject, COMPANION_PROJECT_ID } from "../lifecycle/self-protection";
 import { TrustPromptBroker, type PendingTrustPrompt } from "../lifecycle/trust-prompt-broker";
@@ -88,6 +96,8 @@ import {
   toggleInstalledProject,
   type InstalledSelectionState,
 } from "./installed/installed-selection";
+import { BulkRemovalDialog } from "./lifecycle/bulk-removal-dialog";
+import { createRuntimeId } from "../runtime-id";
 
 interface CompanionPopupHostProps {
   store?: ProfileStore;
@@ -164,6 +174,9 @@ export function CompanionPopupHost({
   const [receipt, setReceipt] = useState<LifecycleReceipt | null>(
     parseReceipt(store?.read().operationReceipt),
   );
+  const [bulkRemovalReceipt, setBulkRemovalReceipt] = useState<BulkRemovalReceipt | null>(
+    parseBulkRemovalReceipt(store?.read().operationReceipt),
+  );
   const [updateSnapshot, setUpdateSnapshot] = useState<ExtensionUpdateSnapshot>(
     runtime?.updates.read() ?? { states: {} },
   );
@@ -171,6 +184,11 @@ export function CompanionPopupHost({
     parseKitReceipt(store?.read().operationReceipt),
   );
   const [pendingKitPlan, setPendingKitPlan] = useState<Readonly<KitPlan> | null>(null);
+  const [pendingBulkRemovalPlan, setPendingBulkRemovalPlan] = useState<BulkRemovalPlan | null>(
+    null,
+  );
+  const [preparingBulkRemoval, setPreparingBulkRemoval] = useState(false);
+  const bulkRemovalInProgress = useRef(false);
   const [kitDisclosurePlan, setKitDisclosurePlan] = useState<Readonly<KitPlan> | null>(null);
   const [kitDraft, setKitDraft] = useState<KitDraftState | null>(null);
   const [kitDraftOrigin, setKitDraftOrigin] = useState<"installed-selection" | null>(null);
@@ -280,7 +298,10 @@ export function CompanionPopupHost({
     const unsubscribeUpdates = runtime.updates.subscribe(setUpdateSnapshot);
     const unsubscribePrompts = runtime.prompts.subscribe(setPendingPrompt);
     const unsubscribeStore = store?.subscribe((state) => {
-      setReceipt(parseReceipt(state.operationReceipt));
+      if (!bulkRemovalInProgress.current) {
+        setReceipt(parseReceipt(state.operationReceipt));
+        setBulkRemovalReceipt(parseBulkRemovalReceipt(state.operationReceipt));
+      }
       setKitReceipt(parseKitReceipt(state.operationReceipt));
       void syncKits();
     });
@@ -317,6 +338,56 @@ export function CompanionPopupHost({
     setOperationError(null);
     await runtime.updates.checkAll();
   }, [runtime]);
+
+  const requestBulkRemoval = async (projectIds: readonly string[]) => {
+    if (!runtime || projectIds.length === 0) return;
+    setOperationError(null);
+    setPreparingBulkRemoval(true);
+    try {
+      setPendingBulkRemovalPlan(await prepareBulkRemoval(runtime.lifecycle, projectIds));
+    } catch {
+      setOperationError("Could not review the selected extensions for uninstall.");
+    } finally {
+      setPreparingBulkRemoval(false);
+    }
+  };
+
+  const runBulkRemoval = async (plan: BulkRemovalPlan) => {
+    if (!runtime || !store) return;
+    setPendingBulkRemovalPlan(null);
+    setPreparingBulkRemoval(true);
+    setOperationError(null);
+    setReceipt(null);
+    setBulkRemovalReceipt(null);
+    bulkRemovalInProgress.current = true;
+    try {
+      const result = await executeBulkRemoval(runtime.lifecycle, plan, createRuntimeId);
+      bulkRemovalInProgress.current = false;
+      await store.update((draft) => {
+        draft.operationReceipt = structuredClone(result);
+      });
+      setBulkRemovalReceipt(result);
+      await refreshInventory();
+      const selectable = new Set(selectableInstalledProjectIds(runtime));
+      const retryableProjectIds = result.retryableProjectIds.filter((id) => selectable.has(id));
+      setInstalledSelection(
+        retryableProjectIds.length
+          ? { active: true, projectIds: retryableProjectIds, sourceKitIds: [] }
+          : clearInstalledSelection(),
+      );
+    } catch (error) {
+      bulkRemovalInProgress.current = false;
+      if (error instanceof BulkRemovalPlanChangedError) {
+        await refreshInventory();
+        setOperationError("Installed state changed. Review the bulk uninstall again.");
+      } else {
+        setOperationError("The bulk uninstall could not finish.");
+      }
+    } finally {
+      bulkRemovalInProgress.current = false;
+      setPreparingBulkRemoval(false);
+    }
+  };
 
   const executeInstallSelection = async (
     projectId: string,
@@ -622,6 +693,7 @@ export function CompanionPopupHost({
             setPendingAddToKitIds([...installedSelection.projectIds]);
           }
         }}
+        onUninstallInstalledSelection={() => void requestBulkRemoval(installedSelection.projectIds)}
         onForgetMissingManaged={(projectId) => void forgetMissingManaged(projectId)}
         onProjectAction={(projectId, action, anchor) => void runAction(projectId, action, anchor)}
         onOpenExtensionManager={() => void host?.openExtensionManager()}
@@ -635,7 +707,8 @@ export function CompanionPopupHost({
           pendingInstallChoice !== null ||
           pendingUpdateChoice !== null ||
           pendingInstallFallback !== null ||
-          preparingKitPlan
+          preparingKitPlan ||
+          preparingBulkRemoval
         }
         kitDiscovery={runtime?.kitDiscovery}
         kitInspectors={kitInspectors}
@@ -714,6 +787,13 @@ export function CompanionPopupHost({
           kits={runtime.kits.readDefinitions()}
           onChoose={chooseAddToKitTarget}
           onCancel={() => setPendingAddToKitIds(null)}
+        />
+      ) : null}
+      {pendingBulkRemovalPlan ? (
+        <BulkRemovalDialog
+          plan={pendingBulkRemovalPlan}
+          onCancel={() => setPendingBulkRemovalPlan(null)}
+          onConfirm={() => void runBulkRemoval(pendingBulkRemovalPlan)}
         />
       ) : null}
       {kitDisclosurePlan ? (
@@ -824,6 +904,7 @@ export function CompanionPopupHost({
       <OperationTray
         active={activeOperation?.operationId.startsWith("kit:") ? null : activeOperation}
         receipt={receipt}
+        bulkRemovalReceipt={bulkRemovalReceipt}
         error={operationError}
         onDismissReceipt={() => {
           if (receipt) void clearStoredReceipt(store, receipt.id);
@@ -832,6 +913,14 @@ export function CompanionPopupHost({
         onDismissError={() => setOperationError(null)}
         onRetryError={() => void refreshInventory()}
         onReload={() => host?.reload()}
+        onRetryBulkRemoval={(projectIds) => {
+          setInstalledSelection({ active: true, projectIds, sourceKitIds: [] });
+          void requestBulkRemoval(projectIds);
+        }}
+        onDismissBulkRemoval={() => {
+          if (bulkRemovalReceipt) void clearStoredReceipt(store, bulkRemovalReceipt.id);
+          setBulkRemovalReceipt(null);
+        }}
       />
       <KitOperationTray
         active={activeOperation}

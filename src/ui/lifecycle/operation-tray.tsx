@@ -2,25 +2,33 @@ import type { ActiveOperation } from "../../lifecycle/operation-lock";
 import type { LifecycleReceipt } from "../../lifecycle/operation-receipt";
 import { OperationReceipt } from "./operation-receipt";
 import { OperationSuccessNotification } from "./operation-success-notification";
+import type { BulkRemovalReceipt } from "../../lifecycle/bulk-removal";
+import { BulkRemovalReceiptView } from "./bulk-removal-receipt";
 
 interface OperationTrayProps {
   active: ActiveOperation | null;
   receipt: LifecycleReceipt | null;
+  bulkRemovalReceipt?: BulkRemovalReceipt | null;
   error?: string | null;
   onDismissReceipt?(): void;
   onDismissError?(): void;
   onRetryError?(): void;
   onReload?(): void;
+  onRetryBulkRemoval?(projectIds: string[]): void;
+  onDismissBulkRemoval?(): void;
 }
 
 export function OperationTray({
   active,
   receipt,
+  bulkRemovalReceipt,
   error,
   onDismissReceipt,
   onDismissError,
   onRetryError,
   onReload,
+  onRetryBulkRemoval,
+  onDismissBulkRemoval,
 }: OperationTrayProps): preact.JSX.Element | null {
   if (error) {
     return (
@@ -46,6 +54,16 @@ export function OperationTray({
         <span class="tavernary-companion-operation-tray__indicator" aria-hidden="true" />
         <p>{phaseLabel(active.phase)}</p>
       </aside>
+    );
+  }
+  if (bulkRemovalReceipt) {
+    return (
+      <BulkRemovalReceiptView
+        receipt={bulkRemovalReceipt}
+        onRetryFailed={(projectIds) => onRetryBulkRemoval?.(projectIds)}
+        onDismiss={() => onDismissBulkRemoval?.()}
+        onReload={() => onReload?.()}
+      />
     );
   }
   if (receipt) {
