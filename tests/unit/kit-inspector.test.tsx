@@ -77,6 +77,39 @@ it("offers duplicate and safe removal for saved personal Kits", () => {
   expect(remove).toHaveBeenCalledOnce();
 });
 
+it("offers removal without uninstalling an installed personal Kit", () => {
+  const remove = vi.fn();
+  const uninstall = vi.fn();
+  render(
+    <KitInspector
+      kit={{
+        id: "kit",
+        title: "Writer",
+        description: "Tools",
+        origin: "personal",
+        originLabel: "Personal Kit",
+        componentCount: 1,
+        flaggedCount: 0,
+        supporterCount: null,
+        operationalStatus: "Installed",
+        primaryAction: { kind: "activate", label: "Activate" },
+        editable: true,
+        components: [],
+      }}
+      onAction={() => undefined}
+      onRemove={remove}
+      onUninstall={uninstall}
+    />,
+  );
+
+  const removeButton = screen.getByRole("button", { name: "Remove Kit, keep extensions" });
+  expect(removeButton).toBeEnabled();
+  fireEvent.click(removeButton);
+  fireEvent.click(screen.getByRole("button", { name: "Uninstall Kit" }));
+  expect(remove).toHaveBeenCalledOnce();
+  expect(uninstall).toHaveBeenCalledOnce();
+});
+
 it("shows old and current membership while reviewing a published topology change", () => {
   render(
     <KitInspector

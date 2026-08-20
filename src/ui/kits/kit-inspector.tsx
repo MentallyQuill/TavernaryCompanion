@@ -81,15 +81,15 @@ export function KitInspector({
         {kit.editable ? (
           <button
             type="button"
-            disabled={disabled || kit.operationalStatus !== "Saved"}
+            disabled={disabled}
             title={
               kit.operationalStatus === "Saved"
                 ? undefined
-                : "Uninstall this Kit before removing its saved definition."
+                : "Remove this Kit while keeping its extensions installed."
             }
             onClick={onRemove}
           >
-            Remove saved Kit
+            {kit.operationalStatus === "Saved" ? "Remove saved Kit" : "Remove Kit, keep extensions"}
           </button>
         ) : null}
         {kit.operationalStatus !== "Saved" ? (
