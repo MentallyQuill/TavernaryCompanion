@@ -24,12 +24,7 @@ export function KitOperationTray({
   if (receipt)
     return (
       <aside class="tavernary-companion-kit-operation-tray">
-        <KitReceipt
-          receipt={receipt}
-          onDismiss={onDismiss}
-          onReload={onReload}
-          onRetry={onRetry}
-        />
+        <KitReceipt receipt={receipt} onDismiss={onDismiss} onReload={onReload} onRetry={onRetry} />
       </aside>
     );
   return null;

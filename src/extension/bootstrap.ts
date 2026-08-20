@@ -57,7 +57,7 @@ async function performBootstrap(
   let saveSettings: () => Promise<void>;
   try {
     [host, saveSettings] = await Promise.all([
-      context.host ?? (context.hostFactory?.() ?? createSillyTavernRuntimeHost(context)),
+      context.host ?? context.hostFactory?.() ?? createSillyTavernRuntimeHost(context),
       resolveImmediateSettingsSave(context),
     ]);
   } catch (error) {

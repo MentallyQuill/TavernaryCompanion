@@ -130,13 +130,7 @@ export class KitExecutor {
             );
             break;
           case "uninstall":
-            receipt = await this.#uninstall(
-              plan,
-              journal,
-              previousActiveKitId,
-              setPhase,
-              progress,
-            );
+            receipt = await this.#uninstall(plan, journal, previousActiveKitId, setPhase, progress);
             break;
           default:
             throw new Error("Unsupported Kit operation.");

@@ -77,10 +77,7 @@ describe("Kit planner", () => {
         external: [{ project: external, extension: extension("External", true) }],
       },
       managed,
-      installedKits: [
-        installed("a", ["shared", "final", "external"]),
-        installed("b", ["shared"]),
-      ],
+      installedKits: [installed("a", ["shared", "final", "external"]), installed("b", ["shared"])],
       activeKitId: null,
       catalogCanMutate: true,
     });

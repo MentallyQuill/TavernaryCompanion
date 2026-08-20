@@ -5,13 +5,10 @@ import { ProfileStore } from "../../src/state/profile-store";
 
 function createStore() {
   const extensionSettings: Record<string, unknown> = {};
-  return new KitStore(
-    new ProfileStore({ extensionSettings, saveSettings: () => undefined }),
-    {
-      uuid: () => "018f6f42-7142-7a1f-9b52-9d3a7d548120",
-      now: () => "2026-08-18T12:00:00.000Z",
-    },
-  );
+  return new KitStore(new ProfileStore({ extensionSettings, saveSettings: () => undefined }), {
+    uuid: () => "018f6f42-7142-7a1f-9b52-9d3a7d548120",
+    now: () => "2026-08-18T12:00:00.000Z",
+  });
 }
 
 describe("KitStore", () => {

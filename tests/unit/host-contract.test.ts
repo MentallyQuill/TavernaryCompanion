@@ -302,7 +302,10 @@ it("retries update support discovery after a transient response", async () => {
   };
 
   await expect(host.inspectUpdate(input)).rejects.toMatchObject({ status: 503 });
-  await expect(host.inspectUpdate(input)).resolves.toMatchObject({ installedSha, newestSha: remoteSha });
+  await expect(host.inspectUpdate(input)).resolves.toMatchObject({
+    installedSha,
+    newestSha: remoteSha,
+  });
   expect(fetchMock).toHaveBeenCalledTimes(2);
 });
 
