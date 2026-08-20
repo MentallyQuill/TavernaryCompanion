@@ -59,7 +59,7 @@ The first install, not the first open, carries the one-time unsandboxed-code dis
 
 ### Build and switch Kits
 
-1. The user opens Kits and chooses a published Kit, copies one, imports one, or creates a personal Kit.
+1. The user chooses a published Kit, copies one, or creates a personal Kit through the Kit Builder.
 2. The Kit inspector distinguishes context projects from eligible lifecycle targets.
 3. **Activate Kit** presents one consolidated plan.
 4. Progress is visible by project without repeated prompts.

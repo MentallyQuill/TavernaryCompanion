@@ -2,6 +2,12 @@
 
 This roadmap coordinates Tavernary's catalog foundation with Tavernary Companion's V1 extension. It is the sequencing and status authority. The [master design](../superpowers/specs/2026-08-18-tavernary-companion-design.md) remains authoritative for product scope and security; the [UX design index](../design/README.md) remains authoritative for user-facing behavior.
 
+> **Current Kit surface (2026-08-20):** The original plans below record implementation history.
+> The current release deliberately creates Personal Kits through the Kit Builder rail or
+> Projects/Installed selection, does not expose a **New Kit** toolbar action or Kit import, and
+> retains export. Current design and player documentation supersede historical plan steps where
+> those surfaces differ.
+
 ## Execution model
 
 - Implement plans in numeric order unless a plan explicitly identifies a safe fixture-backed parallel path.
@@ -29,7 +35,7 @@ This roadmap coordinates Tavernary's catalog foundation with Tavernary Companion
 | 4 | [Responsive shell and catalog UI](04-responsive-shell-and-catalog-ui.md) | Phase 3 view models | Desktop/mobile shell and complete browse experience | Verified |
 | 5 | [Project lifecycle and trust](05-project-lifecycle-and-trust.md) | Phases 2–4 | Verified install/remove flow, warnings, receipts, self-protection | Verified |
 | 6 | [Kit domain and operations](06-kit-domain-and-operations.md) | Phase 5 lifecycle services | Stored Kits, planning, staged activation, reference-safe removal | Verified |
-| 7 | [Kit experience and portability](07-kit-experience-and-portability.md) | Phase 6 | Kit browsing/editor, import/export, published-copy workflow | Verified |
+| 7 | [Kit experience and portability](07-kit-experience-and-portability.md) | Phase 6 | Kit browsing/editor, export, published-copy workflow | Verified |
 | 8 | [Integration, release, and live proof](08-integration-release-and-live-proof.md) | Phases 1–7 | Full gates, installed artifact, responsive acceptance, Pages proof | In progress |
 | 9 | [Tavernary brand alignment](../superpowers/plans/2026-08-18-tavernary-brand-alignment.md) | Phase 8 rendered review | Exact Tavernary brand system, native-popup containment, bounded rendering, installed visual proof | In progress |
 
@@ -90,7 +96,7 @@ This roadmap coordinates Tavernary's catalog foundation with Tavernary Companion
 ### Phase 7 — Kit experience and portability
 
 - Companion source commit: `433bc60`.
-- Published and personal Kit browsing, compact filters, inspectors, personal editing, preflight review, progress, receipts, strict JSON import/export, and copy-to-personal behavior are implemented.
+- Published and personal Kit browsing, compact filters, inspectors, Kit Builder editing, preflight review, progress, receipts, JSON export, and copy-to-personal behavior are implemented.
 - Tavernary Companion is excluded from Kit membership. The local schema retains V2 publication provenance fields without exposing submission UI or transport.
 - Desktop and mobile Kit actions passed at 1024x768 and 390x844 as part of the 17-test browser gate, including fast-switcher deactivation, shared-member preservation, failure, and interrupted recovery.
 
@@ -114,7 +120,7 @@ Tavernary install evidence + schema 7
   -> responsive browse shell
   -> individual lifecycle/trust
   -> Kit planner/executor
-  -> Kit UI/import/export
+  -> Kit UI/export
   -> installed and deployed acceptance
 ```
 
@@ -148,7 +154,7 @@ The Companion may use committed schema-7 fixtures while Phase 1 publication is p
 
 - Owns the extension manifest and bundle, catalog transport/cache, SillyTavern adapter, profile state, lifecycle policy, Kit state machine, UI, and release artifact.
 - Vendors CatalogCore only through the locked sync command. Runtime network code never loads JavaScript or schemas as executable compatibility updates.
-- Treats all catalog data and imported Kit JSON as untrusted.
+- Treats all catalog data and stored Kit definitions as untrusted.
 
 ## Global implementation constraints
 

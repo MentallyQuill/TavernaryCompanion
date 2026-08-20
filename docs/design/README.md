@@ -10,7 +10,7 @@ The master design is normative for product scope, security, ownership, and accep
 2. [Responsive Shell and Visual System](02-responsive-shell-and-visual-system.md) — overlay anatomy, desktop/mobile geometry, visual language, motion, and accessibility.
 3. [Catalog Discovery](03-catalog-discovery.md) — search, filters, sorting, cards, details, and exploration beyond SillyTavern.
 4. [Project Lifecycle and Trust](04-project-lifecycle-and-trust.md) — installation, removal, managed ownership, warnings, self-protection, and operation feedback.
-5. [Kits](05-kits.md) — personal and published Kits, creation, switching, installation state, import/export, and partial failure.
+5. [Kits](05-kits.md) — personal and published Kits, builder creation, switching, installation state, export, and partial failure.
 6. [Catalog Refresh and Recovery](06-catalog-refresh-and-recovery.md) — automatic/manual refresh, cache, offline use, schema changes, and Companion update handoff.
 7. [V2 Kit Submission](07-v2-kit-submission.md) — planned submission-readiness model and future GitHub review journey without adding V2 code to V1.
 8. [Tavernary Brand Alignment](08-tavernary-brand-alignment.md) — exact Tavernary brand authority, tokens, component grammar, and installed-host visual acceptance.

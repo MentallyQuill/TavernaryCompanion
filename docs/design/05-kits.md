@@ -4,6 +4,10 @@
 
 Kits should make an extension setup feel like a named configuration the user can understand, carry, and switch—not a blind batch installer. A Kit has a definition, an installed state, and optionally an active state. Companion makes those states visible and changes them only after a reviewable plan succeeds.
 
+> **Current release decision (2026-08-20):** Personal Kit creation starts from the persistent Kit
+> Builder rail or a Projects/Installed selection. The Kits toolbar does not expose **New Kit** or
+> Kit import. Export remains available from a saved Personal Kit.
+
 ## Core mental model
 
 - **Saved** means the Kit definition exists.
@@ -28,15 +32,9 @@ Catalog refresh may update a published Kit definition. Companion compares the ne
 
 ### Personal Kits
 
-Personal Kits are profile-local and editable. Users may create, rename, duplicate, edit, import, export, remove, install, activate, deactivate, and uninstall them.
+Personal Kits are profile-local and editable. Users may create, rename, duplicate, edit, export, remove, install, activate, deactivate, and uninstall them.
 
-A new V1 personal Kit targets SillyTavern and begins with the SillyTavern frontend as a context component. The member picker emphasizes eligible SillyTavern extensions. Copied or imported Kits may preserve presets and other browse-only projects as context, clearly separated from actionable extensions.
-
-### Imported Kits
-
-Import validates the portable format version, canonical project IDs, local UUID collision, self-protection, duplicates, and basic text/ordering integrity before showing a preview. The user chooses **Import as new Kit**; Companion does not overwrite an existing Kit from an untrusted file.
-
-Unknown or no-longer-published project IDs are preserved only when the format is valid and shown as unavailable context. Tavernary Companion's own project ID causes a specific rejection rather than silent removal.
+A new V1 personal Kit targets SillyTavern and begins with the SillyTavern frontend as a context component. Members are added from Projects or Installed. Copied Kits may preserve presets and other browse-only projects as context, clearly separated from actionable extensions.
 
 ## Kits route
 
@@ -67,10 +65,10 @@ Every component shows why it belongs to its group. The inspector includes the pr
 
 ### Create flow
 
-1. Choose **New Kit**.
+1. Open the **Kit Builder** rail, or begin by selecting members in Projects or Installed.
 2. Enter title and optional description.
 3. SillyTavern appears as the fixed target frontend context.
-4. Add eligible extensions from search results or the installed inventory.
+4. Add eligible extensions from Projects or the installed inventory.
 5. Reorder members for human meaning; lifecycle execution still uses dependency-safe phases rather than visual order.
 6. Review context-only and unavailable members.
 7. Save locally.
@@ -161,11 +159,9 @@ The receipt groups:
 
 Successful clones are not rolled back. A **Retry incomplete actions** button creates a fresh preflight using current catalog and host state.
 
-## Import and export
+## Export
 
 Export writes a portable, human-inspectable JSON document containing format version, local identity, title, description, target frontend, ordered canonical project IDs, timestamps, and origin. It excludes host folders, tokens, operation receipts, enabled state, and management records.
-
-Import preview explains unavailable IDs and format compatibility before saving. Future local-format versions use the same last-known-good rule as catalog schemas: unsupported files are rejected without altering saved Kits.
 
 ## Approach
 
@@ -178,4 +174,4 @@ KitStore owns definitions. ManagedExtensionRegistry owns lifecycle authority. Ki
 - External extensions are visible but untouched by every Kit operation.
 - Shared managed extensions survive uninstall of one Kit.
 - A failed activation leaves the previous Kit active and produces a retryable receipt.
-- Portable JSON round-trips without machine-specific or sensitive data.
+- Exported JSON contains no machine-specific or sensitive data.

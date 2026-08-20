@@ -20,7 +20,7 @@ V1 manages only verified SillyTavern extensions. Presets and projects for other 
 - Default discovery to the SillyTavern frontend and extension/preset kinds while allowing users to explore all frontends and project kinds.
 - Offer one-control installation and removal for eligible SillyTavern extensions after required trust and risk disclosures.
 - Offer explicit exact-version updates for catalog-matched local extensions without changing external ownership.
-- Save, import, export, install, activate, deactivate, uninstall, and switch personal or published Kits.
+- Save, export, install, activate, deactivate, uninstall, and switch personal or published Kits.
 - Protect extensions installed outside Companion from Kit-driven changes.
 - Refresh the living Tavernary catalog several times per day without releasing Companion.
 - Work wherever the standard SillyTavern extension contract works, including compatible forks, without host-name detection or fork-specific branches.
@@ -63,7 +63,7 @@ The public catalog and shared core are prerequisites for live Companion catalog 
 - The SillyTavern overlay and all responsive interaction behavior.
 - Installed-extension discovery and lifecycle requests.
 - Companion-managed extension ownership.
-- Personal Kit persistence, import, export, and operational state.
+- Personal Kit persistence, export, and operational state.
 - Kit planning, preflight, sequential execution, failure receipts, and reload coordination.
 - Trust disclosures and install-time assessment warnings.
 
@@ -73,7 +73,7 @@ The public catalog and shared core are prerequisites for live Companion catalog 
 - **CatalogCore:** Git-sourced, pure headless Tavernary code for schema types, validation, search, query parsing, filtering, sorting, and Kit selection.
 - **HostExtensionAdapter:** wraps the standard SillyTavern discovery, install, delete, enable, and disable interfaces. It does not inspect host branding.
 - **ManagedExtensionRegistry:** records which catalog projects the user explicitly placed under Companion management.
-- **KitStore:** stores profile-local Kit definitions and import/export metadata.
+- **KitStore:** stores profile-local Kit definitions, export metadata, and operational state.
 - **KitPlanner:** compares the requested Kit with current installed, enabled, managed, and Kit-reference state and produces a read-only plan.
 - **KitExecutor:** executes an approved plan sequentially, preserves the active Kit until a commit point, records outcomes, and coordinates one reload.
 - **CompanionShell:** owns the popup lifecycle, navigation, rendering, focus, history, and responsive geometry.
@@ -178,7 +178,7 @@ Companion's canonical Tavernary project ID is a constant shared by UI, validatio
 - Its card says **Current extension** and offers only **View project** and **Manage in SillyTavern**.
 - Install, uninstall, enable, disable, and managed-ownership operations are rejected at the service layer.
 - Personal Kit builders cannot add Companion.
-- Kit imports containing Companion are rejected with a specific validation error.
+- Stored Kit definitions containing Companion are rejected with a specific validation error.
 - If an externally published Tavernary Kit contains Companion, it is treated as already satisfied context and excluded from all operations.
 
 ## Kit model and behavior
@@ -187,9 +187,9 @@ Companion's canonical Tavernary project ID is a constant shared by UI, validatio
 
 Personal Kits are stored in the current SillyTavern user profile. Catalog cache data is public and may use IndexedDB; personal Kits, trust acknowledgement, active/installed Kit identities, and the managed registry use profile-scoped extension settings.
 
-The portable Kit document contains a local format version, local UUID, title, description, ordered canonical Tavernary project IDs, target frontend, creation/update timestamps, and origin (`local`, `imported`, or copied Tavernary Kit ID). It never contains host paths, credentials, enabled state, operation history, or other machine-specific data.
+The portable Kit document contains a local format version, local UUID, title, description, ordered canonical Tavernary project IDs, target frontend, creation/update timestamps, and origin metadata. Legacy imported origins remain readable, but the current public workflow is export-only. The document never contains host paths, credentials, enabled state, operation history, or other machine-specific data.
 
-Published Tavernary Kits are read-only. Users may install or activate them directly and may copy them into editable personal Kits. Personal Kits support rename, edit, duplicate, import, export, and remove.
+Published Tavernary Kits are read-only. Users may install or activate them directly and may copy them into editable personal Kits. Personal Kits support creation through the Kit Builder, rename, edit, duplicate, export, and remove.
 
 ### Operations
 

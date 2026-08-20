@@ -1,5 +1,9 @@
 # Kit Experience and Portability Implementation Plan
 
+> **Historical plan:** This file records the originally delivered V1 scope. The current release
+> decision supersedes its **New Kit** toolbar and import steps: creation now starts from the Kit
+> Builder rail or Projects/Installed selection, Kit import is not exposed, and export remains.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Deliver the complete V1 Kit browsing, creation, editing, switching, import, export, and recovery experience over the verified Kit domain services.

@@ -6,7 +6,7 @@ A Kit is a list, not a copy of the extension files.
 
 ## Personal Kits and Published Kits
 
-- **Personal Kit:** yours to create, rename, edit, duplicate, import, export, activate, and remove.
+- **Personal Kit:** yours to create, rename, edit, duplicate, export, activate, and remove.
 - **Published Kit:** a read-only Kit from the Tavernary catalog. You can inspect it, use it, or copy it into your Personal Kits.
 
 Copying a Published Kit makes a local snapshot. Later catalog changes do not silently change your copy.
@@ -33,9 +33,10 @@ Removing a member does not delete the Kit. It changes the Kit's status so you ca
 
 ## Make a Personal Kit
 
-1. Open **Kits** and choose **New Kit**.
-2. Give it a name and, if you want, a description.
-3. Add eligible SillyTavern extensions.
+1. Open the **Kit Builder** rail.
+2. Give the Kit a name and, if you want, a description.
+3. Add eligible extensions from **Projects**, or select extensions in **Installed** and choose
+   **Add to Kit**.
 4. Review context-only, unavailable, or externally installed members.
 5. Save the Kit.
 
@@ -70,13 +71,13 @@ Open **Installed** and choose an Installed Kit. Companion selects the members fr
 
 Shared members are counted once. A selection is only a temporary choice; it does not change Kit membership until you save the Kit.
 
-## Import and export
+## Export
 
-You can export a Personal Kit to a JSON file and import it on another account or SillyTavern install.
+You can export a Personal Kit to a JSON file from its details. The export is a portable record of
+the saved Kit definition; it does not include installed state, enabled state, receipts, or host
+folders.
 
-When you import, Companion previews the file first. It counts available, actionable, context-only, and unavailable members. An invalid file is rejected instead of being applied.
-
-Importing creates a new Personal Kit. It does not overwrite one you already have.
+Companion does not expose Kit JSON import in the current public workflow.
 
 ## Uninstall a Kit
 

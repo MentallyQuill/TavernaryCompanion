@@ -1,5 +1,8 @@
 # Integration, Release, and Live Proof Implementation Plan
 
+> **Historical plan:** Kit-import acceptance below records the original delivery scope. The current
+> public release deliberately does not expose Kit import, so it is not a current acceptance gate.
+
 > **For agentic workers:** REQUIRED SUB-SKILL: Use superpowers:subagent-driven-development (recommended) or superpowers:executing-plans to implement this plan task-by-task. Steps use checkbox (`- [ ]`) syntax for tracking.
 
 **Goal:** Prove the exact Tavernary deployment and exact Companion release artifact satisfy V1 behavior in isolated SillyTavern desktop and mobile contexts.
