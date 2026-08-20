@@ -474,6 +474,22 @@ describe("ProjectCard", () => {
     expect(remove.querySelector('svg[data-kit-glyph="remove"]')).not.toBeNull();
   });
 
+  it("omits the visible Kit caption from compact controls without changing their accessible action", () => {
+    render(
+      <ProjectCard
+        project={project()}
+        density="compact"
+        onAction={vi.fn()}
+        onToggleKitSelection={vi.fn()}
+      />,
+    );
+
+    const add = screen.getByRole("button", { name: "Add Alpha to Kit" });
+    expect(
+      add.querySelector(".tavernary-companion-project-kit-control__face > small"),
+    ).toBeNull();
+  });
+
   it("uses Tavernary's exact hover and focus tooltip contract", () => {
     Object.defineProperty(window, "matchMedia", {
       configurable: true,

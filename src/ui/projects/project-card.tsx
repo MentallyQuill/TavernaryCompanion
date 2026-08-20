@@ -252,6 +252,7 @@ export function ProjectCard({
                 projectId={project.id}
                 projectName={project.displayName}
                 selected={selectedForKit}
+                compact={density === "compact"}
                 onToggle={onToggleKitSelection}
               />
             ) : null}

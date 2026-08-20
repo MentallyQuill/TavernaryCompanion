@@ -168,11 +168,40 @@ test("project disclosure, density, sort, and first card follow Tavernary's toolb
   expect(firstCard!.y - (sort!.y + sort!.height)).toBeLessThanOrEqual(16);
 
   const standardHeight = firstCard!.height;
+  const standardInstall = await page
+    .getByRole("button", { name: "Install Alpha" })
+    .boundingBox();
+  const standardKit = await page
+    .getByRole("button", { name: "Add Alpha to Kit" })
+    .boundingBox();
+  expect(standardInstall).not.toBeNull();
+  expect(standardKit).not.toBeNull();
   await densityControl.click();
   const standardDensityControl = toolbar.getByRole("button", { name: "Use standard cards" });
   await expect(standardDensityControl).toHaveAttribute("aria-pressed", "true");
   await expect(page.locator(".tavernary-companion-project-results")).toHaveClass(/is-compact/u);
-  await expect(page.getByRole("button", { name: "Install Alpha" })).toBeVisible();
+  const compactCard = page.locator(
+    '.tavernary-companion-project-card[data-project-id="alpha"]',
+  );
+  const compactLicense = compactCard.locator(".tavernary-companion-license");
+  const compactInstallControl = page.getByRole("button", { name: "Install Alpha" });
+  const compactKitControl = page.getByRole("button", { name: "Add Alpha to Kit" });
+  await expect(compactLicense).toBeVisible();
+  await expect(compactInstallControl).toBeVisible();
+  await expect(compactKitControl.locator("small")).toHaveCount(0);
+  const compactLicenseBox = await compactLicense.boundingBox();
+  const compactInstall = await compactInstallControl.boundingBox();
+  const compactKit = await compactKitControl.boundingBox();
+  expect(compactLicenseBox).not.toBeNull();
+  expect(compactInstall).not.toBeNull();
+  expect(compactKit).not.toBeNull();
+  expect(compactInstall!.width).toBeCloseTo(standardInstall!.width / 2, 0);
+  expect(compactInstall!.height).toBeCloseTo(standardInstall!.height / 2, 0);
+  expect(compactKit!.width).toBeCloseTo(standardKit!.width / 2, 0);
+  expect(compactKit!.height).toBeCloseTo(standardKit!.height / 2, 0);
+  expect(compactInstall!.x).toBeGreaterThan(
+    compactLicenseBox!.x + compactLicenseBox!.width,
+  );
   await standardDensityControl.evaluate((button) => button.blur());
   await page.mouse.move(0, 0);
   await expect(page.getByRole("tooltip")).toHaveCount(0);
