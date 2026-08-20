@@ -2,7 +2,7 @@ import type { CatalogSnapshot } from "../catalog/catalog-client";
 import { parseInstallContract, type CatalogProject } from "../catalog/catalog-core";
 import { HostRevisionUnavailableError } from "../host/host-errors";
 import type { HostExtensionAdapter } from "../host/host-types";
-import { reconcileInventory } from "../inventory/inventory-reconciler";
+import { reconcileHostInventory } from "../inventory/inventory-reconciler";
 import { ManagedRegistry, normalizeManagedExtensionMap } from "../inventory/managed-registry";
 import { createRuntimeId } from "../runtime-id";
 import type { ProfileStore } from "../state/profile-store";
@@ -180,8 +180,9 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
       const registry = new ManagedRegistry(
         normalizeManagedExtensionMap(this.#store.read().managedExtensions),
       );
-      const inventory = reconcileInventory({
+      const inventory = await reconcileHostInventory({
         projects: catalog?.projects ?? [],
+        host: this.#host,
         hostExtensions: before,
         managed: registry.read(),
       });
@@ -252,8 +253,9 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
       const executionRegistry = new ManagedRegistry(
         normalizeManagedExtensionMap(this.#store.read().managedExtensions),
       );
-      const executionInventory = reconcileInventory({
+      const executionInventory = await reconcileHostInventory({
         projects: executionCatalog?.projects ?? [],
+        host: this.#host,
         hostExtensions: executionBefore,
         managed: executionRegistry.read(),
       });
@@ -413,8 +415,9 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
       });
     }
     const hostExtensions = await this.#host.discover();
-    const inventory = reconcileInventory({
+    const inventory = await reconcileHostInventory({
       projects: catalog?.projects ?? [],
+      host: this.#host,
       hostExtensions,
       managed: normalizeManagedExtensionMap(this.#store.read().managedExtensions),
     });
@@ -466,8 +469,9 @@ class DefaultLifecycleCoordinator implements LifecycleCoordinator {
       const registry = new ManagedRegistry(
         normalizeManagedExtensionMap(this.#store.read().managedExtensions),
       );
-      const inventory = reconcileInventory({
+      const inventory = await reconcileHostInventory({
         projects: catalog?.projects ?? [],
+        host: this.#host,
         hostExtensions: before,
         managed: registry.read(),
       });

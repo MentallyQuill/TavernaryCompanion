@@ -6,7 +6,7 @@ import { createDiscoveryController } from "../catalog/discovery-controller";
 import { createIndexedDbCatalogCache } from "../catalog/indexeddb-catalog-cache";
 import type { ProjectPrimaryAction } from "../catalog/project-view-model";
 import type { HostExtensionAdapter } from "../host/host-types";
-import { reconcileInventory } from "../inventory/inventory-reconciler";
+import { reconcileHostInventory } from "../inventory/inventory-reconciler";
 import type { InventorySnapshot } from "../inventory/inventory-types";
 import { normalizeManagedExtensionMap } from "../inventory/managed-registry";
 import { forgetMissingManagedRecord } from "../inventory/missing-managed-record";
@@ -270,8 +270,9 @@ export function CompanionPopupHost({
     try {
       const extensions = await host.discover();
       const snapshot = runtime.catalog.read();
-      const inventory = reconcileInventory({
+      const inventory = await reconcileHostInventory({
         projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
+        host,
         hostExtensions: extensions,
         managed: normalizeManagedExtensionMap(store.read().managedExtensions),
       });
@@ -1026,9 +1027,9 @@ export function createPopupRuntime(
     getInventoryFingerprint: async () => {
       const snapshot = catalog.read();
       if (!("catalog" in snapshot)) throw new Error("A compatible catalog is required.");
-      const inventory = reconcileInventory({
+      const inventory = await reconcileHostInventory({
         projects: snapshot.catalog.projects,
-        hostExtensions: await host.discover(),
+        host,
         managed: normalizeManagedExtensionMap(store.read().managedExtensions),
       });
       kitContext.inventory = inventory;

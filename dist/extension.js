@@ -6967,6 +6967,41 @@ var SillyTavernHostAdapter = class {
     }
     return structuredClone(await this.#installCapabilities);
   }
+  async readExtensionRepositoryUrl(input) {
+    let response;
+    try {
+      response = await this.#dependencies.fetch("/api/extensions/version", {
+        method: "POST",
+        headers: this.#dependencies.getRequestHeaders(),
+        body: JSON.stringify({
+          extensionName: input.internalName.replace(/^third-party\//, ""),
+          global: input.type === "global"
+        })
+      });
+    } catch (cause) {
+      throw new HostOperationError(
+        "discover",
+        "SillyTavern could not read the installed extension repository.",
+        { cause }
+      );
+    }
+    if (!response.ok) {
+      throw await responseError(
+        "discover",
+        "SillyTavern could not read the installed extension repository.",
+        response
+      );
+    }
+    const body = await readJsonObject(response, "discover");
+    if (body.remoteUrl === "" || body.remoteUrl === null) return null;
+    if (typeof body.remoteUrl !== "string") {
+      throw new HostOperationError(
+        "discover",
+        "SillyTavern returned invalid installed extension repository evidence."
+      );
+    }
+    return parseRepositoryUrl(body.remoteUrl, "discover");
+  }
   async #requestInstallCapabilities() {
     let response;
     try {
@@ -11849,24 +11884,20 @@ function toInstalledSectionViewModel(inventory) {
       }))
     },
     {
+      id: "ambiguous",
+      title: "Multiple matches in current catalog",
+      rows: unknownRows(
+        inventory.unknown.filter(({ reason }) => reason === "ambiguous-folder"),
+        "Multiple Tavernary projects use this extension folder, and Companion could not verify which repository is installed."
+      )
+    },
+    {
       id: "unknown",
       title: "Not found in current catalog",
-      rows: inventory.unknown.map(({ extension }) => ({
-        id: extension.internalName,
-        name: typeof extension.manifest?.display_name === "string" ? extension.manifest.display_name : extension.folderName,
-        detail: extension.internalName,
-        internalName: extension.internalName,
-        canonicalUrl: null,
-        enabled: extension.enabled,
-        toggleable: canToggle(extension.internalName, extension.internalName),
-        action: {
-          kind: "manage-in-sillytavern",
-          label: "Manage in SillyTavern",
-          reason: "No unambiguous Tavernary project identity."
-        },
-        selectionEligible: false,
-        selectionDisabledReason: "No unambiguous Tavernary project identity."
-      }))
+      rows: unknownRows(
+        inventory.unknown.filter(({ reason }) => reason === "folder-not-in-catalog"),
+        "No Tavernary project uses this extension folder."
+      )
     },
     {
       id: "attention",
@@ -11889,6 +11920,24 @@ function toInstalledSectionViewModel(inventory) {
       }))
     }
   ];
+}
+function unknownRows(entries, reason) {
+  return entries.map(({ extension }) => ({
+    id: extension.internalName,
+    name: typeof extension.manifest?.display_name === "string" ? extension.manifest.display_name : extension.folderName,
+    detail: extension.internalName,
+    internalName: extension.internalName,
+    canonicalUrl: null,
+    enabled: extension.enabled,
+    toggleable: canToggle(extension.internalName, extension.internalName),
+    action: {
+      kind: "manage-in-sillytavern",
+      label: "Manage in SillyTavern",
+      reason
+    },
+    selectionEligible: false,
+    selectionDisabledReason: "No unambiguous Tavernary project identity."
+  }));
 }
 function selectionEligibility(projectId, internalName, extensionType) {
   if (!canToggle(projectId, internalName)) {
@@ -12587,6 +12636,109 @@ function createIndexedDbCatalogCache({
   return new IndexedDbCatalogCache(indexedDb, databaseName);
 }
 
+// src/updates/update-targets.ts
+function bindUpdateSelection({
+  project: project2,
+  catalogGeneratedAt,
+  internalName,
+  installedSha,
+  target
+}) {
+  if (!project2.install) throw new Error("This project cannot be updated.");
+  return {
+    target: structuredClone(target),
+    binding: {
+      projectId: project2.id,
+      catalogGeneratedAt,
+      internalName,
+      installedSha,
+      repositoryUrl: project2.install.repositoryUrl,
+      branch: project2.install.branch,
+      requestedSha: target.requestedSha
+    }
+  };
+}
+function matchesUpdateBinding(selection, current) {
+  return selection.binding.requestedSha === selection.target.requestedSha && selection.binding.installedSha === current.installedSha && selection.binding.catalogGeneratedAt === current.catalogGeneratedAt && selection.binding.projectId === current.project.id && selection.binding.internalName === current.internalName && current.project.install !== null && sameRepositoryUrl(selection.binding.repositoryUrl, current.project.install.repositoryUrl) && selection.binding.branch === current.project.install.branch;
+}
+function deriveUpdateAvailability({
+  project: project2,
+  inspection
+}) {
+  if (!project2.install || !sameRepositoryUrl(project2.install.repositoryUrl, inspection.remoteUrl)) {
+    return {
+      kind: "attention",
+      reason: "This extension was installed from a different repository than Tavernary lists. Review it in SillyTavern or reinstall the Tavernary version."
+    };
+  }
+  if (inspection.worktreeClean === false) {
+    return {
+      kind: "attention",
+      reason: "This extension has local file changes, so Companion won\u2019t overwrite them. Review those changes, then check again."
+    };
+  }
+  if (!inspection.branchMatches) {
+    const expectedBranch = project2.install.branch ?? "the repository\u2019s default branch";
+    return {
+      kind: "attention",
+      reason: `This extension is on the ${inspection.branch} branch, but Tavernary tracks ${expectedBranch}. Switch branches in SillyTavern, then check again.`
+    };
+  }
+  if (inspection.newestRelationship === "diverged") {
+    return {
+      kind: "attention",
+      reason: "This extension and the Tavernary version each contain different commits, so Companion won\u2019t merge them. Resolve the branch in SillyTavern, then check again."
+    };
+  }
+  if (inspection.newestRelationship === "ahead") {
+    return {
+      kind: "attention",
+      reason: "This extension contains commits that aren\u2019t in the Tavernary version, so Companion won\u2019t replace them. Review it in SillyTavern, then check again."
+    };
+  }
+  const targets = [];
+  const report2 = project2.tavernKeeper?.report;
+  if (report2 && inspection.exactUpdateSupported && inspection.candidateRelationships[report2.scannedSha.toLowerCase()] === "behind") {
+    targets.push({
+      kind: "checked",
+      requestedSha: report2.scannedSha.toLowerCase(),
+      checkedAt: report2.scannedAt,
+      reportId: report2.reportId,
+      reportUrl: report2.reportUrl
+    });
+  }
+  if (inspection.newestRelationship === "behind" && !targets.some(
+    ({ requestedSha }) => inspection.newestSha !== null && requestedSha === inspection.newestSha.toLowerCase()
+  )) {
+    targets.push({
+      kind: "newest",
+      requestedSha: inspection.exactUpdateSupported && inspection.newestSha ? inspection.newestSha.toLowerCase() : null,
+      resolvedAt: inspection.exactUpdateSupported ? (/* @__PURE__ */ new Date()).toISOString() : null
+    });
+  }
+  const alreadyScanned = report2 && inspection.candidateRelationships[report2.scannedSha.toLowerCase()] === "equal";
+  return targets.length === 0 ? inspection.exactUpdateSupported ? { kind: "current" } : { kind: "current", native: true } : {
+    kind: "available",
+    notice: alreadyScanned ? "You already have the latest scanned version." : null,
+    targets
+  };
+}
+function sameRepositoryUrl(left, right) {
+  return repositoryIdentity(left) !== null && repositoryIdentity(left) === repositoryIdentity(right);
+}
+function repositoryIdentity(value) {
+  let url;
+  try {
+    url = new URL(value);
+  } catch {
+    return null;
+  }
+  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
+  const path = url.pathname.replace(/\/+$/u, "").replace(/\.git$/iu, "");
+  if (!path) return null;
+  return `${url.protocol}//${url.host.toLowerCase()}${path}`;
+}
+
 // src/inventory/inventory-reconciler.ts
 function folderIdentity2(value) {
   return value.normalize("NFKC").toLocaleLowerCase("en-US");
@@ -12615,7 +12767,14 @@ function reconcileInventory({
   };
   const representedManagedIds = /* @__PURE__ */ new Set();
   for (const extension of hostExtensions) {
-    const matches = projectsByFolder.get(folderIdentity2(extension.folderName)) ?? [];
+    let matches = projectsByFolder.get(folderIdentity2(extension.folderName)) ?? [];
+    const repositoryUrl = extension.repositoryUrl;
+    if (matches.length > 1 && repositoryUrl) {
+      const repositoryMatches = matches.filter(
+        (project3) => project3.install && sameRepositoryUrl(project3.install.repositoryUrl, repositoryUrl)
+      );
+      if (repositoryMatches.length === 1) matches = repositoryMatches;
+    }
     if (matches.length !== 1) {
       snapshot.unknown.push({
         extension: structuredClone(extension),
@@ -12648,6 +12807,37 @@ function reconcileInventory({
     });
   }
   return snapshot;
+}
+async function reconcileHostInventory({
+  projects,
+  host,
+  managed,
+  hostExtensions
+}) {
+  const extensions = hostExtensions ? hostExtensions.map((extension) => structuredClone(extension)) : await host.discover();
+  const initial = reconcileInventory({ projects, hostExtensions: extensions, managed });
+  const ambiguousIdentities = new Set(
+    initial.unknown.filter(({ reason }) => reason === "ambiguous-folder").map(({ extension }) => extensionIdentity2(extension))
+  );
+  if (ambiguousIdentities.size === 0) return initial;
+  const enriched = await Promise.all(
+    extensions.map(async (extension) => {
+      if (!ambiguousIdentities.has(extensionIdentity2(extension))) return extension;
+      try {
+        const repositoryUrl = await host.readExtensionRepositoryUrl({
+          internalName: extension.internalName,
+          type: extension.type
+        });
+        return repositoryUrl ? { ...extension, repositoryUrl } : extension;
+      } catch {
+        return extension;
+      }
+    })
+  );
+  return reconcileInventory({ projects, hostExtensions: enriched, managed });
+}
+function extensionIdentity2(extension) {
+  return `${extension.type}:${extension.internalName}`;
 }
 
 // src/inventory/missing-managed-record.ts
@@ -13267,8 +13457,9 @@ var DefaultLifecycleCoordinator = class {
       const registry = new ManagedRegistry(
         normalizeManagedExtensionMap(this.#store.read().managedExtensions)
       );
-      const inventory = reconcileInventory({
+      const inventory = await reconcileHostInventory({
         projects: catalog?.projects ?? [],
+        host: this.#host,
         hostExtensions: before,
         managed: registry.read()
       });
@@ -13330,8 +13521,9 @@ var DefaultLifecycleCoordinator = class {
       const executionRegistry = new ManagedRegistry(
         normalizeManagedExtensionMap(this.#store.read().managedExtensions)
       );
-      const executionInventory = reconcileInventory({
+      const executionInventory = await reconcileHostInventory({
         projects: executionCatalog?.projects ?? [],
+        host: this.#host,
         hostExtensions: executionBefore,
         managed: executionRegistry.read()
       });
@@ -13478,8 +13670,9 @@ var DefaultLifecycleCoordinator = class {
       });
     }
     const hostExtensions = await this.#host.discover();
-    const inventory = reconcileInventory({
+    const inventory = await reconcileHostInventory({
       projects: catalog?.projects ?? [],
+      host: this.#host,
       hostExtensions,
       managed: normalizeManagedExtensionMap(this.#store.read().managedExtensions)
     });
@@ -13522,8 +13715,9 @@ var DefaultLifecycleCoordinator = class {
       const registry = new ManagedRegistry(
         normalizeManagedExtensionMap(this.#store.read().managedExtensions)
       );
-      const inventory = reconcileInventory({
+      const inventory = await reconcileHostInventory({
         projects: catalog?.projects ?? [],
+        host: this.#host,
         hostExtensions: before,
         managed: registry.read()
       });
@@ -18746,7 +18940,7 @@ function InstalledCard({
   onToggleSelection
 }) {
   const missing = sectionId === "attention";
-  const unknown = !missing && (sectionId === "unknown" || row.action.kind === "manage-in-sillytavern");
+  const unknown = !missing && (sectionId === "ambiguous" || sectionId === "unknown" || row.action.kind === "manage-in-sillytavern");
   return /* @__PURE__ */ u3(
     "article",
     {
@@ -18883,6 +19077,7 @@ function sectionLabel(id) {
   return {
     managed: "Companion managed",
     external: "Installed externally",
+    ambiguous: "Catalog match ambiguous",
     unknown: "Uncataloged",
     attention: "No longer installed"
   }[id];
@@ -18891,6 +19086,7 @@ function emptyExplanation(id) {
   return {
     managed: "No installed extensions are currently managed by Companion.",
     external: "No catalog extensions were found outside Companion management.",
+    ambiguous: "No installed extensions have multiple catalog matches.",
     unknown: "Every discovered extension matched the current catalog.",
     attention: "No previously managed extensions are missing."
   }[id];
@@ -21513,109 +21709,6 @@ function createShellController(options) {
   return new DefaultShellController(options);
 }
 
-// src/updates/update-targets.ts
-function bindUpdateSelection({
-  project: project2,
-  catalogGeneratedAt,
-  internalName,
-  installedSha,
-  target
-}) {
-  if (!project2.install) throw new Error("This project cannot be updated.");
-  return {
-    target: structuredClone(target),
-    binding: {
-      projectId: project2.id,
-      catalogGeneratedAt,
-      internalName,
-      installedSha,
-      repositoryUrl: project2.install.repositoryUrl,
-      branch: project2.install.branch,
-      requestedSha: target.requestedSha
-    }
-  };
-}
-function matchesUpdateBinding(selection, current) {
-  return selection.binding.requestedSha === selection.target.requestedSha && selection.binding.installedSha === current.installedSha && selection.binding.catalogGeneratedAt === current.catalogGeneratedAt && selection.binding.projectId === current.project.id && selection.binding.internalName === current.internalName && current.project.install !== null && sameRepositoryUrl(selection.binding.repositoryUrl, current.project.install.repositoryUrl) && selection.binding.branch === current.project.install.branch;
-}
-function deriveUpdateAvailability({
-  project: project2,
-  inspection
-}) {
-  if (!project2.install || !sameRepositoryUrl(project2.install.repositoryUrl, inspection.remoteUrl)) {
-    return {
-      kind: "attention",
-      reason: "This extension was installed from a different repository than Tavernary lists. Review it in SillyTavern or reinstall the Tavernary version."
-    };
-  }
-  if (inspection.worktreeClean === false) {
-    return {
-      kind: "attention",
-      reason: "This extension has local file changes, so Companion won\u2019t overwrite them. Review those changes, then check again."
-    };
-  }
-  if (!inspection.branchMatches) {
-    const expectedBranch = project2.install.branch ?? "the repository\u2019s default branch";
-    return {
-      kind: "attention",
-      reason: `This extension is on the ${inspection.branch} branch, but Tavernary tracks ${expectedBranch}. Switch branches in SillyTavern, then check again.`
-    };
-  }
-  if (inspection.newestRelationship === "diverged") {
-    return {
-      kind: "attention",
-      reason: "This extension and the Tavernary version each contain different commits, so Companion won\u2019t merge them. Resolve the branch in SillyTavern, then check again."
-    };
-  }
-  if (inspection.newestRelationship === "ahead") {
-    return {
-      kind: "attention",
-      reason: "This extension contains commits that aren\u2019t in the Tavernary version, so Companion won\u2019t replace them. Review it in SillyTavern, then check again."
-    };
-  }
-  const targets = [];
-  const report2 = project2.tavernKeeper?.report;
-  if (report2 && inspection.exactUpdateSupported && inspection.candidateRelationships[report2.scannedSha.toLowerCase()] === "behind") {
-    targets.push({
-      kind: "checked",
-      requestedSha: report2.scannedSha.toLowerCase(),
-      checkedAt: report2.scannedAt,
-      reportId: report2.reportId,
-      reportUrl: report2.reportUrl
-    });
-  }
-  if (inspection.newestRelationship === "behind" && !targets.some(
-    ({ requestedSha }) => inspection.newestSha !== null && requestedSha === inspection.newestSha.toLowerCase()
-  )) {
-    targets.push({
-      kind: "newest",
-      requestedSha: inspection.exactUpdateSupported && inspection.newestSha ? inspection.newestSha.toLowerCase() : null,
-      resolvedAt: inspection.exactUpdateSupported ? (/* @__PURE__ */ new Date()).toISOString() : null
-    });
-  }
-  const alreadyScanned = report2 && inspection.candidateRelationships[report2.scannedSha.toLowerCase()] === "equal";
-  return targets.length === 0 ? inspection.exactUpdateSupported ? { kind: "current" } : { kind: "current", native: true } : {
-    kind: "available",
-    notice: alreadyScanned ? "You already have the latest scanned version." : null,
-    targets
-  };
-}
-function sameRepositoryUrl(left, right) {
-  return repositoryIdentity(left) !== null && repositoryIdentity(left) === repositoryIdentity(right);
-}
-function repositoryIdentity(value) {
-  let url;
-  try {
-    url = new URL(value);
-  } catch {
-    return null;
-  }
-  if (url.protocol !== "https:" && url.protocol !== "http:") return null;
-  const path = url.pathname.replace(/\/+$/u, "").replace(/\.git$/iu, "");
-  if (!path) return null;
-  return `${url.protocol}//${url.host.toLowerCase()}${path}`;
-}
-
 // src/updates/update-coordinator.ts
 var DefaultExtensionUpdateCoordinator = class {
   #host;
@@ -22420,8 +22513,9 @@ function CompanionPopupHost({
     try {
       const extensions = await host.discover();
       const snapshot = runtime.catalog.read();
-      const inventory = reconcileInventory({
+      const inventory = await reconcileHostInventory({
         projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
+        host,
         hostExtensions: extensions,
         managed: normalizeManagedExtensionMap(store.read().managedExtensions)
       });
@@ -23107,9 +23201,9 @@ function createPopupRuntime(store, host) {
     getInventoryFingerprint: async () => {
       const snapshot = catalog.read();
       if (!("catalog" in snapshot)) throw new Error("A compatible catalog is required.");
-      const inventory = reconcileInventory({
+      const inventory = await reconcileHostInventory({
         projects: snapshot.catalog.projects,
-        hostExtensions: await host.discover(),
+        host,
         managed: normalizeManagedExtensionMap(store.read().managedExtensions)
       });
       kitContext.inventory = inventory;

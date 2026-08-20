@@ -1,7 +1,8 @@
 import type { CatalogProject } from "../catalog/catalog-core";
-import type { HostExtension } from "../host/host-types";
+import type { HostExtension, HostExtensionAdapter } from "../host/host-types";
 import { COMPANION_PROJECT_ID } from "./managed-registry";
 import type { InventorySnapshot, ManagedExtensionMap } from "./inventory-types";
+import { sameRepositoryUrl } from "../updates/update-targets";
 
 function folderIdentity(value: string) {
   return value.normalize("NFKC").toLocaleLowerCase("en-US");
@@ -41,7 +42,15 @@ export function reconcileInventory({
   const representedManagedIds = new Set<string>();
 
   for (const extension of hostExtensions) {
-    const matches = projectsByFolder.get(folderIdentity(extension.folderName)) ?? [];
+    let matches = projectsByFolder.get(folderIdentity(extension.folderName)) ?? [];
+    const repositoryUrl = extension.repositoryUrl;
+    if (matches.length > 1 && repositoryUrl) {
+      const repositoryMatches = matches.filter(
+        (project) =>
+          project.install && sameRepositoryUrl(project.install.repositoryUrl, repositoryUrl),
+      );
+      if (repositoryMatches.length === 1) matches = repositoryMatches;
+    }
     if (matches.length !== 1) {
       snapshot.unknown.push({
         extension: structuredClone(extension),
@@ -82,4 +91,47 @@ export function reconcileInventory({
   }
 
   return snapshot;
+}
+
+export async function reconcileHostInventory({
+  projects,
+  host,
+  managed,
+  hostExtensions,
+}: {
+  projects: readonly CatalogProject[];
+  host: HostExtensionAdapter;
+  managed: ManagedExtensionMap;
+  hostExtensions?: readonly HostExtension[];
+}): Promise<InventorySnapshot> {
+  const extensions = hostExtensions
+    ? hostExtensions.map((extension) => structuredClone(extension))
+    : await host.discover();
+  const initial = reconcileInventory({ projects, hostExtensions: extensions, managed });
+  const ambiguousIdentities = new Set(
+    initial.unknown
+      .filter(({ reason }) => reason === "ambiguous-folder")
+      .map(({ extension }) => extensionIdentity(extension)),
+  );
+  if (ambiguousIdentities.size === 0) return initial;
+
+  const enriched = await Promise.all(
+    extensions.map(async (extension) => {
+      if (!ambiguousIdentities.has(extensionIdentity(extension))) return extension;
+      try {
+        const repositoryUrl = await host.readExtensionRepositoryUrl({
+          internalName: extension.internalName,
+          type: extension.type,
+        });
+        return repositoryUrl ? { ...extension, repositoryUrl } : extension;
+      } catch {
+        return extension;
+      }
+    }),
+  );
+  return reconcileInventory({ projects, hostExtensions: enriched, managed });
+}
+
+function extensionIdentity(extension: HostExtension): string {
+  return `${extension.type}:${extension.internalName}`;
 }

@@ -185,6 +185,23 @@ it("reads a local revision and treats an empty host hash as absent", async () =>
   });
 });
 
+it("reads the installed extension repository origin", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(Response.json({ remoteUrl: repositoryUrl }));
+  const host = createSillyTavernHost({ fetch: fetchMock });
+
+  await expect(
+    host.readExtensionRepositoryUrl({
+      internalName: "third-party/Alpha",
+      type: "local",
+    }),
+  ).resolves.toBe(repositoryUrl);
+  expect(fetchMock).toHaveBeenCalledWith("/api/extensions/version", {
+    method: "POST",
+    headers: { Authorization: "private" },
+    body: JSON.stringify({ extensionName: "Alpha", global: false }),
+  });
+});
+
 it("rejects malformed non-empty local revision hashes", async () => {
   const host = createSillyTavernHost({
     fetch: vi.fn().mockResolvedValue(Response.json({ currentCommitHash: "short" })),

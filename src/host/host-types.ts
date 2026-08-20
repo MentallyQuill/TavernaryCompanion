@@ -5,6 +5,7 @@ export type HostExtensionType = "local" | "global";
 export interface HostExtension {
   internalName: string;
   folderName: string;
+  repositoryUrl?: string | null;
   enabled: boolean;
   type: HostExtensionType;
   manifest: Record<string, unknown> | null;
@@ -32,6 +33,10 @@ export interface HostResolvedRevision {
 
 export interface HostExtensionAdapter {
   discover(): Promise<HostExtension[]>;
+  readExtensionRepositoryUrl(input: {
+    internalName: string;
+    type: HostExtensionType;
+  }): Promise<string | null>;
   getInstallCapabilities(): Promise<HostInstallCapabilities>;
   resolveRemoteRevision(input: {
     repositoryUrl: string;

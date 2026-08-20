@@ -1,9 +1,13 @@
 import { describe, expect, it } from "vitest";
 
-import { reconcileInventory } from "../../src/inventory/inventory-reconciler";
+import {
+  reconcileHostInventory,
+  reconcileInventory,
+} from "../../src/inventory/inventory-reconciler";
 import type { ManagedExtensionMap } from "../../src/inventory/inventory-types";
 import type { HostExtension } from "../../src/host/host-types";
 import { catalogProjectFixture } from "../helpers/catalog-fixtures";
+import { createFakeHost } from "../helpers/fake-host";
 
 function hostExtension(
   folderName: string,
@@ -85,6 +89,89 @@ describe("reconcileInventory", () => {
       managed: {},
     });
 
+    expect(snapshot.unknown).toEqual([expect.objectContaining({ reason: "ambiguous-folder" })]);
+  });
+
+  it("uses the installed repository origin to resolve an ambiguous folder contract", () => {
+    const original = catalogProjectFixture({
+      id: "lodactio-extension-summaryception",
+      folderName: "Extension-Summaryception",
+    });
+    const fork = catalogProjectFixture({
+      id: "vadash-extension-summaryception",
+      folderName: "Extension-Summaryception",
+    });
+    original.install!.repositoryUrl = "https://github.com/Lodactio/Extension-Summaryception.git";
+    fork.install!.repositoryUrl = "https://github.com/vadash/Extension-Summaryception.git";
+    const extension = {
+      ...hostExtension("Extension-Summaryception"),
+      repositoryUrl: "https://GitHub.com/Lodactio/Extension-Summaryception/",
+    } as HostExtension & { repositoryUrl: string };
+
+    const snapshot = reconcileInventory({
+      projects: [original, fork],
+      hostExtensions: [extension],
+      managed: {},
+    });
+
+    expect(snapshot.external).toEqual([
+      expect.objectContaining({
+        project: expect.objectContaining({ id: "lodactio-extension-summaryception" }),
+      }),
+    ]);
+    expect(snapshot.unknown).toHaveLength(0);
+  });
+
+  it("reads repository origin only for ambiguous installed folders", async () => {
+    const original = catalogProjectFixture({ id: "original", folderName: "Shared" });
+    const fork = catalogProjectFixture({ id: "fork", folderName: "Shared" });
+    original.install!.repositoryUrl = "https://github.com/example/original.git";
+    fork.install!.repositoryUrl = "https://github.com/example/fork.git";
+    const unique = catalogProjectFixture({ id: "unique", folderName: "Unique" });
+    const extension = hostExtension("Shared");
+    const host = createFakeHost({
+      extensions: [extension, hostExtension("Unique")],
+      repositoryUrls: {
+        [`${extension.type}:${extension.internalName}`]: original.install!.repositoryUrl,
+      },
+    });
+
+    const snapshot = await reconcileHostInventory({
+      projects: [original, fork, unique],
+      host,
+      managed: {},
+    });
+
+    expect(snapshot.external.map(({ project }) => project.id)).toEqual(["original", "unique"]);
+    expect(snapshot.unknown).toHaveLength(0);
+    expect(
+      host.calls.filter(({ operation }) => operation === "readExtensionRepositoryUrl"),
+    ).toEqual([
+      {
+        operation: "readExtensionRepositoryUrl",
+        internalName: extension.internalName,
+        type: extension.type,
+      },
+    ]);
+  });
+
+  it("keeps a failed repository-origin lookup safely ambiguous", async () => {
+    const original = catalogProjectFixture({ id: "original", folderName: "Shared" });
+    const fork = catalogProjectFixture({ id: "fork", folderName: "Shared" });
+    original.install!.repositoryUrl = "https://github.com/example/original.git";
+    fork.install!.repositoryUrl = "https://github.com/example/fork.git";
+    const host = createFakeHost({
+      extensions: [hostExtension("Shared")],
+      failures: { readExtensionRepositoryUrl: new Error("offline") },
+    });
+
+    const snapshot = await reconcileHostInventory({
+      projects: [original, fork],
+      host,
+      managed: {},
+    });
+
+    expect(snapshot.external).toHaveLength(0);
     expect(snapshot.unknown).toEqual([expect.objectContaining({ reason: "ambiguous-folder" })]);
   });
 

@@ -105,7 +105,10 @@ function InstalledCard({
 }): preact.JSX.Element {
   const missing = sectionId === "attention";
   const unknown =
-    !missing && (sectionId === "unknown" || row.action.kind === "manage-in-sillytavern");
+    !missing &&
+    (sectionId === "ambiguous" ||
+      sectionId === "unknown" ||
+      row.action.kind === "manage-in-sillytavern");
   return (
     <article
       class={`tavernary-companion-installed-card${row.enabled !== null ? " is-installed" : " is-missing"}${row.enabled === false ? " is-disabled" : ""}${selected ? " is-selected" : ""}`}
@@ -255,6 +258,7 @@ function sectionLabel(id: InstalledSectionViewModel["id"]): string {
   return {
     managed: "Companion managed",
     external: "Installed externally",
+    ambiguous: "Catalog match ambiguous",
     unknown: "Uncataloged",
     attention: "No longer installed",
   }[id];
@@ -264,6 +268,7 @@ function emptyExplanation(id: InstalledSectionViewModel["id"]): string {
   return {
     managed: "No installed extensions are currently managed by Companion.",
     external: "No catalog extensions were found outside Companion management.",
+    ambiguous: "No installed extensions have multiple catalog matches.",
     unknown: "Every discovered extension matched the current catalog.",
     attention: "No previously managed extensions are missing.",
   }[id];

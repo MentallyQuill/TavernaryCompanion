@@ -78,6 +78,45 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
     return structuredClone(await this.#installCapabilities);
   }
 
+  async readExtensionRepositoryUrl(input: {
+    internalName: string;
+    type: "local" | "global";
+  }): Promise<string | null> {
+    let response: Response;
+    try {
+      response = await this.#dependencies.fetch("/api/extensions/version", {
+        method: "POST",
+        headers: this.#dependencies.getRequestHeaders(),
+        body: JSON.stringify({
+          extensionName: input.internalName.replace(/^third-party\//, ""),
+          global: input.type === "global",
+        }),
+      });
+    } catch (cause) {
+      throw new HostOperationError(
+        "discover",
+        "SillyTavern could not read the installed extension repository.",
+        { cause },
+      );
+    }
+    if (!response.ok) {
+      throw await responseError(
+        "discover",
+        "SillyTavern could not read the installed extension repository.",
+        response,
+      );
+    }
+    const body = await readJsonObject(response, "discover");
+    if (body.remoteUrl === "" || body.remoteUrl === null) return null;
+    if (typeof body.remoteUrl !== "string") {
+      throw new HostOperationError(
+        "discover",
+        "SillyTavern returned invalid installed extension repository evidence.",
+      );
+    }
+    return parseRepositoryUrl(body.remoteUrl, "discover");
+  }
+
   async #requestInstallCapabilities(): Promise<HostInstallCapabilities> {
     let response: Response;
     try {
@@ -541,7 +580,8 @@ function legacyInstallCapabilities(): HostInstallCapabilities {
 }
 
 async function responseError(
-  operation: "capabilities" | "resolveRevision" | "readRevision" | "inspectUpdate" | "update",
+  operation:
+    "discover" | "capabilities" | "resolveRevision" | "readRevision" | "inspectUpdate" | "update",
   message: string,
   response: Response,
 ): Promise<HostOperationError> {
@@ -553,7 +593,7 @@ async function responseError(
 
 async function readJsonObject(
   response: Response,
-  operation: "capabilities" | "resolveRevision" | "readRevision" | "inspectUpdate",
+  operation: "discover" | "capabilities" | "resolveRevision" | "readRevision" | "inspectUpdate",
 ): Promise<Record<string, unknown>> {
   try {
     const body: unknown = await response.json();
@@ -587,7 +627,7 @@ function isExplicitUnavailableCommitError(cause: unknown): boolean {
 
 function parseRepositoryUrl(
   input: string,
-  operation: "resolveRevision" | "install" | "inspectUpdate" | "update",
+  operation: "discover" | "resolveRevision" | "install" | "inspectUpdate" | "update",
 ): string {
   let url: URL;
   try {

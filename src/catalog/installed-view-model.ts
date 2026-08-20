@@ -16,10 +16,11 @@ export interface InstalledRowViewModel {
 }
 
 export interface InstalledSectionViewModel {
-  id: "managed" | "external" | "unknown" | "attention";
+  id: "managed" | "external" | "ambiguous" | "unknown" | "attention";
   title:
     | "Managed by Companion"
     | "Installed outside Companion"
+    | "Multiple matches in current catalog"
     | "Not found in current catalog"
     | "Previously managed";
   rows: InstalledRowViewModel[];
@@ -60,27 +61,20 @@ export function toInstalledSectionViewModel(
       })),
     },
     {
+      id: "ambiguous",
+      title: "Multiple matches in current catalog",
+      rows: unknownRows(
+        inventory.unknown.filter(({ reason }) => reason === "ambiguous-folder"),
+        "Multiple Tavernary projects use this extension folder, and Companion could not verify which repository is installed.",
+      ),
+    },
+    {
       id: "unknown",
       title: "Not found in current catalog",
-      rows: inventory.unknown.map(({ extension }) => ({
-        id: extension.internalName,
-        name:
-          typeof extension.manifest?.display_name === "string"
-            ? extension.manifest.display_name
-            : extension.folderName,
-        detail: extension.internalName,
-        internalName: extension.internalName,
-        canonicalUrl: null,
-        enabled: extension.enabled,
-        toggleable: canToggle(extension.internalName, extension.internalName),
-        action: {
-          kind: "manage-in-sillytavern",
-          label: "Manage in SillyTavern",
-          reason: "No unambiguous Tavernary project identity.",
-        },
-        selectionEligible: false,
-        selectionDisabledReason: "No unambiguous Tavernary project identity.",
-      })),
+      rows: unknownRows(
+        inventory.unknown.filter(({ reason }) => reason === "folder-not-in-catalog"),
+        "No Tavernary project uses this extension folder.",
+      ),
     },
     {
       id: "attention",
@@ -104,6 +98,31 @@ export function toInstalledSectionViewModel(
       })),
     },
   ];
+}
+
+function unknownRows(
+  entries: InventorySnapshot["unknown"],
+  reason: string,
+): InstalledRowViewModel[] {
+  return entries.map(({ extension }) => ({
+    id: extension.internalName,
+    name:
+      typeof extension.manifest?.display_name === "string"
+        ? extension.manifest.display_name
+        : extension.folderName,
+    detail: extension.internalName,
+    internalName: extension.internalName,
+    canonicalUrl: null,
+    enabled: extension.enabled,
+    toggleable: canToggle(extension.internalName, extension.internalName),
+    action: {
+      kind: "manage-in-sillytavern",
+      label: "Manage in SillyTavern",
+      reason,
+    },
+    selectionEligible: false,
+    selectionDisabledReason: "No unambiguous Tavernary project identity.",
+  }));
 }
 
 function selectionEligibility(

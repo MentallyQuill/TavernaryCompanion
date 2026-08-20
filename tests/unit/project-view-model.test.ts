@@ -338,6 +338,39 @@ describe("project view models", () => {
     });
   });
 
+  it("distinguishes ambiguous catalog matches from extensions absent from the catalog", () => {
+    const extension = {
+      internalName: "third-party/Shared",
+      folderName: "Shared",
+      enabled: true,
+      type: "local" as const,
+      manifest: { display_name: "Shared extension" },
+    };
+    const sections = toInstalledSectionViewModel({
+      ...emptyInventory,
+      unknown: [
+        { extension, reason: "ambiguous-folder" },
+        {
+          extension: {
+            ...extension,
+            internalName: "third-party/Absent",
+            folderName: "Absent",
+          },
+          reason: "folder-not-in-catalog",
+        },
+      ],
+    });
+
+    expect(sections.find(({ id }) => id === "ambiguous")).toMatchObject({
+      title: "Multiple matches in current catalog",
+      rows: [{ name: "Shared extension" }],
+    });
+    expect(sections.find(({ id }) => id === "unknown")).toMatchObject({
+      title: "Not found in current catalog",
+      rows: [{ name: "Shared extension" }],
+    });
+  });
+
   it("describes missing managed records as previously managed rather than installed", () => {
     const project = catalogProjectFixture({ id: "story-engine", folderName: "Story-Engine" });
     const sections = toInstalledSectionViewModel({

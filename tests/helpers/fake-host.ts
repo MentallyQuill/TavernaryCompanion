@@ -13,6 +13,7 @@ export interface FakeHostOptions {
   capabilities?: HostInstallCapabilities;
   remoteHeads?: Record<string, string>;
   installedRevisions?: Record<string, string | null>;
+  repositoryUrls?: Record<string, string | null>;
   unavailableHashes?: string[];
   mismatchResults?: Record<string, string>;
   updateInspections?: Record<string, HostUpdateInspection>;
@@ -22,6 +23,7 @@ export interface FakeHostOptions {
 export type FakeHostOperation =
   | "getInstallCapabilities"
   | "discover"
+  | "readExtensionRepositoryUrl"
   | "resolveRemoteRevision"
   | "install"
   | "readLocalRevision"
@@ -40,6 +42,7 @@ export class FakeHost implements HostExtensionAdapter {
   readonly #capabilities: HostInstallCapabilities;
   readonly #remoteHeads: Record<string, string>;
   readonly #installedRevisions: Record<string, string | null>;
+  readonly #repositoryUrls: Record<string, string | null>;
   readonly #unavailableHashes: Set<string>;
   readonly #mismatchResults: Record<string, string>;
   readonly #updateInspections: Record<string, HostUpdateInspection>;
@@ -59,6 +62,7 @@ export class FakeHost implements HostExtensionAdapter {
     );
     this.#remoteHeads = structuredClone(options.remoteHeads ?? {});
     this.#installedRevisions = structuredClone(options.installedRevisions ?? {});
+    this.#repositoryUrls = structuredClone(options.repositoryUrls ?? {});
     this.#unavailableHashes = new Set(options.unavailableHashes ?? []);
     this.#mismatchResults = structuredClone(options.mismatchResults ?? {});
     this.#updateInspections = structuredClone(options.updateInspections ?? {});
@@ -75,6 +79,15 @@ export class FakeHost implements HostExtensionAdapter {
     this.calls.push({ operation: "getInstallCapabilities" });
     this.#throwConfiguredFailure("getInstallCapabilities");
     return structuredClone(this.#capabilities);
+  }
+
+  async readExtensionRepositoryUrl(input: {
+    internalName: string;
+    type: "local" | "global";
+  }): Promise<string | null> {
+    this.calls.push({ operation: "readExtensionRepositoryUrl", ...structuredClone(input) });
+    this.#throwConfiguredFailure("readExtensionRepositoryUrl");
+    return this.#repositoryUrls[`${input.type}:${input.internalName}`] ?? null;
   }
 
   async resolveRemoteRevision(input: {
