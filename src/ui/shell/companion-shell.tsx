@@ -42,8 +42,6 @@ interface CompanionShellProps {
   kitInspectors?: Readonly<Record<string, KitInspectorViewModel>>;
   installedKits?: readonly InstalledKitViewModel[];
   onKitAction?(id: string, action: KitPrimaryAction): void;
-  onNewKit?(): void;
-  onImportKit?(): void;
   onEditKit?(id: string): void;
   onCopyKit?(id: string): void;
   onExportKit?(id: string): void;
@@ -86,8 +84,6 @@ export function CompanionShell({
   kitInspectors = {},
   installedKits = [],
   onKitAction,
-  onNewKit,
-  onImportKit,
   onEditKit,
   onCopyKit,
   onExportKit,
@@ -215,8 +211,6 @@ export function CompanionShell({
                         onKitAction?.(id, action);
                       }
                     }}
-                    onNewKit={onNewKit}
-                    onImport={onImportKit}
                     switcherKits={Object.values(kitInspectors)}
                     activeKitId={activeKitId}
                     onActivate={(id) => onKitAction?.(id, { kind: "activate", label: "Activate" })}

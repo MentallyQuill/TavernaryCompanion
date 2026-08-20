@@ -19,8 +19,6 @@ export function KitsRoute({
   lifecycleDisabled?: boolean;
   onOpenKit(id: string): void;
   onAction(id: string, action: KitPrimaryAction): void;
-  onNewKit?(): void;
-  onImport?(): void;
   switcherKits?: readonly KitCardViewModel[];
   activeKitId?: string | null;
   onActivate?(id: string): void;

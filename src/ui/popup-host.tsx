@@ -37,7 +37,6 @@ import { createKitExecutor, type KitExecutor } from "../kits/kit-executor";
 import { planKitOperation, inventoryFingerprint, type PlannableKit } from "../kits/kit-planner";
 import { prepareKitInstallTargets } from "../kits/kit-install-targets";
 import type { KitPlan, KitOperation } from "../kits/kit-plan";
-import { prepareImportedKit } from "../kits/kit-portability";
 import type { KitReceipt } from "../kits/kit-receipt";
 import { KitStore } from "../kits/kit-store";
 import {
@@ -54,7 +53,6 @@ import { UNSANDBOXED_CODE_DISCLOSURE } from "../trust/trust-copy";
 import { exportKitFile } from "./kits/kit-export-action";
 import { KitEditor } from "./kits/kit-editor";
 import { addDraftMember, createKitDraft, type KitDraftState } from "../kits/kit-draft";
-import { KitImportDialog } from "./kits/kit-import-dialog";
 import { KitOperationTray } from "./kits/kit-operation-tray";
 import { KitPreflightDialog } from "./kits/kit-preflight-dialog";
 import { AssessmentWarningDialog } from "./lifecycle/assessment-warning-dialog";
@@ -147,7 +145,6 @@ export function CompanionPopupHost({
   const [kitDisclosurePlan, setKitDisclosurePlan] = useState<Readonly<KitPlan> | null>(null);
   const [kitDraft, setKitDraft] = useState<KitDraftState | null>(null);
   const [kitBuilderCollapsed, setKitBuilderCollapsed] = useState(true);
-  const [importingKit, setImportingKit] = useState(false);
   const [kitInspectors, setKitInspectors] = useState<Record<string, KitInspectorViewModel>>({});
   const [installedKitCards, setInstalledKitCards] = useState<InstalledKitViewModel[]>([]);
   const [operationError, setOperationError] = useState<string | null>(null);
@@ -560,10 +557,6 @@ export function CompanionPopupHost({
         kitInspectors={kitInspectors}
         installedKits={installedKitCards}
         onKitAction={requestKitAction}
-        onNewKit={() => {
-          setKitDraft((current) => current ?? createKitDraft());
-          setKitBuilderCollapsed(false);
-        }}
         onCreateKitFromSelection={(projectIds) => {
           setKitDraft((current) =>
             projectIds.reduce(
@@ -573,7 +566,6 @@ export function CompanionPopupHost({
           );
           if (!kitDraft) setKitBuilderCollapsed(true);
         }}
-        onImportKit={() => setImportingKit(true)}
         onEditKit={(id) => {
           const kit = runtime?.kits.readDefinition(id);
           if (kit) {
@@ -628,22 +620,6 @@ export function CompanionPopupHost({
           ) : null
         }
       />
-      {importingKit && runtime ? (
-        <KitImportDialog
-          projects={kitEditorProjects ?? []}
-          onCancel={() => setImportingKit(false)}
-          onImport={(kit) => {
-            const prepared = prepareImportedKit(
-              kit,
-              new Set(runtime.kits.readDefinitions().map(({ id }) => id)),
-            );
-            void runtime.kits.importDefinition(prepared).then(() => {
-              setImportingKit(false);
-              void syncKits();
-            });
-          }}
-        />
-      ) : null}
       {kitDisclosurePlan ? (
         <TrustDisclosureDialog
           prompt={{ kind: "unsandboxed-disclosure", copy: UNSANDBOXED_CODE_DISCLOSURE }}
