@@ -19,6 +19,7 @@ export interface KitCardViewModel {
   originLabel: "Personal Kit" | "Published Kit";
   componentCount: number;
   flaggedCount: number;
+  supporterCount: number | null;
   operationalStatus: string;
   primaryAction: KitPrimaryAction;
 }
@@ -71,6 +72,7 @@ export function toPersonalKitCardViewModel(
     originLabel: "Personal Kit",
     componentCount: kit.projectIds.length,
     flaggedCount: 0,
+    supporterCount: null,
     operationalStatus: statusLabel(status),
     primaryAction: actionFor(status),
   };
@@ -88,6 +90,7 @@ export function toPublishedKitCardViewModel(
     originLabel: "Published Kit",
     componentCount: kit.components.length,
     flaggedCount: kit.flaggedProjectCount,
+    supporterCount: kit.supporterCount,
     operationalStatus: statusLabel(status),
     primaryAction: kit.components.some(({ availability }) => availability === "available")
       ? actionFor(status)

@@ -27,6 +27,12 @@ export function KitCard({
           <dt>Status</dt>
           <dd>{kit.operationalStatus}</dd>
         </div>
+        {kit.origin === "published" ? (
+          <div>
+            <dt>Votes</dt>
+            <dd>{kit.supporterCount ?? "Unavailable"}</dd>
+          </div>
+        ) : null}
         {kit.flaggedCount ? (
           <div>
             <dt>Flagged</dt>

@@ -445,13 +445,13 @@ test("surfaces failed activation and interrupted recovery receipts", async ({ pa
   await expect(page.getByRole("button", { name: "Review" })).toBeVisible();
 });
 
-test("confirms Kit Builder draft discard and imports a personal Kit", async ({ page }) => {
+test("opens the Kit Builder from its rail and confirms draft discard", async ({ page }) => {
   await openHarness(page);
   await page
     .getByRole("navigation", { name: "Catalog categories" })
     .getByRole("button", { name: "Kits" })
     .click();
-  await page.getByRole("button", { name: "New Kit" }).click();
+  await page.getByRole("button", { name: "Open Kit Builder" }).click();
   const editor = page.getByRole("complementary", { name: "Kit Builder" });
   await editor.getByLabel("Title").fill("Unsaved Kit");
   await editor.getByRole("button", { name: "Discard draft" }).click();
@@ -464,27 +464,6 @@ test("confirms Kit Builder draft discard and imports a personal Kit", async ({ p
     .getByRole("button", { name: "Discard changes" })
     .click();
 
-  await page.getByRole("button", { name: "Import" }).click();
-  const imported = {
-    formatVersion: 1,
-    id: "018f6f42-7142-7a1f-9b52-9d3a7d548999",
-    title: "Imported Kit",
-    description: "Imported through the browser workflow.",
-    targetFrontend: "sillytavern",
-    projectIds: ["alpha", "missing-project"],
-    createdAt: "2026-08-18T00:00:00.000Z",
-    updatedAt: "2026-08-18T00:00:00.000Z",
-    origin: { kind: "local" },
-  };
-  const importDialog = page.getByRole("dialog", { name: "Import personal Kit" });
-  await importDialog.getByLabel("Kit JSON file").setInputFiles({
-    name: "imported-kit.json",
-    mimeType: "application/json",
-    buffer: Buffer.from(JSON.stringify(imported)),
-  });
-  await expect(importDialog.getByRole("heading", { name: "Imported Kit" })).toBeVisible();
-  await expect(importDialog.locator('dt:has-text("Unavailable") + dd')).toHaveText("1");
-  await importDialog.getByRole("button", { name: "Import Kit" }).click();
-  await page.getByRole("tab", { name: /Personal/u }).click();
-  await expect(page.getByRole("heading", { name: "Imported Kit" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "New Kit" })).toHaveCount(0);
+  await expect(page.getByRole("button", { name: "Import" })).toHaveCount(0);
 });

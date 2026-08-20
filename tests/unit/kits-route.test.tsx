@@ -1,4 +1,4 @@
-import { fireEvent, render, screen } from "@testing-library/preact";
+import { fireEvent, render, screen, within } from "@testing-library/preact";
 import { afterEach, expect, it, vi } from "vitest";
 import { createKitDiscoveryController } from "../../src/kits/kit-discovery-controller";
 import { KitsRoute } from "../../src/ui/kits/kits-route";
@@ -28,6 +28,8 @@ it("opens on Personal Kits and exposes Tavernary filters only after switching to
   );
 
   expect(screen.getByRole("tab", { name: /Personal/u })).toHaveAttribute("aria-selected", "true");
+  expect(screen.queryByRole("button", { name: "New Kit" })).not.toBeInTheDocument();
+  expect(screen.queryByRole("button", { name: "Import" })).not.toBeInTheDocument();
   expect(screen.queryByRole("button", { name: "Kit filters" })).not.toBeInTheDocument();
   fireEvent.click(screen.getByRole("tab", { name: /Published/u }));
   const trigger = screen.getByRole("button", { name: "Kit filters" });
@@ -56,6 +58,12 @@ it("opens on Personal Kits and exposes Tavernary filters only after switching to
   });
   fireEvent.click(screen.getByRole("button", { name: "Clear all" }));
   expect(screen.getByRole("combobox", { name: "Sort Published Kits" })).toHaveValue("updated");
+  const publishedCard = screen
+    .getByRole("heading", { name: "Published Writer Kit" })
+    .closest("article");
+  expect(publishedCard).not.toBeNull();
+  expect(within(publishedCard!).getByText("Votes")).toBeVisible();
+  expect(within(publishedCard!).getByText("4")).toBeVisible();
   expect(trigger).toHaveAttribute("aria-expanded", "false");
   fireEvent.click(trigger);
   expect(trigger).toHaveAttribute("aria-expanded", "true");
@@ -94,6 +102,30 @@ it("switches between published and personal Kit segments", () => {
   expect(screen.getByText("1 Kit shown")).toBeVisible();
   expect(screen.getByRole("heading", { name: "Writer" })).toBeVisible();
   expect(screen.getByRole("button", { name: "Install Kit" })).toBeVisible();
+  expect(screen.queryByText("Votes")).not.toBeInTheDocument();
+});
+
+it("labels unavailable published Kit vote counts", () => {
+  const catalog = catalogFixture();
+  const published = catalogKitFixture();
+  published.supporterCount = null;
+  catalog.kits = [published];
+  const controller = createKitDiscoveryController({
+    catalog,
+    personal: [],
+    statuses: new Map(),
+  });
+  render(
+    <KitsRoute controller={controller} onOpenKit={() => undefined} onAction={() => undefined} />,
+  );
+
+  fireEvent.click(screen.getByRole("tab", { name: /Published/u }));
+  const publishedCard = screen
+    .getByRole("heading", { name: "Published Writer Kit" })
+    .closest("article");
+  expect(publishedCard).not.toBeNull();
+  expect(within(publishedCard!).getByText("Votes")).toBeVisible();
+  expect(within(publishedCard!).getByText("Unavailable")).toBeVisible();
 });
 
 it("activates an installed Kit from the fast switcher", () => {
@@ -117,6 +149,7 @@ it("activates an installed Kit from the fast switcher", () => {
           originLabel: "Personal Kit",
           componentCount: 1,
           flaggedCount: 0,
+          supporterCount: null,
           operationalStatus: "Installed",
           primaryAction: { kind: "activate", label: "Activate" },
         },
@@ -153,6 +186,7 @@ it("deactivates the active Kit when None is selected", () => {
           originLabel: "Personal Kit",
           componentCount: 1,
           flaggedCount: 0,
+          supporterCount: null,
           operationalStatus: "Active",
           primaryAction: { kind: "deactivate", label: "Deactivate" },
         },

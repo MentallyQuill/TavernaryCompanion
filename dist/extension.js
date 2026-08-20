@@ -13816,6 +13816,7 @@ function toPersonalKitCardViewModel(kit2, status) {
     originLabel: "Personal Kit",
     componentCount: kit2.projectIds.length,
     flaggedCount: 0,
+    supporterCount: null,
     operationalStatus: statusLabel(status),
     primaryAction: actionFor2(status)
   };
@@ -13829,6 +13830,7 @@ function toPublishedKitCardViewModel(kit2, status) {
     originLabel: "Published Kit",
     componentCount: kit2.components.length,
     flaggedCount: kit2.flaggedProjectCount,
+    supporterCount: kit2.supporterCount,
     operationalStatus: statusLabel(status),
     primaryAction: kit2.components.some(({ availability }) => availability === "available") ? actionFor2(status) : { kind: "view", label: "View Kit" }
   };
@@ -15270,43 +15272,6 @@ function kitInstallFailureMessage(error) {
   return "The install could not finish. Try again.";
 }
 
-// src/kits/kit-portability.ts
-var MAX_KIT_FILE_BYTES = 1024 * 1024;
-function serializeKit(kit2) {
-  const parsed = parsePersonalKit(kit2);
-  return {
-    text: `${JSON.stringify(parsed, null, 2)}
-`,
-    filename: `${slug(parsed.title)}.tavernary-kit.json`,
-    mimeType: "application/json"
-  };
-}
-function parseKitText(text2) {
-  if (new TextEncoder().encode(text2).byteLength > MAX_KIT_FILE_BYTES)
-    throw new Error("Kit file exceeds 1 MiB.");
-  let value;
-  try {
-    value = JSON.parse(text2);
-  } catch {
-    throw new Error("Kit file is not valid JSON.");
-  }
-  return parsePersonalKit(value);
-}
-function prepareImportedKit(kit2, existingIds, uuid = createRuntimeId, now = () => (/* @__PURE__ */ new Date()).toISOString()) {
-  if (!existingIds.has(kit2.id)) return structuredClone(kit2);
-  const timestamp = now();
-  return parsePersonalKit({
-    ...kit2,
-    id: uuid(),
-    createdAt: timestamp,
-    updatedAt: timestamp,
-    origin: { kind: "imported", sourceId: kit2.id }
-  });
-}
-function slug(value) {
-  return value.normalize("NFKD").replace(/[\u0300-\u036f]/gu, "").toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/gu, "-").replace(/^-|-$/gu, "") || "kit";
-}
-
 // src/kits/kit-store.ts
 var KitStore = class {
   #profile;
@@ -15480,6 +15445,21 @@ function reconcileKitStatus({
     return "active";
   }
   return "installed";
+}
+
+// src/kits/kit-portability.ts
+var MAX_KIT_FILE_BYTES = 1024 * 1024;
+function serializeKit(kit2) {
+  const parsed = parsePersonalKit(kit2);
+  return {
+    text: `${JSON.stringify(parsed, null, 2)}
+`,
+    filename: `${slug(parsed.title)}.tavernary-kit.json`,
+    mimeType: "application/json"
+  };
+}
+function slug(value) {
+  return value.normalize("NFKD").replace(/[\u0300-\u036f]/gu, "").toLocaleLowerCase("en-US").replace(/[^a-z0-9]+/gu, "-").replace(/^-|-$/gu, "") || "kit";
 }
 
 // src/ui/kits/kit-export-action.ts
@@ -16318,133 +16298,6 @@ function KitEditor({
   );
 }
 
-// src/ui/lifecycle/dialog-frame.tsx
-function DialogFrame({
-  label: label2,
-  className = "",
-  onCancel,
-  children
-}) {
-  const dialog = A2(null);
-  h2(() => {
-    const controls = dialog.current?.querySelectorAll(
-      'button:not([disabled]), a[href], input:not([disabled]), [tabindex="0"]'
-    );
-    controls?.[0]?.focus();
-    const onKeyDown = (event) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        onCancel();
-        return;
-      }
-      if (event.key !== "Tab" || !controls || controls.length === 0) return;
-      const first = controls[0];
-      const last2 = controls[controls.length - 1];
-      if (event.shiftKey && document.activeElement === first) {
-        event.preventDefault();
-        last2.focus();
-      } else if (!event.shiftKey && document.activeElement === last2) {
-        event.preventDefault();
-        first.focus();
-      }
-    };
-    window.addEventListener("keydown", onKeyDown);
-    return () => window.removeEventListener("keydown", onKeyDown);
-  }, [onCancel]);
-  return /* @__PURE__ */ u3("div", { class: "tavernary-companion-dialog-backdrop", children: /* @__PURE__ */ u3(
-    "div",
-    {
-      ref: dialog,
-      role: "dialog",
-      "aria-modal": "true",
-      "aria-label": label2,
-      class: `tavernary-companion-dialog ${className}`.trim(),
-      children
-    }
-  ) });
-}
-
-// src/ui/kits/kit-import-dialog.tsx
-function KitImportDialog({
-  onCancel,
-  onImport,
-  projects = []
-}) {
-  const [preview, setPreview] = d2(null);
-  const [error, setError] = d2(null);
-  const load = async (file) => {
-    if (!file) return;
-    try {
-      setPreview(parseKitText(await file.text()));
-      setError(null);
-    } catch (cause) {
-      setPreview(null);
-      setError(cause instanceof Error ? cause.message : "Kit file is invalid.");
-    }
-  };
-  return /* @__PURE__ */ u3(DialogFrame, { label: "Import personal Kit", onCancel, children: [
-    /* @__PURE__ */ u3("h2", { children: "Import personal Kit" }),
-    /* @__PURE__ */ u3("label", { children: [
-      "Kit JSON file",
-      /* @__PURE__ */ u3(
-        "input",
-        {
-          type: "file",
-          accept: ".json,application/json",
-          onChange: (event) => void load(event.currentTarget.files?.[0])
-        }
-      )
-    ] }),
-    error ? /* @__PURE__ */ u3("p", { role: "alert", children: error }) : null,
-    preview ? /* @__PURE__ */ u3("section", { children: [
-      /* @__PURE__ */ u3("h3", { children: preview.title }),
-      /* @__PURE__ */ u3("p", { children: preview.description }),
-      /* @__PURE__ */ u3("dl", { children: [
-        /* @__PURE__ */ u3("dt", { children: "Frontend" }),
-        /* @__PURE__ */ u3("dd", { children: "SillyTavern" }),
-        /* @__PURE__ */ u3("dt", { children: "Members" }),
-        /* @__PURE__ */ u3("dd", { children: preview.projectIds.length }),
-        /* @__PURE__ */ u3("dt", { children: "Available" }),
-        /* @__PURE__ */ u3("dd", { children: previewCounts(preview, projects).available }),
-        /* @__PURE__ */ u3("dt", { children: "Actionable extensions" }),
-        /* @__PURE__ */ u3("dd", { children: previewCounts(preview, projects).actionable }),
-        /* @__PURE__ */ u3("dt", { children: "Context-only projects" }),
-        /* @__PURE__ */ u3("dd", { children: previewCounts(preview, projects).context }),
-        /* @__PURE__ */ u3("dt", { children: "Unavailable" }),
-        /* @__PURE__ */ u3("dd", { children: previewCounts(preview, projects).unavailable }),
-        /* @__PURE__ */ u3("dt", { children: "Origin" }),
-        /* @__PURE__ */ u3("dd", { children: preview.origin.kind })
-      ] })
-    ] }) : null,
-    /* @__PURE__ */ u3("footer", { children: [
-      /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" }),
-      /* @__PURE__ */ u3("button", { type: "button", disabled: !preview, onClick: () => preview && onImport(preview), children: "Import Kit" })
-    ] })
-  ] });
-}
-function previewCounts(kit2, projects) {
-  const byId = new Map(projects.map((project2) => [project2.id, project2]));
-  let actionable = 0;
-  let context = 0;
-  let unavailable = 0;
-  for (const id of kit2.projectIds) {
-    const project2 = byId.get(id);
-    if (!project2) {
-      unavailable += 1;
-    } else if (project2.kind === "extension" && project2.frontends.some((frontend) => frontend.id === "sillytavern") && project2.install?.kind === "sillytavern-extension-git") {
-      actionable += 1;
-    } else {
-      context += 1;
-    }
-  }
-  return {
-    available: actionable + context,
-    actionable,
-    context,
-    unavailable
-  };
-}
-
 // src/ui/kits/kit-receipt.tsx
 function KitReceipt({
   receipt,
@@ -16531,6 +16384,52 @@ function phase(value) {
     deactivating: "Deactivating managed extensions\u2026",
     preflight: "Checking Kit plan\u2026"
   }[value] ?? "Applying Kit changes\u2026";
+}
+
+// src/ui/lifecycle/dialog-frame.tsx
+function DialogFrame({
+  label: label2,
+  className = "",
+  onCancel,
+  children
+}) {
+  const dialog = A2(null);
+  h2(() => {
+    const controls = dialog.current?.querySelectorAll(
+      'button:not([disabled]), a[href], input:not([disabled]), [tabindex="0"]'
+    );
+    controls?.[0]?.focus();
+    const onKeyDown = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        onCancel();
+        return;
+      }
+      if (event.key !== "Tab" || !controls || controls.length === 0) return;
+      const first = controls[0];
+      const last2 = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last2.focus();
+      } else if (!event.shiftKey && document.activeElement === last2) {
+        event.preventDefault();
+        first.focus();
+      }
+    };
+    window.addEventListener("keydown", onKeyDown);
+    return () => window.removeEventListener("keydown", onKeyDown);
+  }, [onCancel]);
+  return /* @__PURE__ */ u3("div", { class: "tavernary-companion-dialog-backdrop", children: /* @__PURE__ */ u3(
+    "div",
+    {
+      ref: dialog,
+      role: "dialog",
+      "aria-modal": "true",
+      "aria-label": label2,
+      class: `tavernary-companion-dialog ${className}`.trim(),
+      children
+    }
+  ) });
 }
 
 // src/ui/kits/kit-impact-summary.tsx
@@ -18218,6 +18117,10 @@ function KitCard({
         /* @__PURE__ */ u3("dt", { children: "Status" }),
         /* @__PURE__ */ u3("dd", { children: kit2.operationalStatus })
       ] }),
+      kit2.origin === "published" ? /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("dt", { children: "Votes" }),
+        /* @__PURE__ */ u3("dd", { children: kit2.supporterCount ?? "Unavailable" })
+      ] }) : null,
       kit2.flaggedCount ? /* @__PURE__ */ u3("div", { children: [
         /* @__PURE__ */ u3("dt", { children: "Flagged" }),
         /* @__PURE__ */ u3("dd", { children: kit2.flaggedCount })
@@ -18704,8 +18607,6 @@ function KitsRoute({
   lifecycleDisabled = false,
   onOpenKit,
   onAction,
-  onNewKit,
-  onImport,
   switcherKits = [],
   activeKitId = null,
   onActivate,
@@ -18748,10 +18649,6 @@ function KitsRoute({
         " ",
         state.visible.length === 1 ? "Kit" : "Kits",
         " shown"
-      ] }),
-      /* @__PURE__ */ u3("div", { class: "tavernary-companion-route-actions", children: [
-        /* @__PURE__ */ u3("button", { type: "button", onClick: onNewKit, children: "New Kit" }),
-        /* @__PURE__ */ u3("button", { type: "button", onClick: onImport, children: "Import" })
       ] })
     ] }),
     switcherKits.some(
@@ -20713,8 +20610,6 @@ function CompanionShell({
   kitInspectors = {},
   installedKits = [],
   onKitAction,
-  onNewKit,
-  onImportKit,
   onEditKit,
   onCopyKit,
   onExportKit,
@@ -20830,8 +20725,6 @@ function CompanionShell({
                         onKitAction?.(id, action);
                       }
                     },
-                    onNewKit,
-                    onImport: onImportKit,
                     switcherKits: Object.values(kitInspectors),
                     activeKitId,
                     onActivate: (id) => onKitAction?.(id, { kind: "activate", label: "Activate" }),
@@ -21727,7 +21620,6 @@ function CompanionPopupHost({
   const [kitDisclosurePlan, setKitDisclosurePlan] = d2(null);
   const [kitDraft, setKitDraft] = d2(null);
   const [kitBuilderCollapsed, setKitBuilderCollapsed] = d2(true);
-  const [importingKit, setImportingKit] = d2(false);
   const [kitInspectors, setKitInspectors] = d2({});
   const [installedKitCards, setInstalledKitCards] = d2([]);
   const [operationError, setOperationError] = d2(null);
@@ -22068,10 +21960,6 @@ function CompanionPopupHost({
         kitInspectors,
         installedKits: installedKitCards,
         onKitAction: requestKitAction,
-        onNewKit: () => {
-          setKitDraft((current) => current ?? createKitDraft());
-          setKitBuilderCollapsed(false);
-        },
         onCreateKitFromSelection: (projectIds) => {
           setKitDraft(
             (current) => projectIds.reduce(
@@ -22081,7 +21969,6 @@ function CompanionPopupHost({
           );
           if (!kitDraft) setKitBuilderCollapsed(true);
         },
-        onImportKit: () => setImportingKit(true),
         onEditKit: (id) => {
           const kit2 = runtime?.kits.readDefinition(id);
           if (kit2) {
@@ -22123,23 +22010,6 @@ function CompanionPopupHost({
         ) : null
       }
     ),
-    importingKit && runtime ? /* @__PURE__ */ u3(
-      KitImportDialog,
-      {
-        projects: kitEditorProjects ?? [],
-        onCancel: () => setImportingKit(false),
-        onImport: (kit2) => {
-          const prepared = prepareImportedKit(
-            kit2,
-            new Set(runtime.kits.readDefinitions().map(({ id }) => id))
-          );
-          void runtime.kits.importDefinition(prepared).then(() => {
-            setImportingKit(false);
-            void syncKits();
-          });
-        }
-      }
-    ) : null,
     kitDisclosurePlan ? /* @__PURE__ */ u3(
       TrustDisclosureDialog,
       {
