@@ -34,6 +34,59 @@ for (const viewport of viewports) {
   });
 }
 
+for (const viewport of [
+  { width: 1440, height: 960, columns: 4 },
+  { width: 1200, height: 800, columns: 3 },
+  { width: 1024, height: 768, columns: 2 },
+  { width: 390, height: 844, columns: 1 },
+]) {
+  const columnLabel = viewport.columns === 1 ? "column" : "columns";
+  test(`adaptive project grid uses ${viewport.columns} ${columnLabel} at ${viewport.width}px`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await openHarness(page);
+
+    const grid = page.locator(".tavernary-companion-project-grid");
+    const columnCount = () =>
+      grid.evaluate(
+        (element) =>
+          getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length,
+      );
+
+    expect(await columnCount()).toBe(viewport.columns);
+    await page.getByRole("button", { name: "Use compact cards" }).click();
+    expect(await columnCount()).toBe(viewport.columns);
+  });
+}
+
+test("adaptive project grid releases a column when the Kit Builder expands", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openHarness(page);
+
+  await page.getByRole("button", { name: "Open Kit Builder" }).click();
+  const grid = page.locator(".tavernary-companion-project-grid");
+  expect(
+    await grid.evaluate(
+      (element) => getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length,
+    ),
+  ).toBe(3);
+  expect(await grid.evaluate((element) => element.scrollWidth - element.clientWidth)).toBe(0);
+});
+
+test("sparse adaptive project results retain a scannable desktop card width", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openHarness(page);
+
+  await page.getByRole("searchbox", { name: "Search projects" }).fill("Alpha");
+  const cards = page.locator(".tavernary-companion-project-card");
+  await expect(cards).toHaveCount(1);
+  const card = await cards.first().boundingBox();
+  expect(card).not.toBeNull();
+  expect(card!.width).toBeGreaterThanOrEqual(210);
+  expect(card!.width).toBeLessThanOrEqual(250);
+});
+
 test("200 percent text does not create horizontal overflow", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openHarness(page);

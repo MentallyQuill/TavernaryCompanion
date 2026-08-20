@@ -241,7 +241,7 @@ test("desktop filters use Tavernary's persistent flush rail", async ({ page }) =
       .evaluate(
         (grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length,
       ),
-  ).toBe(3);
+  ).toBe(4);
   const modelFamily = surface.getByRole("checkbox", { name: "Model-Agnostic" });
   const modelFamilyChip = modelFamily.locator("../..");
   await expect(modelFamilyChip).toHaveCSS("order", "1");

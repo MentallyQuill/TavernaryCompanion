@@ -1,9 +1,3 @@
-@container tavernary-companion (max-width: 1199px) {
-  .tavernary-companion-project-grid {
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-  }
-}
-
 @container tavernary-companion (min-width: 761px) and (max-width: 1050px) {
   .tavernary-companion-projects-route__workspace {
     grid-template-columns: 210px minmax(0, 1fr);
