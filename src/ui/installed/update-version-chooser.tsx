@@ -132,9 +132,10 @@ export function UpdateVersionChooser({
         ) : null}
         {choice.selections.map((selection, index) => {
           const checked = selection.target.kind === "checked";
-          const checkedScanStatus = selection.target.kind === "checked"
-            ? matchingScanStatus(scanStatus, selection.target)
-            : null;
+          const checkedScanStatus =
+            selection.target.kind === "checked"
+              ? matchingScanStatus(scanStatus, selection.target)
+              : null;
           const description =
             selection.target.kind === "checked"
               ? scannedVersionDescription(
