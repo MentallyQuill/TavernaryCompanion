@@ -1672,6 +1672,17 @@
   margin-block-end: 14px;
 }
 
+.tavernary-companion-installed-update-note {
+  margin: -4px 0 14px;
+  padding: 9px 11px;
+  border: 1px solid var(--tavernary-color-border-subtle);
+  border-radius: var(--tavernary-radius);
+  color: var(--tavernary-color-text-secondary);
+  background: var(--tavernary-color-bg-surface);
+  font-size: 10px;
+  line-height: 1.45;
+}
+
 .tavernary-companion-installed-section {
   margin: 0 0 12px;
   padding: 15px;
@@ -1814,7 +1825,9 @@
   font-size: 9px;
 }
 
-.tavernary-companion-installed-card.is-disabled > header strong {
+.tavernary-companion-installed-card.is-disabled
+  > header
+  strong:not(.tavernary-companion-installed-update-status) {
   color: var(--tavernary-color-text-muted);
 }
 

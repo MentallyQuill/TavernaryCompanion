@@ -228,13 +228,15 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
     branch: string | null;
     candidateShas: string[];
   }): Promise<HostUpdateInspection> {
-    if (this.#updateInspectionSupported === false) throw unsupportedUpdateInspectionError();
+    if (this.#updateInspectionSupported === false)
+      return this.#requestNativeUpdateInspection(input);
     if (this.#updateInspectionSupported === true) {
       return this.#requestUpdateInspection(input);
     }
     if (this.#updateSupportProbe) {
       await this.#updateSupportProbe;
-      if (this.#updateInspectionSupported === false) throw unsupportedUpdateInspectionError();
+      if (this.#updateInspectionSupported === false)
+        return this.#requestNativeUpdateInspection(input);
       return this.#requestUpdateInspection(input);
     }
 
@@ -243,8 +245,11 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
         this.#updateInspectionSupported = true;
         return inspection;
       },
-      (error: unknown) => {
-        if (isUnsupportedUpdateInspectionError(error)) this.#updateInspectionSupported = false;
+      async (error: unknown) => {
+        if (isUnsupportedUpdateInspectionError(error)) {
+          this.#updateInspectionSupported = false;
+          return this.#requestNativeUpdateInspection(input);
+        }
         throw error;
       },
     );
@@ -254,6 +259,60 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
     } finally {
       if (this.#updateSupportProbe === probe) this.#updateSupportProbe = null;
     }
+  }
+
+  async #requestNativeUpdateInspection(input: {
+    internalName: string;
+    type: "local" | "global";
+    repositoryUrl: string;
+    branch: string | null;
+  }): Promise<HostUpdateInspection> {
+    let response: Response;
+    try {
+      response = await this.#dependencies.fetch("/api/extensions/version", {
+        method: "POST",
+        headers: this.#dependencies.getRequestHeaders(),
+        body: JSON.stringify({
+          extensionName: input.internalName.replace(/^third-party\//, ""),
+          global: input.type === "global",
+        }),
+      });
+    } catch (cause) {
+      throw new HostOperationError(
+        "inspectUpdate",
+        "SillyTavern could not reach the native extension update service.",
+        { cause },
+      );
+    }
+    if (!response.ok) {
+      throw await responseError(
+        "inspectUpdate",
+        "SillyTavern could not check this extension for updates.",
+        response,
+      );
+    }
+    const body = await readJsonObject(response, "inspectUpdate");
+    if (
+      typeof body.currentBranchName !== "string" ||
+      typeof body.isUpToDate !== "boolean" ||
+      typeof body.remoteUrl !== "string"
+    ) {
+      throw new HostOperationError(
+        "inspectUpdate",
+        "SillyTavern returned invalid native extension update evidence.",
+      );
+    }
+    return {
+      installedSha: parseCommitSha(body.currentCommitHash, "inspectUpdate"),
+      newestSha: null,
+      remoteUrl: body.remoteUrl,
+      branch: body.currentBranchName,
+      worktreeClean: null,
+      branchMatches: input.branch === null || input.branch === body.currentBranchName,
+      exactUpdateSupported: false,
+      newestRelationship: body.isUpToDate ? "equal" : "behind",
+      candidateRelationships: {},
+    };
   }
 
   async #requestUpdateInspection(input: {
@@ -328,25 +387,34 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
     repositoryUrl: string;
     branch: string | null;
     expectedCurrentSha: string;
-    targetSha: string;
+    targetSha: string | null;
   }): Promise<void> {
     const repositoryUrl = parseRepositoryUrl(input.repositoryUrl, "update");
     const expectedCurrentSha = parseCommitSha(input.expectedCurrentSha, "update");
-    const targetSha = parseCommitSha(input.targetSha, "update");
+    const targetSha = input.targetSha === null ? null : parseCommitSha(input.targetSha, "update");
     let response: Response;
     try {
-      response = await this.#dependencies.fetch("/api/extensions/update-to", {
-        method: "POST",
-        headers: this.#dependencies.getRequestHeaders(),
-        body: JSON.stringify({
-          extensionName: input.internalName.replace(/^third-party\//, ""),
-          global: input.type === "global",
-          repositoryUrl,
-          branch: input.branch,
-          expectedCurrentSha,
-          targetSha,
-        }),
-      });
+      response = targetSha
+        ? await this.#dependencies.fetch("/api/extensions/update-to", {
+            method: "POST",
+            headers: this.#dependencies.getRequestHeaders(),
+            body: JSON.stringify({
+              extensionName: input.internalName.replace(/^third-party\//, ""),
+              global: input.type === "global",
+              repositoryUrl,
+              branch: input.branch,
+              expectedCurrentSha,
+              targetSha,
+            }),
+          })
+        : await this.#dependencies.fetch("/api/extensions/update", {
+            method: "POST",
+            headers: this.#dependencies.getRequestHeaders(),
+            body: JSON.stringify({
+              extensionName: input.internalName.replace(/^third-party\//, ""),
+              global: input.type === "global",
+            }),
+          });
     } catch (cause) {
       throw new HostOperationError(
         "update",

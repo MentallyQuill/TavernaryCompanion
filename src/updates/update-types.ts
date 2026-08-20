@@ -2,10 +2,10 @@ export type RevisionRelationship = "equal" | "behind" | "ahead" | "diverged";
 
 export interface HostUpdateInspection {
   installedSha: string;
-  newestSha: string;
+  newestSha: string | null;
   remoteUrl: string;
   branch: string;
-  worktreeClean: boolean;
+  worktreeClean: boolean | null;
   branchMatches: boolean;
   exactUpdateSupported: boolean;
   newestRelationship: RevisionRelationship;
@@ -22,12 +22,12 @@ export type UpdateTarget =
     }
   | {
       kind: "newest";
-      requestedSha: string;
-      resolvedAt: string;
+      requestedSha: string | null;
+      resolvedAt: string | null;
     };
 
 export type UpdateAvailability =
-  | { kind: "current" }
+  | { kind: "current"; native?: true }
   | { kind: "attention"; reason: string }
   | { kind: "available"; notice: string | null; targets: UpdateTarget[] };
 
@@ -40,6 +40,6 @@ export interface PreparedUpdateSelection {
     installedSha: string;
     repositoryUrl: string;
     branch: string | null;
-    requestedSha: string;
+    requestedSha: string | null;
   };
 }

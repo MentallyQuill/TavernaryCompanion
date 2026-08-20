@@ -7091,13 +7091,15 @@ var SillyTavernHostAdapter = class {
     return parseCommitSha(body.currentCommitHash, "readRevision");
   }
   async inspectUpdate(input) {
-    if (this.#updateInspectionSupported === false) throw unsupportedUpdateInspectionError();
+    if (this.#updateInspectionSupported === false)
+      return this.#requestNativeUpdateInspection(input);
     if (this.#updateInspectionSupported === true) {
       return this.#requestUpdateInspection(input);
     }
     if (this.#updateSupportProbe) {
       await this.#updateSupportProbe;
-      if (this.#updateInspectionSupported === false) throw unsupportedUpdateInspectionError();
+      if (this.#updateInspectionSupported === false)
+        return this.#requestNativeUpdateInspection(input);
       return this.#requestUpdateInspection(input);
     }
     const probe = this.#requestUpdateInspection(input).then(
@@ -7105,8 +7107,11 @@ var SillyTavernHostAdapter = class {
         this.#updateInspectionSupported = true;
         return inspection;
       },
-      (error) => {
-        if (isUnsupportedUpdateInspectionError(error)) this.#updateInspectionSupported = false;
+      async (error) => {
+        if (isUnsupportedUpdateInspectionError(error)) {
+          this.#updateInspectionSupported = false;
+          return this.#requestNativeUpdateInspection(input);
+        }
         throw error;
       }
     );
@@ -7116,6 +7121,50 @@ var SillyTavernHostAdapter = class {
     } finally {
       if (this.#updateSupportProbe === probe) this.#updateSupportProbe = null;
     }
+  }
+  async #requestNativeUpdateInspection(input) {
+    let response;
+    try {
+      response = await this.#dependencies.fetch("/api/extensions/version", {
+        method: "POST",
+        headers: this.#dependencies.getRequestHeaders(),
+        body: JSON.stringify({
+          extensionName: input.internalName.replace(/^third-party\//, ""),
+          global: input.type === "global"
+        })
+      });
+    } catch (cause) {
+      throw new HostOperationError(
+        "inspectUpdate",
+        "SillyTavern could not reach the native extension update service.",
+        { cause }
+      );
+    }
+    if (!response.ok) {
+      throw await responseError(
+        "inspectUpdate",
+        "SillyTavern could not check this extension for updates.",
+        response
+      );
+    }
+    const body = await readJsonObject(response, "inspectUpdate");
+    if (typeof body.currentBranchName !== "string" || typeof body.isUpToDate !== "boolean" || typeof body.remoteUrl !== "string") {
+      throw new HostOperationError(
+        "inspectUpdate",
+        "SillyTavern returned invalid native extension update evidence."
+      );
+    }
+    return {
+      installedSha: parseCommitSha(body.currentCommitHash, "inspectUpdate"),
+      newestSha: null,
+      remoteUrl: body.remoteUrl,
+      branch: body.currentBranchName,
+      worktreeClean: null,
+      branchMatches: input.branch === null || input.branch === body.currentBranchName,
+      exactUpdateSupported: false,
+      newestRelationship: body.isUpToDate ? "equal" : "behind",
+      candidateRelationships: {}
+    };
   }
   async #requestUpdateInspection(input) {
     const repositoryUrl = parseRepositoryUrl(input.repositoryUrl, "inspectUpdate");
@@ -7173,10 +7222,10 @@ var SillyTavernHostAdapter = class {
   async applyUpdate(input) {
     const repositoryUrl = parseRepositoryUrl(input.repositoryUrl, "update");
     const expectedCurrentSha = parseCommitSha(input.expectedCurrentSha, "update");
-    const targetSha = parseCommitSha(input.targetSha, "update");
+    const targetSha = input.targetSha === null ? null : parseCommitSha(input.targetSha, "update");
     let response;
     try {
-      response = await this.#dependencies.fetch("/api/extensions/update-to", {
+      response = targetSha ? await this.#dependencies.fetch("/api/extensions/update-to", {
         method: "POST",
         headers: this.#dependencies.getRequestHeaders(),
         body: JSON.stringify({
@@ -7186,6 +7235,13 @@ var SillyTavernHostAdapter = class {
           branch: input.branch,
           expectedCurrentSha,
           targetSha
+        })
+      }) : await this.#dependencies.fetch("/api/extensions/update", {
+        method: "POST",
+        headers: this.#dependencies.getRequestHeaders(),
+        body: JSON.stringify({
+          extensionName: input.internalName.replace(/^third-party\//, ""),
+          global: input.type === "global"
         })
       });
     } catch (cause) {
@@ -17774,7 +17830,7 @@ function InstalledCard({
           "In ",
           kitTitles.join(", ")
         ] }) : null,
-        updateState?.kind === "attention" ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-attention-reason", children: updateState.reason }) : null,
+        updateState?.kind === "attention" || updateState?.kind === "error" ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-attention-reason", children: updateState.reason }) : null,
         /* @__PURE__ */ u3("footer", { children: [
           row.toggleable && row.internalName && row.enabled !== null ? /* @__PURE__ */ u3(
             "button",
@@ -17896,6 +17952,9 @@ function InstalledRoute({
   const populatedSections = sections.filter((section) => section.rows.length > 0);
   const installedKits = kits;
   const checkingUpdates = Object.values(updateStates).some(({ kind }) => kind === "checking");
+  const usingNativeUpdates = Object.values(updateStates).some(
+    (state) => state.kind === "current" && state.native === true || state.kind === "available" && state.targets.some(({ requestedSha }) => requestedSha === null)
+  );
   const installedCount = populatedSections.reduce(
     (total, section) => total + section.rows.length,
     0
@@ -17929,6 +17988,7 @@ function InstalledRoute({
         }
       )
     ] }),
+    usingNativeUpdates ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-update-note", children: "SillyTavern can update extensions to their newest version. Updating to a specific TavernKeeper-scanned version isn\u2019t supported by this build." }) : null,
     installedKits.length ? /* @__PURE__ */ u3(
       "section",
       {
@@ -20944,37 +21004,32 @@ function deriveUpdateAvailability({
   if (!project2.install || !sameRepositoryUrl(project2.install.repositoryUrl, inspection.remoteUrl)) {
     return {
       kind: "attention",
-      reason: "This extension comes from a different repository. Manage it in SillyTavern."
+      reason: "This extension was installed from a different repository than Tavernary lists. Review it in SillyTavern or reinstall the Tavernary version."
     };
   }
-  if (!inspection.worktreeClean) {
+  if (inspection.worktreeClean === false) {
     return {
       kind: "attention",
-      reason: "This extension has local changes. Manage it in SillyTavern."
+      reason: "This extension has local file changes, so Companion won\u2019t overwrite them. Review those changes, then check again."
     };
   }
   if (!inspection.branchMatches) {
+    const expectedBranch = project2.install.branch ?? "the repository\u2019s default branch";
     return {
       kind: "attention",
-      reason: "This extension is on another branch. Manage it in SillyTavern."
+      reason: `This extension is on the ${inspection.branch} branch, but Tavernary tracks ${expectedBranch}. Switch branches in SillyTavern, then check again.`
     };
   }
   if (inspection.newestRelationship === "diverged") {
     return {
       kind: "attention",
-      reason: "This extension has diverged history. Manage it in SillyTavern."
+      reason: "This extension and the Tavernary version each contain different commits, so Companion won\u2019t merge them. Resolve the branch in SillyTavern, then check again."
     };
   }
   if (inspection.newestRelationship === "ahead") {
     return {
       kind: "attention",
-      reason: "This extension is ahead of the catalog branch. Manage it in SillyTavern."
-    };
-  }
-  if (!inspection.exactUpdateSupported && (inspection.newestRelationship === "behind" || Object.values(inspection.candidateRelationships).includes("behind"))) {
-    return {
-      kind: "attention",
-      reason: "This SillyTavern build does not support exact Companion updates."
+      reason: "This extension contains commits that aren\u2019t in the Tavernary version, so Companion won\u2019t replace them. Review it in SillyTavern, then check again."
     };
   }
   const targets = [];
@@ -20988,15 +21043,17 @@ function deriveUpdateAvailability({
       reportUrl: report2.reportUrl
     });
   }
-  if (inspection.newestRelationship === "behind" && !targets.some(({ requestedSha }) => requestedSha === inspection.newestSha.toLowerCase())) {
+  if (inspection.newestRelationship === "behind" && !targets.some(
+    ({ requestedSha }) => inspection.newestSha !== null && requestedSha === inspection.newestSha.toLowerCase()
+  )) {
     targets.push({
       kind: "newest",
-      requestedSha: inspection.newestSha.toLowerCase(),
-      resolvedAt: (/* @__PURE__ */ new Date()).toISOString()
+      requestedSha: inspection.exactUpdateSupported && inspection.newestSha ? inspection.newestSha.toLowerCase() : null,
+      resolvedAt: inspection.exactUpdateSupported ? (/* @__PURE__ */ new Date()).toISOString() : null
     });
   }
   const alreadyScanned = report2 && inspection.candidateRelationships[report2.scannedSha.toLowerCase()] === "equal";
-  return targets.length === 0 ? { kind: "current" } : {
+  return targets.length === 0 ? inspection.exactUpdateSupported ? { kind: "current" } : { kind: "current", native: true } : {
     kind: "available",
     notice: alreadyScanned ? "You already have the latest scanned version." : null,
     targets
@@ -21080,19 +21137,12 @@ var DefaultExtensionUpdateCoordinator = class {
       });
       if (!isCurrent()) return;
       this.#publishInspection(project2, entry.extension.internalName, inspection);
-    } catch (error) {
+    } catch {
       if (!isCurrent()) return;
       delete this.#checkedEvidence[projectId];
-      if (error instanceof HostOperationError && error.operation === "inspectUpdate" && error.status === 404) {
-        this.#setState(projectId, {
-          kind: "attention",
-          reason: "This SillyTavern build does not support exact Companion updates."
-        });
-        return;
-      }
       this.#setState(projectId, {
         kind: "error",
-        reason: "Could not check for updates."
+        reason: "Companion couldn\u2019t check this extension. Try again; if it still fails, open it in SillyTavern."
       });
     }
   }
@@ -21265,7 +21315,7 @@ var DefaultExtensionUpdateCoordinator = class {
             await this.#persistIncompleteReceipt(receipt2, disclosureAccepted);
             return receipt2;
           }
-          if (!outcomeKnown || observedSha !== selection.target.requestedSha) {
+          if (!outcomeKnown || !matchesAppliedUpdate(selection, observedSha)) {
             delete this.#checkedEvidence[project2.id];
             this.#setState(project2.id, {
               kind: "attention",
@@ -21334,7 +21384,7 @@ var DefaultExtensionUpdateCoordinator = class {
           await this.#persistIncompleteReceipt(receipt2, disclosureAccepted);
           return receipt2;
         }
-        if (installedSha !== selection.target.requestedSha) {
+        if (!matchesAppliedUpdate(selection, installedSha)) {
           delete this.#checkedEvidence[project2.id];
           this.#setState(project2.id, {
             kind: "attention",
@@ -21432,6 +21482,9 @@ var DefaultExtensionUpdateCoordinator = class {
 };
 function createExtensionUpdateCoordinator(options) {
   return new DefaultExtensionUpdateCoordinator(options);
+}
+function matchesAppliedUpdate(selection, installedSha) {
+  return selection.target.requestedSha === null ? installedSha !== null && installedSha !== selection.binding.installedSha : installedSha === selection.target.requestedSha;
 }
 
 // src/ui/installed/update-version-chooser.tsx

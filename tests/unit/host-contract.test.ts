@@ -243,10 +243,19 @@ it("reads strict update inspection evidence from the non-legacy status endpoint"
   });
 });
 
-it("explains when safe update inspection is unavailable on an older host", async () => {
-  const host = createSillyTavernHost({
-    fetch: vi.fn().mockResolvedValue(new Response("missing", { status: 404 })),
-  });
+it("falls back to native SillyTavern update evidence when exact inspection is unavailable", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(new Response("missing", { status: 404 }))
+    .mockResolvedValueOnce(
+      Response.json({
+        currentCommitHash: installedSha,
+        currentBranchName: "main",
+        isUpToDate: false,
+        remoteUrl: repositoryUrl,
+      }),
+    );
+  const host = createSillyTavernHost({ fetch: fetchMock });
 
   await expect(
     host.inspectUpdate({
@@ -256,15 +265,40 @@ it("explains when safe update inspection is unavailable on an older host", async
       branch: null,
       candidateShas: [],
     }),
-  ).rejects.toThrow("This version of SillyTavern cannot check updates safely.");
+  ).resolves.toEqual({
+    installedSha,
+    newestSha: null,
+    remoteUrl: repositoryUrl,
+    branch: "main",
+    worktreeClean: null,
+    branchMatches: true,
+    exactUpdateSupported: false,
+    newestRelationship: "behind",
+    candidateRelationships: {},
+  });
+  expect(fetchMock).toHaveBeenNthCalledWith(2, "/api/extensions/version", {
+    method: "POST",
+    headers: { Authorization: "private" },
+    body: JSON.stringify({ extensionName: "Alpha", global: false }),
+  });
 });
 
-it("shares one unsupported update probe across concurrent and later checks", async () => {
+it("shares one exact-support probe before using native evidence for every extension", async () => {
   let finishProbe!: (response: Response) => void;
   const pending = new Promise<Response>((resolve) => {
     finishProbe = resolve;
   });
-  const fetchMock = vi.fn(() => pending);
+  const fetchMock = vi.fn((url: string | URL | Request) => {
+    if (url === "/api/extensions/update-status") return pending;
+    return Promise.resolve(
+      Response.json({
+        currentCommitHash: installedSha,
+        currentBranchName: "main",
+        isUpToDate: false,
+        remoteUrl: repositoryUrl,
+      }),
+    );
+  });
   const host = createSillyTavernHost({ fetch: fetchMock });
   const inspect = (internalName: string) =>
     host.inspectUpdate({
@@ -279,12 +313,15 @@ it("shares one unsupported update probe across concurrent and later checks", asy
   expect(fetchMock).toHaveBeenCalledOnce();
   finishProbe(new Response("missing", { status: 404 }));
 
-  const results = await Promise.allSettled(probes);
-  expect(results.every(({ status }) => status === "rejected")).toBe(true);
-  await expect(inspect("third-party/Delta")).rejects.toThrow(
-    "This version of SillyTavern cannot check updates safely.",
-  );
-  expect(fetchMock).toHaveBeenCalledOnce();
+  await expect(Promise.all(probes)).resolves.toHaveLength(3);
+  await expect(inspect("third-party/Delta")).resolves.toMatchObject({
+    exactUpdateSupported: false,
+    newestRelationship: "behind",
+  });
+  expect(
+    fetchMock.mock.calls.filter(([url]) => url === "/api/extensions/update-status"),
+  ).toHaveLength(1);
+  expect(fetchMock.mock.calls.filter(([url]) => url === "/api/extensions/version")).toHaveLength(4);
 });
 
 it("retries update support discovery after a transient response", async () => {
@@ -361,6 +398,32 @@ it("sends immutable update targets only to the exact update endpoint", async () 
       expectedCurrentSha: installedSha,
       targetSha: remoteSha,
     }),
+  });
+});
+
+it("uses SillyTavern's native updater when no exact target is available", async () => {
+  const fetchMock = vi.fn().mockResolvedValue(
+    Response.json({
+      shortCommitHash: remoteSha.slice(0, 7),
+      isUpToDate: false,
+      remoteUrl: repositoryUrl,
+    }),
+  );
+  const host = createSillyTavernHost({ fetch: fetchMock });
+
+  await host.applyUpdate({
+    internalName: "third-party/Alpha",
+    type: "local",
+    repositoryUrl,
+    branch: "main",
+    expectedCurrentSha: installedSha,
+    targetSha: null,
+  });
+
+  expect(fetchMock).toHaveBeenCalledWith("/api/extensions/update", {
+    method: "POST",
+    headers: { Authorization: "private" },
+    body: JSON.stringify({ extensionName: "Alpha", global: false }),
   });
 });
 

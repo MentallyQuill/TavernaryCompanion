@@ -118,13 +118,34 @@ describe("InstalledRoute", () => {
     expect(screen.queryByRole("button", { name: "Update Alpha" })).not.toBeInTheDocument();
   });
 
+  it("explains native newest-only updates once without marking extensions as attention", () => {
+    render(
+      <InstalledRoute
+        sections={sections}
+        updateStates={{ alpha: { kind: "current", native: true } }}
+        onRefresh={vi.fn()}
+      />,
+    );
+
+    expect(
+      screen.getByText(
+        "SillyTavern can update extensions to their newest version. Updating to a specific TavernKeeper-scanned version isn’t supported by this build.",
+      ),
+    ).toBeVisible();
+    expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();
+  });
+
   it("offers a per-extension retry after a failed check", () => {
     const onRetryUpdate = vi.fn();
     render(
       <InstalledRoute
         sections={sections}
         updateStates={{
-          alpha: { kind: "error", reason: "Could not check for updates." },
+          alpha: {
+            kind: "error",
+            reason:
+              "Companion couldn’t check this extension. Try again; if it still fails, open it in SillyTavern.",
+          },
         }}
         onRefresh={vi.fn()}
         onRetryUpdate={onRetryUpdate}
@@ -132,6 +153,11 @@ describe("InstalledRoute", () => {
     );
 
     expect(screen.getByText("Could not check")).toBeVisible();
+    expect(
+      screen.getByText(
+        "Companion couldn’t check this extension. Try again; if it still fails, open it in SillyTavern.",
+      ),
+    ).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Retry updates for Alpha" }));
     expect(onRetryUpdate).toHaveBeenCalledWith("alpha");
   });

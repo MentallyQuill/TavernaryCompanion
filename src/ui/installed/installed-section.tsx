@@ -119,7 +119,7 @@ function InstalledCard({
       {kitTitles.length ? (
         <div class="tavernary-companion-installed-memberships">In {kitTitles.join(", ")}</div>
       ) : null}
-      {updateState?.kind === "attention" ? (
+      {updateState?.kind === "attention" || updateState?.kind === "error" ? (
         <p class="tavernary-companion-installed-attention-reason">{updateState.reason}</p>
       ) : null}
       <footer>

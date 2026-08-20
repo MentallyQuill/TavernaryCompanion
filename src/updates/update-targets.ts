@@ -65,41 +65,36 @@ export function deriveUpdateAvailability({
   if (!project.install || !sameRepositoryUrl(project.install.repositoryUrl, inspection.remoteUrl)) {
     return {
       kind: "attention",
-      reason: "This extension comes from a different repository. Manage it in SillyTavern.",
+      reason:
+        "This extension was installed from a different repository than Tavernary lists. Review it in SillyTavern or reinstall the Tavernary version.",
     };
   }
-  if (!inspection.worktreeClean) {
+  if (inspection.worktreeClean === false) {
     return {
       kind: "attention",
-      reason: "This extension has local changes. Manage it in SillyTavern.",
+      reason:
+        "This extension has local file changes, so Companion won’t overwrite them. Review those changes, then check again.",
     };
   }
   if (!inspection.branchMatches) {
+    const expectedBranch = project.install.branch ?? "the repository’s default branch";
     return {
       kind: "attention",
-      reason: "This extension is on another branch. Manage it in SillyTavern.",
+      reason: `This extension is on the ${inspection.branch} branch, but Tavernary tracks ${expectedBranch}. Switch branches in SillyTavern, then check again.`,
     };
   }
   if (inspection.newestRelationship === "diverged") {
     return {
       kind: "attention",
-      reason: "This extension has diverged history. Manage it in SillyTavern.",
+      reason:
+        "This extension and the Tavernary version each contain different commits, so Companion won’t merge them. Resolve the branch in SillyTavern, then check again.",
     };
   }
   if (inspection.newestRelationship === "ahead") {
     return {
       kind: "attention",
-      reason: "This extension is ahead of the catalog branch. Manage it in SillyTavern.",
-    };
-  }
-  if (
-    !inspection.exactUpdateSupported &&
-    (inspection.newestRelationship === "behind" ||
-      Object.values(inspection.candidateRelationships).includes("behind"))
-  ) {
-    return {
-      kind: "attention",
-      reason: "This SillyTavern build does not support exact Companion updates.",
+      reason:
+        "This extension contains commits that aren’t in the Tavernary version, so Companion won’t replace them. Review it in SillyTavern, then check again.",
     };
   }
   const targets: UpdateTarget[] = [];
@@ -119,18 +114,26 @@ export function deriveUpdateAvailability({
   }
   if (
     inspection.newestRelationship === "behind" &&
-    !targets.some(({ requestedSha }) => requestedSha === inspection.newestSha.toLowerCase())
+    !targets.some(
+      ({ requestedSha }) =>
+        inspection.newestSha !== null && requestedSha === inspection.newestSha.toLowerCase(),
+    )
   ) {
     targets.push({
       kind: "newest",
-      requestedSha: inspection.newestSha.toLowerCase(),
-      resolvedAt: new Date().toISOString(),
+      requestedSha:
+        inspection.exactUpdateSupported && inspection.newestSha
+          ? inspection.newestSha.toLowerCase()
+          : null,
+      resolvedAt: inspection.exactUpdateSupported ? new Date().toISOString() : null,
     });
   }
   const alreadyScanned =
     report && inspection.candidateRelationships[report.scannedSha.toLowerCase()] === "equal";
   return targets.length === 0
-    ? { kind: "current" }
+    ? inspection.exactUpdateSupported
+      ? { kind: "current" }
+      : { kind: "current", native: true }
     : {
         kind: "available",
         notice: alreadyScanned ? "You already have the latest scanned version." : null,

@@ -149,7 +149,7 @@ export class FakeHost implements HostExtensionAdapter {
     repositoryUrl: string;
     branch: string | null;
     expectedCurrentSha: string;
-    targetSha: string;
+    targetSha: string | null;
   }): Promise<void> {
     this.calls.push({ operation: "applyUpdate", ...structuredClone(input) });
     this.#throwConfiguredFailure("applyUpdate");
@@ -157,9 +157,13 @@ export class FakeHost implements HostExtensionAdapter {
     if (this.#installedRevisions[key] !== input.expectedCurrentSha) {
       throw new HostOperationError("update", "The installed extension changed before updating.");
     }
-    const installedSha = this.#mismatchResults[input.targetSha] ?? input.targetSha;
-    this.#installedRevisions[key] = installedSha;
     const inspection = this.#updateInspections[key];
+    const targetSha = input.targetSha ?? inspection?.newestSha;
+    if (!targetSha) {
+      throw new HostOperationError("update", "No fake native update target is available.");
+    }
+    const installedSha = this.#mismatchResults[targetSha] ?? targetSha;
+    this.#installedRevisions[key] = installedSha;
     if (inspection) {
       inspection.installedSha = installedSha;
       inspection.newestRelationship =

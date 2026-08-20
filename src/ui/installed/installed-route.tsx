@@ -49,6 +49,12 @@ export function InstalledRoute({
   const populatedSections = sections.filter((section) => section.rows.length > 0);
   const installedKits = kits;
   const checkingUpdates = Object.values(updateStates).some(({ kind }) => kind === "checking");
+  const usingNativeUpdates = Object.values(updateStates).some(
+    (state) =>
+      (state.kind === "current" && state.native === true) ||
+      (state.kind === "available" &&
+        state.targets.some(({ requestedSha }) => requestedSha === null)),
+  );
   const installedCount = populatedSections.reduce(
     (total, section) => total + section.rows.length,
     0,
@@ -81,6 +87,12 @@ export function InstalledRoute({
           {checkingUpdates ? "Checking…" : "Check again"}
         </button>
       </header>
+      {usingNativeUpdates ? (
+        <p class="tavernary-companion-installed-update-note">
+          SillyTavern can update extensions to their newest version. Updating to a specific
+          TavernKeeper-scanned version isn’t supported by this build.
+        </p>
+      ) : null}
       {installedKits.length ? (
         <section
           class="tavernary-companion-installed-kits"

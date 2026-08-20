@@ -1,7 +1,6 @@
 import type { CatalogSnapshot } from "../catalog/catalog-client";
 import type { CatalogProject } from "../catalog/catalog-core";
 import type { HostExtensionAdapter } from "../host/host-types";
-import { HostOperationError } from "../host/host-errors";
 import type { InventorySnapshot } from "../inventory/inventory-types";
 import type { OperationLock } from "../lifecycle/operation-lock";
 import { createReceipt, type LifecycleReceipt } from "../lifecycle/operation-receipt";
@@ -21,10 +20,13 @@ import type { HostUpdateInspection, PreparedUpdateSelection, UpdateTarget } from
 export type ProjectUpdateState =
   | { kind: "idle" }
   | { kind: "checking" }
-  | { kind: "current" }
+  | { kind: "current"; native?: true }
   | { kind: "available"; notice: string | null; targets: UpdateTarget[] }
   | { kind: "attention"; reason: string }
-  | { kind: "error"; reason: "Could not check for updates." };
+  | {
+      kind: "error";
+      reason: "Companion couldn’t check this extension. Try again; if it still fails, open it in SillyTavern.";
+    };
 
 export interface ExtensionUpdateSnapshot {
   states: Record<string, ProjectUpdateState>;
@@ -125,23 +127,13 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
       });
       if (!isCurrent()) return;
       this.#publishInspection(project, entry.extension.internalName, inspection);
-    } catch (error) {
+    } catch {
       if (!isCurrent()) return;
       delete this.#checkedEvidence[projectId];
-      if (
-        error instanceof HostOperationError &&
-        error.operation === "inspectUpdate" &&
-        error.status === 404
-      ) {
-        this.#setState(projectId, {
-          kind: "attention",
-          reason: "This SillyTavern build does not support exact Companion updates.",
-        });
-        return;
-      }
       this.#setState(projectId, {
         kind: "error",
-        reason: "Could not check for updates.",
+        reason:
+          "Companion couldn’t check this extension. Try again; if it still fails, open it in SillyTavern.",
       });
     }
   }
@@ -337,7 +329,7 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
             await this.#persistIncompleteReceipt(receipt, disclosureAccepted);
             return receipt;
           }
-          if (!outcomeKnown || observedSha !== selection.target.requestedSha) {
+          if (!outcomeKnown || !matchesAppliedUpdate(selection, observedSha)) {
             delete this.#checkedEvidence[project.id];
             this.#setState(project.id, {
               kind: "attention",
@@ -416,7 +408,7 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
           await this.#persistIncompleteReceipt(receipt, disclosureAccepted);
           return receipt;
         }
-        if (installedSha !== selection.target.requestedSha) {
+        if (!matchesAppliedUpdate(selection, installedSha)) {
           delete this.#checkedEvidence[project.id];
           this.#setState(project.id, {
             kind: "attention",
@@ -535,4 +527,13 @@ export function createExtensionUpdateCoordinator(
   options: ExtensionUpdateCoordinatorOptions,
 ): ExtensionUpdateCoordinator {
   return new DefaultExtensionUpdateCoordinator(options);
+}
+
+function matchesAppliedUpdate(
+  selection: PreparedUpdateSelection,
+  installedSha: string | null,
+): boolean {
+  return selection.target.requestedSha === null
+    ? installedSha !== null && installedSha !== selection.binding.installedSha
+    : installedSha === selection.target.requestedSha;
 }

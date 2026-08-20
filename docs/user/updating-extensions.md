@@ -2,16 +2,18 @@
 
 Open **Installed** to refresh the installed list and check catalog-matched local extensions for updates. Use **Check again** whenever you want a fresh check.
 
-Exact checks and updates require a compatible SillyTavern host that exposes Companion's exact-update service. Standard SillyTavern releases do not currently expose that service. On those builds, Companion shows **Needs attention** and hands the extension back to SillyTavern's extension manager instead of falling back to an unverified update.
+Standard SillyTavern releases can check whether the newest creator version is available and apply it through SillyTavern's native updater. Companion explains this once on the Installed page; it does not mark every extension as needing attention. A compatible host with Companion's exact-update service can additionally offer a specific TavernKeeper-scanned version.
 
 Each extension shows one compact result: **Update available**, **Up to date**, **Could not check**, or **Needs attention**. A failed check has its own **Retry** action.
 
 ## Choose the version
 
-Choose **Update** immediately to the left of **Uninstall**. Companion always asks which available version to apply:
+Choose **Update** immediately to the left of **Uninstall**. Companion asks which available version to apply:
 
 - **Latest scanned version** is the newest forward version TavernKeeper has scanned.
 - **Newest version** is the latest version from the creator and may contain changes TavernKeeper has not scanned.
+
+On a standard SillyTavern host, only **Newest version** is available because the native updater does not accept a specific commit. Companion still verifies that the installed commit changed before reporting success.
 
 Companion omits any choice that is not a forward update. If the scanned version is already installed but a newer creator version exists, it says **You already have the latest scanned version.** and offers only **Newest version**.
 
@@ -25,6 +27,6 @@ A catalog-matched extension installed outside Companion can be updated, but it r
 
 ## Finish the update
 
-After SillyTavern applies the exact version, Companion rediscovers the extension and verifies the installed commit. A successful update leaves **Reload to apply updates** visible for the current Companion session. You can update other extensions first, then choose **Reload now** once.
+After SillyTavern applies an update, Companion rediscovers the extension and verifies the installed commit. Exact updates must match the selected commit; native newest updates must produce a new installed commit. A successful update leaves **Reload to apply updates** visible for the current Companion session. You can update other extensions first, then choose **Reload now** once.
 
 V1 intentionally has no bulk update, background polling, persisted update cache, or self-update control.
