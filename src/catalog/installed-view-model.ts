@@ -11,6 +11,8 @@ export interface InstalledRowViewModel {
   enabled: boolean | null;
   toggleable: boolean;
   action: ProjectPrimaryAction;
+  selectionEligible: boolean;
+  selectionDisabledReason: string | null;
 }
 
 export interface InstalledSectionViewModel {
@@ -39,6 +41,7 @@ export function toInstalledSectionViewModel(
         enabled: extension.enabled,
         toggleable: canToggle(project.id, extension.internalName),
         action: installedAction(extension.type, "Managed by Companion"),
+        ...selectionEligibility(project.id, extension.internalName, extension.type),
       })),
     },
     {
@@ -53,6 +56,7 @@ export function toInstalledSectionViewModel(
         enabled: extension.enabled,
         toggleable: canToggle(project.id, extension.internalName),
         action: installedAction(extension.type, "Installed outside Companion"),
+        ...selectionEligibility(project.id, extension.internalName, extension.type),
       })),
     },
     {
@@ -74,6 +78,8 @@ export function toInstalledSectionViewModel(
           label: "Manage in SillyTavern",
           reason: "No unambiguous Tavernary project identity.",
         },
+        selectionEligible: false,
+        selectionDisabledReason: "No unambiguous Tavernary project identity.",
       })),
     },
     {
@@ -93,9 +99,31 @@ export function toInstalledSectionViewModel(
           label: "Manage in SillyTavern",
           reason: "Reconcile the missing extension in SillyTavern.",
         },
+        selectionEligible: false,
+        selectionDisabledReason: "This extension is no longer installed.",
       })),
     },
   ];
+}
+
+function selectionEligibility(
+  projectId: string,
+  internalName: string,
+  extensionType: "local" | "global",
+): Pick<InstalledRowViewModel, "selectionEligible" | "selectionDisabledReason"> {
+  if (!canToggle(projectId, internalName)) {
+    return {
+      selectionEligible: false,
+      selectionDisabledReason: "Tavernary Companion cannot manage itself.",
+    };
+  }
+  if (extensionType === "global") {
+    return {
+      selectionEligible: false,
+      selectionDisabledReason: "Global extensions are managed by SillyTavern.",
+    };
+  }
+  return { selectionEligible: true, selectionDisabledReason: null };
 }
 
 function canToggle(projectId: string, internalName: string): boolean {

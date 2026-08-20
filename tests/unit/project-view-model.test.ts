@@ -264,6 +264,36 @@ describe("project view models", () => {
     },
   );
 
+  it("makes only direct-removal inventory rows eligible for bulk selection", () => {
+    const project = catalogProjectFixture();
+    const local = {
+      internalName: "third-party/Alpha",
+      folderName: "Alpha",
+      enabled: true,
+      type: "local" as const,
+      manifest: null,
+    };
+    const sections = toInstalledSectionViewModel({
+      ...emptyInventory,
+      external: [{ project, extension: local }],
+      unknown: [
+        {
+          extension: { ...local, internalName: "third-party/Unknown", folderName: "Unknown" },
+          reason: "folder-not-in-catalog",
+        },
+      ],
+    });
+
+    expect(sections.find(({ id }) => id === "external")?.rows[0]).toMatchObject({
+      selectionEligible: true,
+      selectionDisabledReason: null,
+    });
+    expect(sections.find(({ id }) => id === "unknown")?.rows[0]).toMatchObject({
+      selectionEligible: false,
+      selectionDisabledReason: "No unambiguous Tavernary project identity.",
+    });
+  });
+
   it("makes Companion and incompatible-schema actions non-mutating", () => {
     const self = catalogProjectFixture({
       id: "mentallyquill-tavernary-companion",
