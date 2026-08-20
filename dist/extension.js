@@ -12996,7 +12996,17 @@ async function executeVerifiedInstall(input) {
         type: installed.type
       });
     } catch (cause) {
-      if (input.target.requestedSha === null) throw cause;
+      if (input.target.requestedSha === null) {
+        throw new VerifiedInstallError({
+          message: "SillyTavern could not report the installed revision.",
+          stage: "post-install-verification",
+          subtype: "local-revision-read-failed",
+          cleanupOutcome: "not-needed",
+          requestedSha: null,
+          installedSha: null,
+          cause
+        });
+      }
       throw await cleanupMismatch({
         host: input.host,
         extension: installed,
@@ -13928,9 +13938,11 @@ async function applyActivationMutations({
   host,
   enable,
   disable,
-  resolveInternalName
+  resolveInternalName,
+  onResult
 }) {
   const failures = [];
+  const results = [];
   let changed = false;
   for (const [action, steps] of [
     ["enable", enable],
@@ -13939,26 +13951,42 @@ async function applyActivationMutations({
     for (const step2 of steps) {
       const internalName = resolveInternalName(step2.projectId, step2.internalName);
       if (!internalName) {
-        failures.push({
+        const failure = {
           projectId: step2.projectId,
           action,
           error: "Managed extension identity is unavailable."
-        });
+        };
+        failures.push(failure);
+        const mutation = { ...failure, changed: false };
+        results.push(mutation);
+        await onResult?.(mutation);
         continue;
       }
       try {
         await host[action](internalName);
         changed = true;
+        const mutation = {
+          projectId: step2.projectId,
+          action,
+          changed: true,
+          error: null
+        };
+        results.push(mutation);
+        await onResult?.(mutation);
       } catch (error) {
-        failures.push({
+        const failure = {
           projectId: step2.projectId,
           action,
           error: error instanceof Error ? error.message : "Host mutation failed."
-        });
+        };
+        failures.push(failure);
+        const mutation = { ...failure, changed: false };
+        results.push(mutation);
+        await onResult?.(mutation);
       }
     }
   }
-  return { changed, failures };
+  return { changed, failures, results };
 }
 
 // src/kits/kit-plan.ts
@@ -14086,7 +14114,12 @@ var KitOperationJournal = class {
 function isJournal(value) {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
   const journal = value;
-  return journal.formatVersion === 1 && typeof journal.operationId === "string" && typeof journal.planId === "string" && typeof journal.kitId === "string" && (journal.operation === "install" || journal.operation === "activate" || journal.operation === "deactivate" || journal.operation === "uninstall") && typeof journal.phase === "string" && typeof journal.startedAt === "string" && (journal.currentProjectId === null || typeof journal.currentProjectId === "string") && Array.isArray(journal.completedProjects) && Array.isArray(journal.requiredProjectIds) && (!Object.hasOwn(journal, "actionableProjectIds") || Array.isArray(journal.actionableProjectIds) && journal.actionableProjectIds.every((value2) => typeof value2 === "string")) && (!Object.hasOwn(journal, "selectedInstallTargets") || Array.isArray(journal.selectedInstallTargets) && journal.selectedInstallTargets.every(isInstallTargetSelection)) && (journal.preOperationActiveKitId === null || typeof journal.preOperationActiveKitId === "string");
+  return journal.formatVersion === 1 && typeof journal.operationId === "string" && typeof journal.planId === "string" && typeof journal.kitId === "string" && (journal.operation === "install" || journal.operation === "activate" || journal.operation === "deactivate" || journal.operation === "uninstall") && typeof journal.phase === "string" && typeof journal.startedAt === "string" && (journal.currentProjectId === null || typeof journal.currentProjectId === "string") && Array.isArray(journal.completedProjects) && Array.isArray(journal.requiredProjectIds) && (!Object.hasOwn(journal, "actionableProjectIds") || Array.isArray(journal.actionableProjectIds) && journal.actionableProjectIds.every((value2) => typeof value2 === "string")) && (!Object.hasOwn(journal, "selectedInstallTargets") || Array.isArray(journal.selectedInstallTargets) && journal.selectedInstallTargets.every(isInstallTargetSelection)) && (!Object.hasOwn(journal, "completedMutations") || Array.isArray(journal.completedMutations) && journal.completedMutations.every(isActivationMutationResult)) && (journal.preOperationActiveKitId === null || typeof journal.preOperationActiveKitId === "string");
+}
+function isActivationMutationResult(value) {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const mutation = value;
+  return typeof mutation.projectId === "string" && (mutation.action === "enable" || mutation.action === "disable") && typeof mutation.changed === "boolean" && (mutation.error === null || typeof mutation.error === "string");
 }
 function isInstallTargetSelection(value) {
   if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
@@ -14488,7 +14521,8 @@ var KitExecutor = class {
         preOperationActiveKitId: previousActiveKitId,
         requiredProjectIds: [...plan.requiredProjectIds],
         actionableProjectIds: [...plan.actionableProjectIds],
-        selectedInstallTargets: structuredClone(approval.selectedInstallTargets)
+        selectedInstallTargets: structuredClone(approval.selectedInstallTargets),
+        completedMutations: []
       };
       await this.journal.write(journal);
       const progress = { reloadRequired: false };
@@ -14763,7 +14797,8 @@ var KitExecutor = class {
         host: this.#host,
         enable: plan.enable,
         disable: plan.disable,
-        resolveInternalName: (projectId, planned) => planned ?? records[projectId]?.internalName ?? null
+        resolveInternalName: (projectId, planned) => planned ?? records[projectId]?.internalName ?? null,
+        onResult: (mutation) => this.#recordMutationProgress(journal, progress, mutation)
       });
       progress.reloadRequired ||= mutations.changed;
       for (const failure of mutations.failures)
@@ -14807,7 +14842,8 @@ var KitExecutor = class {
       host: this.#host,
       enable: [],
       disable: plan.disable,
-      resolveInternalName: (_id, planned) => planned
+      resolveInternalName: (_id, planned) => planned,
+      onResult: (mutation) => this.#recordMutationProgress(journal, progress, mutation)
     });
     let discovered = null;
     let discoveryError = null;
@@ -14850,7 +14886,8 @@ var KitExecutor = class {
         host: this.#host,
         enable: [],
         disable: plan.disable,
-        resolveInternalName: (_id, planned) => planned
+        resolveInternalName: (_id, planned) => planned,
+        onResult: (mutation) => this.#recordMutationProgress(journal, progress, mutation)
       });
       progress.reloadRequired ||= mutations.changed;
       if (mutations.failures.length) {
@@ -14961,6 +14998,12 @@ var KitExecutor = class {
       });
       draft.managedExtensions = registry.read();
     });
+  }
+  async #recordMutationProgress(journal, progress, mutation) {
+    progress.reloadRequired ||= mutation.changed;
+    journal.currentProjectId = mutation.projectId;
+    journal.completedMutations = [...journal.completedMutations ?? [], structuredClone(mutation)];
+    await this.journal.write(journal);
   }
   async #confirmChangedTarget(project2, target) {
     const state = this.#profile.read();
