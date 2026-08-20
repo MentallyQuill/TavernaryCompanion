@@ -3,7 +3,7 @@ export interface RemovalImpact {
   projectName: string;
   ownership: "managed" | "external" | "absent";
   ownershipLabel: "Managed by Companion" | "Installed outside Companion" | "Not installed";
-  installedKits: Array<{ id: string; title: string }>;
+  installedKits: Array<{ id: string; title: string; installedProjectCount: number }>;
   activeKitAffected: boolean;
   removable: boolean;
   confirmation: string;
@@ -78,12 +78,13 @@ export function projectKitReferences(
   projectId: string,
   installedKits: Record<string, unknown>,
   kitTitles: Readonly<Record<string, string>>,
-): Array<{ id: string; title: string }> {
+): Array<{ id: string; title: string; installedProjectCount: number }> {
   return Object.entries(installedKits)
     .filter(([, candidate]) => kitProjectIds(candidate).includes(projectId))
-    .map(([id]) => ({
+    .map(([id, candidate]) => ({
       id,
       title: kitTitles[id] ?? id,
+      installedProjectCount: kitProjectIds(candidate).length,
     }))
     .sort((left, right) => left.title.localeCompare(right.title));
 }

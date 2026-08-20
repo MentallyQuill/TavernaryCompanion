@@ -679,7 +679,7 @@ export function CompanionPopupHost({
           if (!runtime) return;
           setInstalledSelection((current) => {
             const next = toggleInstalledProject(current, projectId);
-            if (next.projectIds.length === 0) return next;
+            if (next.projectIds.length === 0) return { ...next, sourceKitIds: [] };
             return reconcileInstalledSelection(
               next,
               selectableInstalledProjectIds(runtime),

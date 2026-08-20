@@ -25,7 +25,7 @@ it("describes ownership and installed or active Kit drift", () => {
     projectName: "Alpha",
     ownership: "managed",
     ownershipLabel: "Managed by Companion",
-    installedKits: [{ id: "daily", title: "Daily" }],
+    installedKits: [{ id: "daily", title: "Daily", installedProjectCount: 2 }],
     activeKitAffected: true,
     removable: true,
     confirmation:
@@ -44,8 +44,8 @@ it("exposes stable installed Kit references for aggregate removal planning", () 
       { zeta: "Zeta", alpha: "Alpha" },
     ),
   ).toEqual([
-    { id: "alpha", title: "Alpha" },
-    { id: "zeta", title: "Zeta" },
+    { id: "alpha", title: "Alpha", installedProjectCount: 2 },
+    { id: "zeta", title: "Zeta", installedProjectCount: 1 },
   ]);
 });
 

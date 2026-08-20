@@ -33,7 +33,9 @@ export function BulkRemovalDialog({
         <section aria-label="Affected Kits">
           <h3>Affected Kits</h3>
           {plan.affectedKits.map((kit) => (
-            <p key={kit.id}>{kit.title} will become Partial.</p>
+            <p key={kit.id}>
+              {kit.title} will become {kit.resultingStatus}.
+            </p>
           ))}
           {plan.activeKitAffected ? <p>The active Kit will show drift.</p> : null}
         </section>

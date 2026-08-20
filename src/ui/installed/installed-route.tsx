@@ -1,4 +1,4 @@
-import { useEffect } from "preact/hooks";
+import { useEffect, useId } from "preact/hooks";
 
 import type { InstalledSectionViewModel } from "../../catalog/installed-view-model";
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
@@ -8,6 +8,8 @@ import type { InstalledSelectionState } from "./installed-selection";
 import { InstalledBulkBar } from "./installed-bulk-bar";
 import { InstalledKitCard } from "./installed-kit-card";
 import { InstalledSection } from "./installed-section";
+import { InstalledStatusHelp } from "./installed-status-help";
+import { Tooltip } from "../shared/tooltip";
 
 interface InstalledRouteProps {
   sections: InstalledSectionViewModel[];
@@ -61,9 +63,21 @@ export function InstalledRoute({
   onClearSelection,
   lifecycleDisabled,
 }: InstalledRouteProps): preact.JSX.Element {
+  const selectHelpId = useId();
   useEffect(() => {
     void onRefresh();
   }, [onRefresh]);
+  useEffect(() => {
+    if (!selection.active) return;
+    const clearOnEscape = (event: KeyboardEvent) => {
+      if (event.key !== "Escape" || document.querySelector('[role="dialog"][aria-modal="true"]'))
+        return;
+      event.preventDefault();
+      onClearSelection?.();
+    };
+    window.addEventListener("keydown", clearOnEscape);
+    return () => window.removeEventListener("keydown", clearOnEscape);
+  }, [onClearSelection, selection.active]);
   const populatedSections = sections.filter((section) => section.rows.length > 0);
   const installedKits = kits;
   const checkingUpdates = Object.values(updateStates).some(({ kind }) => kind === "checking");
@@ -104,14 +118,20 @@ export function InstalledRoute({
           {checkingUpdates ? "Checking…" : "Check again"}
         </button>
         {!selection.active ? (
-          <button
-            type="button"
-            aria-label="Select installed extensions"
-            disabled={lifecycleDisabled}
-            onClick={() => onStartSelection?.()}
+          <Tooltip
+            id={`${selectHelpId}-select-installed`}
+            label="Select installed extensions for bulk actions."
+            className="tavernary-companion-control-tooltip"
           >
-            Select
-          </button>
+            <button
+              type="button"
+              aria-label="Select installed extensions"
+              disabled={lifecycleDisabled}
+              onClick={() => onStartSelection?.()}
+            >
+              Select
+            </button>
+          </Tooltip>
         ) : null}
       </header>
       {usingNativeUpdates ? (
@@ -127,7 +147,10 @@ export function InstalledRoute({
         >
           <header>
             <div>
-              <h3 id="installed-kits-heading">Installed Kits</h3>
+              <div class="tavernary-companion-installed-kits__title">
+                <h3 id="installed-kits-heading">Installed Kits</h3>
+                <InstalledStatusHelp />
+              </div>
               <p>Choose a Kit to select its installed extensions.</p>
             </div>
             <span>{installedKits.length}</span>

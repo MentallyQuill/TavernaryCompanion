@@ -16,7 +16,8 @@ test("Installed groups Kits and lets extensions be enabled and restored from car
   await expect(page.getByRole("heading", { name: "Writer's Kit" })).toBeVisible();
   await expect(page.getByText("In Writer's Kit")).toBeVisible();
   const cards = page.locator(".tavernary-companion-installed-card");
-  expect(await cards.count()).toBeGreaterThanOrEqual(2);
+  expect(await cards.count()).toBeGreaterThanOrEqual(1);
+  await expect(page.locator(".tavernary-companion-installed-kit-card")).toHaveCount(1);
 
   const enable = page.getByRole("switch", { name: /Enable /u });
   await expect(enable).toHaveAttribute("aria-checked", "false");

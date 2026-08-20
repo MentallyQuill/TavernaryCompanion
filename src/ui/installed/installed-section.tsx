@@ -127,6 +127,11 @@ function InstalledCard({
           <span aria-hidden="true">{selected ? "✓" : ""}</span>
         </button>
       ) : null}
+      {selectionActive && !row.selectionEligible && row.selectionDisabledReason ? (
+        <p class="tavernary-companion-installed-selection-disabled">
+          {row.selectionDisabledReason}
+        </p>
+      ) : null}
       <header>
         <span>{sectionLabel(sectionId)}</span>
         {updateState && updateState.kind !== "idle" ? (
@@ -149,7 +154,9 @@ function InstalledCard({
         )}
       </h4>
       {kitTitles.length ? (
-        <div class="tavernary-companion-installed-memberships">In {kitTitles.join(", ")}</div>
+        <div class="tavernary-companion-installed-memberships" title={kitTitles.join(", ")}>
+          In {kitTitles.join(", ")}
+        </div>
       ) : null}
       {updateState?.kind === "attention" || updateState?.kind === "error" ? (
         <p class="tavernary-companion-installed-attention-reason">{updateState.reason}</p>

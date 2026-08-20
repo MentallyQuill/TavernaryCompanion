@@ -91,10 +91,11 @@ describe("InstalledRoute", () => {
     fireEvent.click(screen.getByRole("button", { name: "Add selected extensions to a Kit" }));
     fireEvent.click(screen.getByRole("button", { name: "Uninstall selected extensions" }));
     fireEvent.click(screen.getByRole("button", { name: "Clear selection and exit" }));
+    fireEvent.keyDown(window, { key: "Escape" });
     expect(onToggleSelection).toHaveBeenCalledWith("alpha");
     expect(onAddSelectedToKit).toHaveBeenCalledOnce();
     expect(onUninstallSelected).toHaveBeenCalledOnce();
-    expect(onClearSelection).toHaveBeenCalledOnce();
+    expect(onClearSelection).toHaveBeenCalledTimes(2);
   });
 
   it("collapses empty inventory sections and refreshes host inventory on entry", async () => {
@@ -450,7 +451,8 @@ describe("InstalledRoute", () => {
     );
 
     expect(screen.getByRole("heading", { name: "removed-kit" })).toBeVisible();
-    fireEvent.click(screen.getByRole("button", { name: "Uninstall removed-kit" }));
+    fireEvent.click(screen.getByRole("button", { name: "More actions for removed-kit" }));
+    fireEvent.click(screen.getByRole("menuitem", { name: "Uninstall Kit" }));
     expect(onUninstallKit).toHaveBeenCalledWith("removed-kit");
   });
 

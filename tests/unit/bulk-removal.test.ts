@@ -41,7 +41,7 @@ it("deduplicates selected projects and aggregates Kit impact", async () => {
   const lifecycle = {
     previewRemoval: vi.fn(async (id: string) =>
       impact(id, {
-        installedKits: [{ id: "writers", title: "Writers" }],
+        installedKits: [{ id: "writers", title: "Writers", installedProjectCount: 3 }],
         activeKitAffected: id === "alpha",
       }),
     ),
@@ -51,7 +51,9 @@ it("deduplicates selected projects and aggregates Kit impact", async () => {
   const plan = await prepareBulkRemoval(lifecycle, ["alpha", "beta", "alpha"]);
 
   expect(plan.projectIds).toEqual(["alpha", "beta"]);
-  expect(plan.affectedKits).toEqual([{ id: "writers", title: "Writers" }]);
+  expect(plan.affectedKits).toEqual([
+    { id: "writers", title: "Writers", resultingStatus: "Partial" },
+  ]);
   expect(plan.activeKitAffected).toBe(true);
   expect(plan.confirmable).toBe(true);
 });

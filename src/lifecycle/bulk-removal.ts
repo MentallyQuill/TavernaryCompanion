@@ -9,7 +9,7 @@ interface BulkRemovalLifecycle {
 export interface BulkRemovalPlan {
   projectIds: string[];
   impacts: RemovalImpact[];
-  affectedKits: Array<{ id: string; title: string }>;
+  affectedKits: Array<{ id: string; title: string; resultingStatus: "Partial" | "Missing" }>;
   activeKitAffected: boolean;
   confirmable: boolean;
   fingerprint: string;
@@ -43,11 +43,31 @@ export async function prepareBulkRemoval(
   const uniqueIds = [...new Set(projectIds)];
   const impacts: RemovalImpact[] = [];
   for (const projectId of uniqueIds) impacts.push(await lifecycle.previewRemoval(projectId));
-  const affectedKits = [
-    ...new Map(
-      impacts.flatMap(({ installedKits }) => installedKits).map((kit) => [kit.id, kit]),
-    ).values(),
-  ].sort((left, right) => left.title.localeCompare(right.title));
+  const affectedKitCounts = new Map<
+    string,
+    { id: string; title: string; installedProjectCount: number; selectedCount: number }
+  >();
+  for (const impact of impacts) {
+    for (const kit of impact.installedKits) {
+      const current = affectedKitCounts.get(kit.id);
+      affectedKitCounts.set(kit.id, {
+        ...kit,
+        installedProjectCount: Math.max(
+          kit.installedProjectCount,
+          current?.installedProjectCount ?? 0,
+        ),
+        selectedCount: (current?.selectedCount ?? 0) + 1,
+      });
+    }
+  }
+  const affectedKits = [...affectedKitCounts.values()]
+    .map(({ id, title, installedProjectCount, selectedCount }) => ({
+      id,
+      title,
+      resultingStatus:
+        selectedCount >= installedProjectCount ? ("Missing" as const) : ("Partial" as const),
+    }))
+    .sort((left, right) => left.title.localeCompare(right.title));
   const confirmable = impacts.length > 0 && impacts.every(({ removable }) => removable);
   return {
     projectIds: uniqueIds,
