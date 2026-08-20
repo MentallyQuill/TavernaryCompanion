@@ -159,6 +159,43 @@ test("builds and removes a personal Kit from project-card selection", async ({ p
   await expect(page.getByRole("heading", { name: "Quick Kit" })).not.toBeVisible();
 });
 
+test("removes an active Kit while keeping its extensions installed", async ({ page }) => {
+  await page.setViewportSize({ width: 1024, height: 768 });
+  await openHarness(page);
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Kits" })
+    .click();
+  await page.getByRole("tab", { name: /Personal/u }).click();
+  await page.getByRole("button", { name: "Activate" }).click();
+  await page
+    .getByRole("dialog", { name: "Activate Kit review" })
+    .getByRole("button", { name: "Activate Kit" })
+    .click();
+  await page.getByRole("button", { name: "Dismiss" }).click();
+  await page.getByRole("button", { name: "Details" }).click();
+
+  const remove = page.getByRole("button", { name: "Remove Kit, keep extensions" });
+  await expect(remove).toBeEnabled();
+  await remove.click();
+
+  await expect(page.getByRole("heading", { name: "Writer's Kit" })).not.toBeVisible();
+  await expect(page.getByLabel("Active managed Kit")).toHaveCount(0);
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Installed" })
+    .click();
+  const writer = page.locator(".tavernary-companion-installed-card", {
+    has: page.getByRole("heading", { name: "Writer Tool" }),
+  });
+  await expect(writer).toContainText("Writer Tool");
+  await expect(writer).toContainText("Companion managed");
+  await expect(writer.getByRole("switch", { name: "Disable Writer Tool" })).toHaveAttribute(
+    "aria-checked",
+    "true",
+  );
+});
+
 test("animates the desktop Kit Builder track open and closed", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await openHarness(page);

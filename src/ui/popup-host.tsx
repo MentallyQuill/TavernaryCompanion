@@ -742,7 +742,7 @@ export function CompanionPopupHost({
           void runtime?.kits
             .removeDefinition(id)
             .then(() => syncKits())
-            .catch(() => setOperationError("Uninstall the Kit before removing it."))
+            .catch(() => setOperationError("The personal Kit could not be removed."))
         }
         activeKitId={runtime?.kits.readActiveId() ?? null}
         kitBuilder={

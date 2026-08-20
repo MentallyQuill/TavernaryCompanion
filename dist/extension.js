@@ -15722,11 +15722,10 @@ var KitStore = class {
   }
   async removeDefinition(id) {
     if (!this.readDefinition(id)) return false;
-    if (this.readInstalled(id)) {
-      throw new Error("Uninstall the Kit before removing its definition.");
-    }
     await this.#profile.update((draft) => {
       delete draft.personalKits[id];
+      delete draft.installedKits[id];
+      if (draft.activeKitId === id) draft.activeKitId = null;
     });
     return true;
   }
@@ -19209,10 +19208,10 @@ function KitInspector({
         "button",
         {
           type: "button",
-          disabled: disabled || kit2.operationalStatus !== "Saved",
-          title: kit2.operationalStatus === "Saved" ? void 0 : "Uninstall this Kit before removing its saved definition.",
+          disabled,
+          title: kit2.operationalStatus === "Saved" ? void 0 : "Remove this Kit while keeping its extensions installed.",
           onClick: onRemove,
-          children: "Remove saved Kit"
+          children: kit2.operationalStatus === "Saved" ? "Remove saved Kit" : "Remove Kit, keep extensions"
         }
       ) : null,
       kit2.operationalStatus !== "Saved" ? /* @__PURE__ */ u3("button", { type: "button", disabled, onClick: onUninstall, children: "Uninstall Kit" }) : null
@@ -22817,7 +22816,7 @@ function CompanionPopupHost({
         },
         onUninstallKit: (id) => requestKitAction(id, "uninstall"),
         onDuplicateKit: (id) => void runtime?.kits.duplicate(id).then(() => syncKits()).catch(() => setOperationError("The personal Kit could not be duplicated.")),
-        onRemoveKit: (id) => void runtime?.kits.removeDefinition(id).then(() => syncKits()).catch(() => setOperationError("Uninstall the Kit before removing it.")),
+        onRemoveKit: (id) => void runtime?.kits.removeDefinition(id).then(() => syncKits()).catch(() => setOperationError("The personal Kit could not be removed.")),
         activeKitId: runtime?.kits.readActiveId() ?? null,
         kitBuilder: kitEditorProjects ? /* @__PURE__ */ u3(
           KitEditor,
