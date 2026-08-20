@@ -26,7 +26,7 @@ export function previewRemovalImpact({
   removable: boolean;
   kitTitles?: Readonly<Record<string, string>>;
 }): RemovalImpact {
-  const references = kitReferences(projectId, installedKits, kitTitles);
+  const references = projectKitReferences(projectId, installedKits, kitTitles);
   const activeKitAffected = references.some(({ id }) => id === activeKitId);
   const kitNames = references.map(({ title }) => title).join(", ");
   const consequence =
@@ -74,11 +74,11 @@ export function markInstalledKitsIncomplete(
   return next;
 }
 
-function kitReferences(
+export function projectKitReferences(
   projectId: string,
   installedKits: Record<string, unknown>,
   kitTitles: Readonly<Record<string, string>>,
-) {
+): Array<{ id: string; title: string }> {
   return Object.entries(installedKits)
     .filter(([, candidate]) => kitProjectIds(candidate).includes(projectId))
     .map(([id]) => ({

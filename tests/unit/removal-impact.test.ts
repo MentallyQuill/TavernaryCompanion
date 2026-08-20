@@ -3,6 +3,7 @@ import { expect, it } from "vitest";
 import {
   markInstalledKitsIncomplete,
   previewRemovalImpact,
+  projectKitReferences,
 } from "../../src/lifecycle/removal-impact";
 
 it("describes ownership and installed or active Kit drift", () => {
@@ -30,6 +31,22 @@ it("describes ownership and installed or active Kit drift", () => {
     confirmation:
       "Uninstall Alpha? Daily will become incomplete, and the active Kit will show drift.",
   });
+});
+
+it("exposes stable installed Kit references for aggregate removal planning", () => {
+  expect(
+    projectKitReferences(
+      "alpha",
+      {
+        zeta: { installedProjectIds: ["alpha"] },
+        alpha: { installedProjectIds: ["alpha", "beta"] },
+      },
+      { zeta: "Zeta", alpha: "Alpha" },
+    ),
+  ).toEqual([
+    { id: "alpha", title: "Alpha" },
+    { id: "zeta", title: "Zeta" },
+  ]);
 });
 
 it("moves a directly removed project from installed to missing Kit membership", () => {
