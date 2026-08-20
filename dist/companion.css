@@ -2049,11 +2049,23 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   border-block-start: 1px solid var(--tavernary-color-border-subtle);
 }
 .tavernary-companion-installed-route {
-  padding: 20px 22px 60px;
+  padding: 10px 22px 60px;
 }
 .tavernary-companion-installed-route > .tavernary-companion-route-toolbar {
-  min-block-size: 44px;
-  margin-block-end: 14px;
+  min-block-size: 34px;
+  margin-block-end: 10px;
+}
+.tavernary-companion-installed-route > .tavernary-companion-route-toolbar > button {
+  min-block-size: 34px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1;
+}
+.tavernary-companion-installed-route > .tavernary-companion-route-toolbar > p {
+  margin: 0;
+  color: var(--tavernary-color-text-muted);
+  font-size: 11px;
 }
 .tavernary-companion-installed-section {
   margin: 0 0 12px;

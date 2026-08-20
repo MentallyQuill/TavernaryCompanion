@@ -35,6 +35,7 @@ interface CompanionShellProps {
   inventoryRefreshing?: boolean;
   togglingInternalName?: string | null;
   onToggleExtension?(projectId: string, internalName: string, enabled: boolean): void;
+  onForgetMissingManaged?(projectId: string): void;
   onOpenExtensionManager?(): void;
   lifecycleDisabled?: boolean;
   kitDiscovery?: KitDiscoveryController;
@@ -78,6 +79,7 @@ export function CompanionShell({
   inventoryRefreshing = false,
   togglingInternalName = null,
   onToggleExtension,
+  onForgetMissingManaged,
   onOpenExtensionManager,
   lifecycleDisabled = false,
   kitDiscovery,
@@ -243,6 +245,7 @@ export function CompanionShell({
                     onRetryUpdate={onRetryUpdate}
                     onUpdate={onUpdateExtension}
                     onAction={(id, action, anchor) => onProjectAction?.(id, action, anchor)}
+                    onForgetMissing={onForgetMissingManaged}
                     onManage={onOpenExtensionManager}
                     onOpenKit={(id) =>
                       controller.openDetail({ kind: "kit", id, focusKey: `installed-kit-${id}` })

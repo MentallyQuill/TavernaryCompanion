@@ -18,6 +18,7 @@ interface InstalledRouteProps {
   onRetryUpdate?(id: string): void;
   onUpdate?(id: string, anchor: HTMLButtonElement): void;
   onAction?(id: string, action: ProjectPrimaryAction, anchor: HTMLButtonElement): void;
+  onForgetMissing?(id: string): void;
   onManage?(): void;
   onOpenKit?(id: string): void;
   onUninstallKit?(id: string): void;
@@ -37,6 +38,7 @@ export function InstalledRoute({
   onRetryUpdate,
   onUpdate,
   onAction,
+  onForgetMissing,
   onManage,
   onOpenKit,
   onUninstallKit,
@@ -49,10 +51,9 @@ export function InstalledRoute({
   const populatedSections = sections.filter((section) => section.rows.length > 0);
   const installedKits = kits;
   const checkingUpdates = Object.values(updateStates).some(({ kind }) => kind === "checking");
-  const installedCount = populatedSections.reduce(
-    (total, section) => total + section.rows.length,
-    0,
-  );
+  const installedCount = populatedSections
+    .filter(({ id }) => id !== "attention")
+    .reduce((total, section) => total + section.rows.length, 0);
   const memberships = new Map<string, string[]>();
   for (const kit of installedKits) {
     for (const projectId of kit.installedProjectIds) {
@@ -145,6 +146,7 @@ export function InstalledRoute({
             onAction={onAction}
             onRetryUpdate={onRetryUpdate}
             onUpdate={onUpdate}
+            onForgetMissing={onForgetMissing}
             onManage={onManage}
             onToggleExtension={onToggleExtension}
             lifecycleDisabled={lifecycleDisabled}

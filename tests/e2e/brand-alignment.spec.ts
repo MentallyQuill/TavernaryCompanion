@@ -705,6 +705,74 @@ test("Kits and Installed reuse the Tavernary card and control system", async ({ 
   expect(installedLifecycleFaceBox!.height).toBe(44);
 });
 
+test("desktop Installed content starts on the compact route rhythm", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openHarness(page, "installed-update");
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Installed" })
+    .click();
+
+  const route = page.locator(".tavernary-companion-installed-route");
+  const firstGroup = route
+    .locator(
+      "> .tavernary-companion-installed-kits, > .tavernary-companion-installed-section",
+    )
+    .first();
+  const [routeBox, firstGroupBox] = await Promise.all([
+    route.boundingBox(),
+    firstGroup.boundingBox(),
+  ]);
+
+  expect(routeBox).not.toBeNull();
+  expect(firstGroupBox).not.toBeNull();
+  expect(firstGroupBox!.y - routeBox!.y).toBeLessThanOrEqual(58);
+});
+
+test("desktop Installed refresh status preserves the compact route rhythm", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openHarness(page);
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Installed" })
+    .click();
+
+  const route = page.locator(".tavernary-companion-installed-route");
+  const toolbar = route.locator("> .tavernary-companion-route-toolbar");
+  await toolbar.evaluate((element) => {
+    const status = document.createElement("p");
+    status.setAttribute("role", "status");
+    status.textContent = "Updating installed extensions…";
+    element.insertBefore(status, element.lastElementChild);
+  });
+  const firstGroup = route
+    .locator(
+      "> .tavernary-companion-installed-kits, > .tavernary-companion-installed-section",
+    )
+    .first();
+  const [routeBox, firstGroupBox] = await Promise.all([
+    route.boundingBox(),
+    firstGroup.boundingBox(),
+  ]);
+
+  expect(routeBox).not.toBeNull();
+  expect(firstGroupBox).not.toBeNull();
+  expect(firstGroupBox!.y - routeBox!.y).toBeLessThanOrEqual(58);
+});
+
+test("desktop Installed check action uses compact control typography", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openHarness(page);
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Installed" })
+    .click();
+
+  const checkAgain = page.getByRole("button", { name: "Check for updates" });
+  await expect(checkAgain).toHaveCSS("font-size", "11px");
+  expect((await checkAgain.boundingBox())!.height).toBe(34);
+});
+
 test("mobile Kits and Installed use the compact shared route grammar", async ({ page }) => {
   await page.setViewportSize({ width: 390, height: 844 });
   await openHarness(page);

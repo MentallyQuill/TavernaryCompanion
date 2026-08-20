@@ -307,4 +307,35 @@ describe("project view models", () => {
       action: { kind: "manage-in-sillytavern", label: "Manage in SillyTavern" },
     });
   });
+
+  it("describes missing managed records as previously managed rather than installed", () => {
+    const project = catalogProjectFixture({ id: "story-engine", folderName: "Story-Engine" });
+    const sections = toInstalledSectionViewModel({
+      ...emptyInventory,
+      missingManaged: [
+        {
+          project,
+          record: {
+            projectId: project.id,
+            internalName: "third-party/Story-Engine",
+            folderName: "Story-Engine",
+            installedAt: "2026-08-19T16:03:54.690Z",
+            installedBy: "individual",
+          },
+        },
+      ],
+    });
+
+    expect(sections.find(({ id }) => id === "attention")).toMatchObject({
+      title: "Previously managed",
+      rows: [
+        {
+          name: project.name,
+          detail:
+            "Previously managed by Companion, but no longer installed in this SillyTavern profile.",
+          enabled: null,
+        },
+      ],
+    });
+  });
 });

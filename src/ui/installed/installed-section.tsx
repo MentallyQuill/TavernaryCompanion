@@ -14,6 +14,7 @@ interface InstalledSectionProps {
   onAction?(id: string, action: ProjectPrimaryAction, anchor: HTMLButtonElement): void;
   onRetryUpdate?(id: string): void;
   onUpdate?(id: string, anchor: HTMLButtonElement): void;
+  onForgetMissing?(id: string): void;
   onManage?(): void;
   onToggleExtension?(projectId: string, internalName: string, enabled: boolean): void;
   lifecycleDisabled?: boolean;
@@ -27,6 +28,7 @@ export function InstalledSection({
   onAction,
   onRetryUpdate,
   onUpdate,
+  onForgetMissing,
   onManage,
   onToggleExtension,
   lifecycleDisabled,
@@ -52,6 +54,7 @@ export function InstalledSection({
               onAction={onAction}
               onRetryUpdate={onRetryUpdate}
               onUpdate={onUpdate}
+              onForgetMissing={onForgetMissing}
               onManage={onManage}
               onToggleExtension={onToggleExtension}
               lifecycleDisabled={lifecycleDisabled}
@@ -72,6 +75,7 @@ function InstalledCard({
   onAction,
   onRetryUpdate,
   onUpdate,
+  onForgetMissing,
   onManage,
   onToggleExtension,
   lifecycleDisabled,
@@ -84,11 +88,14 @@ function InstalledCard({
   onAction?: (id: string, action: ProjectPrimaryAction, anchor: HTMLButtonElement) => void;
   onRetryUpdate?: (id: string) => void;
   onUpdate?: (id: string, anchor: HTMLButtonElement) => void;
+  onForgetMissing?: (id: string) => void;
   onManage?: () => void;
   onToggleExtension?: (projectId: string, internalName: string, enabled: boolean) => void;
   lifecycleDisabled?: boolean;
 }): preact.JSX.Element {
-  const unknown = sectionId === "unknown" || row.action.kind === "manage-in-sillytavern";
+  const missing = sectionId === "attention";
+  const unknown =
+    !missing && (sectionId === "unknown" || row.action.kind === "manage-in-sillytavern");
   return (
     <article
       class={`tavernary-companion-installed-card${row.enabled !== null ? " is-installed" : " is-missing"}${row.enabled === false ? " is-disabled" : ""}`}
@@ -122,6 +129,7 @@ function InstalledCard({
       {updateState?.kind === "attention" ? (
         <p class="tavernary-companion-installed-attention-reason">{updateState.reason}</p>
       ) : null}
+      {missing ? <p class="tavernary-companion-installed-attention-reason">{row.detail}</p> : null}
       <footer>
         {row.toggleable && row.internalName && row.enabled !== null ? (
           <button
@@ -170,7 +178,16 @@ function InstalledCard({
             Manage in SillyTavern
           </button>
         ) : null}
-        {unknown ? (
+        {missing ? (
+          <button
+            type="button"
+            aria-label={`Forget ${row.name} record`}
+            disabled={lifecycleDisabled}
+            onClick={() => onForgetMissing?.(row.id)}
+          >
+            Forget record
+          </button>
+        ) : unknown ? (
           <button
             type="button"
             aria-label={`Manage ${row.name} in SillyTavern`}
@@ -206,7 +223,7 @@ function sectionLabel(id: InstalledSectionViewModel["id"]): string {
     managed: "Companion managed",
     external: "Installed externally",
     unknown: "Uncataloged",
-    attention: "Needs attention",
+    attention: "No longer installed",
   }[id];
 }
 
@@ -215,6 +232,6 @@ function emptyExplanation(id: InstalledSectionViewModel["id"]): string {
     managed: "No installed extensions are currently managed by Companion.",
     external: "No catalog extensions were found outside Companion management.",
     unknown: "Every discovered extension matched the current catalog.",
-    attention: "No managed records need attention.",
+    attention: "No previously managed extensions are missing.",
   }[id];
 }
