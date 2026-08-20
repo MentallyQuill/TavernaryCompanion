@@ -11810,11 +11810,11 @@ function toInstalledSectionViewModel(inventory) {
     },
     {
       id: "attention",
-      title: "Needs attention",
+      title: "Previously managed",
       rows: inventory.missingManaged.map(({ record: record2, project: project2 }) => ({
         id: record2.projectId,
         name: project2?.name ?? record2.folderName,
-        detail: "Managed record is missing from SillyTavern.",
+        detail: "Previously managed by Companion, but no longer installed in this SillyTavern profile.",
         internalName: record2.internalName,
         canonicalUrl: project2?.canonicalUrl ?? null,
         enabled: null,
@@ -12571,6 +12571,31 @@ function reconcileInventory({
     });
   }
   return snapshot;
+}
+
+// src/inventory/missing-managed-record.ts
+async function forgetMissingManagedRecord({
+  projectId,
+  inventory,
+  store
+}) {
+  const missing = inventory.missingManaged.find(({ record: record2 }) => record2.projectId === projectId);
+  if (!missing) return false;
+  const current = normalizeManagedExtensionMap(store.read().managedExtensions)[projectId];
+  if (!current || current.internalName !== missing.record.internalName || current.folderName !== missing.record.folderName || current.installedAt !== missing.record.installedAt) {
+    return false;
+  }
+  let removed = false;
+  await store.update((draft) => {
+    const registry = new ManagedRegistry(normalizeManagedExtensionMap(draft.managedExtensions));
+    const latest = registry.read()[projectId];
+    if (!latest || latest.internalName !== missing.record.internalName || latest.folderName !== missing.record.folderName || latest.installedAt !== missing.record.installedAt) {
+      return;
+    }
+    removed = registry.remove(projectId);
+    draft.managedExtensions = registry.read();
+  });
+  return removed;
 }
 
 // src/runtime-id.ts
@@ -17712,6 +17737,7 @@ function InstalledSection({
   onAction,
   onRetryUpdate,
   onUpdate,
+  onForgetMissing,
   onManage,
   onToggleExtension,
   lifecycleDisabled
@@ -17732,6 +17758,7 @@ function InstalledSection({
         onAction,
         onRetryUpdate,
         onUpdate,
+        onForgetMissing,
         onManage,
         onToggleExtension,
         lifecycleDisabled
@@ -17749,11 +17776,13 @@ function InstalledCard({
   onAction,
   onRetryUpdate,
   onUpdate,
+  onForgetMissing,
   onManage,
   onToggleExtension,
   lifecycleDisabled
 }) {
-  const unknown = sectionId === "unknown" || row.action.kind === "manage-in-sillytavern";
+  const missing = sectionId === "attention";
+  const unknown = !missing && (sectionId === "unknown" || row.action.kind === "manage-in-sillytavern");
   return /* @__PURE__ */ u3(
     "article",
     {
@@ -17777,6 +17806,7 @@ function InstalledCard({
           kitTitles.join(", ")
         ] }) : null,
         updateState?.kind === "attention" ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-attention-reason", children: updateState.reason }) : null,
+        missing ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-attention-reason", children: row.detail }) : null,
         /* @__PURE__ */ u3("footer", { children: [
           row.toggleable && row.internalName && row.enabled !== null ? /* @__PURE__ */ u3(
             "button",
@@ -17825,7 +17855,16 @@ function InstalledCard({
               children: "Manage in SillyTavern"
             }
           ) : null,
-          unknown ? /* @__PURE__ */ u3(
+          missing ? /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              "aria-label": `Forget ${row.name} record`,
+              disabled: lifecycleDisabled,
+              onClick: () => onForgetMissing?.(row.id),
+              children: "Forget record"
+            }
+          ) : unknown ? /* @__PURE__ */ u3(
             "button",
             {
               type: "button",
@@ -17861,7 +17900,7 @@ function sectionLabel(id) {
     managed: "Companion managed",
     external: "Installed externally",
     unknown: "Uncataloged",
-    attention: "Needs attention"
+    attention: "No longer installed"
   }[id];
 }
 function emptyExplanation(id) {
@@ -17869,7 +17908,7 @@ function emptyExplanation(id) {
     managed: "No installed extensions are currently managed by Companion.",
     external: "No catalog extensions were found outside Companion management.",
     unknown: "Every discovered extension matched the current catalog.",
-    attention: "No managed records need attention."
+    attention: "No previously managed extensions are missing."
   }[id];
 }
 
@@ -17886,6 +17925,7 @@ function InstalledRoute({
   onRetryUpdate,
   onUpdate,
   onAction,
+  onForgetMissing,
   onManage,
   onOpenKit,
   onUninstallKit,
@@ -17898,10 +17938,7 @@ function InstalledRoute({
   const populatedSections = sections.filter((section) => section.rows.length > 0);
   const installedKits = kits;
   const checkingUpdates = Object.values(updateStates).some(({ kind }) => kind === "checking");
-  const installedCount = populatedSections.reduce(
-    (total, section) => total + section.rows.length,
-    0
-  );
+  const installedCount = populatedSections.filter(({ id }) => id !== "attention").reduce((total, section) => total + section.rows.length, 0);
   const memberships = /* @__PURE__ */ new Map();
   for (const kit2 of installedKits) {
     for (const projectId of kit2.installedProjectIds) {
@@ -17990,6 +18027,7 @@ function InstalledRoute({
         onAction,
         onRetryUpdate,
         onUpdate,
+        onForgetMissing,
         onManage,
         onToggleExtension,
         lifecycleDisabled
@@ -19201,6 +19239,7 @@ function ProjectKitControl({
   projectId,
   projectName,
   selected,
+  compact = false,
   onToggle
 }) {
   const tooltipId = g2();
@@ -19232,7 +19271,7 @@ function ProjectKitControl({
                 children: /* @__PURE__ */ u3("path", { d: selected ? "M1.5 6h9" : "M6 1.5v9M1.5 6h9" })
               }
             ),
-            /* @__PURE__ */ u3("small", { children: "Kit" })
+            compact ? null : /* @__PURE__ */ u3("small", { children: "Kit" })
           ] })
         }
       )
@@ -19916,6 +19955,7 @@ function ProjectCard({
                   projectId: project2.id,
                   projectName: project2.displayName,
                   selected: selectedForKit,
+                  compact: density === "compact",
                   onToggle: onToggleKitSelection
                 }
               ) : null
@@ -20606,6 +20646,7 @@ function CompanionShell({
   inventoryRefreshing = false,
   togglingInternalName = null,
   onToggleExtension,
+  onForgetMissingManaged,
   onOpenExtensionManager,
   lifecycleDisabled = false,
   kitDiscovery,
@@ -20754,6 +20795,7 @@ function CompanionShell({
                     onRetryUpdate,
                     onUpdate: onUpdateExtension,
                     onAction: (id, action, anchor) => onProjectAction?.(id, action, anchor),
+                    onForgetMissing: onForgetMissingManaged,
                     onManage: onOpenExtensionManager,
                     onOpenKit: (id) => controller.openDetail({ kind: "kit", id, focusKey: `installed-kit-${id}` }),
                     onUninstallKit,
@@ -21611,6 +21653,7 @@ function CompanionPopupHost({
   const [catalogRefreshing, setCatalogRefreshing] = d2(false);
   const [inventoryRefreshing, setInventoryRefreshing] = d2(false);
   const [togglingInternalName, setTogglingInternalName] = d2(null);
+  const [forgettingManagedId, setForgettingManagedId] = d2(null);
   const [activeOperation, setActiveOperation] = d2(
     runtime?.lifecycle.lock.read() ?? null
   );
@@ -21846,6 +21889,26 @@ function CompanionPopupHost({
       setTogglingInternalName(null);
     }
   };
+  const forgetMissingManaged = async (projectId) => {
+    if (!runtime || !store) return;
+    setOperationError(null);
+    setForgettingManagedId(projectId);
+    try {
+      if (!await refreshInventory()) return;
+      const forgotten = await forgetMissingManagedRecord({
+        projectId,
+        inventory: runtime.kitContext.inventory,
+        store
+      });
+      if (forgotten) await refreshInventory();
+    } catch (error) {
+      setOperationError(
+        error instanceof Error ? error.message : "The saved management record could not be removed."
+      );
+    } finally {
+      setForgettingManagedId(null);
+    }
+  };
   const requestKitOperation = async (kitId, operation) => {
     if (!runtime || !store || !host) return;
     setOperationError(null);
@@ -21942,11 +22005,12 @@ function CompanionPopupHost({
           requestUpdate(projectId, projectName, anchor);
         },
         onToggleExtension: (projectId, internalName, enabled) => void toggleExtension(projectId, internalName, enabled),
+        onForgetMissingManaged: (projectId) => void forgetMissingManaged(projectId),
         onProjectAction: (projectId, action, anchor) => void runAction(projectId, action, anchor),
         onOpenExtensionManager: () => void host?.openExtensionManager(),
         onUpdateCompanion: () => void host?.openExtensionManager(),
         onOpenTavernary: () => host?.openExternal("https://tavernary.org/"),
-        lifecycleDisabled: activeOperation !== null || togglingInternalName !== null || preparingInstall || pendingInstallChoice !== null || pendingUpdateChoice !== null || pendingInstallFallback !== null || preparingKitPlan,
+        lifecycleDisabled: activeOperation !== null || togglingInternalName !== null || forgettingManagedId !== null || preparingInstall || pendingInstallChoice !== null || pendingUpdateChoice !== null || pendingInstallFallback !== null || preparingKitPlan,
         kitDiscovery: runtime?.kitDiscovery,
         kitInspectors,
         installedKits: installedKitCards,

@@ -1588,8 +1588,22 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   inline-size: 15px;
   block-size: 15px;
 }
-.tavernary-companion-project-results.is-compact :is(.tavernary-companion-project-card__community, .tavernary-companion-project-card__repository-size, .tavernary-companion-project-card__preset-size, .tavernary-companion-project-card__attribution, .tavernary-companion-project-card__chips, .tavernary-companion-project-card__reason, .tavernary-companion-project-card__meta) {
+.tavernary-companion-project-results.is-compact :is(.tavernary-companion-project-card__community, .tavernary-companion-project-card__repository-size, .tavernary-companion-project-card__preset-size, .tavernary-companion-project-card__attribution, .tavernary-companion-project-card__chips, .tavernary-companion-project-card__reason) {
   display: none;
+}
+.tavernary-companion-project-results.is-compact .tavernary-companion-project-card__utility {
+  min-block-size: 17px;
+}
+.tavernary-companion-project-results.is-compact :is(.tavernary-companion-project-lifecycle, .tavernary-companion-project-kit-control),
+.tavernary-companion-project-results.is-compact :is(.tavernary-companion-project-lifecycle__face, .tavernary-companion-project-kit-control__face) {
+  inline-size: 17px;
+  min-inline-size: 17px;
+  block-size: 17px;
+  min-block-size: 17px;
+}
+.tavernary-companion-project-results.is-compact .tavernary-companion-project-lifecycle svg {
+  inline-size: 12px;
+  block-size: 12px;
 }
 .tavernary-companion-project-results.is-compact .tavernary-companion-project-card__title {
   margin-block-start: 8px;
@@ -2035,11 +2049,23 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   border-block-start: 1px solid var(--tavernary-color-border-subtle);
 }
 .tavernary-companion-installed-route {
-  padding: 20px 22px 60px;
+  padding: 10px 22px 60px;
 }
 .tavernary-companion-installed-route > .tavernary-companion-route-toolbar {
-  min-block-size: 44px;
-  margin-block-end: 14px;
+  min-block-size: 34px;
+  margin-block-end: 10px;
+}
+.tavernary-companion-installed-route > .tavernary-companion-route-toolbar > button {
+  min-block-size: 34px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1;
+}
+.tavernary-companion-installed-route > .tavernary-companion-route-toolbar > p {
+  margin: 0;
+  color: var(--tavernary-color-text-muted);
+  font-size: 11px;
 }
 .tavernary-companion-installed-section {
   margin: 0 0 12px;

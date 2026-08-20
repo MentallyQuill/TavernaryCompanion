@@ -6,6 +6,7 @@ interface ProjectKitControlProps {
   projectId: string;
   projectName: string;
   selected: boolean;
+  compact?: boolean;
   onToggle(projectId: string): void;
 }
 
@@ -13,6 +14,7 @@ export function ProjectKitControl({
   projectId,
   projectName,
   selected,
+  compact = false,
   onToggle,
 }: ProjectKitControlProps): preact.JSX.Element {
   const tooltipId = useId();
@@ -41,7 +43,7 @@ export function ProjectKitControl({
           >
             <path d={selected ? "M1.5 6h9" : "M6 1.5v9M1.5 6h9"} />
           </svg>
-          <small>Kit</small>
+          {compact ? null : <small>Kit</small>}
         </span>
       </button>
     </Tooltip>

@@ -9,6 +9,7 @@ import type { HostExtensionAdapter } from "../host/host-types";
 import { reconcileInventory } from "../inventory/inventory-reconciler";
 import type { InventorySnapshot } from "../inventory/inventory-types";
 import { normalizeManagedExtensionMap } from "../inventory/managed-registry";
+import { forgetMissingManagedRecord } from "../inventory/missing-managed-record";
 import {
   createLifecycleCoordinator,
   type LifecycleCoordinator,
@@ -125,6 +126,7 @@ export function CompanionPopupHost({
   const [catalogRefreshing, setCatalogRefreshing] = useState(false);
   const [inventoryRefreshing, setInventoryRefreshing] = useState(false);
   const [togglingInternalName, setTogglingInternalName] = useState<string | null>(null);
+  const [forgettingManagedId, setForgettingManagedId] = useState<string | null>(null);
   const [activeOperation, setActiveOperation] = useState<ActiveOperation | null>(
     runtime?.lifecycle.lock.read() ?? null,
   );
@@ -402,6 +404,29 @@ export function CompanionPopupHost({
     }
   };
 
+  const forgetMissingManaged = async (projectId: string) => {
+    if (!runtime || !store) return;
+    setOperationError(null);
+    setForgettingManagedId(projectId);
+    try {
+      if (!(await refreshInventory())) return;
+      const forgotten = await forgetMissingManagedRecord({
+        projectId,
+        inventory: runtime.kitContext.inventory,
+        store,
+      });
+      if (forgotten) await refreshInventory();
+    } catch (error) {
+      setOperationError(
+        error instanceof Error
+          ? error.message
+          : "The saved management record could not be removed.",
+      );
+    } finally {
+      setForgettingManagedId(null);
+    }
+  };
+
   const requestKitOperation = async (kitId: string, operation: KitOperation) => {
     if (!runtime || !store || !host) return;
     setOperationError(null);
@@ -516,6 +541,7 @@ export function CompanionPopupHost({
         onToggleExtension={(projectId, internalName, enabled) =>
           void toggleExtension(projectId, internalName, enabled)
         }
+        onForgetMissingManaged={(projectId) => void forgetMissingManaged(projectId)}
         onProjectAction={(projectId, action, anchor) => void runAction(projectId, action, anchor)}
         onOpenExtensionManager={() => void host?.openExtensionManager()}
         onUpdateCompanion={() => void host?.openExtensionManager()}
@@ -523,6 +549,7 @@ export function CompanionPopupHost({
         lifecycleDisabled={
           activeOperation !== null ||
           togglingInternalName !== null ||
+          forgettingManagedId !== null ||
           preparingInstall ||
           pendingInstallChoice !== null ||
           pendingUpdateChoice !== null ||
