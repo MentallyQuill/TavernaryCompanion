@@ -17,6 +17,30 @@ A Kit is also a shared list of extension slots. It is not a copy of your extensi
 - The Active Kit is the kit you are using now.
 - Installed and active can differ until you complete a switch or install flow.
 
+Installed Kits appear in a compact row above the installed extensions. Each Kit shows how many
+of its members are present. Its status explains the current relationship:
+
+- **Active:** the Kit currently defines the enabled state for Companion-managed extensions.
+- **Partial:** some Kit extensions are not installed.
+- **Drifted:** installed or enabled extensions no longer match the last verified Kit state.
+- **Missing:** none of the Kit extensions are installed.
+
+Removing one or more members does not delete the Kit. The Kit remains as saved intent and changes
+to Partial, Missing, or Drifted as appropriate. Use **Uninstall Kit** when you want to remove the
+installed Kit association itself.
+
+## Select members from Installed
+
+Choose an Installed Kit to enter selection mode and select the extensions from that Kit that are
+currently installed. You can select more Kits to combine their members, or select and clear
+individual extension cards. Shared members are counted once. **Clear** empties the selection and
+exits selection mode.
+
+Choose **Add to Kit** to add the selection to a new Kit or an existing Personal Kit. The Kit Builder
+opens with those extensions staged for review. Adding an extension to a Kit never transfers
+ownership: externally installed extensions remain external, and Companion-managed extensions
+remain Companion-managed.
+
 ## Switch or save a kit
 
 1. Open Kits.
@@ -38,7 +62,7 @@ You can export a Personal Kit to a JSON file and later import it on another acco
 
 Imported kits are validated before they apply.
 
-## Incomplete kit reminders
+## Incomplete Kit reminders
 
 If a kit is missing an extension file or compatibility target, Companion shows a warning before changing anything.
 

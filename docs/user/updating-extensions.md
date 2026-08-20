@@ -25,8 +25,25 @@ Companion does not update an extension when its repository, branch, or history d
 
 A catalog-matched extension installed outside Companion can be updated, but it remains externally owned. Companion does not adopt it into Kits or gain uninstall ownership.
 
+Adding that extension to a Kit also leaves ownership unchanged. Kit membership records the desired
+set; it does not adopt, reinstall, or otherwise transfer the extension.
+
 ## Finish the update
 
 After SillyTavern applies an update, Companion rediscovers the extension and verifies the installed commit. Exact updates must match the selected commit; native newest updates must produce a new installed commit. A successful update leaves **Reload to apply updates** visible for the current Companion session. You can update other extensions first, then choose **Reload now** once.
 
 V1 intentionally has no bulk update, background polling, persisted update cache, or self-update control.
+
+## Bulk uninstall
+
+Open **Installed**, choose **Select**, and select any combination of eligible local extensions. You
+can also choose an Installed Kit to select its currently installed members. The sticky action bar
+shows the deduplicated count.
+
+Choose **Uninstall** to review ownership and every affected Kit in one confirmation. Companion then
+uninstalls extensions one at a time and verifies each result before continuing. A completed receipt
+lists every success and failure. If only part of the batch succeeds, verified removals stay removed
+and the remaining installed failures stay selected for **Retry failed**.
+
+Bulk uninstall changes Kit fulfillment, not Kit definitions. A Kit can remain visible as Partial,
+Missing, or Drifted after its children are removed.

@@ -2151,6 +2151,158 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   color: var(--tavernary-color-text-muted);
   font-size: 10px;
 }
+.tavernary-companion-installed-kits > header > div {
+  min-inline-size: 0;
+}
+.tavernary-companion-installed-kits > header p {
+  margin: 2px 0 5px;
+  color: var(--tavernary-color-text-muted);
+  font-size: 10px;
+}
+.tavernary-companion-installed-kits__title {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tavernary-companion-installed-kit-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 8px;
+}
+.tavernary-companion-installed-kit-card {
+  position: relative;
+  display: grid;
+  min-inline-size: 0;
+  min-block-size: 86px;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: stretch;
+  border: 1px solid var(--tavernary-color-border-default);
+  border-radius: var(--tavernary-radius);
+  background: var(--tavernary-color-bg-surface);
+  box-shadow: var(--tavernary-shadow-card);
+}
+.tavernary-companion-installed-kit-card.is-active {
+  box-shadow: inset 2px 0 var(--tavernary-color-accent-teal), var(--tavernary-shadow-card);
+}
+.tavernary-companion-installed-kit-card.is-selected,
+.tavernary-companion-installed-card.is-selected {
+  border-color: var(--tavernary-color-accent-teal);
+  background: var(--tavernary-color-accent-teal-bg);
+  box-shadow: inset 0 0 0 1px var(--tavernary-color-accent-teal), var(--tavernary-shadow-card);
+}
+.tavernary-companion-installed-kit-card > .tavernary-companion-tooltip-anchor:first-child,
+.tavernary-companion-installed-kit-card__select {
+  display: block;
+  min-inline-size: 0;
+  inline-size: 100%;
+  block-size: 100%;
+}
+.tavernary-companion-installed-kit-card__select {
+  padding: 10px 12px;
+  border: 0;
+  border-radius: inherit;
+  color: var(--tavernary-color-text-primary);
+  background: transparent;
+  text-align: start;
+}
+.tavernary-companion-installed-kit-card__select h4 {
+  margin: 0 0 5px;
+  overflow: hidden;
+  color: var(--tavernary-color-heading);
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tavernary-companion-installed-kit-card__select > span,
+.tavernary-companion-installed-kit-card__select small {
+  display: block;
+  color: var(--tavernary-color-text-muted);
+  font-size: 9px;
+}
+.tavernary-companion-installed-kit-card__select small {
+  margin-block-start: 3px;
+  color: var(--tavernary-companion-high);
+  font-weight: 700;
+}
+.tavernary-companion-installed-status-help {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+}
+.tavernary-companion-installed-status-help button {
+  min-block-size: 30px;
+  padding: 3px 7px;
+  border: 1px solid var(--tavernary-color-control-border);
+  border-radius: 999px;
+  color: var(--tavernary-color-text-secondary);
+  background: var(--tavernary-color-control-bg);
+  font-size: 9px;
+}
+.tavernary-companion-installed-status-help.is-compact {
+  align-self: center;
+  padding-inline: 4px;
+}
+.tavernary-companion-installed-status-help.is-compact button {
+  min-block-size: 44px;
+}
+.tavernary-companion-installed-status-help__panel {
+  position: absolute;
+  z-index: 24;
+  inset-block-start: calc(100% + 6px);
+  inset-inline-start: 0;
+  inline-size: min(280px, 80vw);
+  padding: 10px;
+  border: 1px solid var(--tavernary-color-border-default);
+  border-radius: 7px;
+  color: var(--tavernary-color-text-primary);
+  background: var(--tavernary-color-bg-surface-raised);
+  box-shadow: var(--tavernary-shadow-overlay);
+  font-size: 10px;
+  line-height: 1.45;
+}
+.tavernary-companion-installed-status-help.is-compact .tavernary-companion-installed-status-help__panel {
+  inset-inline: auto 0;
+}
+.tavernary-companion-installed-status-help__panel dl,
+.tavernary-companion-installed-status-help__panel dd {
+  margin: 0;
+}
+.tavernary-companion-installed-status-help__panel dl {
+  display: grid;
+  gap: 8px;
+}
+.tavernary-companion-installed-status-help__panel dt {
+  font-weight: 750;
+}
+.tavernary-companion-installed-kit-card__actions {
+  position: relative;
+  align-self: center;
+  padding-inline-end: 5px;
+}
+.tavernary-companion-installed-kit-card__actions > .tavernary-companion-tooltip-anchor > button {
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  padding: 0;
+}
+.tavernary-companion-installed-kit-card__actions [role=menu] {
+  position: absolute;
+  z-index: 25;
+  inset-block-start: calc(100% + 4px);
+  inset-inline-end: 5px;
+  display: grid;
+  min-inline-size: 140px;
+  padding: 5px;
+  border: 1px solid var(--tavernary-color-border-default);
+  border-radius: 7px;
+  background: var(--tavernary-color-bg-surface-raised);
+  box-shadow: var(--tavernary-shadow-overlay);
+}
+.tavernary-companion-installed-kit-card__actions [role=menuitem] {
+  min-block-size: 40px;
+  border: 0;
+  background: transparent;
+  text-align: start;
+}
 .tavernary-companion-installed-grid {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -2168,6 +2320,64 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   color: var(--tavernary-color-text-primary);
   background: var(--tavernary-color-bg-surface);
   box-shadow: var(--tavernary-shadow-card);
+}
+.tavernary-companion-installed-selection-control {
+  position: absolute;
+  z-index: 3;
+  inset-block-start: 8px;
+  inset-inline-end: 8px;
+  display: grid;
+  min-inline-size: 44px;
+  min-block-size: 44px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--tavernary-color-control-border);
+  border-radius: 50%;
+  background: var(--tavernary-color-control-bg);
+}
+.tavernary-companion-installed-card:has(.tavernary-companion-installed-selection-control) {
+  padding-inline-end: 62px;
+}
+.tavernary-companion-installed-selection-control span {
+  display: grid;
+  inline-size: 20px;
+  block-size: 20px;
+  place-items: center;
+  border: 1px solid var(--tavernary-color-border-strong);
+  border-radius: 4px;
+}
+.tavernary-companion-installed-selection-control[aria-checked=true] span {
+  border-color: var(--tavernary-color-accent-teal);
+  color: var(--tavernary-color-heading);
+  background: var(--tavernary-color-accent-teal-muted);
+}
+.tavernary-companion-installed-selection-disabled {
+  margin: 4px 50px 4px 0;
+  color: var(--tavernary-color-text-muted);
+  font-size: 9px;
+}
+.tavernary-companion-installed-bulk-bar {
+  position: sticky;
+  z-index: 30;
+  inset-block-end: max(8px, env(safe-area-inset-bottom, 0px));
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 20px auto 8px;
+  padding: 8px;
+  border: 1px solid var(--tavernary-color-accent-teal-border);
+  border-radius: 9px;
+  background: var(--tavernary-color-bg-surface-raised);
+  box-shadow: var(--tavernary-shadow-overlay);
+}
+.tavernary-companion-installed-bulk-bar > strong {
+  margin-inline-end: auto;
+  padding-inline: 6px;
+  color: var(--tavernary-color-heading);
+  font-size: 12px;
+}
+.tavernary-companion-installed-bulk-bar .tavernary-companion-tooltip-anchor > button {
+  min-block-size: 44px;
 }
 .tavernary-companion-installed-card.is-installed {
   border-color: color-mix(in srgb, var(--tavernary-color-accent-teal) 58%, var(--tavernary-color-border-default));
@@ -2318,11 +2528,23 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   }
 }
 @container tavernary-companion (max-width: 719px) {
+  .tavernary-companion-installed-kit-grid,
   .tavernary-companion-installed-grid {
     grid-template-columns: 1fr;
   }
   .tavernary-companion-installed-card {
     min-block-size: 150px;
+  }
+  .tavernary-companion-installed-bulk-bar {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+  .tavernary-companion-installed-bulk-bar > strong {
+    grid-column: 1 / -1;
+  }
+  .tavernary-companion-installed-bulk-bar .tavernary-companion-tooltip-anchor,
+  .tavernary-companion-installed-bulk-bar .tavernary-companion-tooltip-anchor > button {
+    inline-size: 100%;
   }
 }
 @media (prefers-reduced-motion: reduce) {

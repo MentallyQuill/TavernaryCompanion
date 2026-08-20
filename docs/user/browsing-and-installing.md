@@ -63,11 +63,22 @@ If you see a project note, use the Checks and choices page before continuing.
 
 ## Uninstall flow
 
-1. Open an installed managed project.
-2. Choose Uninstall.
+For one extension:
+
+1. Open its installed card.
+2. Choose **Uninstall**.
 3. Confirm when prompted.
 
-If uninstall is not available, the extension is likely not owned by Companion.
+For several extensions:
+
+1. Open **Installed** and choose **Select**, or choose an Installed Kit to select its present members.
+2. Refine the selection on individual extension cards.
+3. Choose **Uninstall** in the bulk action bar.
+4. Review ownership and the Kits that will become Partial, Missing, or Drifted, then confirm.
+
+Eligible local extensions installed outside Companion can be explicitly selected and uninstalled,
+but selection or Kit membership does not transfer their ownership. Global, uncataloged, missing,
+and Companion-self entries explain why they cannot be selected.
 
 ## Presets in this version
 

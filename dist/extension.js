@@ -11829,7 +11829,8 @@ function toInstalledSectionViewModel(inventory) {
         canonicalUrl: project2.canonicalUrl,
         enabled: extension.enabled,
         toggleable: canToggle(project2.id, extension.internalName),
-        action: installedAction(extension.type, "Managed by Companion")
+        action: installedAction(extension.type, "Managed by Companion"),
+        ...selectionEligibility(project2.id, extension.internalName, extension.type)
       }))
     },
     {
@@ -11843,7 +11844,8 @@ function toInstalledSectionViewModel(inventory) {
         canonicalUrl: project2.canonicalUrl,
         enabled: extension.enabled,
         toggleable: canToggle(project2.id, extension.internalName),
-        action: installedAction(extension.type, "Installed outside Companion")
+        action: installedAction(extension.type, "Installed outside Companion"),
+        ...selectionEligibility(project2.id, extension.internalName, extension.type)
       }))
     },
     {
@@ -11861,7 +11863,9 @@ function toInstalledSectionViewModel(inventory) {
           kind: "manage-in-sillytavern",
           label: "Manage in SillyTavern",
           reason: "No unambiguous Tavernary project identity."
-        }
+        },
+        selectionEligible: false,
+        selectionDisabledReason: "No unambiguous Tavernary project identity."
       }))
     },
     {
@@ -11879,10 +11883,27 @@ function toInstalledSectionViewModel(inventory) {
           kind: "manage-in-sillytavern",
           label: "Manage in SillyTavern",
           reason: "Reconcile the missing extension in SillyTavern."
-        }
+        },
+        selectionEligible: false,
+        selectionDisabledReason: "This extension is no longer installed."
       }))
     }
   ];
+}
+function selectionEligibility(projectId, internalName, extensionType) {
+  if (!canToggle(projectId, internalName)) {
+    return {
+      selectionEligible: false,
+      selectionDisabledReason: "Tavernary Companion cannot manage itself."
+    };
+  }
+  if (extensionType === "global") {
+    return {
+      selectionEligible: false,
+      selectionDisabledReason: "Global extensions are managed by SillyTavern."
+    };
+  }
+  return { selectionEligible: true, selectionDisabledReason: null };
 }
 function canToggle(projectId, internalName) {
   return projectId !== COMPANION_PROJECT_ID && !/(?:^|[/_-])tavernary[ _-]?companion(?:$|[/_-])/iu.test(internalName);
@@ -12962,7 +12983,7 @@ function previewRemovalImpact({
   removable,
   kitTitles = {}
 }) {
-  const references = kitReferences(projectId, installedKits, kitTitles);
+  const references = projectKitReferences(projectId, installedKits, kitTitles);
   const activeKitAffected = references.some(({ id }) => id === activeKitId);
   const kitNames = references.map(({ title }) => title).join(", ");
   const consequence = references.length === 0 ? "" : ` ${kitNames} will become incomplete${activeKitAffected ? ", and the active Kit will show drift" : ""}.`;
@@ -12998,10 +13019,11 @@ function markInstalledKitsIncomplete(installedKits, projectId) {
   }
   return next;
 }
-function kitReferences(projectId, installedKits, kitTitles) {
-  return Object.entries(installedKits).filter(([, candidate]) => kitProjectIds(candidate).includes(projectId)).map(([id]) => ({
+function projectKitReferences(projectId, installedKits, kitTitles) {
+  return Object.entries(installedKits).filter(([, candidate]) => kitProjectIds(candidate).includes(projectId)).map(([id, candidate]) => ({
     id,
-    title: kitTitles[id] ?? id
+    title: kitTitles[id] ?? id,
+    installedProjectCount: kitProjectIds(candidate).length
   })).sort((left, right) => left.title.localeCompare(right.title));
 }
 function kitProjectIds(value) {
@@ -13768,6 +13790,123 @@ var InstallTargetFallbackBroker = class {
     for (const listener of this.#listeners) listener(request);
   }
 };
+
+// src/lifecycle/bulk-removal.ts
+var BulkRemovalPlanChangedError = class extends Error {
+  constructor() {
+    super("The installed extensions changed after review. Review the uninstall again.");
+    this.name = "BulkRemovalPlanChangedError";
+  }
+};
+async function prepareBulkRemoval(lifecycle, projectIds) {
+  const uniqueIds = [...new Set(projectIds)];
+  const impacts = [];
+  for (const projectId of uniqueIds) impacts.push(await lifecycle.previewRemoval(projectId));
+  const affectedKitCounts = /* @__PURE__ */ new Map();
+  for (const impact of impacts) {
+    for (const kit2 of impact.installedKits) {
+      const current = affectedKitCounts.get(kit2.id);
+      affectedKitCounts.set(kit2.id, {
+        ...kit2,
+        installedProjectCount: Math.max(
+          kit2.installedProjectCount,
+          current?.installedProjectCount ?? 0
+        ),
+        selectedCount: (current?.selectedCount ?? 0) + 1
+      });
+    }
+  }
+  const affectedKits = [...affectedKitCounts.values()].map(({ id, title, installedProjectCount, selectedCount }) => ({
+    id,
+    title,
+    resultingStatus: selectedCount >= installedProjectCount ? "Missing" : "Partial"
+  })).sort((left, right) => left.title.localeCompare(right.title));
+  const confirmable = impacts.length > 0 && impacts.every(({ removable }) => removable);
+  return {
+    projectIds: uniqueIds,
+    impacts,
+    affectedKits,
+    activeKitAffected: impacts.some(({ activeKitAffected }) => activeKitAffected),
+    confirmable,
+    fingerprint: removalFingerprint(impacts)
+  };
+}
+async function executeBulkRemoval(lifecycle, plan, createId, now = () => (/* @__PURE__ */ new Date()).toISOString()) {
+  if (!plan.confirmable) throw new BulkRemovalPlanChangedError();
+  const current = await prepareBulkRemoval(lifecycle, plan.projectIds);
+  if (!current.confirmable || current.fingerprint !== plan.fingerprint)
+    throw new BulkRemovalPlanChangedError();
+  const startedAt = now();
+  const results = [];
+  for (const impact of current.impacts) {
+    try {
+      results.push(await lifecycle.remove(impact.projectId));
+    } catch {
+      results.push(
+        createReceipt({
+          id: `${createId()}-${impact.projectId}`,
+          kind: "remove",
+          projectId: impact.projectId,
+          projectName: impact.projectName,
+          startedAt,
+          finishedAt: now(),
+          status: "failed",
+          safeError: "The uninstall request could not be completed.",
+          reloadRequired: false
+        })
+      );
+    }
+  }
+  const retryableProjectIds = results.filter(({ status }) => status !== "succeeded" && status !== "removed-unrecorded").map(({ projectId }) => projectId);
+  const succeeded = results.length - retryableProjectIds.length;
+  return {
+    formatVersion: 1,
+    id: createId(),
+    kind: "bulk-remove",
+    planFingerprint: plan.fingerprint,
+    startedAt,
+    completedAt: now(),
+    status: retryableProjectIds.length === 0 ? "succeeded" : succeeded === 0 ? "failed" : "partial",
+    projectIds: [...plan.projectIds],
+    results,
+    retryableProjectIds,
+    reloadRequired: results.some(({ reloadRequired }) => reloadRequired)
+  };
+}
+function parseBulkRemovalReceipt(value) {
+  if (!isRecord4(value)) return null;
+  if (value.formatVersion !== 1 || value.kind !== "bulk-remove" || typeof value.id !== "string" || typeof value.planFingerprint !== "string" || !isTimestamp(value.startedAt) || !isTimestamp(value.completedAt) || value.status !== "succeeded" && value.status !== "partial" && value.status !== "failed" || !isStringArray(value.projectIds) || !isStringArray(value.retryableProjectIds) || typeof value.reloadRequired !== "boolean" || !Array.isArray(value.results) || !value.results.every(isRemovalReceipt)) {
+    return null;
+  }
+  return structuredClone(value);
+}
+function removalFingerprint(impacts) {
+  const payload = JSON.stringify(
+    impacts.map(({ projectId, ownership, removable, installedKits, activeKitAffected }) => ({
+      projectId,
+      ownership,
+      removable,
+      installedKitIds: installedKits.map(({ id }) => id).sort(),
+      activeKitAffected
+    }))
+  );
+  let hash = 2166136261;
+  for (let index = 0; index < payload.length; index += 1)
+    hash = Math.imul(hash ^ payload.charCodeAt(index), 16777619);
+  return (hash >>> 0).toString(16).padStart(8, "0");
+}
+function isRemovalReceipt(value) {
+  return isRecord4(value) && value.kind === "remove" && typeof value.id === "string" && typeof value.projectId === "string" && typeof value.projectName === "string" && typeof value.status === "string" && Array.isArray(value.steps) && typeof value.reloadRequired === "boolean";
+}
+function isStringArray(value) {
+  return Array.isArray(value) && value.every((item) => typeof item === "string");
+}
+function isTimestamp(value) {
+  return typeof value === "string" && !Number.isNaN(Date.parse(value));
+}
+function isRecord4(value) {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
 
 // src/lifecycle/trust-prompt-broker.ts
 var TrustPromptBroker = class {
@@ -15497,6 +15636,9 @@ function updateKitDraft(draft, change) {
 function addDraftMember(draft, projectId) {
   if (projectId === COMPANION_PROJECT_ID || draft.projectIds.includes(projectId)) return draft;
   return updateKitDraft(draft, { projectIds: [...draft.projectIds, projectId] });
+}
+function addDraftMembers(draft, projectIds) {
+  return projectIds.reduce(addDraftMember, draft);
 }
 function moveDraftMember(draft, projectId, direction) {
   const index = draft.projectIds.indexOf(projectId);
@@ -17332,15 +17474,60 @@ function successDetail(receipt) {
   return receipt.reloadRequired ? "Verified removed \xB7 Reload to finish" : "Verified removed from SillyTavern";
 }
 
+// src/ui/lifecycle/bulk-removal-receipt.tsx
+function BulkRemovalReceiptView({
+  receipt,
+  onRetryFailed,
+  onDismiss,
+  onReload
+}) {
+  const removed = receipt.results.length - receipt.retryableProjectIds.length;
+  return /* @__PURE__ */ u3(
+    "aside",
+    {
+      class: "tavernary-companion-operation-tray tavernary-companion-bulk-removal-receipt",
+      role: "status",
+      "aria-label": "Bulk uninstall result",
+      children: [
+        /* @__PURE__ */ u3("h2", { children: receipt.status === "succeeded" ? "Uninstall complete" : "Uninstall finished" }),
+        /* @__PURE__ */ u3("p", { children: [
+          removed,
+          " removed \xB7 ",
+          receipt.retryableProjectIds.length,
+          " failed"
+        ] }),
+        /* @__PURE__ */ u3("ul", { children: receipt.results.map((result2) => {
+          const succeeded = result2.status === "succeeded" || result2.status === "removed-unrecorded";
+          return /* @__PURE__ */ u3("li", { children: [
+            result2.projectName,
+            " \u2014 ",
+            succeeded ? "Removed" : "Failed",
+            result2.safeError ? /* @__PURE__ */ u3("small", { children: result2.safeError }) : null
+          ] }, result2.id);
+        }) }),
+        receipt.reloadRequired ? /* @__PURE__ */ u3("p", { children: "Reload is required to finish applying changes." }) : null,
+        /* @__PURE__ */ u3("div", { children: [
+          receipt.retryableProjectIds.length ? /* @__PURE__ */ u3("button", { type: "button", onClick: () => onRetryFailed([...receipt.retryableProjectIds]), children: "Retry failed" }) : null,
+          receipt.reloadRequired ? /* @__PURE__ */ u3("button", { type: "button", onClick: onReload, children: "Reload now" }) : null,
+          /* @__PURE__ */ u3("button", { type: "button", onClick: onDismiss, children: "Dismiss" })
+        ] })
+      ]
+    }
+  );
+}
+
 // src/ui/lifecycle/operation-tray.tsx
 function OperationTray({
   active,
   receipt,
+  bulkRemovalReceipt,
   error,
   onDismissReceipt,
   onDismissError,
   onRetryError,
-  onReload
+  onReload,
+  onRetryBulkRemoval,
+  onDismissBulkRemoval
 }) {
   if (error) {
     return /* @__PURE__ */ u3(
@@ -17361,6 +17548,17 @@ function OperationTray({
       /* @__PURE__ */ u3("span", { class: "tavernary-companion-operation-tray__indicator", "aria-hidden": "true" }),
       /* @__PURE__ */ u3("p", { children: phaseLabel(active.phase) })
     ] });
+  }
+  if (bulkRemovalReceipt) {
+    return /* @__PURE__ */ u3(
+      BulkRemovalReceiptView,
+      {
+        receipt: bulkRemovalReceipt,
+        onRetryFailed: (projectIds) => onRetryBulkRemoval?.(projectIds),
+        onDismiss: () => onDismissBulkRemoval?.(),
+        onReload: () => onReload?.()
+      }
+    );
   }
   if (receipt) {
     if (receipt.kind === "update" && (receipt.status === "succeeded" || receipt.status === "updated-unrecorded")) {
@@ -17444,36 +17642,6 @@ function TrustDisclosureDialog({
       /* @__PURE__ */ u3("button", { type: "button", onClick: onConfirm, children: "I understand" })
     ] })
   ] });
-}
-
-// src/ui/shared/install-icon.tsx
-var INSTALL_PATH = "M9 2v2H5l-.001 10h14L19 4h-4V2h5a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h5zm9.999 14h-14L5 20h14l-.001-4zM17 17v2h-2v-2h2zM13 2v5h3l-4 4-4-4h3V2h2z";
-var UNINSTALL_PATH = "M8 2v2H5l-.001 10h14L19 4h-3V2h4a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h4zm10.999 14h-14L5 20h14l-.001-4zM17 17v2h-2v-2h2zM12 2l4 4h-3v5h-2V6H8l4-4z";
-function InstallIcon() {
-  return /* @__PURE__ */ u3(
-    "svg",
-    {
-      "aria-hidden": "true",
-      "data-icon": "install",
-      "data-testid": "install-icon",
-      fill: "currentColor",
-      viewBox: "0 0 24 24",
-      children: /* @__PURE__ */ u3("path", { d: INSTALL_PATH })
-    }
-  );
-}
-function UninstallIcon() {
-  return /* @__PURE__ */ u3(
-    "svg",
-    {
-      "aria-hidden": "true",
-      "data-icon": "uninstall",
-      "data-testid": "uninstall-icon",
-      fill: "currentColor",
-      viewBox: "0 0 24 24",
-      children: /* @__PURE__ */ u3("path", { d: UNINSTALL_PATH })
-    }
-  );
 }
 
 // src/ui/shared/tooltip.tsx
@@ -17643,6 +17811,197 @@ function Tooltip({
   ] });
 }
 
+// src/ui/installed/installed-bulk-bar.tsx
+function InstalledBulkBar({
+  count,
+  disabled = false,
+  onAddToKit,
+  onUninstall,
+  onClear
+}) {
+  const id = g2();
+  return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-installed-bulk-bar", "aria-label": "Bulk actions", children: [
+    /* @__PURE__ */ u3("strong", { role: "status", "aria-live": "polite", children: [
+      count,
+      " selected"
+    ] }),
+    /* @__PURE__ */ u3(
+      Tooltip,
+      {
+        id: `${id}-add-to-kit`,
+        label: "Create a new Kit or add these extensions to a personal Kit. Ownership does not change.",
+        className: "tavernary-companion-control-tooltip",
+        children: /* @__PURE__ */ u3(
+          "button",
+          {
+            type: "button",
+            "aria-label": "Add selected extensions to a Kit",
+            disabled: disabled || count === 0,
+            onClick: onAddToKit,
+            children: "Add to Kit"
+          }
+        )
+      }
+    ),
+    /* @__PURE__ */ u3(
+      Tooltip,
+      {
+        id: `${id}-uninstall`,
+        label: "Review and uninstall the selected extensions.",
+        className: "tavernary-companion-control-tooltip",
+        children: /* @__PURE__ */ u3(
+          "button",
+          {
+            type: "button",
+            class: "is-danger",
+            "aria-label": "Uninstall selected extensions",
+            disabled: disabled || count === 0,
+            onClick: onUninstall,
+            children: "Uninstall"
+          }
+        )
+      }
+    ),
+    /* @__PURE__ */ u3(
+      Tooltip,
+      {
+        id: `${id}-clear`,
+        label: "Clear the selection and exit selection mode.",
+        className: "tavernary-companion-control-tooltip",
+        children: /* @__PURE__ */ u3("button", { type: "button", "aria-label": "Clear selection and exit", onClick: onClear, children: "Clear" })
+      }
+    )
+  ] });
+}
+
+// src/ui/installed/installed-status-help.tsx
+var INSTALLED_KIT_STATUS_HELP = {
+  Active: "This Kit currently defines the enabled state for Companion-managed extensions.",
+  Partial: "Some extensions in this Kit are not currently installed.",
+  Drifted: "Installed or enabled extensions no longer match this Kit's last verified state.",
+  Missing: "None of this Kit's extensions are currently installed."
+};
+function InstalledStatusHelp({ status }) {
+  const id = g2();
+  const [open, setOpen] = d2(false);
+  const label2 = status ? INSTALLED_KIT_STATUS_HELP[status] : "Explain Installed Kit statuses.";
+  return /* @__PURE__ */ u3("span", { class: `tavernary-companion-installed-status-help${status ? " is-compact" : ""}`, children: [
+    /* @__PURE__ */ u3(Tooltip, { id: `${id}-tooltip`, label: label2, children: /* @__PURE__ */ u3(
+      "button",
+      {
+        type: "button",
+        "aria-label": status ? `${status} Kit status help` : "Kit status help",
+        "aria-expanded": open,
+        onClick: () => setOpen((current) => !current),
+        children: status ? /* @__PURE__ */ u3("strong", { children: status }) : "Status help"
+      }
+    ) }),
+    open ? /* @__PURE__ */ u3("span", { class: "tavernary-companion-installed-status-help__panel", role: "note", children: status ? INSTALLED_KIT_STATUS_HELP[status] : /* @__PURE__ */ u3("dl", { children: Object.entries(INSTALLED_KIT_STATUS_HELP).map(
+      ([name, meaning]) => /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("dt", { children: name }),
+        /* @__PURE__ */ u3("dd", { children: meaning })
+      ] }, name)
+    ) }) }) : null
+  ] });
+}
+
+// src/ui/installed/installed-kit-card.tsx
+function InstalledKitCard({
+  kit: kit2,
+  selected,
+  onSelect,
+  onOpen,
+  onUninstall
+}) {
+  const id = g2();
+  const [actionsOpen, setActionsOpen] = d2(false);
+  const count = kit2.selectionProjectIds.length;
+  const noun = count === 1 ? "extension" : "extensions";
+  return /* @__PURE__ */ u3(
+    "article",
+    {
+      class: `tavernary-companion-installed-kit-card${selected ? " is-selected" : ""}${kit2.active ? " is-active" : ""}`,
+      children: [
+        /* @__PURE__ */ u3(
+          Tooltip,
+          {
+            id: `${id}-kit-select`,
+            label: "Select the currently installed extensions in this Kit.",
+            children: /* @__PURE__ */ u3(
+              "button",
+              {
+                type: "button",
+                class: "tavernary-companion-installed-kit-card__select",
+                "aria-label": `Select ${count} installed ${noun} from ${kit2.title}`,
+                "aria-pressed": selected,
+                disabled: count === 0,
+                onClick: onSelect,
+                children: [
+                  /* @__PURE__ */ u3("h4", { children: kit2.title }),
+                  /* @__PURE__ */ u3("span", { children: [
+                    kit2.installedCount,
+                    "/",
+                    kit2.totalProjectCount,
+                    " installed"
+                  ] }),
+                  kit2.displayStatus === "Drifted" ? /* @__PURE__ */ u3("small", { children: "Needs review" }) : null
+                ]
+              }
+            )
+          }
+        ),
+        kit2.displayStatus !== "Complete" ? /* @__PURE__ */ u3(InstalledStatusHelp, { status: kit2.displayStatus }) : null,
+        /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-kit-card__actions", children: [
+          /* @__PURE__ */ u3(Tooltip, { id: `${id}-kit-actions`, label: `More actions for ${kit2.title}.`, children: /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              "aria-label": `More actions for ${kit2.title}`,
+              "aria-expanded": actionsOpen,
+              onClick: () => setActionsOpen((current) => !current),
+              children: /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: "\u2022\u2022\u2022" })
+            }
+          ) }),
+          actionsOpen ? /* @__PURE__ */ u3("div", { role: "menu", "aria-label": `${kit2.title} actions`, children: [
+            !kit2.orphaned ? /* @__PURE__ */ u3("button", { type: "button", role: "menuitem", onClick: onOpen, children: "View Kit" }) : null,
+            kit2.orphaned ? /* @__PURE__ */ u3("button", { type: "button", role: "menuitem", class: "is-danger", onClick: onUninstall, children: "Uninstall Kit" }) : null
+          ] }) : null
+        ] })
+      ]
+    }
+  );
+}
+
+// src/ui/shared/install-icon.tsx
+var INSTALL_PATH = "M9 2v2H5l-.001 10h14L19 4h-4V2h5a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h5zm9.999 14h-14L5 20h14l-.001-4zM17 17v2h-2v-2h2zM13 2v5h3l-4 4-4-4h3V2h2z";
+var UNINSTALL_PATH = "M8 2v2H5l-.001 10h14L19 4h-3V2h4a1 1 0 0 1 1 1v18a1 1 0 0 1-1 1H4a1 1 0 0 1-1-1V3a1 1 0 0 1 1-1h4zm10.999 14h-14L5 20h14l-.001-4zM17 17v2h-2v-2h2zM12 2l4 4h-3v5h-2V6H8l4-4z";
+function InstallIcon() {
+  return /* @__PURE__ */ u3(
+    "svg",
+    {
+      "aria-hidden": "true",
+      "data-icon": "install",
+      "data-testid": "install-icon",
+      fill: "currentColor",
+      viewBox: "0 0 24 24",
+      children: /* @__PURE__ */ u3("path", { d: INSTALL_PATH })
+    }
+  );
+}
+function UninstallIcon() {
+  return /* @__PURE__ */ u3(
+    "svg",
+    {
+      "aria-hidden": "true",
+      "data-icon": "uninstall",
+      "data-testid": "uninstall-icon",
+      fill: "currentColor",
+      viewBox: "0 0 24 24",
+      children: /* @__PURE__ */ u3("path", { d: UNINSTALL_PATH })
+    }
+  );
+}
+
 // src/ui/projects/project-lifecycle-control.tsx
 function ProjectLifecycleControl({
   projectName,
@@ -17693,7 +18052,10 @@ function InstalledSection({
   onForgetMissing,
   onManage,
   onToggleExtension,
-  lifecycleDisabled
+  lifecycleDisabled,
+  selectionActive = false,
+  selectedProjectIds = [],
+  onToggleSelection
 }) {
   return /* @__PURE__ */ u3("section", { class: "tavernary-companion-installed-section", children: [
     /* @__PURE__ */ u3("header", { children: [
@@ -17714,7 +18076,10 @@ function InstalledSection({
         onForgetMissing,
         onManage,
         onToggleExtension,
-        lifecycleDisabled
+        lifecycleDisabled,
+        selectionActive,
+        selected: selectedProjectIds.includes(row.id),
+        onToggleSelection
       },
       `${section.id}-${row.id}`
     )) })
@@ -17732,15 +18097,31 @@ function InstalledCard({
   onForgetMissing,
   onManage,
   onToggleExtension,
-  lifecycleDisabled
+  lifecycleDisabled,
+  selectionActive,
+  selected,
+  onToggleSelection
 }) {
   const missing = sectionId === "attention";
   const unknown = !missing && (sectionId === "unknown" || row.action.kind === "manage-in-sillytavern");
   return /* @__PURE__ */ u3(
     "article",
     {
-      class: `tavernary-companion-installed-card${row.enabled !== null ? " is-installed" : " is-missing"}${row.enabled === false ? " is-disabled" : ""}`,
+      class: `tavernary-companion-installed-card${row.enabled !== null ? " is-installed" : " is-missing"}${row.enabled === false ? " is-disabled" : ""}${selected ? " is-selected" : ""}`,
       children: [
+        selectionActive && row.selectionEligible ? /* @__PURE__ */ u3(
+          "button",
+          {
+            type: "button",
+            role: "checkbox",
+            class: "tavernary-companion-installed-selection-control",
+            "aria-checked": selected,
+            "aria-label": `Select ${row.name}`,
+            onClick: () => onToggleSelection?.(row.id),
+            children: /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: selected ? "\u2713" : "" })
+          }
+        ) : null,
+        selectionActive && !row.selectionEligible && row.selectionDisabledReason ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-selection-disabled", children: row.selectionDisabledReason }) : null,
         /* @__PURE__ */ u3("header", { children: [
           /* @__PURE__ */ u3("span", { children: sectionLabel(sectionId) }),
           updateState && updateState.kind !== "idle" ? /* @__PURE__ */ u3(
@@ -17754,13 +18135,13 @@ function InstalledCard({
           ) : null
         ] }),
         /* @__PURE__ */ u3("h4", { children: row.canonicalUrl ? /* @__PURE__ */ u3("a", { href: row.canonicalUrl, target: "_blank", rel: "noopener noreferrer", children: row.name }) : row.name }),
-        kitTitles.length ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-memberships", children: [
+        kitTitles.length ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-memberships", title: kitTitles.join(", "), children: [
           "In ",
           kitTitles.join(", ")
         ] }) : null,
         updateState?.kind === "attention" || updateState?.kind === "error" ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-attention-reason", children: updateState.reason }) : null,
         missing ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-attention-reason", children: row.detail }) : null,
-        /* @__PURE__ */ u3("footer", { children: [
+        !selectionActive || !row.selectionEligible ? /* @__PURE__ */ u3("footer", { children: [
           row.toggleable && row.internalName && row.enabled !== null ? /* @__PURE__ */ u3(
             "button",
             {
@@ -17834,7 +18215,7 @@ function InstalledCard({
               onAction: (action, anchor) => onAction?.(row.id, action, anchor)
             }
           )
-        ] })
+        ] }) : null
       ]
     }
   );
@@ -17872,7 +18253,6 @@ function emptyExplanation(id) {
 function InstalledRoute({
   sections,
   kits = [],
-  activeKitId = null,
   refreshing = false,
   togglingInternalName = null,
   updateStates = {},
@@ -17886,11 +18266,30 @@ function InstalledRoute({
   onOpenKit,
   onUninstallKit,
   onToggleExtension,
+  onStartSelection,
+  onSelectKit,
+  selection = { active: false, projectIds: [], sourceKitIds: [] },
+  onToggleSelection,
+  onAddSelectedToKit,
+  onUninstallSelected,
+  onClearSelection,
   lifecycleDisabled
 }) {
+  const selectHelpId = g2();
   h2(() => {
     void onRefresh();
   }, [onRefresh]);
+  h2(() => {
+    if (!selection.active) return;
+    const clearOnEscape = (event) => {
+      if (event.key !== "Escape" || document.querySelector('[role="dialog"][aria-modal="true"]'))
+        return;
+      event.preventDefault();
+      onClearSelection?.();
+    };
+    window.addEventListener("keydown", clearOnEscape);
+    return () => window.removeEventListener("keydown", clearOnEscape);
+  }, [onClearSelection, selection.active]);
   const populatedSections = sections.filter((section) => section.rows.length > 0);
   const installedKits = kits;
   const checkingUpdates = Object.values(updateStates).some(({ kind }) => kind === "checking");
@@ -17925,7 +18324,25 @@ function InstalledRoute({
           onClick: () => void onCheckUpdates?.(),
           children: checkingUpdates ? "Checking\u2026" : "Check again"
         }
-      )
+      ),
+      !selection.active ? /* @__PURE__ */ u3(
+        Tooltip,
+        {
+          id: `${selectHelpId}-select-installed`,
+          label: "Select installed extensions for bulk actions.",
+          className: "tavernary-companion-control-tooltip",
+          children: /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              "aria-label": "Select installed extensions",
+              disabled: lifecycleDisabled,
+              onClick: () => onStartSelection?.(),
+              children: "Select"
+            }
+          )
+        }
+      ) : null
     ] }),
     usingNativeUpdates ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-update-note", children: "SillyTavern can update extensions to their newest version. Updating to a specific TavernKeeper-scanned version isn\u2019t supported by this build." }) : null,
     installedKits.length ? /* @__PURE__ */ u3(
@@ -17935,45 +18352,26 @@ function InstalledRoute({
         "aria-labelledby": "installed-kits-heading",
         children: [
           /* @__PURE__ */ u3("header", { children: [
-            /* @__PURE__ */ u3("h3", { id: "installed-kits-heading", children: "Installed Kits" }),
+            /* @__PURE__ */ u3("div", { children: [
+              /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-kits__title", children: [
+                /* @__PURE__ */ u3("h3", { id: "installed-kits-heading", children: "Installed Kits" }),
+                /* @__PURE__ */ u3(InstalledStatusHelp, {})
+              ] }),
+              /* @__PURE__ */ u3("p", { children: "Choose a Kit to select its installed extensions." })
+            ] }),
             /* @__PURE__ */ u3("span", { children: installedKits.length })
           ] }),
-          /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-grid", children: installedKits.map((kit2) => {
-            const active = kit2.id === activeKitId || kit2.operationalStatus === "Active";
-            return /* @__PURE__ */ u3(
-              "article",
-              {
-                class: `tavernary-companion-installed-card tavernary-companion-installed-kit-card is-installed${active ? " is-active" : ""}`,
-                children: [
-                  /* @__PURE__ */ u3("header", { children: [
-                    /* @__PURE__ */ u3("span", { children: kit2.originLabel }),
-                    /* @__PURE__ */ u3("strong", { children: active ? "Active Kit" : kit2.operationalStatus })
-                  ] }),
-                  /* @__PURE__ */ u3("h4", { children: kit2.title }),
-                  kit2.description ? /* @__PURE__ */ u3("p", { children: kit2.description }) : null,
-                  /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-kit-components", children: kit2.components.map((component2) => /* @__PURE__ */ u3("span", { children: component2.name }, component2.projectId)) }),
-                  /* @__PURE__ */ u3("footer", { children: kit2.orphaned ? /* @__PURE__ */ u3(
-                    "button",
-                    {
-                      type: "button",
-                      "aria-label": `Uninstall ${kit2.title}`,
-                      onClick: () => onUninstallKit?.(kit2.id),
-                      children: "Uninstall Kit"
-                    }
-                  ) : /* @__PURE__ */ u3(
-                    "button",
-                    {
-                      type: "button",
-                      "aria-label": `Open ${kit2.title}`,
-                      onClick: () => onOpenKit?.(kit2.id),
-                      children: "View Kit"
-                    }
-                  ) })
-                ]
-              },
-              kit2.id
-            );
-          }) })
+          /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-kit-grid", children: installedKits.map((kit2) => /* @__PURE__ */ u3(
+            InstalledKitCard,
+            {
+              kit: kit2,
+              selected: selection.sourceKitIds.includes(kit2.id),
+              onSelect: () => onSelectKit?.(kit2.id),
+              onOpen: () => onOpenKit?.(kit2.id),
+              onUninstall: () => onUninstallKit?.(kit2.id)
+            },
+            kit2.id
+          )) })
         ]
       }
     ) : null,
@@ -17990,10 +18388,23 @@ function InstalledRoute({
         onForgetMissing,
         onManage,
         onToggleExtension,
-        lifecycleDisabled
+        lifecycleDisabled,
+        selectionActive: selection.active,
+        selectedProjectIds: selection.projectIds,
+        onToggleSelection
       },
       section.id
-    )) : installedKits.length === 0 ? /* @__PURE__ */ u3("p", { children: "No installed extensions were found in this profile." }) : null
+    )) : installedKits.length === 0 ? /* @__PURE__ */ u3("p", { children: "No installed extensions were found in this profile." }) : null,
+    selection.active ? /* @__PURE__ */ u3(
+      InstalledBulkBar,
+      {
+        count: selection.projectIds.length,
+        disabled: lifecycleDisabled,
+        onAddToKit: () => onAddSelectedToKit?.(),
+        onUninstall: () => onUninstallSelected?.(),
+        onClear: () => onClearSelection?.()
+      }
+    ) : null
   ] });
 }
 
@@ -20606,6 +21017,13 @@ function CompanionShell({
   inventoryRefreshing = false,
   togglingInternalName = null,
   onToggleExtension,
+  installedSelection,
+  onStartInstalledSelection,
+  onSelectInstalledKit,
+  onToggleInstalledSelection,
+  onAddInstalledSelectionToKit,
+  onUninstallInstalledSelection,
+  onClearInstalledSelection,
   onForgetMissingManaged,
   onOpenExtensionManager,
   lifecycleDisabled = false,
@@ -20756,6 +21174,13 @@ function CompanionShell({
                     onOpenKit: (id) => controller.openDetail({ kind: "kit", id, focusKey: `installed-kit-${id}` }),
                     onUninstallKit,
                     onToggleExtension,
+                    selection: installedSelection,
+                    onStartSelection: onStartInstalledSelection,
+                    onSelectKit: onSelectInstalledKit,
+                    onToggleSelection: onToggleInstalledSelection,
+                    onAddSelectedToKit: onAddInstalledSelectionToKit,
+                    onUninstallSelected: onUninstallInstalledSelection,
+                    onClearSelection: onClearInstalledSelection,
                     lifecycleDisabled
                   }
                 ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-installed-heading", children: "Installed extensions" }) }) : null,
@@ -21574,8 +21999,133 @@ function clamp4(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
 }
 
+// src/ui/installed/add-to-kit-dialog.tsx
+function AddToKitDialog({
+  selectedCount,
+  kits,
+  onChoose,
+  onCancel
+}) {
+  const noun = selectedCount === 1 ? "extension" : "extensions";
+  const personalKits = [...kits].sort((left, right) => left.title.localeCompare(right.title));
+  return /* @__PURE__ */ u3(DialogFrame, { label: `Add ${selectedCount} ${noun} to a Kit`, onCancel, children: [
+    /* @__PURE__ */ u3("h2", { children: "Add to Kit" }),
+    /* @__PURE__ */ u3("p", { children: [
+      "Add ",
+      selectedCount,
+      " selected ",
+      noun,
+      " to a new or existing personal Kit."
+    ] }),
+    /* @__PURE__ */ u3("p", { class: "tavernary-companion-dialog__note", children: "Adding to a Kit does not change extension ownership." }),
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-add-to-kit-targets", children: [
+      /* @__PURE__ */ u3("button", { type: "button", onClick: () => onChoose({ kind: "new" }), children: "Create a new Kit" }),
+      personalKits.map((kit2) => /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          "aria-label": `Add to ${kit2.title}`,
+          onClick: () => onChoose({ kind: "existing", kitId: kit2.id }),
+          children: kit2.title
+        },
+        kit2.id
+      ))
+    ] }),
+    /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" })
+  ] });
+}
+
+// src/ui/installed/installed-selection.ts
+var EMPTY_INSTALLED_SELECTION = {
+  active: false,
+  projectIds: [],
+  sourceKitIds: []
+};
+function startInstalledSelection() {
+  return { active: true, projectIds: [], sourceKitIds: [] };
+}
+function clearInstalledSelection() {
+  return EMPTY_INSTALLED_SELECTION;
+}
+function selectInstalledKit(state, kitId, projectIds) {
+  if (projectIds.length === 0) return state;
+  return {
+    active: true,
+    projectIds: [.../* @__PURE__ */ new Set([...state.projectIds, ...projectIds])],
+    sourceKitIds: [.../* @__PURE__ */ new Set([...state.sourceKitIds, kitId])]
+  };
+}
+function toggleInstalledProject(state, projectId) {
+  return {
+    ...state,
+    active: true,
+    projectIds: state.projectIds.includes(projectId) ? state.projectIds.filter((id) => id !== projectId) : [...state.projectIds, projectId]
+  };
+}
+function reconcileInstalledSelection(state, selectableProjectIds, kitMembersById) {
+  const selectable = new Set(selectableProjectIds);
+  const projectIds = state.projectIds.filter((id) => selectable.has(id));
+  if (projectIds.length === 0) return EMPTY_INSTALLED_SELECTION;
+  const selected = new Set(projectIds);
+  const sourceKitIds = state.sourceKitIds.filter((kitId) => {
+    const members = (kitMembersById[kitId] ?? []).filter((id) => selectable.has(id));
+    return members.length > 0 && members.every((id) => selected.has(id));
+  });
+  return { active: true, projectIds, sourceKitIds };
+}
+
+// src/ui/lifecycle/bulk-removal-dialog.tsx
+function BulkRemovalDialog({
+  plan,
+  onCancel,
+  onConfirm
+}) {
+  const count = plan.projectIds.length;
+  const noun = count === 1 ? "extension" : "extensions";
+  return /* @__PURE__ */ u3(DialogFrame, { label: `Uninstall ${count} ${noun}`, onCancel, children: [
+    /* @__PURE__ */ u3("h2", { children: [
+      "Uninstall ",
+      count,
+      " ",
+      noun,
+      "?"
+    ] }),
+    /* @__PURE__ */ u3("p", { children: "Companion will uninstall each extension in order and verify it before continuing." }),
+    /* @__PURE__ */ u3("ul", { class: "tavernary-companion-bulk-removal-projects", children: plan.impacts.map((impact) => /* @__PURE__ */ u3("li", { children: [
+      /* @__PURE__ */ u3("strong", { children: impact.projectName }),
+      /* @__PURE__ */ u3("span", { children: impact.ownershipLabel }),
+      !impact.removable ? /* @__PURE__ */ u3("span", { children: "Cannot be uninstalled from Companion." }) : null
+    ] }, impact.projectId)) }),
+    plan.affectedKits.length ? /* @__PURE__ */ u3("section", { "aria-label": "Affected Kits", children: [
+      /* @__PURE__ */ u3("h3", { children: "Affected Kits" }),
+      plan.affectedKits.map((kit2) => /* @__PURE__ */ u3("p", { children: [
+        kit2.title,
+        " will become ",
+        kit2.resultingStatus,
+        "."
+      ] }, kit2.id)),
+      plan.activeKitAffected ? /* @__PURE__ */ u3("p", { children: "The active Kit will show drift." }) : null
+    ] }) : null,
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-dialog__actions", children: [
+      /* @__PURE__ */ u3("button", { type: "button", onClick: onCancel, children: "Cancel" }),
+      /* @__PURE__ */ u3("button", { type: "button", class: "is-danger", onClick: onConfirm, disabled: !plan.confirmable, children: [
+        "Uninstall ",
+        count
+      ] })
+    ] })
+  ] });
+}
+
 // src/ui/popup-host.tsx
 var emptyInventory = { managed: [], external: [], unknown: [], missingManaged: [] };
+function selectableInstalledProjectIds(runtime) {
+  return runtime.discovery.read().installedSections.flatMap(
+    ({ rows }) => rows.filter(({ selectionEligible }) => selectionEligible).map(({ id }) => id)
+  );
+}
+function installedKitMemberships(kits) {
+  return Object.fromEntries(kits.map((kit2) => [kit2.id, kit2.selectionProjectIds]));
+}
 function CompanionPopupHost({
   store,
   host,
@@ -21613,6 +22163,9 @@ function CompanionPopupHost({
   const [receipt, setReceipt] = d2(
     parseReceipt(store?.read().operationReceipt)
   );
+  const [bulkRemovalReceipt, setBulkRemovalReceipt] = d2(
+    parseBulkRemovalReceipt(store?.read().operationReceipt)
+  );
   const [updateSnapshot, setUpdateSnapshot] = d2(
     runtime?.updates.read() ?? { states: {} }
   );
@@ -21620,11 +22173,19 @@ function CompanionPopupHost({
     parseKitReceipt(store?.read().operationReceipt)
   );
   const [pendingKitPlan, setPendingKitPlan] = d2(null);
+  const [pendingBulkRemovalPlan, setPendingBulkRemovalPlan] = d2(
+    null
+  );
+  const [preparingBulkRemoval, setPreparingBulkRemoval] = d2(false);
+  const bulkRemovalInProgress = A2(false);
   const [kitDisclosurePlan, setKitDisclosurePlan] = d2(null);
   const [kitDraft, setKitDraft] = d2(null);
+  const [kitDraftOrigin, setKitDraftOrigin] = d2(null);
+  const [pendingAddToKitIds, setPendingAddToKitIds] = d2(null);
   const [kitBuilderCollapsed, setKitBuilderCollapsed] = d2(true);
   const [kitInspectors, setKitInspectors] = d2({});
   const [installedKitCards, setInstalledKitCards] = d2([]);
+  const [installedSelection, setInstalledSelection] = d2(EMPTY_INSTALLED_SELECTION);
   const [operationError, setOperationError] = d2(null);
   const [preparingInstall, setPreparingInstall] = d2(false);
   const [preparingKitPlan, setPreparingKitPlan] = d2(false);
@@ -21657,6 +22218,13 @@ function CompanionPopupHost({
     });
     setKitInspectors(presentation.inspectors);
     setInstalledKitCards(presentation.installedKits);
+    setInstalledSelection(
+      (current) => reconcileInstalledSelection(
+        current,
+        selectableInstalledProjectIds(runtime),
+        installedKitMemberships(presentation.installedKits)
+      )
+    );
   }, [runtime, store]);
   const refreshInventory = q2(async () => {
     if (!runtime || !host || !store) return false;
@@ -21702,7 +22270,10 @@ function CompanionPopupHost({
     const unsubscribeUpdates = runtime.updates.subscribe(setUpdateSnapshot);
     const unsubscribePrompts = runtime.prompts.subscribe(setPendingPrompt);
     const unsubscribeStore = store?.subscribe((state) => {
-      setReceipt(parseReceipt(state.operationReceipt));
+      if (!bulkRemovalInProgress.current) {
+        setReceipt(parseReceipt(state.operationReceipt));
+        setBulkRemovalReceipt(parseBulkRemovalReceipt(state.operationReceipt));
+      }
       setKitReceipt(parseKitReceipt(state.operationReceipt));
       void syncKits();
     });
@@ -21737,6 +22308,52 @@ function CompanionPopupHost({
     setOperationError(null);
     await runtime.updates.checkAll();
   }, [runtime]);
+  const requestBulkRemoval = async (projectIds) => {
+    if (!runtime || projectIds.length === 0) return;
+    setOperationError(null);
+    setPreparingBulkRemoval(true);
+    try {
+      setPendingBulkRemovalPlan(await prepareBulkRemoval(runtime.lifecycle, projectIds));
+    } catch {
+      setOperationError("Could not review the selected extensions for uninstall.");
+    } finally {
+      setPreparingBulkRemoval(false);
+    }
+  };
+  const runBulkRemoval = async (plan) => {
+    if (!runtime || !store) return;
+    setPendingBulkRemovalPlan(null);
+    setPreparingBulkRemoval(true);
+    setOperationError(null);
+    setReceipt(null);
+    setBulkRemovalReceipt(null);
+    bulkRemovalInProgress.current = true;
+    try {
+      const result2 = await executeBulkRemoval(runtime.lifecycle, plan, createRuntimeId);
+      bulkRemovalInProgress.current = false;
+      await store.update((draft) => {
+        draft.operationReceipt = structuredClone(result2);
+      });
+      setBulkRemovalReceipt(result2);
+      await refreshInventory();
+      const selectable = new Set(selectableInstalledProjectIds(runtime));
+      const retryableProjectIds = result2.retryableProjectIds.filter((id) => selectable.has(id));
+      setInstalledSelection(
+        retryableProjectIds.length ? { active: true, projectIds: retryableProjectIds, sourceKitIds: [] } : clearInstalledSelection()
+      );
+    } catch (error) {
+      bulkRemovalInProgress.current = false;
+      if (error instanceof BulkRemovalPlanChangedError) {
+        await refreshInventory();
+        setOperationError("Installed state changed. Review the bulk uninstall again.");
+      } else {
+        setOperationError("The bulk uninstall could not finish.");
+      }
+    } finally {
+      bulkRemovalInProgress.current = false;
+      setPreparingBulkRemoval(false);
+    }
+  };
   const executeInstallSelection = async (projectId, projectName, anchor, selection, allowUnavailableFallback = true) => {
     if (!runtime) return;
     try {
@@ -21927,8 +22544,25 @@ function CompanionPopupHost({
       });
     }
     setKitDraft(null);
+    if (kitDraftOrigin === "installed-selection") {
+      setInstalledSelection(clearInstalledSelection());
+    }
+    setKitDraftOrigin(null);
     setKitBuilderCollapsed(true);
     await syncKits();
+  };
+  const chooseAddToKitTarget = (target) => {
+    if (!runtime || !pendingAddToKitIds?.length) return;
+    const source = target.kind === "existing" ? runtime.kits.readDefinition(target.kitId) : null;
+    if (target.kind === "existing" && !source) {
+      setOperationError("That personal Kit is no longer available.");
+      setPendingAddToKitIds(null);
+      return;
+    }
+    setKitDraft(addDraftMembers(createKitDraft(source ?? void 0), pendingAddToKitIds));
+    setKitDraftOrigin("installed-selection");
+    setKitBuilderCollapsed(false);
+    setPendingAddToKitIds(null);
   };
   const runtimeCatalog = runtime?.catalog.read();
   const kitEditorProjects = runtimeCatalog && "catalog" in runtimeCatalog ? runtimeCatalog.catalog.projects : null;
@@ -21953,17 +22587,46 @@ function CompanionPopupHost({
           requestUpdate(projectId, projectName, anchor);
         },
         onToggleExtension: (projectId, internalName, enabled) => void toggleExtension(projectId, internalName, enabled),
+        installedSelection,
+        onStartInstalledSelection: () => setInstalledSelection(startInstalledSelection()),
+        onSelectInstalledKit: (kitId) => {
+          const kit2 = installedKitCards.find(({ id }) => id === kitId);
+          if (!kit2) return;
+          setInstalledSelection(
+            (current) => selectInstalledKit(current, kit2.id, kit2.selectionProjectIds)
+          );
+        },
+        onToggleInstalledSelection: (projectId) => {
+          if (!runtime) return;
+          setInstalledSelection((current) => {
+            const next = toggleInstalledProject(current, projectId);
+            if (next.projectIds.length === 0) return { ...next, sourceKitIds: [] };
+            return reconcileInstalledSelection(
+              next,
+              selectableInstalledProjectIds(runtime),
+              installedKitMemberships(installedKitCards)
+            );
+          });
+        },
+        onClearInstalledSelection: () => setInstalledSelection(clearInstalledSelection()),
+        onAddInstalledSelectionToKit: () => {
+          if (installedSelection.projectIds.length) {
+            setPendingAddToKitIds([...installedSelection.projectIds]);
+          }
+        },
+        onUninstallInstalledSelection: () => void requestBulkRemoval(installedSelection.projectIds),
         onForgetMissingManaged: (projectId) => void forgetMissingManaged(projectId),
         onProjectAction: (projectId, action, anchor) => void runAction(projectId, action, anchor),
         onOpenExtensionManager: () => void host?.openExtensionManager(),
         onUpdateCompanion: () => void host?.openExtensionManager(),
         onOpenTavernary: () => host?.openExternal("https://tavernary.org/"),
-        lifecycleDisabled: activeOperation !== null || togglingInternalName !== null || forgettingManagedId !== null || preparingInstall || pendingInstallChoice !== null || pendingUpdateChoice !== null || pendingInstallFallback !== null || preparingKitPlan,
+        lifecycleDisabled: activeOperation !== null || togglingInternalName !== null || forgettingManagedId !== null || preparingInstall || pendingInstallChoice !== null || pendingUpdateChoice !== null || pendingInstallFallback !== null || preparingKitPlan || preparingBulkRemoval,
         kitDiscovery: runtime?.kitDiscovery,
         kitInspectors,
         installedKits: installedKitCards,
         onKitAction: requestKitAction,
         onCreateKitFromSelection: (projectIds) => {
+          setKitDraftOrigin(null);
           setKitDraft(
             (current) => projectIds.reduce(
               (next, projectId) => addDraftMember(next, projectId),
@@ -21975,6 +22638,7 @@ function CompanionPopupHost({
         onEditKit: (id) => {
           const kit2 = runtime?.kits.readDefinition(id);
           if (kit2) {
+            setKitDraftOrigin(null);
             setKitDraft(createKitDraft(kit2));
             setKitBuilderCollapsed(false);
           }
@@ -21999,6 +22663,7 @@ function CompanionPopupHost({
             projects: kitEditorProjects,
             collapsed: kitBuilderCollapsed,
             onStart: () => {
+              setKitDraftOrigin(null);
               setKitDraft((current) => current ?? createKitDraft());
               setKitBuilderCollapsed(false);
             },
@@ -22006,6 +22671,7 @@ function CompanionPopupHost({
             onCollapse: () => setKitBuilderCollapsed(true),
             onDiscard: () => {
               setKitDraft(null);
+              setKitDraftOrigin(null);
               setKitBuilderCollapsed(true);
             },
             onSave: (draft) => void saveKitDraft(draft)
@@ -22013,6 +22679,23 @@ function CompanionPopupHost({
         ) : null
       }
     ),
+    pendingAddToKitIds && runtime ? /* @__PURE__ */ u3(
+      AddToKitDialog,
+      {
+        selectedCount: pendingAddToKitIds.length,
+        kits: runtime.kits.readDefinitions(),
+        onChoose: chooseAddToKitTarget,
+        onCancel: () => setPendingAddToKitIds(null)
+      }
+    ) : null,
+    pendingBulkRemovalPlan ? /* @__PURE__ */ u3(
+      BulkRemovalDialog,
+      {
+        plan: pendingBulkRemovalPlan,
+        onCancel: () => setPendingBulkRemovalPlan(null),
+        onConfirm: () => void runBulkRemoval(pendingBulkRemovalPlan)
+      }
+    ) : null,
     kitDisclosurePlan ? /* @__PURE__ */ u3(
       TrustDisclosureDialog,
       {
@@ -22127,6 +22810,7 @@ function CompanionPopupHost({
       {
         active: activeOperation?.operationId.startsWith("kit:") ? null : activeOperation,
         receipt,
+        bulkRemovalReceipt,
         error: operationError,
         onDismissReceipt: () => {
           if (receipt) void clearStoredReceipt(store, receipt.id);
@@ -22134,7 +22818,15 @@ function CompanionPopupHost({
         },
         onDismissError: () => setOperationError(null),
         onRetryError: () => void refreshInventory(),
-        onReload: () => host?.reload()
+        onReload: () => host?.reload(),
+        onRetryBulkRemoval: (projectIds) => {
+          setInstalledSelection({ active: true, projectIds, sourceKitIds: [] });
+          void requestBulkRemoval(projectIds);
+        },
+        onDismissBulkRemoval: () => {
+          if (bulkRemovalReceipt) void clearStoredReceipt(store, bulkRemovalReceipt.id);
+          setBulkRemovalReceipt(null);
+        }
       }
     ),
     /* @__PURE__ */ u3(
@@ -22327,6 +23019,15 @@ async function buildKitPresentation(catalog, kits, inventory) {
     inspectors[kit2.id] = toPublishedKitInspector(kit2, status, installed);
   }
   const projectNames = new Map(catalog.projects.map((project2) => [project2.id, project2.name]));
+  const presentProjectIds2 = /* @__PURE__ */ new Set([
+    ...inventory.managed.map(({ project: project2 }) => project2.id),
+    ...inventory.external.map(({ project: project2 }) => project2.id)
+  ]);
+  const selectableProjectIds = new Set(
+    [...inventory.managed, ...inventory.external].filter(
+      ({ project: project2, extension }) => project2.id !== COMPANION_PROJECT_ID && extension.type === "local"
+    ).map(({ project: project2 }) => project2.id)
+  );
   const installedKits = kits.readInstalledStates().map((installed) => {
     const inspector = inspectors[installed.kitId];
     const currentNames = new Map(
@@ -22335,6 +23036,16 @@ async function buildKitPresentation(catalog, kits, inventory) {
     const topology = installed.definitionProjectIds ?? [
       .../* @__PURE__ */ new Set([...installed.installedProjectIds, ...installed.missingProjectIds])
     ];
+    const presentTopology = topology.filter((projectId) => presentProjectIds2.has(projectId));
+    const missingProjectIds = topology.filter((projectId) => !presentProjectIds2.has(projectId));
+    const active = installed.kitId === activeId;
+    const reconciledStatus = inspector?.operationalStatus ?? installedStatusLabel(installed.status);
+    const displayStatus = installedKitDisplayStatus({
+      active,
+      installedCount: presentTopology.length,
+      missingCount: missingProjectIds.length,
+      drifted: reconciledStatus === "Drifted"
+    });
     return {
       id: installed.kitId,
       title: inspector?.title ?? installed.kitId,
@@ -22346,10 +23057,39 @@ async function buildKitPresentation(catalog, kits, inventory) {
         name: currentNames.get(projectId) ?? projectNames.get(projectId) ?? projectId
       })),
       installedProjectIds: [...installed.installedProjectIds],
+      missingProjectIds,
+      selectionProjectIds: presentTopology.filter(
+        (projectId) => selectableProjectIds.has(projectId)
+      ),
+      installedCount: presentTopology.length,
+      totalProjectCount: topology.length,
+      displayStatus,
+      statusHelp: installedKitStatusHelp(displayStatus),
+      active,
       orphaned: !inspector
     };
   });
   return { statuses, inspectors, installedKits };
+}
+function installedKitDisplayStatus({
+  active,
+  installedCount,
+  missingCount,
+  drifted
+}) {
+  if (installedCount === 0) return "Missing";
+  if (drifted || active && missingCount > 0) return "Drifted";
+  if (missingCount > 0) return "Partial";
+  return active ? "Active" : "Complete";
+}
+function installedKitStatusHelp(status) {
+  return {
+    Active: "This Kit currently defines the enabled state for Companion-managed extensions.",
+    Partial: "Some extensions in this Kit are not currently installed.",
+    Drifted: "Installed or enabled extensions no longer match this Kit's last verified state.",
+    Missing: "None of this Kit's extensions are currently installed.",
+    Complete: "Every extension in this Kit is currently installed."
+  }[status];
 }
 function installedStatusLabel(status) {
   return {
