@@ -19201,6 +19201,7 @@ function ProjectKitControl({
   projectId,
   projectName,
   selected,
+  compact = false,
   onToggle
 }) {
   const tooltipId = g2();
@@ -19232,7 +19233,7 @@ function ProjectKitControl({
                 children: /* @__PURE__ */ u3("path", { d: selected ? "M1.5 6h9" : "M6 1.5v9M1.5 6h9" })
               }
             ),
-            /* @__PURE__ */ u3("small", { children: "Kit" })
+            compact ? null : /* @__PURE__ */ u3("small", { children: "Kit" })
           ] })
         }
       )
@@ -19916,6 +19917,7 @@ function ProjectCard({
                   projectId: project2.id,
                   projectName: project2.displayName,
                   selected: selectedForKit,
+                  compact: density === "compact",
                   onToggle: onToggleKitSelection
                 }
               ) : null

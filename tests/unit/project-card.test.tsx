@@ -485,9 +485,7 @@ describe("ProjectCard", () => {
     );
 
     const add = screen.getByRole("button", { name: "Add Alpha to Kit" });
-    expect(
-      add.querySelector(".tavernary-companion-project-kit-control__face > small"),
-    ).toBeNull();
+    expect(add.querySelector(".tavernary-companion-project-kit-control__face > small")).toBeNull();
   });
 
   it("uses Tavernary's exact hover and focus tooltip contract", () => {
