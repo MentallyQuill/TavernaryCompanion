@@ -1,4 +1,8 @@
-import { createReceipt, type LifecycleReceipt } from "./operation-receipt";
+import {
+  createReceipt,
+  type LifecycleReceipt,
+  type LifecycleReceiptStatus,
+} from "./operation-receipt";
 import type { RemovalImpact } from "./removal-impact";
 
 interface BulkRemovalLifecycle {
@@ -157,7 +161,9 @@ function removalFingerprint(impacts: readonly RemovalImpact[]): string {
       projectId,
       ownership,
       removable,
-      installedKitIds: installedKits.map(({ id }) => id).sort(),
+      installedKits: installedKits
+        .map(({ id, installedProjectCount }) => [id, installedProjectCount] as const)
+        .sort(([left], [right]) => left.localeCompare(right)),
       activeKitAffected,
     })),
   );
@@ -174,9 +180,37 @@ function isRemovalReceipt(value: unknown): value is LifecycleReceipt {
     typeof value.id === "string" &&
     typeof value.projectId === "string" &&
     typeof value.projectName === "string" &&
-    typeof value.status === "string" &&
+    isLifecycleReceiptStatus(value.status) &&
+    isTimestamp(value.startedAt) &&
+    isTimestamp(value.finishedAt) &&
+    (value.safeError === null || typeof value.safeError === "string") &&
     Array.isArray(value.steps) &&
+    value.steps.every(
+      (step) =>
+        isRecord(step) &&
+        (step.id === "requested" ||
+          step.id === "host-accepted" ||
+          step.id === "verified" ||
+          step.id === "recorded") &&
+        (step.status === "pending" ||
+          step.status === "succeeded" ||
+          step.status === "failed" ||
+          step.status === "skipped"),
+    ) &&
     typeof value.reloadRequired === "boolean"
+  );
+}
+
+function isLifecycleReceiptStatus(value: unknown): value is LifecycleReceiptStatus {
+  return (
+    value === "succeeded" ||
+    value === "cancelled" ||
+    value === "rejected" ||
+    value === "failed" ||
+    value === "verification-failed" ||
+    value === "installed-unrecorded" ||
+    value === "updated-unrecorded" ||
+    value === "removed-unrecorded"
   );
 }
 

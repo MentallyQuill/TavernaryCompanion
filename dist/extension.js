@@ -13886,7 +13886,7 @@ function removalFingerprint(impacts) {
       projectId,
       ownership,
       removable,
-      installedKitIds: installedKits.map(({ id }) => id).sort(),
+      installedKits: installedKits.map(({ id, installedProjectCount }) => [id, installedProjectCount]).sort(([left], [right]) => left.localeCompare(right)),
       activeKitAffected
     }))
   );
@@ -13896,7 +13896,12 @@ function removalFingerprint(impacts) {
   return (hash >>> 0).toString(16).padStart(8, "0");
 }
 function isRemovalReceipt(value) {
-  return isRecord4(value) && value.kind === "remove" && typeof value.id === "string" && typeof value.projectId === "string" && typeof value.projectName === "string" && typeof value.status === "string" && Array.isArray(value.steps) && typeof value.reloadRequired === "boolean";
+  return isRecord4(value) && value.kind === "remove" && typeof value.id === "string" && typeof value.projectId === "string" && typeof value.projectName === "string" && isLifecycleReceiptStatus(value.status) && isTimestamp(value.startedAt) && isTimestamp(value.finishedAt) && (value.safeError === null || typeof value.safeError === "string") && Array.isArray(value.steps) && value.steps.every(
+    (step2) => isRecord4(step2) && (step2.id === "requested" || step2.id === "host-accepted" || step2.id === "verified" || step2.id === "recorded") && (step2.status === "pending" || step2.status === "succeeded" || step2.status === "failed" || step2.status === "skipped")
+  ) && typeof value.reloadRequired === "boolean";
+}
+function isLifecycleReceiptStatus(value) {
+  return value === "succeeded" || value === "cancelled" || value === "rejected" || value === "failed" || value === "verification-failed" || value === "installed-unrecorded" || value === "updated-unrecorded" || value === "removed-unrecorded";
 }
 function isStringArray(value) {
   return Array.isArray(value) && value.every((item) => typeof item === "string");

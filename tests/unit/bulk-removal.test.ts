@@ -99,7 +99,48 @@ it("rejects a changed preflight before removing anything", async () => {
   expect(lifecycle.remove).not.toHaveBeenCalled();
 });
 
+it("rejects preflight when an affected Kit member count changes", async () => {
+  let previews = 0;
+  const lifecycle = {
+    previewRemoval: vi.fn(async (id: string) => {
+      previews += 1;
+      return impact(id, {
+        installedKits: [
+          {
+            id: "writers",
+            title: "Writers",
+            installedProjectCount: previews > 1 ? 1 : 2,
+          },
+        ],
+      });
+    }),
+    remove: vi.fn(),
+  };
+  const plan = await prepareBulkRemoval(lifecycle, ["alpha"]);
+
+  await expect(executeBulkRemoval(lifecycle, plan, () => "bulk-1")).rejects.toBeInstanceOf(
+    BulkRemovalPlanChangedError,
+  );
+  expect(lifecycle.remove).not.toHaveBeenCalled();
+});
+
 it("rejects malformed persisted aggregate receipts", () => {
   expect(parseBulkRemovalReceipt({ kind: "bulk-remove", status: "partial" })).toBeNull();
   expect(parseBulkRemovalReceipt({ kind: "remove", id: "bulk-1" })).toBeNull();
+  const validResult = receipt("alpha", "succeeded");
+  expect(
+    parseBulkRemovalReceipt({
+      formatVersion: 1,
+      id: "bulk-1",
+      kind: "bulk-remove",
+      planFingerprint: "12345678",
+      startedAt: "2026-08-19T00:00:00.000Z",
+      completedAt: "2026-08-19T00:00:01.000Z",
+      status: "succeeded",
+      projectIds: ["alpha"],
+      results: [{ ...validResult, status: "invented" }],
+      retryableProjectIds: [],
+      reloadRequired: true,
+    }),
+  ).toBeNull();
 });
