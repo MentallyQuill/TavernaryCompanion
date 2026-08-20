@@ -81,6 +81,24 @@ test("mobile follows Tavernary's compact catalog hierarchy", async ({ page }) =>
   expect(compactAction!.width).toBeGreaterThanOrEqual(44);
   expect(compactAction!.height).toBeGreaterThanOrEqual(44);
   expect(Math.abs(compactAction!.width - compactAction!.height)).toBeLessThanOrEqual(1);
+  await toolbar.getByRole("button", { name: "Use compact cards" }).click();
+  const compactLicense = page
+    .locator('.tavernary-companion-project-card[data-project-id="alpha"]')
+    .locator(".tavernary-companion-license");
+  const compactInstallControl = page.getByRole("button", { name: "Install Alpha" });
+  const compactKitControl = page.getByRole("button", { name: "Add Alpha to Kit" });
+  await expect(compactLicense).toBeVisible();
+  await expect(compactKitControl.locator("small")).toHaveCount(0);
+  for (const control of [compactInstallControl, compactKitControl]) {
+    const hitTarget = await control.boundingBox();
+    const face = await control.locator("span").boundingBox();
+    expect(hitTarget).not.toBeNull();
+    expect(face).not.toBeNull();
+    expect(hitTarget!.width).toBeGreaterThanOrEqual(44);
+    expect(hitTarget!.height).toBeGreaterThanOrEqual(44);
+    expect(face!.width).toBeCloseTo(17, 0);
+    expect(face!.height).toBeCloseTo(17, 0);
+  }
   expect(
     await page
       .locator(".tavernary-companion-project-grid")
@@ -184,9 +202,11 @@ test("project disclosure, density, sort, and first card follow Tavernary's toolb
   await expect(compactInstallControl).toBeVisible();
   await expect(compactKitControl.locator("small")).toHaveCount(0);
   const compactLicenseBox = await compactLicense.boundingBox();
+  const compactCardBox = await compactCard.boundingBox();
   const compactInstall = await compactInstallControl.boundingBox();
   const compactKit = await compactKitControl.boundingBox();
   expect(compactLicenseBox).not.toBeNull();
+  expect(compactCardBox).not.toBeNull();
   expect(compactInstall).not.toBeNull();
   expect(compactKit).not.toBeNull();
   expect(compactInstall!.width).toBeCloseTo(standardInstall!.width / 2, 0);
@@ -194,6 +214,10 @@ test("project disclosure, density, sort, and first card follow Tavernary's toolb
   expect(compactKit!.width).toBeCloseTo(standardKit!.width / 2, 0);
   expect(compactKit!.height).toBeCloseTo(standardKit!.height / 2, 0);
   expect(compactInstall!.x).toBeGreaterThan(compactLicenseBox!.x + compactLicenseBox!.width);
+  const compactActionRightInset =
+    compactCardBox!.x + compactCardBox!.width - (compactKit!.x + compactKit!.width);
+  expect(compactActionRightInset).toBeGreaterThanOrEqual(10);
+  expect(compactActionRightInset).toBeLessThanOrEqual(14);
   await standardDensityControl.evaluate((button) => button.blur());
   await page.mouse.move(0, 0);
   await expect(page.getByRole("tooltip")).toHaveCount(0);
