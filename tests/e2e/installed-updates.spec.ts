@@ -13,7 +13,7 @@ test("checks, confirms, and applies an Installed extension update", async ({ pag
   const card = page.locator(".tavernary-companion-installed-card", {
     has: page.getByRole("heading", { name: "Writer Tool" }),
   });
-  await expect(card.getByText("Update available")).toBeVisible();
+  await expect(card.getByText("Latest scanned")).toBeVisible();
   const update = card.getByRole("button", { name: "Update Writer Tool" });
   const uninstall = card.getByRole("button", { name: "Uninstall Writer Tool" });
   expect(
@@ -38,7 +38,7 @@ test("checks, confirms, and applies an Installed extension update", async ({ pag
   const reload = page.getByRole("status", { name: "Update complete" });
   await expect(reload).toContainText("Updated to the newest version. Reload to apply updates.");
   await expect(reload.getByRole("button", { name: "Reload now" })).toBeVisible();
-  await expect(card.getByText("Up to date")).toBeVisible();
+  await expect(card.getByText("Latest")).toBeVisible();
   await expect(card.getByRole("button", { name: "Update Writer Tool" })).toHaveCount(0);
 });
 
@@ -94,7 +94,7 @@ test("uses native SillyTavern updates without showing extension attention", asyn
   await expect(page.getByRole("status", { name: "Update complete" })).toContainText(
     "Updated to the newest version. Reload to apply updates.",
   );
-  await expect(card.getByText("Up to date")).toBeVisible();
+  await expect(card.getByText("Latest")).toBeVisible();
 });
 
 test("gives a disabled extension a specific actionable attention reason", async ({ page }) => {

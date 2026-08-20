@@ -17751,7 +17751,7 @@ function InstalledCard({
               title: updateState.kind === "attention" ? updateState.reason : void 0,
               children: updateStatusLabel(updateState)
             }
-          ) : row.enabled !== null ? /* @__PURE__ */ u3("strong", { children: row.enabled ? "Enabled" : "Disabled" }) : null
+          ) : null
         ] }),
         /* @__PURE__ */ u3("h4", { children: row.canonicalUrl ? /* @__PURE__ */ u3("a", { href: row.canonicalUrl, target: "_blank", rel: "noopener noreferrer", children: row.name }) : row.name }),
         kitTitles.length ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-memberships", children: [
@@ -17840,9 +17840,12 @@ function InstalledCard({
   );
 }
 function updateStatusLabel(state) {
+  if (state.kind === "available" && state.notice === "You already have the latest scanned version.") {
+    return "Latest scanned";
+  }
   return {
     checking: "Checking\u2026",
-    current: "Up to date",
+    current: "Latest",
     available: "Update available",
     attention: "Needs attention",
     error: "Could not check"

@@ -20,6 +20,10 @@ test("Installed groups Kits and lets extensions be enabled and restored from car
 
   const enable = page.getByRole("switch", { name: /Enable /u });
   await expect(enable).toHaveAttribute("aria-checked", "false");
+  const versionStatus = enable.locator("../..").locator(":scope > header > strong");
+  await expect(versionStatus).toHaveText("Latest");
+  await expect(versionStatus).not.toHaveText(/Enabled|Disabled/u);
+  await expect(enable.locator("b")).toHaveText("Disabled");
   const [toggleBox, trackBox, cardBox] = await Promise.all([
     enable.boundingBox(),
     enable.locator("span").boundingBox(),

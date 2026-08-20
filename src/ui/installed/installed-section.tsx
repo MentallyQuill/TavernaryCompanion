@@ -110,8 +110,6 @@ function InstalledCard({
           >
             {updateStatusLabel(updateState)}
           </strong>
-        ) : row.enabled !== null ? (
-          <strong>{row.enabled ? "Enabled" : "Disabled"}</strong>
         ) : null}
       </header>
       <h4>
@@ -209,9 +207,15 @@ function InstalledCard({
 }
 
 function updateStatusLabel(state: Exclude<ProjectUpdateState, { kind: "idle" }>): string {
+  if (
+    state.kind === "available" &&
+    state.notice === "You already have the latest scanned version."
+  ) {
+    return "Latest scanned";
+  }
   return {
     checking: "Checking…",
-    current: "Up to date",
+    current: "Latest",
     available: "Update available",
     attention: "Needs attention",
     error: "Could not check",

@@ -114,8 +114,27 @@ describe("InstalledRoute", () => {
       />,
     );
 
-    expect(screen.getByText("Up to date")).toBeVisible();
+    expect(screen.getByText("Latest")).toBeVisible();
     expect(screen.queryByRole("button", { name: "Update Alpha" })).not.toBeInTheDocument();
+  });
+
+  it("marks the installed scan as latest scanned when a newer version is available", () => {
+    render(
+      <InstalledRoute
+        sections={sections}
+        updateStates={{
+          alpha: {
+            kind: "available",
+            notice: "You already have the latest scanned version.",
+            targets: [{ kind: "newest", requestedSha: null, resolvedAt: null }],
+          },
+        }}
+        onRefresh={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Latest scanned")).toBeVisible();
+    expect(screen.queryByText("Update available")).not.toBeInTheDocument();
   });
 
   it("explains native newest-only updates once without marking extensions as attention", () => {
@@ -280,6 +299,20 @@ describe("InstalledRoute", () => {
 
     expect(screen.getAllByText("Alpha")).toHaveLength(1);
     expect(screen.queryByText("third-party/Mystery")).not.toBeInTheDocument();
+  });
+
+  it("reserves the extension card corner for version status", () => {
+    const { container } = render(<InstalledRoute sections={sections} onRefresh={vi.fn()} />);
+
+    const cards = Array.from(
+      container.querySelectorAll<HTMLElement>(".tavernary-companion-installed-card"),
+    );
+    expect(cards).toHaveLength(2);
+    for (const card of cards) {
+      expect(card.querySelector(":scope > header > strong")).toBeNull();
+    }
+    expect(screen.getByRole("switch", { name: "Disable Alpha" })).toHaveTextContent("Enabled");
+    expect(screen.getByRole("switch", { name: "Enable Mystery" })).toHaveTextContent("Disabled");
   });
 
   it("renders installed Kits before extension cards and toggles an extension in place", () => {
