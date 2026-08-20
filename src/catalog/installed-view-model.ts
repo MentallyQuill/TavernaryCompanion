@@ -19,7 +19,7 @@ export interface InstalledSectionViewModel {
     | "Managed by Companion"
     | "Installed outside Companion"
     | "Not found in current catalog"
-    | "Needs attention";
+    | "Previously managed";
   rows: InstalledRowViewModel[];
 }
 
@@ -78,11 +78,12 @@ export function toInstalledSectionViewModel(
     },
     {
       id: "attention",
-      title: "Needs attention",
+      title: "Previously managed",
       rows: inventory.missingManaged.map(({ record, project }) => ({
         id: record.projectId,
         name: project?.name ?? record.folderName,
-        detail: "Managed record is missing from SillyTavern.",
+        detail:
+          "Previously managed by Companion, but no longer installed in this SillyTavern profile.",
         internalName: record.internalName,
         canonicalUrl: project?.canonicalUrl ?? null,
         enabled: null,
