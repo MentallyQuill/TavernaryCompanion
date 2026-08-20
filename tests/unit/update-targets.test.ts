@@ -127,7 +127,8 @@ describe("deriveUpdateAvailability", () => {
       }),
     ).toEqual({
       kind: "attention",
-      reason: "This extension has local changes. Manage it in SillyTavern.",
+      reason:
+        "This extension has local file changes, so Companion won’t overwrite them. Review those changes, then check again.",
     });
   });
 
@@ -151,7 +152,8 @@ describe("deriveUpdateAvailability", () => {
       }),
     ).toEqual({
       kind: "attention",
-      reason: "This extension comes from a different repository. Manage it in SillyTavern.",
+      reason:
+        "This extension was installed from a different repository than Tavernary lists. Review it in SillyTavern or reinstall the Tavernary version.",
     });
   });
 
@@ -175,11 +177,12 @@ describe("deriveUpdateAvailability", () => {
       }),
     ).toEqual({
       kind: "attention",
-      reason: "This extension is on another branch. Manage it in SillyTavern.",
+      reason:
+        "This extension is on the experimental branch, but Tavernary tracks the repository’s default branch. Switch branches in SillyTavern, then check again.",
     });
   });
 
-  it("hands off a pending update when exact host updates are unavailable", () => {
+  it("offers the native newest update when exact host updates are unavailable", () => {
     const project = catalogProjectFixture();
 
     expect(
@@ -198,9 +201,31 @@ describe("deriveUpdateAvailability", () => {
         },
       }),
     ).toEqual({
-      kind: "attention",
-      reason: "This SillyTavern build does not support exact Companion updates.",
+      kind: "available",
+      notice: null,
+      targets: [{ kind: "newest", requestedSha: null, resolvedAt: null }],
     });
+  });
+
+  it("marks a native up-to-date result without turning it into attention", () => {
+    const project = catalogProjectFixture();
+
+    expect(
+      deriveUpdateAvailability({
+        project,
+        inspection: {
+          installedSha,
+          newestSha: null,
+          remoteUrl: project.install!.repositoryUrl,
+          branch: "main",
+          worktreeClean: null,
+          branchMatches: true,
+          exactUpdateSupported: false,
+          newestRelationship: "equal",
+          candidateRelationships: {},
+        },
+      }),
+    ).toEqual({ kind: "current", native: true });
   });
 
   it("hands off an extension whose installed history diverged from newest", () => {
@@ -223,7 +248,8 @@ describe("deriveUpdateAvailability", () => {
       }),
     ).toEqual({
       kind: "attention",
-      reason: "This extension has diverged history. Manage it in SillyTavern.",
+      reason:
+        "This extension and the Tavernary version each contain different commits, so Companion won’t merge them. Resolve the branch in SillyTavern, then check again.",
     });
   });
 
@@ -247,7 +273,8 @@ describe("deriveUpdateAvailability", () => {
       }),
     ).toEqual({
       kind: "attention",
-      reason: "This extension is ahead of the catalog branch. Manage it in SillyTavern.",
+      reason:
+        "This extension contains commits that aren’t in the Tavernary version, so Companion won’t replace them. Review it in SillyTavern, then check again.",
     });
   });
 });

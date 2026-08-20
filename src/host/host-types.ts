@@ -59,7 +59,7 @@ export interface HostExtensionAdapter {
     repositoryUrl: string;
     branch: string | null;
     expectedCurrentSha: string;
-    targetSha: string;
+    targetSha: string | null;
   }): Promise<void>;
   remove(input: { internalName: string; type: HostExtensionType }): Promise<void>;
   enable(internalName: string): Promise<void>;

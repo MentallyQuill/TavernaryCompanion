@@ -122,7 +122,47 @@ describe("ExtensionUpdateCoordinator", () => {
     });
   });
 
-  it("explains when SillyTavern cannot provide safe exact updates", async () => {
+  it("updates an external extension through SillyTavern's native newest flow", async () => {
+    const { coordinator, host } = setup({
+      updateInspections: {
+        "local:third-party/Alpha": {
+          installedSha,
+          newestSha,
+          remoteUrl: catalogProjectFixture().install!.repositoryUrl,
+          branch: "main",
+          worktreeClean: null,
+          branchMatches: true,
+          exactUpdateSupported: false,
+          newestRelationship: "behind",
+          candidateRelationships: {},
+        },
+      },
+    });
+
+    await coordinator.check("alpha");
+    const [selection] = coordinator.prepare("alpha").selections;
+
+    expect(selection).toMatchObject({
+      target: { kind: "newest", requestedSha: null, resolvedAt: null },
+    });
+    const receipt = await coordinator.update(selection!);
+
+    expect(receipt).toMatchObject({
+      status: "succeeded",
+      reloadRequired: true,
+      installProvenance: {
+        targetKind: "newest",
+        requestedSha: null,
+        installedSha: newestSha,
+      },
+    });
+    expect(host.calls).toContainEqual(
+      expect.objectContaining({ operation: "applyUpdate", targetSha: null }),
+    );
+    expect(coordinator.read().states.alpha).toEqual({ kind: "current", native: true });
+  });
+
+  it("treats an unavailable update check as retryable instead of extension attention", async () => {
     const { coordinator } = setup({
       failures: {
         inspectUpdate: new HostOperationError(
@@ -136,8 +176,9 @@ describe("ExtensionUpdateCoordinator", () => {
     await coordinator.check("alpha");
 
     expect(coordinator.read().states.alpha).toEqual({
-      kind: "attention",
-      reason: "This SillyTavern build does not support exact Companion updates.",
+      kind: "error",
+      reason:
+        "Companion couldn’t check this extension. Try again; if it still fails, open it in SillyTavern.",
     });
   });
 
@@ -370,7 +411,8 @@ describe("ExtensionUpdateCoordinator", () => {
     );
     expect(coordinator.read().states.alpha).toEqual({
       kind: "attention",
-      reason: "This extension has local changes. Manage it in SillyTavern.",
+      reason:
+        "This extension has local file changes, so Companion won’t overwrite them. Review those changes, then check again.",
     });
     expect(host.calls.some(({ operation }) => operation === "applyUpdate")).toBe(false);
   });
@@ -464,7 +506,8 @@ describe("ExtensionUpdateCoordinator", () => {
     expect(receipt.status).toBe("failed");
     expect(coordinator.read().states.alpha).toEqual({
       kind: "attention",
-      reason: "This extension has local changes. Manage it in SillyTavern.",
+      reason:
+        "This extension has local file changes, so Companion won’t overwrite them. Review those changes, then check again.",
     });
   });
 

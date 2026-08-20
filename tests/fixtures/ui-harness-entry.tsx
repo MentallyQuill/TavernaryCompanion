@@ -280,7 +280,12 @@ async function main() {
       };
     });
   }
-  if (individualVersionScenario || kitVersionScenario || scenario === "installed-update") {
+  if (
+    individualVersionScenario ||
+    kitVersionScenario ||
+    scenario === "installed-update" ||
+    scenario === "installed-native-update"
+  ) {
     await profile.update((draft) => {
       draft.trustAcknowledgedAt = "2026-08-18T00:00:00.000Z";
     });
@@ -347,7 +352,11 @@ async function main() {
     (individualVersionScenario && scenario !== "version-legacy") || kitVersionScenario;
   const writerProject = catalog.projects.find(({ id }) => id === "writer-tool")!;
   const writerInstalledSha = "c".repeat(40);
-  const writerNewestSha = scenario === "installed-update" ? "d".repeat(40) : writerInstalledSha;
+  const writerUpdateAvailable =
+    scenario === "installed-update" ||
+    scenario === "installed-native-update" ||
+    scenario === "installed-local-changes";
+  const writerNewestSha = writerUpdateAvailable ? "d".repeat(40) : writerInstalledSha;
   const host = createFakeHost({
     extensions: kitVersionScenario ? [] : [extension("WriterTool", false)],
     ...(capableVersionHost
@@ -380,10 +389,15 @@ async function main() {
         newestSha: writerNewestSha,
         remoteUrl: writerProject.install!.repositoryUrl,
         branch: writerProject.install!.branch ?? "main",
-        worktreeClean: true,
+        worktreeClean:
+          scenario === "installed-native-update"
+            ? null
+            : scenario === "installed-local-changes"
+              ? false
+              : true,
         branchMatches: true,
-        exactUpdateSupported: true,
-        newestRelationship: scenario === "installed-update" ? "behind" : "equal",
+        exactUpdateSupported: scenario !== "installed-native-update",
+        newestRelationship: writerUpdateAvailable ? "behind" : "equal",
         candidateRelationships:
           scenario === "installed-update" ? { [writerInstalledSha]: "equal" } : {},
       },
