@@ -52,7 +52,12 @@ import { fingerprintKitTopology } from "../kits/kit-validation";
 import { UNSANDBOXED_CODE_DISCLOSURE } from "../trust/trust-copy";
 import { exportKitFile } from "./kits/kit-export-action";
 import { KitEditor } from "./kits/kit-editor";
-import { addDraftMember, createKitDraft, type KitDraftState } from "../kits/kit-draft";
+import {
+  addDraftMember,
+  addDraftMembers,
+  createKitDraft,
+  type KitDraftState,
+} from "../kits/kit-draft";
 import { KitOperationTray } from "./kits/kit-operation-tray";
 import { KitPreflightDialog } from "./kits/kit-preflight-dialog";
 import { AssessmentWarningDialog } from "./lifecycle/assessment-warning-dialog";
@@ -73,6 +78,7 @@ import {
 } from "../updates/update-coordinator";
 import type { PreparedUpdateSelection } from "../updates/update-types";
 import { UpdateVersionChooser } from "./installed/update-version-chooser";
+import { AddToKitDialog, type AddToKitTarget } from "./installed/add-to-kit-dialog";
 import {
   clearInstalledSelection,
   EMPTY_INSTALLED_SELECTION,
@@ -167,6 +173,8 @@ export function CompanionPopupHost({
   const [pendingKitPlan, setPendingKitPlan] = useState<Readonly<KitPlan> | null>(null);
   const [kitDisclosurePlan, setKitDisclosurePlan] = useState<Readonly<KitPlan> | null>(null);
   const [kitDraft, setKitDraft] = useState<KitDraftState | null>(null);
+  const [kitDraftOrigin, setKitDraftOrigin] = useState<"installed-selection" | null>(null);
+  const [pendingAddToKitIds, setPendingAddToKitIds] = useState<string[] | null>(null);
   const [kitBuilderCollapsed, setKitBuilderCollapsed] = useState(true);
   const [kitInspectors, setKitInspectors] = useState<Record<string, KitInspectorViewModel>>({});
   const [installedKitCards, setInstalledKitCards] = useState<InstalledKitViewModel[]>([]);
@@ -538,8 +546,25 @@ export function CompanionPopupHost({
       });
     }
     setKitDraft(null);
+    if (kitDraftOrigin === "installed-selection") {
+      setInstalledSelection(clearInstalledSelection());
+    }
+    setKitDraftOrigin(null);
     setKitBuilderCollapsed(true);
     await syncKits();
+  };
+  const chooseAddToKitTarget = (target: AddToKitTarget) => {
+    if (!runtime || !pendingAddToKitIds?.length) return;
+    const source = target.kind === "existing" ? runtime.kits.readDefinition(target.kitId) : null;
+    if (target.kind === "existing" && !source) {
+      setOperationError("That personal Kit is no longer available.");
+      setPendingAddToKitIds(null);
+      return;
+    }
+    setKitDraft(addDraftMembers(createKitDraft(source ?? undefined), pendingAddToKitIds));
+    setKitDraftOrigin("installed-selection");
+    setKitBuilderCollapsed(false);
+    setPendingAddToKitIds(null);
   };
   const runtimeCatalog = runtime?.catalog.read();
   const kitEditorProjects =
@@ -592,6 +617,11 @@ export function CompanionPopupHost({
           });
         }}
         onClearInstalledSelection={() => setInstalledSelection(clearInstalledSelection())}
+        onAddInstalledSelectionToKit={() => {
+          if (installedSelection.projectIds.length) {
+            setPendingAddToKitIds([...installedSelection.projectIds]);
+          }
+        }}
         onForgetMissingManaged={(projectId) => void forgetMissingManaged(projectId)}
         onProjectAction={(projectId, action, anchor) => void runAction(projectId, action, anchor)}
         onOpenExtensionManager={() => void host?.openExtensionManager()}
@@ -612,6 +642,7 @@ export function CompanionPopupHost({
         installedKits={installedKitCards}
         onKitAction={requestKitAction}
         onCreateKitFromSelection={(projectIds) => {
+          setKitDraftOrigin(null);
           setKitDraft((current) =>
             projectIds.reduce(
               (next, projectId) => addDraftMember(next, projectId),
@@ -623,6 +654,7 @@ export function CompanionPopupHost({
         onEditKit={(id) => {
           const kit = runtime?.kits.readDefinition(id);
           if (kit) {
+            setKitDraftOrigin(null);
             setKitDraft(createKitDraft(kit));
             setKitBuilderCollapsed(false);
           }
@@ -660,6 +692,7 @@ export function CompanionPopupHost({
               projects={kitEditorProjects}
               collapsed={kitBuilderCollapsed}
               onStart={() => {
+                setKitDraftOrigin(null);
                 setKitDraft((current) => current ?? createKitDraft());
                 setKitBuilderCollapsed(false);
               }}
@@ -667,6 +700,7 @@ export function CompanionPopupHost({
               onCollapse={() => setKitBuilderCollapsed(true)}
               onDiscard={() => {
                 setKitDraft(null);
+                setKitDraftOrigin(null);
                 setKitBuilderCollapsed(true);
               }}
               onSave={(draft) => void saveKitDraft(draft)}
@@ -674,6 +708,14 @@ export function CompanionPopupHost({
           ) : null
         }
       />
+      {pendingAddToKitIds && runtime ? (
+        <AddToKitDialog
+          selectedCount={pendingAddToKitIds.length}
+          kits={runtime.kits.readDefinitions()}
+          onChoose={chooseAddToKitTarget}
+          onCancel={() => setPendingAddToKitIds(null)}
+        />
+      ) : null}
       {kitDisclosurePlan ? (
         <TrustDisclosureDialog
           prompt={{ kind: "unsandboxed-disclosure", copy: UNSANDBOXED_CODE_DISCLOSURE }}

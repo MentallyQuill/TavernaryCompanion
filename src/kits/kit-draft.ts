@@ -39,6 +39,12 @@ export function addDraftMember(draft: KitDraftState, projectId: string): KitDraf
   if (projectId === COMPANION_PROJECT_ID || draft.projectIds.includes(projectId)) return draft;
   return updateKitDraft(draft, { projectIds: [...draft.projectIds, projectId] });
 }
+export function addDraftMembers(
+  draft: KitDraftState,
+  projectIds: readonly string[],
+): KitDraftState {
+  return projectIds.reduce(addDraftMember, draft);
+}
 export function moveDraftMember(
   draft: KitDraftState,
   projectId: string,
