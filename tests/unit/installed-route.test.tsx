@@ -49,7 +49,6 @@ const sections: InstalledSectionViewModel[] = [
       },
     ],
   },
-  { id: "attention", title: "Previously managed", rows: [] },
 ];
 
 describe("InstalledRoute", () => {
@@ -314,58 +313,6 @@ describe("InstalledRoute", () => {
     ).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Manage Alpha in SillyTavern" }));
     expect(onManage).toHaveBeenCalledOnce();
-  });
-
-  it("separates missing managed records from installed extensions and lets the user forget one", () => {
-    const onForgetMissing = vi.fn();
-    const missingSections: InstalledSectionViewModel[] = sections.map((section) =>
-      section.id === "attention"
-        ? {
-            ...section,
-            rows: [
-              {
-                id: "story-engine",
-                name: "Story Engine",
-                detail:
-                  "Previously managed by Companion, but no longer installed in this SillyTavern profile.",
-                internalName: "third-party/Story-Engine",
-                canonicalUrl: "https://example.test/story-engine",
-                enabled: null,
-                toggleable: false,
-                action: {
-                  kind: "manage-in-sillytavern",
-                  label: "Manage in SillyTavern",
-                  reason: "Reconcile the missing extension in SillyTavern.",
-                },
-                selectionEligible: false,
-                selectionDisabledReason: "This extension is no longer installed.",
-              },
-            ],
-          }
-        : section,
-    );
-
-    render(
-      <InstalledRoute
-        sections={missingSections}
-        onRefresh={vi.fn()}
-        onForgetMissing={onForgetMissing}
-      />,
-    );
-
-    expect(screen.getByText("2 installed extensions")).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Previously managed" })).toBeVisible();
-    expect(screen.getByText("No longer installed")).toBeVisible();
-    expect(
-      screen.getByText(
-        "Previously managed by Companion, but no longer installed in this SillyTavern profile.",
-      ),
-    ).toBeVisible();
-    expect(
-      screen.queryByRole("button", { name: "Manage Story Engine in SillyTavern" }),
-    ).not.toBeInTheDocument();
-    fireEvent.click(screen.getByRole("button", { name: "Forget Story Engine record" }));
-    expect(onForgetMissing).toHaveBeenCalledWith("story-engine");
   });
 
   it("links cataloged installed projects directly to their canonical source", () => {

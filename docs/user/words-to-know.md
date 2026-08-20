@@ -25,6 +25,5 @@ Companion uses a few special words. Here they are in everyday language.
 | **Missing** | None of a Kit's members are installed. |
 | **Drifted** | The installed or enabled extensions no longer match the Kit's last verified state. |
 | **Receipt** | A record of what an install, update, Kit change, or uninstall actually did. |
-| **Forget record** | Remove Companion's old memory of a missing extension. It does not delete files. |
 
 When you are unsure, open the message beside the button. Companion tries to explain why an action is available, blocked, or waiting for you.

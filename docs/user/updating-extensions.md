@@ -53,7 +53,7 @@ A catalog-matched extension installed outside Companion can sometimes be updated
 
 When the problem is local or repository-related, use SillyTavern's extension manager. Companion will not take over work that belongs to another installation path.
 
-If an Installed entry says the extension is missing, **Forget record** removes Companion's old record of it. It does not delete files, and it does not remove the saved Kit that once included it.
+When a successful check confirms that a Companion-managed extension is gone, Companion cleans up its old management information automatically. This does not remove the saved Kit that once included it; that Kit can still show **Partial** or **Missing**.
 
 ## Finish an update
 

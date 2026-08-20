@@ -1,7 +1,17 @@
 import type { CatalogProject } from "../catalog/catalog-core";
 import type { HostExtension, HostExtensionAdapter } from "../host/host-types";
-import { COMPANION_PROJECT_ID } from "./managed-registry";
-import type { InventorySnapshot, ManagedExtensionMap } from "./inventory-types";
+import type { ManagedInstallProvenance } from "../lifecycle/install-target";
+import type { ProfileStore } from "../state/profile-store";
+import {
+  COMPANION_PROJECT_ID,
+  ManagedRegistry,
+  normalizeManagedExtensionMap,
+} from "./managed-registry";
+import type {
+  InventorySnapshot,
+  ManagedExtensionMap,
+  ManagedExtensionRecord,
+} from "./inventory-types";
 import { sameRepositoryUrl } from "../updates/update-targets";
 
 function folderIdentity(value: string) {
@@ -134,4 +144,68 @@ export async function reconcileHostInventory({
 
 function extensionIdentity(extension: HostExtension): string {
   return `${extension.type}:${extension.internalName}`;
+}
+
+export async function pruneAbsentManagedRecords({
+  observedManaged,
+  hostExtensions,
+  store,
+}: {
+  observedManaged: ManagedExtensionMap;
+  hostExtensions: readonly HostExtension[];
+  store: ProfileStore;
+}): Promise<string[]> {
+  const observedRegistry = new ManagedRegistry(observedManaged);
+  const absentProjectIds = observedRegistry.pruneAbsent(hostExtensions);
+  if (absentProjectIds.length === 0) return [];
+  const currentBeforeUpdate = normalizeManagedExtensionMap(store.read().managedExtensions);
+  const removableProjectIds = absentProjectIds.filter((projectId) => {
+    const observed = observedManaged[projectId];
+    return observed && sameManagedRecord(currentBeforeUpdate[projectId], observed);
+  });
+  if (removableProjectIds.length === 0) return [];
+
+  const removedProjectIds: string[] = [];
+  await store.update((draft) => {
+    const currentRegistry = new ManagedRegistry(
+      normalizeManagedExtensionMap(draft.managedExtensions),
+    );
+    const current = currentRegistry.read();
+    for (const projectId of removableProjectIds) {
+      const observed = observedManaged[projectId];
+      if (!observed || !sameManagedRecord(current[projectId], observed)) continue;
+      if (currentRegistry.remove(projectId)) removedProjectIds.push(projectId);
+    }
+    if (removedProjectIds.length > 0) draft.managedExtensions = currentRegistry.read();
+  });
+  return removedProjectIds.sort();
+}
+
+function sameManagedRecord(
+  current: ManagedExtensionRecord | undefined,
+  observed: ManagedExtensionRecord,
+): boolean {
+  return Boolean(
+    current &&
+    current.projectId === observed.projectId &&
+    current.internalName === observed.internalName &&
+    current.folderName === observed.folderName &&
+    current.installedAt === observed.installedAt &&
+    current.installedBy === observed.installedBy &&
+    sameProvenance(current.provenance, observed.provenance),
+  );
+}
+
+function sameProvenance(
+  current: ManagedInstallProvenance | undefined,
+  observed: ManagedInstallProvenance | undefined,
+): boolean {
+  if (!current || !observed) return current === observed;
+  return (
+    current.targetKind === observed.targetKind &&
+    current.requestedSha === observed.requestedSha &&
+    current.installedSha === observed.installedSha &&
+    current.catalogGeneratedAt === observed.catalogGeneratedAt &&
+    current.tavernKeeperReportId === observed.tavernKeeperReportId
+  );
 }

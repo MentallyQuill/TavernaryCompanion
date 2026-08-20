@@ -371,7 +371,7 @@ describe("project view models", () => {
     });
   });
 
-  it("describes missing managed records as previously managed rather than installed", () => {
+  it("keeps missing management bookkeeping out of the installed user interface", () => {
     const project = catalogProjectFixture({ id: "story-engine", folderName: "Story-Engine" });
     const sections = toInstalledSectionViewModel({
       ...emptyInventory,
@@ -389,16 +389,7 @@ describe("project view models", () => {
       ],
     });
 
-    expect(sections.find(({ id }) => id === "attention")).toMatchObject({
-      title: "Previously managed",
-      rows: [
-        {
-          name: project.name,
-          detail:
-            "Previously managed by Companion, but no longer installed in this SillyTavern profile.",
-          enabled: null,
-        },
-      ],
-    });
+    expect(sections.map(({ id }) => id)).not.toContain("attention");
+    expect(sections.map(({ title }) => title)).not.toContain("Previously managed");
   });
 });

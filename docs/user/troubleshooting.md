@@ -53,7 +53,7 @@ Another process may have changed the files outside Companion. Open **Installed**
 
 If it was a missing member of a Kit, the Kit can show **Partial** or **Missing**. The saved Kit list is still there.
 
-If the Installed entry offers **Forget record**, use it only after you are sure the extension is no longer present. Forgetting the record removes Companion's old memory; it does not delete extension files.
+After a successful check, Companion automatically cleans up old management information for extensions that are no longer installed. If the check fails, Companion keeps its information and asks you to try again.
 
 ## An update cannot run
 

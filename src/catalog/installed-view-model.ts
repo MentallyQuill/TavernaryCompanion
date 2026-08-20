@@ -16,13 +16,12 @@ export interface InstalledRowViewModel {
 }
 
 export interface InstalledSectionViewModel {
-  id: "managed" | "external" | "ambiguous" | "unknown" | "attention";
+  id: "managed" | "external" | "ambiguous" | "unknown";
   title:
     | "Managed by Companion"
     | "Installed outside Companion"
     | "Multiple matches in current catalog"
-    | "Not found in current catalog"
-    | "Previously managed";
+    | "Not found in current catalog";
   rows: InstalledRowViewModel[];
 }
 
@@ -75,27 +74,6 @@ export function toInstalledSectionViewModel(
         inventory.unknown.filter(({ reason }) => reason === "folder-not-in-catalog"),
         "No Tavernary project uses this extension folder.",
       ),
-    },
-    {
-      id: "attention",
-      title: "Previously managed",
-      rows: inventory.missingManaged.map(({ record, project }) => ({
-        id: record.projectId,
-        name: project?.name ?? record.folderName,
-        detail:
-          "Previously managed by Companion, but no longer installed in this SillyTavern profile.",
-        internalName: record.internalName,
-        canonicalUrl: project?.canonicalUrl ?? null,
-        enabled: null,
-        toggleable: false,
-        action: {
-          kind: "manage-in-sillytavern",
-          label: "Manage in SillyTavern",
-          reason: "Reconcile the missing extension in SillyTavern.",
-        },
-        selectionEligible: false,
-        selectionDisabledReason: "This extension is no longer installed.",
-      })),
     },
   ];
 }
