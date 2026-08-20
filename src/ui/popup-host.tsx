@@ -29,7 +29,7 @@ import {
 } from "../lifecycle/install-target-fallback-broker";
 import { HostRevisionUnavailableError } from "../host/host-errors";
 import type { RemovalImpact } from "../lifecycle/removal-impact";
-import { assertNotCompanionProject } from "../lifecycle/self-protection";
+import { assertNotCompanionProject, COMPANION_PROJECT_ID } from "../lifecycle/self-protection";
 import { TrustPromptBroker, type PendingTrustPrompt } from "../lifecycle/trust-prompt-broker";
 import type { ProfileStore } from "../state/profile-store";
 import { createKitDiscoveryController } from "../kits/kit-discovery-controller";
@@ -73,6 +73,15 @@ import {
 } from "../updates/update-coordinator";
 import type { PreparedUpdateSelection } from "../updates/update-types";
 import { UpdateVersionChooser } from "./installed/update-version-chooser";
+import {
+  clearInstalledSelection,
+  EMPTY_INSTALLED_SELECTION,
+  reconcileInstalledSelection,
+  selectInstalledKit,
+  startInstalledSelection,
+  toggleInstalledProject,
+  type InstalledSelectionState,
+} from "./installed/installed-selection";
 
 interface CompanionPopupHostProps {
   store?: ProfileStore;
@@ -94,6 +103,20 @@ export interface PopupRuntime {
 }
 
 const emptyInventory = { managed: [], external: [], unknown: [], missingManaged: [] };
+
+function selectableInstalledProjectIds(runtime: PopupRuntime): string[] {
+  return runtime.discovery
+    .read()
+    .installedSections.flatMap(({ rows }) =>
+      rows.filter(({ selectionEligible }) => selectionEligible).map(({ id }) => id),
+    );
+}
+
+function installedKitMemberships(
+  kits: readonly InstalledKitViewModel[],
+): Record<string, readonly string[]> {
+  return Object.fromEntries(kits.map((kit) => [kit.id, kit.selectionProjectIds]));
+}
 
 export function CompanionPopupHost({
   store,
@@ -147,6 +170,8 @@ export function CompanionPopupHost({
   const [kitBuilderCollapsed, setKitBuilderCollapsed] = useState(true);
   const [kitInspectors, setKitInspectors] = useState<Record<string, KitInspectorViewModel>>({});
   const [installedKitCards, setInstalledKitCards] = useState<InstalledKitViewModel[]>([]);
+  const [installedSelection, setInstalledSelection] =
+    useState<InstalledSelectionState>(EMPTY_INSTALLED_SELECTION);
   const [operationError, setOperationError] = useState<string | null>(null);
   const [preparingInstall, setPreparingInstall] = useState(false);
   const [preparingKitPlan, setPreparingKitPlan] = useState(false);
@@ -192,6 +217,13 @@ export function CompanionPopupHost({
     });
     setKitInspectors(presentation.inspectors);
     setInstalledKitCards(presentation.installedKits);
+    setInstalledSelection((current) =>
+      reconcileInstalledSelection(
+        current,
+        selectableInstalledProjectIds(runtime),
+        installedKitMemberships(presentation.installedKits),
+      ),
+    );
   }, [runtime, store]);
 
   const refreshInventory = useCallback(async (): Promise<boolean> => {
@@ -538,6 +570,28 @@ export function CompanionPopupHost({
         onToggleExtension={(projectId, internalName, enabled) =>
           void toggleExtension(projectId, internalName, enabled)
         }
+        installedSelection={installedSelection}
+        onStartInstalledSelection={() => setInstalledSelection(startInstalledSelection())}
+        onSelectInstalledKit={(kitId) => {
+          const kit = installedKitCards.find(({ id }) => id === kitId);
+          if (!kit) return;
+          setInstalledSelection((current) =>
+            selectInstalledKit(current, kit.id, kit.selectionProjectIds),
+          );
+        }}
+        onToggleInstalledSelection={(projectId) => {
+          if (!runtime) return;
+          setInstalledSelection((current) => {
+            const next = toggleInstalledProject(current, projectId);
+            if (next.projectIds.length === 0) return next;
+            return reconcileInstalledSelection(
+              next,
+              selectableInstalledProjectIds(runtime),
+              installedKitMemberships(installedKitCards),
+            );
+          });
+        }}
+        onClearInstalledSelection={() => setInstalledSelection(clearInstalledSelection())}
         onForgetMissingManaged={(projectId) => void forgetMissingManaged(projectId)}
         onProjectAction={(projectId, action, anchor) => void runAction(projectId, action, anchor)}
         onOpenExtensionManager={() => void host?.openExtensionManager()}
@@ -996,6 +1050,18 @@ export async function buildKitPresentation(
     inspectors[kit.id] = toPublishedKitInspector(kit, status, installed);
   }
   const projectNames = new Map(catalog.projects.map((project) => [project.id, project.name]));
+  const presentProjectIds = new Set([
+    ...inventory.managed.map(({ project }) => project.id),
+    ...inventory.external.map(({ project }) => project.id),
+  ]);
+  const selectableProjectIds = new Set(
+    [...inventory.managed, ...inventory.external]
+      .filter(
+        ({ project, extension }) =>
+          project.id !== COMPANION_PROJECT_ID && extension.type === "local",
+      )
+      .map(({ project }) => project.id),
+  );
   const installedKits = kits.readInstalledStates().map((installed): InstalledKitViewModel => {
     const inspector = inspectors[installed.kitId];
     const currentNames = new Map(
@@ -1004,6 +1070,16 @@ export async function buildKitPresentation(
     const topology = installed.definitionProjectIds ?? [
       ...new Set([...installed.installedProjectIds, ...installed.missingProjectIds]),
     ];
+    const presentTopology = topology.filter((projectId) => presentProjectIds.has(projectId));
+    const missingProjectIds = topology.filter((projectId) => !presentProjectIds.has(projectId));
+    const active = installed.kitId === activeId;
+    const reconciledStatus = inspector?.operationalStatus ?? installedStatusLabel(installed.status);
+    const displayStatus = installedKitDisplayStatus({
+      active,
+      installedCount: presentTopology.length,
+      missingCount: missingProjectIds.length,
+      drifted: reconciledStatus === "Drifted",
+    });
     return {
       id: installed.kitId,
       title: inspector?.title ?? installed.kitId,
@@ -1019,10 +1095,46 @@ export async function buildKitPresentation(
         name: currentNames.get(projectId) ?? projectNames.get(projectId) ?? projectId,
       })),
       installedProjectIds: [...installed.installedProjectIds],
+      missingProjectIds,
+      selectionProjectIds: presentTopology.filter((projectId) =>
+        selectableProjectIds.has(projectId),
+      ),
+      installedCount: presentTopology.length,
+      totalProjectCount: topology.length,
+      displayStatus,
+      statusHelp: installedKitStatusHelp(displayStatus),
+      active,
       orphaned: !inspector,
     };
   });
   return { statuses, inspectors, installedKits };
+}
+
+function installedKitDisplayStatus({
+  active,
+  installedCount,
+  missingCount,
+  drifted,
+}: {
+  active: boolean;
+  installedCount: number;
+  missingCount: number;
+  drifted: boolean;
+}): InstalledKitViewModel["displayStatus"] {
+  if (installedCount === 0) return "Missing";
+  if (drifted || (active && missingCount > 0)) return "Drifted";
+  if (missingCount > 0) return "Partial";
+  return active ? "Active" : "Complete";
+}
+
+function installedKitStatusHelp(status: InstalledKitViewModel["displayStatus"]): string {
+  return {
+    Active: "This Kit currently defines the enabled state for Companion-managed extensions.",
+    Partial: "Some extensions in this Kit are not currently installed.",
+    Drifted: "Installed or enabled extensions no longer match this Kit's last verified state.",
+    Missing: "None of this Kit's extensions are currently installed.",
+    Complete: "Every extension in this Kit is currently installed.",
+  }[status];
 }
 
 function installedStatusLabel(status: "installed" | "incomplete" | "drifted"): string {

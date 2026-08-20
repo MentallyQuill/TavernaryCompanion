@@ -127,6 +127,10 @@ it("builds Installed Kit cards from installed topology instead of edited definit
       title: "Writer",
       orphaned: false,
       installedProjectIds: ["old"],
+      totalProjectCount: 2,
+      installedCount: 0,
+      selectionProjectIds: [],
+      displayStatus: "Missing",
       components: [
         expect.objectContaining({ projectId: "old", name: "old" }),
         expect.objectContaining({ projectId: "context", name: "context" }),

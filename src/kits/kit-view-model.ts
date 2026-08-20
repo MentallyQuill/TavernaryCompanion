@@ -47,6 +47,13 @@ export interface InstalledKitViewModel {
   operationalStatus: string;
   components: Array<{ projectId: string; name: string }>;
   installedProjectIds: string[];
+  missingProjectIds: string[];
+  selectionProjectIds: string[];
+  installedCount: number;
+  totalProjectCount: number;
+  displayStatus: "Active" | "Partial" | "Drifted" | "Missing" | "Complete";
+  statusHelp: string;
+  active: boolean;
   orphaned: boolean;
 }
 

@@ -18,6 +18,9 @@ interface InstalledSectionProps {
   onManage?(): void;
   onToggleExtension?(projectId: string, internalName: string, enabled: boolean): void;
   lifecycleDisabled?: boolean;
+  selectionActive?: boolean;
+  selectedProjectIds?: readonly string[];
+  onToggleSelection?(projectId: string): void;
 }
 
 export function InstalledSection({
@@ -32,6 +35,9 @@ export function InstalledSection({
   onManage,
   onToggleExtension,
   lifecycleDisabled,
+  selectionActive = false,
+  selectedProjectIds = [],
+  onToggleSelection,
 }: InstalledSectionProps): preact.JSX.Element {
   return (
     <section class="tavernary-companion-installed-section">
@@ -58,6 +64,9 @@ export function InstalledSection({
               onManage={onManage}
               onToggleExtension={onToggleExtension}
               lifecycleDisabled={lifecycleDisabled}
+              selectionActive={selectionActive}
+              selected={selectedProjectIds.includes(row.id)}
+              onToggleSelection={onToggleSelection}
             />
           ))}
         </div>
@@ -79,6 +88,9 @@ function InstalledCard({
   onManage,
   onToggleExtension,
   lifecycleDisabled,
+  selectionActive,
+  selected,
+  onToggleSelection,
 }: {
   row: InstalledRowViewModel;
   sectionId: InstalledSectionViewModel["id"];
@@ -92,14 +104,29 @@ function InstalledCard({
   onManage?: () => void;
   onToggleExtension?: (projectId: string, internalName: string, enabled: boolean) => void;
   lifecycleDisabled?: boolean;
+  selectionActive: boolean;
+  selected: boolean;
+  onToggleSelection?: (projectId: string) => void;
 }): preact.JSX.Element {
   const missing = sectionId === "attention";
   const unknown =
     !missing && (sectionId === "unknown" || row.action.kind === "manage-in-sillytavern");
   return (
     <article
-      class={`tavernary-companion-installed-card${row.enabled !== null ? " is-installed" : " is-missing"}${row.enabled === false ? " is-disabled" : ""}`}
+      class={`tavernary-companion-installed-card${row.enabled !== null ? " is-installed" : " is-missing"}${row.enabled === false ? " is-disabled" : ""}${selected ? " is-selected" : ""}`}
     >
+      {selectionActive && row.selectionEligible ? (
+        <button
+          type="button"
+          role="checkbox"
+          class="tavernary-companion-installed-selection-control"
+          aria-checked={selected}
+          aria-label={`Select ${row.name}`}
+          onClick={() => onToggleSelection?.(row.id)}
+        >
+          <span aria-hidden="true">{selected ? "✓" : ""}</span>
+        </button>
+      ) : null}
       <header>
         <span>{sectionLabel(sectionId)}</span>
         {updateState && updateState.kind !== "idle" ? (
@@ -128,80 +155,82 @@ function InstalledCard({
         <p class="tavernary-companion-installed-attention-reason">{updateState.reason}</p>
       ) : null}
       {missing ? <p class="tavernary-companion-installed-attention-reason">{row.detail}</p> : null}
-      <footer>
-        {row.toggleable && row.internalName && row.enabled !== null ? (
-          <button
-            type="button"
-            role="switch"
-            class="tavernary-companion-extension-toggle"
-            aria-checked={row.enabled}
-            aria-label={`${row.enabled ? "Disable" : "Enable"} ${row.name}`}
-            disabled={lifecycleDisabled || toggling}
-            onClick={() => onToggleExtension?.(row.id, row.internalName!, !row.enabled)}
-          >
-            <span aria-hidden="true">
-              <i />
-            </span>
-            <b>{toggling ? "Updating…" : row.enabled ? "Enabled" : "Disabled"}</b>
-          </button>
-        ) : null}
-        {updateState?.kind === "available" ? (
-          <button
-            type="button"
-            class="tavernary-companion-installed-update-button"
-            aria-label={`Update ${row.name}`}
-            disabled={lifecycleDisabled}
-            onClick={(event) => onUpdate?.(row.id, event.currentTarget)}
-          >
-            Update
-          </button>
-        ) : null}
-        {updateState?.kind === "error" ? (
-          <button
-            type="button"
-            aria-label={`Retry updates for ${row.name}`}
-            disabled={lifecycleDisabled}
-            onClick={() => onRetryUpdate?.(row.id)}
-          >
-            Retry
-          </button>
-        ) : null}
-        {updateState?.kind === "attention" && !unknown ? (
-          <button
-            type="button"
-            aria-label={`Manage ${row.name} in SillyTavern`}
-            disabled={lifecycleDisabled}
-            onClick={() => onManage?.()}
-          >
-            Manage in SillyTavern
-          </button>
-        ) : null}
-        {missing ? (
-          <button
-            type="button"
-            aria-label={`Forget ${row.name} record`}
-            disabled={lifecycleDisabled}
-            onClick={() => onForgetMissing?.(row.id)}
-          >
-            Forget record
-          </button>
-        ) : unknown ? (
-          <button
-            type="button"
-            aria-label={`Manage ${row.name} in SillyTavern`}
-            onClick={() => onManage?.()}
-          >
-            {row.action.label}
-          </button>
-        ) : (
-          <ProjectLifecycleControl
-            projectName={row.name}
-            action={row.action}
-            disabled={lifecycleDisabled}
-            onAction={(action, anchor) => onAction?.(row.id, action, anchor)}
-          />
-        )}
-      </footer>
+      {!selectionActive || !row.selectionEligible ? (
+        <footer>
+          {row.toggleable && row.internalName && row.enabled !== null ? (
+            <button
+              type="button"
+              role="switch"
+              class="tavernary-companion-extension-toggle"
+              aria-checked={row.enabled}
+              aria-label={`${row.enabled ? "Disable" : "Enable"} ${row.name}`}
+              disabled={lifecycleDisabled || toggling}
+              onClick={() => onToggleExtension?.(row.id, row.internalName!, !row.enabled)}
+            >
+              <span aria-hidden="true">
+                <i />
+              </span>
+              <b>{toggling ? "Updating…" : row.enabled ? "Enabled" : "Disabled"}</b>
+            </button>
+          ) : null}
+          {updateState?.kind === "available" ? (
+            <button
+              type="button"
+              class="tavernary-companion-installed-update-button"
+              aria-label={`Update ${row.name}`}
+              disabled={lifecycleDisabled}
+              onClick={(event) => onUpdate?.(row.id, event.currentTarget)}
+            >
+              Update
+            </button>
+          ) : null}
+          {updateState?.kind === "error" ? (
+            <button
+              type="button"
+              aria-label={`Retry updates for ${row.name}`}
+              disabled={lifecycleDisabled}
+              onClick={() => onRetryUpdate?.(row.id)}
+            >
+              Retry
+            </button>
+          ) : null}
+          {updateState?.kind === "attention" && !unknown ? (
+            <button
+              type="button"
+              aria-label={`Manage ${row.name} in SillyTavern`}
+              disabled={lifecycleDisabled}
+              onClick={() => onManage?.()}
+            >
+              Manage in SillyTavern
+            </button>
+          ) : null}
+          {missing ? (
+            <button
+              type="button"
+              aria-label={`Forget ${row.name} record`}
+              disabled={lifecycleDisabled}
+              onClick={() => onForgetMissing?.(row.id)}
+            >
+              Forget record
+            </button>
+          ) : unknown ? (
+            <button
+              type="button"
+              aria-label={`Manage ${row.name} in SillyTavern`}
+              onClick={() => onManage?.()}
+            >
+              {row.action.label}
+            </button>
+          ) : (
+            <ProjectLifecycleControl
+              projectName={row.name}
+              action={row.action}
+              disabled={lifecycleDisabled}
+              onAction={(action, anchor) => onAction?.(row.id, action, anchor)}
+            />
+          )}
+        </footer>
+      ) : null}
     </article>
   );
 }

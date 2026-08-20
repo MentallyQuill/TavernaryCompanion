@@ -4,6 +4,9 @@ import type { InstalledSectionViewModel } from "../../catalog/installed-view-mod
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
 import type { InstalledKitViewModel } from "../../kits/kit-view-model";
 import type { ProjectUpdateState } from "../../updates/update-coordinator";
+import type { InstalledSelectionState } from "./installed-selection";
+import { InstalledBulkBar } from "./installed-bulk-bar";
+import { InstalledKitCard } from "./installed-kit-card";
 import { InstalledSection } from "./installed-section";
 
 interface InstalledRouteProps {
@@ -23,13 +26,19 @@ interface InstalledRouteProps {
   onOpenKit?(id: string): void;
   onUninstallKit?(id: string): void;
   onToggleExtension?(projectId: string, internalName: string, enabled: boolean): void;
+  onStartSelection?(): void;
+  onSelectKit?(kitId: string): void;
+  selection?: InstalledSelectionState;
+  onToggleSelection?(projectId: string): void;
+  onAddSelectedToKit?(): void;
+  onUninstallSelected?(): void;
+  onClearSelection?(): void;
   lifecycleDisabled?: boolean;
 }
 
 export function InstalledRoute({
   sections,
   kits = [],
-  activeKitId = null,
   refreshing = false,
   togglingInternalName = null,
   updateStates = {},
@@ -43,6 +52,13 @@ export function InstalledRoute({
   onOpenKit,
   onUninstallKit,
   onToggleExtension,
+  onStartSelection,
+  onSelectKit,
+  selection = { active: false, projectIds: [], sourceKitIds: [] },
+  onToggleSelection,
+  onAddSelectedToKit,
+  onUninstallSelected,
+  onClearSelection,
   lifecycleDisabled,
 }: InstalledRouteProps): preact.JSX.Element {
   useEffect(() => {
@@ -87,6 +103,16 @@ export function InstalledRoute({
         >
           {checkingUpdates ? "Checking…" : "Check again"}
         </button>
+        {!selection.active ? (
+          <button
+            type="button"
+            aria-label="Select installed extensions"
+            disabled={lifecycleDisabled}
+            onClick={() => onStartSelection?.()}
+          >
+            Select
+          </button>
+        ) : null}
       </header>
       {usingNativeUpdates ? (
         <p class="tavernary-companion-installed-update-note">
@@ -100,50 +126,23 @@ export function InstalledRoute({
           aria-labelledby="installed-kits-heading"
         >
           <header>
-            <h3 id="installed-kits-heading">Installed Kits</h3>
+            <div>
+              <h3 id="installed-kits-heading">Installed Kits</h3>
+              <p>Choose a Kit to select its installed extensions.</p>
+            </div>
             <span>{installedKits.length}</span>
           </header>
-          <div class="tavernary-companion-installed-grid">
-            {installedKits.map((kit) => {
-              const active = kit.id === activeKitId || kit.operationalStatus === "Active";
-              return (
-                <article
-                  key={kit.id}
-                  class={`tavernary-companion-installed-card tavernary-companion-installed-kit-card is-installed${active ? " is-active" : ""}`}
-                >
-                  <header>
-                    <span>{kit.originLabel}</span>
-                    <strong>{active ? "Active Kit" : kit.operationalStatus}</strong>
-                  </header>
-                  <h4>{kit.title}</h4>
-                  {kit.description ? <p>{kit.description}</p> : null}
-                  <div class="tavernary-companion-installed-kit-components">
-                    {kit.components.map((component) => (
-                      <span key={component.projectId}>{component.name}</span>
-                    ))}
-                  </div>
-                  <footer>
-                    {kit.orphaned ? (
-                      <button
-                        type="button"
-                        aria-label={`Uninstall ${kit.title}`}
-                        onClick={() => onUninstallKit?.(kit.id)}
-                      >
-                        Uninstall Kit
-                      </button>
-                    ) : (
-                      <button
-                        type="button"
-                        aria-label={`Open ${kit.title}`}
-                        onClick={() => onOpenKit?.(kit.id)}
-                      >
-                        View Kit
-                      </button>
-                    )}
-                  </footer>
-                </article>
-              );
-            })}
+          <div class="tavernary-companion-installed-kit-grid">
+            {installedKits.map((kit) => (
+              <InstalledKitCard
+                key={kit.id}
+                kit={kit}
+                selected={selection.sourceKitIds.includes(kit.id)}
+                onSelect={() => onSelectKit?.(kit.id)}
+                onOpen={() => onOpenKit?.(kit.id)}
+                onUninstall={() => onUninstallKit?.(kit.id)}
+              />
+            ))}
           </div>
         </section>
       ) : null}
@@ -162,10 +161,22 @@ export function InstalledRoute({
             onManage={onManage}
             onToggleExtension={onToggleExtension}
             lifecycleDisabled={lifecycleDisabled}
+            selectionActive={selection.active}
+            selectedProjectIds={selection.projectIds}
+            onToggleSelection={onToggleSelection}
           />
         ))
       ) : installedKits.length === 0 ? (
         <p>No installed extensions were found in this profile.</p>
+      ) : null}
+      {selection.active ? (
+        <InstalledBulkBar
+          count={selection.projectIds.length}
+          disabled={lifecycleDisabled}
+          onAddToKit={() => onAddSelectedToKit?.()}
+          onUninstall={() => onUninstallSelected?.()}
+          onClear={() => onClearSelection?.()}
+        />
       ) : null}
     </section>
   );

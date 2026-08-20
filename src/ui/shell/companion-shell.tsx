@@ -14,6 +14,7 @@ import type {
 import type { ProjectFacets } from "../projects/filter-panel";
 import type { ProjectUpdateState } from "../../updates/update-coordinator";
 import { InstalledRoute } from "../installed/installed-route";
+import type { InstalledSelectionState } from "../installed/installed-selection";
 import { KitInspector } from "../kits/kit-inspector";
 import { KitsRoute } from "../kits/kits-route";
 import { CatalogStatePanel } from "../catalog/catalog-state-panel";
@@ -35,6 +36,13 @@ interface CompanionShellProps {
   inventoryRefreshing?: boolean;
   togglingInternalName?: string | null;
   onToggleExtension?(projectId: string, internalName: string, enabled: boolean): void;
+  installedSelection?: InstalledSelectionState;
+  onStartInstalledSelection?(): void;
+  onSelectInstalledKit?(kitId: string): void;
+  onToggleInstalledSelection?(projectId: string): void;
+  onAddInstalledSelectionToKit?(): void;
+  onUninstallInstalledSelection?(): void;
+  onClearInstalledSelection?(): void;
   onForgetMissingManaged?(projectId: string): void;
   onOpenExtensionManager?(): void;
   lifecycleDisabled?: boolean;
@@ -77,6 +85,13 @@ export function CompanionShell({
   inventoryRefreshing = false,
   togglingInternalName = null,
   onToggleExtension,
+  installedSelection,
+  onStartInstalledSelection,
+  onSelectInstalledKit,
+  onToggleInstalledSelection,
+  onAddInstalledSelectionToKit,
+  onUninstallInstalledSelection,
+  onClearInstalledSelection,
   onForgetMissingManaged,
   onOpenExtensionManager,
   lifecycleDisabled = false,
@@ -246,6 +261,13 @@ export function CompanionShell({
                     }
                     onUninstallKit={onUninstallKit}
                     onToggleExtension={onToggleExtension}
+                    selection={installedSelection}
+                    onStartSelection={onStartInstalledSelection}
+                    onSelectKit={onSelectInstalledKit}
+                    onToggleSelection={onToggleInstalledSelection}
+                    onAddSelectedToKit={onAddInstalledSelectionToKit}
+                    onUninstallSelected={onUninstallInstalledSelection}
+                    onClearSelection={onClearInstalledSelection}
                     lifecycleDisabled={lifecycleDisabled}
                   />
                 ) : (

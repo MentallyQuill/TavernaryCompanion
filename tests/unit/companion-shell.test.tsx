@@ -184,6 +184,58 @@ describe("CompanionShell", () => {
     expect(workspace).toContainElement(screen.getByTestId("kit-builder-slot"));
   });
 
+  it("passes installed selection intents through the shell", () => {
+    const catalog = catalogFixture();
+    const project = catalogProjectFixture();
+    catalog.projects = [project];
+    const discovery = createDiscoveryController({
+      snapshot: {
+        state: "ready-current",
+        canMutate: true,
+        checkedAt: null,
+        catalog,
+      },
+      inventory: {
+        ...emptyInventory,
+        managed: [
+          {
+            project,
+            extension: {
+              internalName: `third-party/${project.install?.folderName ?? "Alpha"}`,
+              folderName: project.install?.folderName ?? "Alpha",
+              enabled: true,
+              type: "local",
+              manifest: null,
+            },
+            record: {
+              projectId: project.id,
+              internalName: `third-party/${project.install?.folderName ?? "Alpha"}`,
+              folderName: project.install?.folderName ?? "Alpha",
+              installedAt: "2026-08-19T00:00:00.000Z",
+              installedBy: "individual",
+            },
+          },
+        ],
+      },
+    });
+    const onStart = vi.fn();
+    const onToggle = vi.fn();
+    const onClear = vi.fn();
+    render(
+      <CompanionShell
+        controller={createShellController({ initialRoute: "installed" })}
+        discovery={discovery}
+        installedSelection={{ active: false, projectIds: [], sourceKitIds: [] }}
+        onStartInstalledSelection={onStart}
+        onToggleInstalledSelection={onToggle}
+        onClearInstalledSelection={onClear}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Select installed extensions" }));
+    expect(onStart).toHaveBeenCalledOnce();
+  });
+
   it("navigates primary routes with the compact Browse menu", () => {
     render(<CompanionShell controller={createShellController({ initialRoute: "projects" })} />);
 

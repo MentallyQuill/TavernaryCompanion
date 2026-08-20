@@ -53,6 +53,50 @@ const sections: InstalledSectionViewModel[] = [
 ];
 
 describe("InstalledRoute", () => {
+  it("enters explicit selection mode from the Installed toolbar", () => {
+    const onStartSelection = vi.fn();
+    render(
+      <InstalledRoute
+        sections={sections}
+        onRefresh={vi.fn()}
+        onStartSelection={onStartSelection}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Select installed extensions" }));
+    expect(onStartSelection).toHaveBeenCalledOnce();
+  });
+
+  it("renders selected extension cards and the approved bulk actions", () => {
+    const onToggleSelection = vi.fn();
+    const onAddSelectedToKit = vi.fn();
+    const onUninstallSelected = vi.fn();
+    const onClearSelection = vi.fn();
+    render(
+      <InstalledRoute
+        sections={sections}
+        selection={{ active: true, projectIds: ["alpha"], sourceKitIds: [] }}
+        onRefresh={vi.fn()}
+        onToggleSelection={onToggleSelection}
+        onAddSelectedToKit={onAddSelectedToKit}
+        onUninstallSelected={onUninstallSelected}
+        onClearSelection={onClearSelection}
+      />,
+    );
+
+    const alpha = screen.getByRole("checkbox", { name: "Select Alpha" });
+    expect(alpha).toHaveAttribute("aria-checked", "true");
+    expect(screen.getByRole("status")).toHaveTextContent("1 selected");
+    fireEvent.click(alpha);
+    fireEvent.click(screen.getByRole("button", { name: "Add selected extensions to a Kit" }));
+    fireEvent.click(screen.getByRole("button", { name: "Uninstall selected extensions" }));
+    fireEvent.click(screen.getByRole("button", { name: "Clear selection and exit" }));
+    expect(onToggleSelection).toHaveBeenCalledWith("alpha");
+    expect(onAddSelectedToKit).toHaveBeenCalledOnce();
+    expect(onUninstallSelected).toHaveBeenCalledOnce();
+    expect(onClearSelection).toHaveBeenCalledOnce();
+  });
+
   it("collapses empty inventory sections and refreshes host inventory on entry", async () => {
     const onRefresh = vi.fn();
     render(<InstalledRoute sections={sections} onRefresh={onRefresh} />);
@@ -323,7 +367,7 @@ describe("InstalledRoute", () => {
 
   it("renders installed Kits before extension cards and toggles an extension in place", () => {
     const onToggleExtension = vi.fn();
-    const onOpenKit = vi.fn();
+    const onSelectKit = vi.fn();
     const { container } = render(
       <InstalledRoute
         sections={sections}
@@ -341,27 +385,39 @@ describe("InstalledRoute", () => {
               },
             ],
             installedProjectIds: ["alpha"],
+            missingProjectIds: [],
+            selectionProjectIds: ["alpha"],
+            installedCount: 1,
+            totalProjectCount: 1,
+            displayStatus: "Active",
+            statusHelp:
+              "This Kit currently defines the enabled state for Companion-managed extensions.",
+            active: true,
             orphaned: false,
           },
         ]}
         activeKitId="writer-kit"
         onRefresh={vi.fn()}
-        onOpenKit={onOpenKit}
+        onSelectKit={onSelectKit}
         onToggleExtension={onToggleExtension}
       />,
     );
 
     expect(screen.getByRole("heading", { name: "Installed Kits" })).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Writer Kit" })).toBeVisible();
-    expect(screen.getByText("Active Kit")).toBeVisible();
+    const kit = screen.getByRole("button", {
+      name: "Select 1 installed extension from Writer Kit",
+    });
+    expect(screen.getByText("1/1 installed")).toBeVisible();
+    expect(screen.getByText("Active")).toBeVisible();
+    expect(screen.queryByText("A focused writing stack.")).not.toBeInTheDocument();
     expect(screen.getByText("In Writer Kit")).toBeVisible();
-    expect(container.querySelectorAll(".tavernary-companion-installed-card")).toHaveLength(3);
+    expect(container.querySelectorAll(".tavernary-companion-installed-card")).toHaveLength(2);
     const toggle = screen.getByRole("switch", { name: "Disable Alpha" });
     expect(toggle).toHaveAttribute("aria-checked", "true");
     fireEvent.click(toggle);
     expect(onToggleExtension).toHaveBeenCalledWith("alpha", "third-party/Alpha", false);
-    fireEvent.click(screen.getByRole("button", { name: "Open Writer Kit" }));
-    expect(onOpenKit).toHaveBeenCalledWith("writer-kit");
+    fireEvent.click(kit);
+    expect(onSelectKit).toHaveBeenCalledWith("writer-kit");
   });
 
   it("keeps an orphaned installed Kit visible with an uninstall path", () => {
@@ -378,6 +434,13 @@ describe("InstalledRoute", () => {
             operationalStatus: "Installed",
             components: [{ projectId: "alpha", name: "Alpha" }],
             installedProjectIds: ["alpha"],
+            missingProjectIds: [],
+            selectionProjectIds: ["alpha"],
+            installedCount: 1,
+            totalProjectCount: 1,
+            displayStatus: "Complete",
+            statusHelp: "Every extension in this Kit is currently installed.",
+            active: false,
             orphaned: true,
           },
         ]}
