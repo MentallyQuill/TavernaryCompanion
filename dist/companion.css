@@ -2572,6 +2572,12 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
     block-size: 44px;
     min-block-size: 44px;
   }
+  .tavernary-companion-root .tavernary-companion-project-results.is-compact :is(.tavernary-companion-project-lifecycle, .tavernary-companion-project-kit-control) {
+    inline-size: 44px;
+    min-inline-size: 44px;
+    block-size: 44px;
+    min-block-size: 44px;
+  }
 }
 @media (prefers-reduced-motion: reduce) {
   .tavernary-companion-root *,
