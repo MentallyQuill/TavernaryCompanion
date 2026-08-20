@@ -146,7 +146,24 @@ function extensionIdentity(extension: HostExtension): string {
   return `${extension.type}:${extension.internalName}`;
 }
 
-export async function pruneAbsentManagedRecords({
+export async function discoverAndPruneManagedRecords({
+  host,
+  store,
+}: {
+  host: HostExtensionAdapter;
+  store: ProfileStore;
+}): Promise<HostExtension[]> {
+  const observedManaged = normalizeManagedExtensionMap(store.read().managedExtensions);
+  const extensions = await host.discover();
+  const observedRegistry = new ManagedRegistry(observedManaged);
+  if (observedRegistry.pruneAbsent(extensions).length === 0) return extensions;
+
+  const confirmedExtensions = await host.discover();
+  await pruneAbsentManagedRecords({ observedManaged, hostExtensions: confirmedExtensions, store });
+  return confirmedExtensions;
+}
+
+async function pruneAbsentManagedRecords({
   observedManaged,
   hostExtensions,
   store,

@@ -95,7 +95,7 @@
 
 - [ ] **Step 1: Rewrite `updating-extensions.md` around the Installed route.**
 
-  Explain Check again, Enabled/Disabled switches, Update available/Up to date/Could not check/Needs attention, Retry, native newest updates, exact scanned updates on capable hosts, forward-only protection, local changes, ownership, Forget record for missing entries, reload, and the absence of bulk update. Include bulk uninstall and partial-failure receipt behavior with the Installed screenshot and operation screenshot.
+  Explain Check again, Enabled/Disabled switches, Update available/Up to date/Could not check/Needs attention, Retry, native newest updates, exact scanned updates on capable hosts, forward-only protection, local changes, ownership, automatic cleanup after confirmed removal, reload, and the absence of bulk update. Include bulk uninstall and partial-failure receipt behavior with the Installed screenshot and operation screenshot.
 
 - [ ] **Step 2: Rewrite `kits.md` around the saved/installed/active model.**
 
@@ -110,7 +110,7 @@
   Run:
 
   ```powershell
-  rg -n -i 'managed|external|saved|installed|active|enabled|disabled|forget record|partial|missing|drifted|check again|could not check|needs attention|retry|newest|checked|reload|bulk|receipt|tavernkeeper|guarantee|ownership|local changes|search|filter' docs/user/updating-extensions.md docs/user/kits.md docs/user/safety-and-trust.md
+  rg -n -i 'managed|external|saved|installed|active|enabled|disabled|automatic|partial|missing|drifted|check again|could not check|needs attention|retry|newest|checked|reload|bulk|receipt|tavernkeeper|guarantee|ownership|local changes|search|filter' docs/user/updating-extensions.md docs/user/kits.md docs/user/safety-and-trust.md
   ```
 
   Expected: all current status and boundary terms are explained in plain language and safety claims remain advisory.

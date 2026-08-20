@@ -12819,6 +12819,18 @@ async function reconcileHostInventory({
 function extensionIdentity2(extension) {
   return `${extension.type}:${extension.internalName}`;
 }
+async function discoverAndPruneManagedRecords({
+  host,
+  store
+}) {
+  const observedManaged = normalizeManagedExtensionMap(store.read().managedExtensions);
+  const extensions = await host.discover();
+  const observedRegistry = new ManagedRegistry(observedManaged);
+  if (observedRegistry.pruneAbsent(extensions).length === 0) return extensions;
+  const confirmedExtensions = await host.discover();
+  await pruneAbsentManagedRecords({ observedManaged, hostExtensions: confirmedExtensions, store });
+  return confirmedExtensions;
+}
 async function pruneAbsentManagedRecords({
   observedManaged,
   hostExtensions,
@@ -22486,9 +22498,7 @@ function CompanionPopupHost({
     setOperationError(null);
     setInventoryRefreshing(true);
     try {
-      const observedManaged = normalizeManagedExtensionMap(store.read().managedExtensions);
-      const extensions = await host.discover();
-      await pruneAbsentManagedRecords({ observedManaged, hostExtensions: extensions, store });
+      const extensions = await discoverAndPruneManagedRecords({ host, store });
       const snapshot = runtime.catalog.read();
       const inventory = await reconcileHostInventory({
         projects: "catalog" in snapshot ? snapshot.catalog.projects : [],

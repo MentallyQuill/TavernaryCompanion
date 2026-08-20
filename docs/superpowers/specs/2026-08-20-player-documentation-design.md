@@ -73,7 +73,7 @@ Cover search, filters, sorting, project cards, details, install eligibility, Che
 
 ### `docs/user/updating-extensions.md`
 
-Cover the Installed route, Check again, enabled/disabled switches, update statuses, Retry, native newest updates, exact TavernKeeper-scanned updates when the host supports them, commit verification, Reload to apply updates, Forget record for missing entries, no bulk update in V1, and bulk uninstall with partial-failure receipts. Explain that updating an externally installed extension does not transfer ownership.
+Cover the Installed route, Check again, enabled/disabled switches, update statuses, Retry, native newest updates, exact TavernKeeper-scanned updates when the host supports them, commit verification, Reload to apply updates, automatic cleanup after confirmed removal, no bulk update in V1, and bulk uninstall with partial-failure receipts. Explain that updating an externally installed extension does not transfer ownership.
 
 ### `docs/user/kits.md`
 

@@ -7,7 +7,7 @@ import { createIndexedDbCatalogCache } from "../catalog/indexeddb-catalog-cache"
 import type { ProjectPrimaryAction } from "../catalog/project-view-model";
 import type { HostExtensionAdapter } from "../host/host-types";
 import {
-  pruneAbsentManagedRecords,
+  discoverAndPruneManagedRecords,
   reconcileHostInventory,
 } from "../inventory/inventory-reconciler";
 import type { InventorySnapshot } from "../inventory/inventory-types";
@@ -269,9 +269,7 @@ export function CompanionPopupHost({
     setOperationError(null);
     setInventoryRefreshing(true);
     try {
-      const observedManaged = normalizeManagedExtensionMap(store.read().managedExtensions);
-      const extensions = await host.discover();
-      await pruneAbsentManagedRecords({ observedManaged, hostExtensions: extensions, store });
+      const extensions = await discoverAndPruneManagedRecords({ host, store });
       const snapshot = runtime.catalog.read();
       const inventory = await reconcileHostInventory({
         projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
