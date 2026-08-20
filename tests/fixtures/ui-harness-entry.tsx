@@ -358,6 +358,15 @@ async function main() {
     (individualVersionScenario && scenario !== "version-legacy") ||
     (kitVersionScenario && scenario !== "kit-version-legacy");
   const writerProject = catalog.projects.find(({ id }) => id === "writer-tool")!;
+  const initialHostExtensions = kitVersionScenario ? [] : [extension("WriterTool", false)];
+  const inventoryDiscoveryGate =
+    scenario === "initial-loading"
+      ? new Promise<void>((resolve) => {
+          window.addEventListener("tavernary-test-release-inventory", () => resolve(), {
+            once: true,
+          });
+        })
+      : undefined;
   const writerInstalledSha = scenario === "installed-update-both" ? "b".repeat(40) : "c".repeat(40);
   const writerUpdateAvailable =
     scenario === "installed-update" ||
@@ -366,7 +375,8 @@ async function main() {
     scenario === "installed-local-changes";
   const writerNewestSha = writerUpdateAvailable ? "d".repeat(40) : writerInstalledSha;
   const host = createFakeHost({
-    extensions: kitVersionScenario ? [] : [extension("WriterTool", false)],
+    extensions: initialHostExtensions,
+    discoverGate: inventoryDiscoveryGate,
     ...(capableVersionHost
       ? {
           capabilities: {
@@ -418,7 +428,7 @@ async function main() {
   });
   const inventory = reconcileInventory({
     projects: catalog.projects,
-    hostExtensions: await host.discover(),
+    hostExtensions: initialHostExtensions,
     managed: normalizeManagedExtensionMap(profile.read().managedExtensions),
   });
   const discovery = createDiscoveryController({

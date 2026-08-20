@@ -13,7 +13,7 @@ import type {
 } from "../../kits/kit-view-model";
 import type { ProjectFacets } from "../projects/filter-panel";
 import type { ProjectUpdateState } from "../../updates/update-coordinator";
-import { InstalledRoute } from "../installed/installed-route";
+import { InstalledRoute, type InstalledInventoryLoadState } from "../installed/installed-route";
 import type { InstalledSelectionState } from "../installed/installed-selection";
 import { KitInspector } from "../kits/kit-inspector";
 import { KitsRoute } from "../kits/kits-route";
@@ -33,6 +33,7 @@ interface CompanionShellProps {
   onCheckUpdates?(): void | Promise<void>;
   onRetryUpdate?(id: string): void;
   onUpdateExtension?(id: string, anchor: HTMLButtonElement): void;
+  inventoryLoadState?: InstalledInventoryLoadState;
   inventoryRefreshing?: boolean;
   togglingInternalName?: string | null;
   onToggleExtension?(projectId: string, internalName: string, enabled: boolean): void;
@@ -80,6 +81,7 @@ export function CompanionShell({
   onCheckUpdates,
   onRetryUpdate,
   onUpdateExtension,
+  inventoryLoadState = "ready",
   inventoryRefreshing = false,
   togglingInternalName = null,
   onToggleExtension,
@@ -242,6 +244,7 @@ export function CompanionShell({
                     sections={discoveryState.installedSections}
                     kits={installedKits}
                     activeKitId={activeKitId}
+                    loadState={inventoryLoadState}
                     refreshing={inventoryRefreshing}
                     updateStates={updateStates}
                     togglingInternalName={togglingInternalName}

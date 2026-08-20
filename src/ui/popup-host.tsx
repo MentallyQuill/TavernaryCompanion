@@ -170,7 +170,11 @@ export function CompanionPopupHost({
     runtime?.catalog.read(),
   );
   const [catalogRefreshing, setCatalogRefreshing] = useState(false);
+  const [inventoryLoadState, setInventoryLoadState] = useState<"loading" | "ready" | "error">(
+    "loading",
+  );
   const [inventoryRefreshing, setInventoryRefreshing] = useState(false);
+  const inventoryReady = useRef(false);
   const [togglingInternalName, setTogglingInternalName] = useState<string | null>(null);
   const [activeOperation, setActiveOperation] = useState<ActiveOperation | null>(
     runtime?.lifecycle.lock.read() ?? null,
@@ -263,6 +267,7 @@ export function CompanionPopupHost({
   const refreshInventory = useCallback(async (): Promise<boolean> => {
     if (!runtime || !host || !store) return false;
     setOperationError(null);
+    if (!inventoryReady.current) setInventoryLoadState("loading");
     setInventoryRefreshing(true);
     try {
       const extensions = await discoverAndPruneManagedRecords({
@@ -281,8 +286,11 @@ export function CompanionPopupHost({
       runtime.discovery.setInventory(inventory);
       runtime.updates.invalidate();
       await syncKits();
+      inventoryReady.current = true;
+      setInventoryLoadState("ready");
       return true;
     } catch {
+      if (!inventoryReady.current) setInventoryLoadState("error");
       setOperationError("Could not refresh installed extensions. Try again.");
       return false;
     } finally {
@@ -638,6 +646,7 @@ export function CompanionPopupHost({
         discovery={runtime?.discovery}
         catalogSnapshot={catalogSnapshot}
         catalogRefreshing={catalogRefreshing}
+        inventoryLoadState={inventoryLoadState}
         inventoryRefreshing={inventoryRefreshing}
         togglingInternalName={togglingInternalName}
         onRefreshCatalog={refreshCatalog}

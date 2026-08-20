@@ -9,6 +9,7 @@ import type { HostUpdateInspection } from "../../src/updates/update-types";
 
 export interface FakeHostOptions {
   extensions?: HostExtension[];
+  discoverGate?: Promise<void>;
   installResults?: Record<string, HostExtension>;
   capabilities?: HostInstallCapabilities;
   remoteHeads?: Record<string, string>;
@@ -38,6 +39,7 @@ export type FakeHostOperation =
 
 export class FakeHost implements HostExtensionAdapter {
   readonly #extensions: HostExtension[];
+  readonly #discoverGate: Promise<void> | null;
   readonly #installResults: Record<string, HostExtension>;
   readonly #capabilities: HostInstallCapabilities;
   readonly #remoteHeads: Record<string, string>;
@@ -52,6 +54,7 @@ export class FakeHost implements HostExtensionAdapter {
 
   constructor(options: FakeHostOptions = {}) {
     this.#extensions = structuredClone(options.extensions ?? []);
+    this.#discoverGate = options.discoverGate ?? null;
     this.#installResults = structuredClone(options.installResults ?? {});
     this.#capabilities = structuredClone(
       options.capabilities ?? {
@@ -72,6 +75,7 @@ export class FakeHost implements HostExtensionAdapter {
   async discover(): Promise<HostExtension[]> {
     this.calls.push({ operation: "discover" });
     this.#throwConfiguredFailure("discover");
+    await this.#discoverGate;
     return structuredClone(this.#extensions);
   }
 

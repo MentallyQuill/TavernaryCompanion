@@ -2,6 +2,26 @@ import { expect, test } from "@playwright/test";
 
 import { openHarness } from "./harness";
 
+test("Installed reports loading until initial host discovery completes", async ({ page }) => {
+  await openHarness(page, "initial-loading");
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Installed" })
+    .click();
+
+  await expect(page.getByText("Loading installed extensions…", { exact: true })).toBeVisible();
+  await expect(page.getByText("0 installed extensions")).toHaveCount(0);
+  await expect(page.getByText("No installed extensions were found in this profile.")).toHaveCount(
+    0,
+  );
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("tavernary-test-release-inventory"));
+  });
+  await expect(page.getByText("1 installed extension")).toBeVisible();
+  await expect(page.getByText("Loading installed extensions…")).toHaveCount(0);
+});
+
 test("Installed uses four desktop columns when its content width permits them", async ({
   page,
 }) => {

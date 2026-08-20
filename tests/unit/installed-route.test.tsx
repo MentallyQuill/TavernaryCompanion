@@ -52,6 +52,40 @@ const sections: InstalledSectionViewModel[] = [
 ];
 
 describe("InstalledRoute", () => {
+  it("presents unresolved inventory as loading instead of confirmed empty", () => {
+    render(
+      <InstalledRoute
+        sections={sections.map((section) => ({ ...section, rows: [] }))}
+        loadState="loading"
+        onRefresh={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("status")).toHaveTextContent("Loading installed extensions…");
+    expect(screen.queryByText("0 installed extensions")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("No installed extensions were found in this profile."),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check for updates" })).toBeDisabled();
+  });
+
+  it("presents a failed initial discovery as unavailable instead of confirmed empty", () => {
+    render(
+      <InstalledRoute
+        sections={sections.map((section) => ({ ...section, rows: [] }))}
+        loadState="error"
+        onRefresh={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByText("Installed extensions unavailable")).toBeVisible();
+    expect(screen.queryByText("0 installed extensions")).not.toBeInTheDocument();
+    expect(
+      screen.queryByText("No installed extensions were found in this profile."),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("button", { name: "Check for updates" })).toBeDisabled();
+  });
+
   it("selects an eligible extension by clicking its card without a selection-mode button", () => {
     const onToggleSelection = vi.fn();
     const { container } = render(
