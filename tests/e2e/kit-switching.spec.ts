@@ -5,6 +5,46 @@ for (const viewport of [
   { width: 1024, height: 768 },
   { width: 390, height: 844 },
 ]) {
+  test(`wraps long Kit receipts inside ${viewport.width}px`, async ({ page }) => {
+    await page.setViewportSize(viewport);
+    await openHarness(page, "kit-long-receipt");
+
+    const row = page.locator(".tavernary-companion-kit-receipt li");
+    await expect(row).toContainText(
+      "projectwithanuninterruptedidentifierthatmustwrapinsidethereceiptwithoutclippingevenonawidedesktopcontainerbecausetheidentifierisintentionallyextremelylong",
+    );
+    const geometry = await row.evaluate((element) => {
+      const rowBox = element.getBoundingClientRect();
+      return {
+        clientWidth: element.clientWidth,
+        scrollWidth: element.scrollWidth,
+        children: [...element.children].map((child) => {
+          const box = child.getBoundingClientRect();
+          return {
+            clientWidth: child.clientWidth,
+            left: box.left,
+            right: box.right,
+            scrollWidth: child.scrollWidth,
+          };
+        }),
+        left: rowBox.left,
+        right: rowBox.right,
+      };
+    });
+
+    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+    for (const child of geometry.children) {
+      expect(child.left).toBeGreaterThanOrEqual(geometry.left - 1);
+      expect(child.right).toBeLessThanOrEqual(geometry.right + 1);
+      expect(child.scrollWidth).toBeLessThanOrEqual(child.clientWidth);
+    }
+  });
+}
+
+for (const viewport of [
+  { width: 1024, height: 768 },
+  { width: 390, height: 844 },
+]) {
   test(`switches and edits personal Kits at ${viewport.width}x${viewport.height}`, async ({
     page,
   }) => {

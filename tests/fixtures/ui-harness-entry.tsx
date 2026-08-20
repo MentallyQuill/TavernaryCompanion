@@ -250,6 +250,36 @@ async function main() {
       });
     });
   }
+  if (scenario === "kit-long-receipt") {
+    await profile.update((draft) => {
+      draft.operationReceipt = {
+        formatVersion: 1,
+        kind: "kit-operation",
+        id: "browser-kit-receipt",
+        planId: "browser-kit-plan",
+        operation: "install",
+        kitId: "browser-kit",
+        startedAt: "2026-08-18T10:00:00.000Z",
+        completedAt: "2026-08-18T10:01:00.000Z",
+        outcome: "partial",
+        previousActiveKitId: null,
+        activeKitId: null,
+        reloadRequired: true,
+        projects: [
+          {
+            projectId:
+              "projectwithanuninterruptedidentifierthatmustwrapinsidethereceiptwithoutclippingevenonawidedesktopcontainerbecausetheidentifierisintentionallyextremelylong",
+            action: "install",
+            status: "failed",
+            message:
+              "This deliberately long project result explains exactly what needs attention without clipping any part of the message at the right edge.",
+            retryable: true,
+          },
+        ],
+        keptForOtherKits: [],
+      };
+    });
+  }
   if (individualVersionScenario || kitVersionScenario || scenario === "installed-update") {
     await profile.update((draft) => {
       draft.trustAcknowledgedAt = "2026-08-18T00:00:00.000Z";
