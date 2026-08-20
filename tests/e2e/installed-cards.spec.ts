@@ -44,6 +44,31 @@ test("Installed serializes overlapping discovery requests", async ({ page }) => 
   );
 });
 
+test("Installed retains confirmed inventory across popup remounts", async ({ page }) => {
+  await openHarness(page, "remount-inventory");
+  const installed = page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Installed" });
+  await installed.click();
+  await expect(page.getByText("1 installed extension")).toBeVisible();
+  await expect(page.getByText("Updating installed extensions…")).toHaveCount(0);
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("tavernary-test-remount-popup"));
+  });
+  if ((await installed.getAttribute("aria-pressed")) !== "true") await installed.click();
+
+  await expect(page.getByText("1 installed extension")).toBeVisible();
+  await expect(page.getByText("Updating installed extensions…")).toBeVisible();
+  await expect(page.getByText("Loading installed extensions…")).toHaveCount(0);
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("tavernary-test-release-remount-inventory"));
+  });
+  await expect(page.getByText("Updating installed extensions…")).toHaveCount(0);
+  await expect(page.getByText("1 installed extension")).toBeVisible();
+});
+
 test("Installed uses four desktop columns when its content width permits them", async ({
   page,
 }) => {

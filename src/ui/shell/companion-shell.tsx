@@ -13,7 +13,8 @@ import type {
 } from "../../kits/kit-view-model";
 import type { ProjectFacets } from "../projects/filter-panel";
 import type { ProjectUpdateState } from "../../updates/update-coordinator";
-import { InstalledRoute, type InstalledInventoryLoadState } from "../installed/installed-route";
+import { InstalledRoute } from "../installed/installed-route";
+import type { InstalledInventoryLoadState } from "../inventory-refresh-coordinator";
 import type { InstalledSelectionState } from "../installed/installed-selection";
 import { KitInspector } from "../kits/kit-inspector";
 import { KitsRoute } from "../kits/kits-route";

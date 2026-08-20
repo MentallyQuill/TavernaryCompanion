@@ -4,13 +4,12 @@ import type { InstalledSectionViewModel } from "../../catalog/installed-view-mod
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
 import type { InstalledKitViewModel } from "../../kits/kit-view-model";
 import type { ProjectUpdateState } from "../../updates/update-coordinator";
+import type { InstalledInventoryLoadState } from "../inventory-refresh-coordinator";
 import type { InstalledSelectionState } from "./installed-selection";
 import { InstalledBulkBar } from "./installed-bulk-bar";
 import { InstalledKitCard } from "./installed-kit-card";
 import { InstalledSection } from "./installed-section";
 import { InstalledStatusHelp } from "./installed-status-help";
-
-export type InstalledInventoryLoadState = "loading" | "ready" | "error";
 
 interface InstalledRouteProps {
   sections: InstalledSectionViewModel[];

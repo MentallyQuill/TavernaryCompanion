@@ -2,7 +2,11 @@ import { render } from "preact";
 
 import type { CatalogClient, CatalogSnapshot } from "../../src/catalog/catalog-client";
 import { createDiscoveryController } from "../../src/catalog/discovery-controller";
-import { reconcileInventory } from "../../src/inventory/inventory-reconciler";
+import {
+  discoverAndPruneManagedRecords,
+  reconcileHostInventory,
+  reconcileInventory,
+} from "../../src/inventory/inventory-reconciler";
 import { normalizeManagedExtensionMap } from "../../src/inventory/managed-registry";
 import { createKitDiscoveryController } from "../../src/kits/kit-discovery-controller";
 import { createKitExecutor } from "../../src/kits/kit-executor";
@@ -16,7 +20,11 @@ import { InstallTargetFallbackBroker } from "../../src/lifecycle/install-target-
 import { ProfileStore } from "../../src/state/profile-store";
 import { createExtensionUpdateCoordinator } from "../../src/updates/update-coordinator";
 import { mountCompanionLauncher } from "../../src/ui/launcher";
-import { CompanionPopupHost, type PopupRuntime } from "../../src/ui/popup-host";
+import {
+  CompanionPopupHost,
+  createInventoryRefreshCoordinator,
+  type PopupRuntime,
+} from "../../src/ui/popup-host";
 import "../../src/styles/companion.css";
 import { catalogFixture, catalogProjectFixture } from "../helpers/catalog-fixtures";
 import { createFakeHost } from "../helpers/fake-host";
@@ -316,7 +324,7 @@ async function main() {
           projectIds: ["writer-tool"],
         })
       : null;
-  if (!kitVersionScenario) {
+  if (!kitVersionScenario && scenario !== "overlapping-inventory") {
     await profile.update((draft) => {
       draft.managedExtensions["writer-tool"] = {
         projectId: "writer-tool",
@@ -518,6 +526,23 @@ async function main() {
     fallbacks: installFallbacks,
     confirm: (prompt, project) => prompts.request(prompt, project),
   });
+  const inventoryRefresh = createInventoryRefreshCoordinator(async () => {
+    const extensions = await discoverAndPruneManagedRecords({
+      host,
+      store: profile,
+      canPrune: () => lifecycle.lock.read() === null,
+    });
+    const currentSnapshot = catalogClient.read();
+    const freshInventory = await reconcileHostInventory({
+      projects: "catalog" in currentSnapshot ? currentSnapshot.catalog.projects : [],
+      host,
+      hostExtensions: extensions,
+      managed: normalizeManagedExtensionMap(profile.read().managedExtensions),
+    });
+    kitContext.inventory = freshInventory;
+    discovery.setInventory(freshInventory);
+    updates.invalidate();
+  });
   const runtime: PopupRuntime = {
     catalog: catalogClient,
     discovery,
@@ -529,12 +554,28 @@ async function main() {
     kitDiscovery,
     kitExecutor,
     kitContext,
+    inventoryRefresh,
   };
 
   const root = document.createElement("div");
   root.className = "tavernary-companion-root";
   document.querySelector("#app")?.append(root);
-  render(<CompanionPopupHost store={profile} host={host} runtime={runtime} />, root);
+  const mountPopup = () =>
+    render(<CompanionPopupHost store={profile} host={host} runtime={runtime} />, root);
+  if (scenario === "remount-inventory") {
+    const remountGate = new Promise<void>((resolve) => {
+      window.addEventListener("tavernary-test-release-remount-inventory", () => resolve(), {
+        once: true,
+      });
+    });
+    window.addEventListener("tavernary-test-remount-popup", () => {
+      host.enqueueDiscovery({ gate: remountGate, extensions: initialHostExtensions });
+      host.enqueueDiscovery({ gate: remountGate, extensions: initialHostExtensions });
+      render(null, root);
+      mountPopup();
+    });
+  }
+  mountPopup();
 }
 
 function markChecked(

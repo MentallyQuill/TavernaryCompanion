@@ -52,7 +52,6 @@ export class FakeHost implements HostExtensionAdapter {
   readonly #updateInspections: Record<string, HostUpdateInspection>;
   readonly #failures: Partial<Record<FakeHostOperation, Error>>;
   readonly calls: Array<{ operation: string; [key: string]: unknown }> = [];
-  #discoveryCount = 0;
   reloadCount = 0;
 
   constructor(options: FakeHostOptions = {}) {
@@ -82,13 +81,20 @@ export class FakeHost implements HostExtensionAdapter {
   async discover(): Promise<HostExtension[]> {
     this.calls.push({ operation: "discover" });
     this.#throwConfiguredFailure("discover");
-    const step = this.#discoverSteps[this.#discoveryCount++];
+    const step = this.#discoverSteps.shift();
     if (step) {
       await step.gate;
       return structuredClone(step.extensions);
     }
     await this.#discoverGate;
     return structuredClone(this.#extensions);
+  }
+
+  enqueueDiscovery(step: { gate?: Promise<void>; extensions: HostExtension[] }): void {
+    this.#discoverSteps.push({
+      gate: step.gate ?? null,
+      extensions: structuredClone(step.extensions),
+    });
   }
 
   async getInstallCapabilities(): Promise<HostInstallCapabilities> {

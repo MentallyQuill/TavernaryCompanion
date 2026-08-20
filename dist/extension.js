@@ -22296,6 +22296,62 @@ function BulkRemovalDialog({
   ] });
 }
 
+// src/ui/inventory-refresh-coordinator.ts
+function createInventoryRefreshCoordinator(refresh) {
+  let snapshot = { loadState: "loading", refreshing: false };
+  let requested = 0;
+  let completed = 0;
+  let drain = null;
+  const listeners = /* @__PURE__ */ new Set();
+  const publish = (next) => {
+    snapshot = next;
+    for (const listener of listeners) listener({ ...snapshot });
+  };
+  return {
+    read: () => ({ ...snapshot }),
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    request() {
+      requested += 1;
+      if (drain) return drain;
+      publish({
+        loadState: snapshot.loadState === "ready" ? "ready" : "loading",
+        refreshing: true
+      });
+      drain = (async () => {
+        let refreshed = false;
+        try {
+          while (completed < requested) {
+            const requestNumber = requested;
+            if (snapshot.loadState !== "ready") {
+              publish({ loadState: "loading", refreshing: true });
+            }
+            try {
+              await refresh();
+              refreshed = true;
+              publish({ loadState: "ready", refreshing: true });
+            } catch {
+              refreshed = false;
+              publish({
+                loadState: snapshot.loadState === "ready" ? "ready" : "error",
+                refreshing: true
+              });
+            }
+            completed = requestNumber;
+          }
+          return refreshed;
+        } finally {
+          publish({ ...snapshot, refreshing: false });
+          drain = null;
+        }
+      })();
+      return drain;
+    }
+  };
+}
+
 // src/ui/popup-host.tsx
 var emptyInventory = { managed: [], external: [], unknown: [], missingManaged: [] };
 function projectScanStatus(snapshot, projectId) {
@@ -22334,14 +22390,9 @@ function CompanionPopupHost({
     runtime?.catalog.read()
   );
   const [catalogRefreshing, setCatalogRefreshing] = d2(false);
-  const [inventoryLoadState, setInventoryLoadState] = d2(
-    "loading"
+  const [inventoryRefreshState, setInventoryRefreshState] = d2(
+    runtime?.inventoryRefresh.read() ?? { loadState: "loading", refreshing: false }
   );
-  const [inventoryRefreshing, setInventoryRefreshing] = d2(false);
-  const inventoryReady = A2(false);
-  const inventoryRefreshRequested = A2(0);
-  const inventoryRefreshCompleted = A2(0);
-  const inventoryRefreshDrain = A2(null);
   const [togglingInternalName, setTogglingInternalName] = d2(null);
   const [activeOperation, setActiveOperation] = d2(
     runtime?.lifecycle.lock.read() ?? null
@@ -22392,6 +22443,11 @@ function CompanionPopupHost({
       installFallbacks.cancel();
     };
   }, [installFallbacks]);
+  h2(() => {
+    if (!runtime) return;
+    setInventoryRefreshState(runtime.inventoryRefresh.read());
+    return runtime.inventoryRefresh.subscribe(setInventoryRefreshState);
+  }, [runtime]);
   const syncKits = q2(async () => {
     if (!runtime || !store) return;
     const snapshot = runtime.catalog.read();
@@ -22416,54 +22472,22 @@ function CompanionPopupHost({
       )
     );
   }, [runtime, store]);
-  const refreshInventory = q2(() => {
-    if (!runtime || !host || !store) return Promise.resolve(false);
-    inventoryRefreshRequested.current += 1;
-    if (inventoryRefreshDrain.current) return inventoryRefreshDrain.current;
-    const drain = (async () => {
-      let refreshed = false;
-      setInventoryRefreshing(true);
-      try {
-        while (inventoryRefreshCompleted.current < inventoryRefreshRequested.current) {
-          const requestNumber = inventoryRefreshRequested.current;
-          setOperationError(null);
-          if (!inventoryReady.current) setInventoryLoadState("loading");
-          try {
-            const extensions = await discoverAndPruneManagedRecords({
-              host,
-              store,
-              canPrune: () => runtime.lifecycle.lock.read() === null
-            });
-            const snapshot = runtime.catalog.read();
-            const inventory = await reconcileHostInventory({
-              projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
-              host,
-              hostExtensions: extensions,
-              managed: normalizeManagedExtensionMap(store.read().managedExtensions)
-            });
-            runtime.kitContext.inventory = inventory;
-            runtime.discovery.setInventory(inventory);
-            runtime.updates.invalidate();
-            await syncKits();
-            inventoryReady.current = true;
-            setInventoryLoadState("ready");
-            refreshed = true;
-          } catch {
-            if (!inventoryReady.current) setInventoryLoadState("error");
-            setOperationError("Could not refresh installed extensions. Try again.");
-            refreshed = false;
-          }
-          inventoryRefreshCompleted.current = requestNumber;
-        }
-        return refreshed;
-      } finally {
-        setInventoryRefreshing(false);
-        inventoryRefreshDrain.current = null;
-      }
-    })();
-    inventoryRefreshDrain.current = drain;
-    return drain;
-  }, [host, runtime, store, syncKits]);
+  const refreshInventory = q2(async () => {
+    if (!runtime) return false;
+    setOperationError(null);
+    const refreshed = await runtime.inventoryRefresh.request();
+    if (!refreshed) {
+      setOperationError("Could not refresh installed extensions. Try again.");
+      return false;
+    }
+    try {
+      await syncKits();
+      return true;
+    } catch {
+      setOperationError("Could not refresh installed extensions. Try again.");
+      return false;
+    }
+  }, [runtime, syncKits]);
   const refreshCatalog = q2(async () => {
     if (!runtime) return;
     setCatalogRefreshing(true);
@@ -22768,8 +22792,8 @@ function CompanionPopupHost({
         discovery: runtime?.discovery,
         catalogSnapshot,
         catalogRefreshing,
-        inventoryLoadState,
-        inventoryRefreshing,
+        inventoryLoadState: inventoryRefreshState.loadState,
+        inventoryRefreshing: inventoryRefreshState.refreshing,
         togglingInternalName,
         onRefreshCatalog: refreshCatalog,
         onRefreshInventory: refreshInstalled,
@@ -23110,6 +23134,23 @@ function createPopupRuntime(store, host) {
     fallbacks: installFallbacks,
     confirm: (prompt, project2) => prompts.request(prompt, project2)
   });
+  const inventoryRefresh = createInventoryRefreshCoordinator(async () => {
+    const extensions = await discoverAndPruneManagedRecords({
+      host,
+      store,
+      canPrune: () => lifecycle.lock.read() === null
+    });
+    const snapshot = catalog.read();
+    const inventory = await reconcileHostInventory({
+      projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
+      host,
+      hostExtensions: extensions,
+      managed: normalizeManagedExtensionMap(store.read().managedExtensions)
+    });
+    kitContext.inventory = inventory;
+    discovery.setInventory(inventory);
+    updates.invalidate();
+  });
   return {
     catalog,
     discovery,
@@ -23120,7 +23161,8 @@ function createPopupRuntime(store, host) {
     kits,
     kitDiscovery,
     kitExecutor,
-    kitContext
+    kitContext,
+    inventoryRefresh
   };
 }
 function parseReceipt(value) {
