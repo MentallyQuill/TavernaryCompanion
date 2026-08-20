@@ -20,6 +20,12 @@ const checkedTarget: InstallTarget = {
 };
 
 describe("trust prompt selection", () => {
+  it("uses concise, gentle third-party awareness copy", () => {
+    expect(UNSANDBOXED_CODE_DISCLOSURE).toBe(
+      "These extensions are made by third parties. Tavernary lists them but does not control them. TavernKeeper checks one version and may miss problems. Review a project before installing it.",
+    );
+  });
+
   it("puts the one-time unsandboxed disclosure before a concern warning", () => {
     expect(
       selectTrustPrompts({

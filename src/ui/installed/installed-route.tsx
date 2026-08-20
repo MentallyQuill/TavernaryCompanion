@@ -136,8 +136,8 @@ export function InstalledRoute({
       </header>
       {usingNativeUpdates ? (
         <p class="tavernary-companion-installed-update-note">
-          SillyTavern can update extensions to their newest version. Updating to a specific
-          TavernKeeper-scanned version isn’t supported by this build.
+          SillyTavern can update extensions to the latest version from their creator. Updating to a
+          specific TavernKeeper-scanned version isn’t supported by this build.
         </p>
       ) : null}
       {installedKits.length ? (

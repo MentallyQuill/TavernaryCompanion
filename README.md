@@ -55,7 +55,7 @@ Companion has three main places. Think of them as three rooms in the same tool:
 2. Stay in **Projects** and search for something you want to try.
 3. Read the card. Check the project type, summary, tags, license, and any TavernKeeper note.
 4. Choose **Install** when it is available. The first install shows a short warning about third-party code.
-5. If Companion asks which version you want, choose **Checked version** or **Newest version**. When the install finishes, open **Installed** and reload if Companion asks you to.
+5. If Companion asks which version you want, choose **Latest scanned** or **Latest from creator**. When the install finishes, open **Installed** and reload if Companion asks you to.
 
 ### Read the warning before you install
 
@@ -72,13 +72,15 @@ Extensions run code inside SillyTavern. Companion shows this disclosure before t
 Sometimes TavernKeeper checked one version, but the creator has published a newer one. Companion shows both choices instead of silently picking for you.
 
 <p align="center">
-  <img src="tests/e2e/install-version-choice.spec.ts-snapshots/checked-or-newest-1440x960.png" alt="Dialog comparing the Checked version and Newest version" width="850">
+  <img src="tests/e2e/install-version-choice.spec.ts-snapshots/checked-or-newest-1440x960.png" alt="Dialog comparing Latest scanned and Latest from creator" width="850">
 </p>
 
-- **Checked version** is the exact version TavernKeeper looked at.
-- **Newest version** is the latest version from the creator. It may contain changes that TavernKeeper has not checked yet.
+- **Latest scanned** is the exact version TavernKeeper looked at. The scan date and icon appear beside it.
+- **Latest from creator** is the newest version published by the creator. Newer changes may not have been scanned yet.
 
 If both choices are the same, Companion skips the extra question.
+
+If only the creator’s latest version can be installed and Companion cannot match it to the scan, a short note explains that before you continue.
 
 ## Build a Kit when you find a setup you like
 

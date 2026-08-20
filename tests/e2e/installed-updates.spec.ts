@@ -30,16 +30,86 @@ test("checks, confirms, and applies an Installed extension update", async ({ pag
   await update.click();
   const chooser = page.getByRole("dialog", { name: "Update Writer Tool" });
   await expect(chooser).toContainText("You already have the latest scanned version.");
-  await expect(chooser.getByRole("button", { name: "Latest scanned version" })).toHaveCount(0);
-  await expect(chooser.getByRole("button", { name: "Newest version" })).toBeVisible();
+  await expect(chooser.getByRole("button", { name: "Latest scanned" })).toHaveCount(0);
+  await expect(chooser.getByRole("button", { name: "Latest from creator" })).toBeVisible();
   expect(await chooser.textContent()).not.toMatch(/\b[0-9a-f]{40}\b/iu);
 
-  await chooser.getByRole("button", { name: "Newest version" }).click();
+  await chooser.getByRole("button", { name: "Latest from creator" }).click();
   const reload = page.getByRole("status", { name: "Update complete" });
-  await expect(reload).toContainText("Updated to the newest version. Reload to apply updates.");
+  await expect(reload).toContainText(
+    "Updated to the latest version from the creator. Reload to apply updates.",
+  );
   await expect(reload.getByRole("button", { name: "Reload now" })).toBeVisible();
   await expect(card.getByText("Latest")).toBeVisible();
   await expect(card.getByRole("button", { name: "Update Writer Tool" })).toHaveCount(0);
+});
+
+test("offers scanned and creator updates when installed is behind both", async ({ page }) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openHarness(page, "installed-update-both");
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Installed" })
+    .click();
+
+  const card = page.locator(".tavernary-companion-installed-card", {
+    has: page.getByRole("heading", { name: "Writer Tool" }),
+  });
+  await card.getByRole("button", { name: "Update Writer Tool" }).click();
+  const chooser = page.getByRole("dialog", { name: "Update Writer Tool" });
+  await expect(chooser.getByRole("button", { name: "Latest scanned" })).toHaveAccessibleDescription(
+    "Scanned Aug 17 · older than latest.",
+  );
+  await expect(
+    chooser.getByRole("button", { name: "Latest from creator" }),
+  ).toHaveAccessibleDescription("Newer changes have not been scanned yet.");
+
+  const scan = chooser.getByRole("button", {
+    name: "TavernKeeper scan: Low concern; stale assessment.",
+  });
+  await scan.hover();
+  const panel = page.getByRole("dialog", { name: "TavernKeeper Scan Results" });
+  await expect(panel).toContainText("The creator has published changes since this scan.");
+  await panel.dispatchEvent("pointerdown");
+  await expect(chooser).toBeVisible();
+  await page.keyboard.press("Escape");
+  await chooser.getByRole("button", { name: "Latest from creator" }).focus();
+  await scan.focus();
+  await expect(panel).toBeVisible();
+  await page.keyboard.press("Escape");
+  await scan.click();
+  await expect(panel).toBeVisible();
+  await scan.click();
+  await expect(panel).toHaveCount(0);
+  await chooser.getByRole("button", { name: "Cancel" }).click();
+  await expect(chooser).toHaveCount(0);
+});
+
+test.describe("touch update choice", () => {
+  test.use({ hasTouch: true });
+
+  test("opens the scanned result by tap without dismissing the chooser", async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await openHarness(page, "installed-update-both");
+    await page.getByRole("button", { name: "Browse categories" }).click();
+    await page
+      .getByRole("group", { name: "Browse categories menu" })
+      .getByRole("button", { name: "Installed" })
+      .click();
+
+    const card = page.locator(".tavernary-companion-installed-card", {
+      has: page.getByRole("heading", { name: "Writer Tool" }),
+    });
+    await card.getByRole("button", { name: "Update Writer Tool" }).tap();
+    const chooser = page.getByRole("dialog", { name: "Update Writer Tool" });
+    const scan = chooser.getByRole("button", { name: /TavernKeeper scan:/u });
+    await scan.tap();
+    await expect(page.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toBeVisible();
+    await expect(chooser).toBeVisible();
+    await scan.tap();
+    await expect(page.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toHaveCount(0);
+    await expect(chooser).toBeVisible();
+  });
 });
 
 test("keeps the update chooser inside a narrow viewport", async ({ page }) => {
@@ -76,7 +146,7 @@ test("uses native SillyTavern updates without showing extension attention", asyn
 
   await expect(
     page.getByText(
-      "SillyTavern can update extensions to their newest version. Updating to a specific TavernKeeper-scanned version isn’t supported by this build.",
+      "SillyTavern can update extensions to the latest version from their creator. Updating to a specific TavernKeeper-scanned version isn’t supported by this build.",
     ),
   ).toBeVisible();
   const card = page.locator(".tavernary-companion-installed-card", {
@@ -87,12 +157,12 @@ test("uses native SillyTavern updates without showing extension attention", asyn
 
   await card.getByRole("button", { name: "Update Writer Tool" }).click();
   const chooser = page.getByRole("dialog", { name: "Update Writer Tool" });
-  await expect(chooser.getByRole("button", { name: "Newest version" })).toBeVisible();
-  await expect(chooser.getByRole("button", { name: "Latest scanned version" })).toHaveCount(0);
-  await chooser.getByRole("button", { name: "Newest version" }).click();
+  await expect(chooser.getByRole("button", { name: "Latest from creator" })).toBeVisible();
+  await expect(chooser.getByRole("button", { name: "Latest scanned" })).toHaveCount(0);
+  await chooser.getByRole("button", { name: "Latest from creator" }).click();
 
   await expect(page.getByRole("status", { name: "Update complete" })).toContainText(
-    "Updated to the newest version. Reload to apply updates.",
+    "Updated to the latest version from the creator. Reload to apply updates.",
   );
   await expect(card.getByText("Latest")).toBeVisible();
 });

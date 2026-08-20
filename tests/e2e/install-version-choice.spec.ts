@@ -5,21 +5,37 @@ import { openHarness } from "./harness";
 const prohibitedChoiceClaims = /\b(?:safe|unsafe|secure|risky|verified|recommended)\b/iu;
 const fullSha = /\b[0-9a-f]{40}\b/iu;
 
-test("offers plain Checked and Newest choices only when they differ", async ({ page }) => {
+test("distinguishes Latest scanned from Latest from creator when they differ", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await openVersionChoice(page, "version-choice");
 
   const install = installAlpha(page);
   await install.click();
-  const chooser = page.getByRole("dialog", { name: "Which version would you like?" });
+  const chooser = page.getByRole("dialog", { name: "Choose a version for Alpha" });
 
   await expect(chooser).toBeVisible();
-  await expect(
-    chooser.getByRole("button", { name: "Checked version" }),
-  ).toHaveAccessibleDescription("TavernKeeper checked this version on Aug 17.");
-  await expect(chooser.getByRole("button", { name: "Newest version" })).toHaveAccessibleDescription(
-    "The latest version from the creator. It may include changes TavernKeeper hasn't checked yet.",
+  await expect(chooser.getByRole("button", { name: "Latest scanned" })).toHaveAccessibleDescription(
+    "Scanned Aug 17 · older than latest.",
   );
+  await expect(
+    chooser.getByRole("button", { name: "Latest from creator" }),
+  ).toHaveAccessibleDescription("Newer changes have not been scanned yet.");
+  const scan = chooser.getByRole("button", { name: /TavernKeeper scan:/u });
+  await expect(scan).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(scan).toHaveCSS("border-top-width", "0px");
+  await expect(scan).toHaveCSS("width", "18px");
+  await scan.hover();
+  await expect(page.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await expect(chooser).toBeVisible();
+  await chooser.getByRole("button", { name: "Latest from creator" }).focus();
+  await scan.focus();
+  await expect(page.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toBeVisible();
+  await page.keyboard.press("Escape");
+  await scan.click();
+  await expect(page.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toBeVisible();
+  await scan.click();
+  await expect(page.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toHaveCount(0);
   expect(await chooser.textContent()).not.toMatch(prohibitedChoiceClaims);
   expect(await chooser.textContent()).not.toMatch(fullSha);
   await expect(page).toHaveScreenshot("checked-or-newest-1440x960.png");
@@ -39,7 +55,7 @@ test.describe("touch choice", () => {
 
     await installAlpha(page).tap();
     const backdrop = page.locator(".tavernary-companion-install-version-chooser-backdrop");
-    const chooser = page.getByRole("dialog", { name: "Which version would you like?" });
+    const chooser = page.getByRole("dialog", { name: "Choose a version for Alpha" });
     const [backdropBox, chooserBox] = await Promise.all([
       backdrop.boundingBox(),
       chooser.boundingBox(),
@@ -74,7 +90,7 @@ test.describe("touch choice", () => {
     await openVersionChoice(page, "version-choice");
 
     await installAlpha(page).tap();
-    const chooser = page.getByRole("dialog", { name: "Which version would you like?" });
+    const chooser = page.getByRole("dialog", { name: "Choose a version for Alpha" });
     await page.evaluate(() => {
       const chooser = document.querySelector<HTMLElement>(
         ".tavernary-companion-install-version-chooser",
@@ -112,36 +128,54 @@ test.describe("touch choice", () => {
     await openVersionChoice(page, "version-choice");
 
     await installAlpha(page).tap();
-    const chooser = page.getByRole("dialog", { name: "Which version would you like?" });
+    const chooser = page.getByRole("dialog", { name: "Choose a version for Alpha" });
     await expect(chooser).toBeVisible();
     await expectContained(page, chooser);
     await expect(page).toHaveScreenshot("checked-or-newest-390x844.png");
 
-    await chooser.getByRole("button", { name: "Newest version" }).tap();
-    await expect(page.getByText("Installed the newest version.", { exact: true })).toBeVisible();
+    const scan = chooser.getByRole("button", { name: /TavernKeeper scan:/u });
+    await scan.tap();
+    await expect(page.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toBeVisible();
+    await expect(chooser).toBeVisible();
+
+    await chooser.getByRole("button", { name: "Latest from creator" }).tap();
+    await expect(
+      page.getByText("Installed the latest version from the creator.", { exact: true }),
+    ).toBeVisible();
   });
 });
 
-test("installs the one meaningful target without asking", async ({ page }) => {
+test("installs an exact scanned latest target without asking", async ({ page }) => {
   await openVersionChoice(page, "version-matching");
   await installAlpha(page).click();
-  await expect(page.getByRole("dialog", { name: "Which version would you like?" })).toHaveCount(0);
-  await expect(page.getByText("Installed the checked version.", { exact: true })).toBeVisible();
-
-  await openVersionChoice(page, "version-unscanned");
-  await installAlpha(page).click();
-  await expect(page.getByRole("dialog", { name: "Which version would you like?" })).toHaveCount(0);
-  await expect(page.getByText("Installed the newest version.", { exact: true })).toBeVisible();
+  await expect(page.getByRole("dialog", { name: "Choose a version for Alpha" })).toHaveCount(0);
+  await expect(
+    page.getByText("Installed the latest scanned version.", { exact: true }),
+  ).toBeVisible();
 });
 
-test("keeps Checked visible but unavailable on an older host", async ({ page }) => {
+test("gently confirms a latest-only version whose exact scan status is unknown", async ({
+  page,
+}) => {
+  await openVersionChoice(page, "version-unscanned");
+  await installAlpha(page).click();
+  const awareness = page.getByRole("dialog", { name: "Install latest from creator?" });
+  await expect(awareness).toContainText("This installs the creator’s latest version.");
+  await expect(awareness).toContainText("TavernKeeper has not scanned this exact version.");
+  await awareness.getByRole("button", { name: "Install latest" }).click();
+  await expect(
+    page.getByText("Installed the latest version from the creator.", { exact: true }),
+  ).toBeVisible();
+});
+
+test("keeps Latest scanned visible but unavailable on an older host", async ({ page }) => {
   await openVersionChoice(page, "version-legacy");
   await installAlpha(page).click();
 
-  const chooser = page.getByRole("dialog", { name: "Which version would you like?" });
-  await expect(chooser.getByRole("button", { name: "Checked version" })).toBeDisabled();
-  await expect(chooser).toContainText("Update SillyTavern to use the checked version.");
-  await expect(chooser.getByRole("button", { name: "Newest version" })).toBeEnabled();
+  const chooser = page.getByRole("dialog", { name: "Choose a version for Alpha" });
+  await expect(chooser.getByRole("button", { name: "Latest scanned" })).toBeDisabled();
+  await expect(chooser).toContainText("Update SillyTavern to use the latest scanned version.");
+  await expect(chooser.getByRole("button", { name: "Latest from creator" })).toBeEnabled();
 });
 
 test("keeps mixed Kit choices in one preflight list at 200% zoom", async ({ page }) => {
@@ -164,7 +198,7 @@ test("keeps mixed Kit choices in one preflight list at 200% zoom", async ({ page
   expect(await preflight.textContent()).not.toMatch(fullSha);
   const confirm = preflight.getByRole("button", { name: "Install Kit" });
   await expect(confirm).toBeDisabled();
-  await preflight.getByRole("radio", { name: "Checked version for Different Version" }).click();
+  await preflight.getByRole("radio", { name: "Latest scanned for Different Version" }).click();
   await expect(confirm).toBeEnabled();
   await expectContained(page, preflight);
 });

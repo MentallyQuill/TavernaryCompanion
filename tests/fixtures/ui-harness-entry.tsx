@@ -174,7 +174,10 @@ async function main() {
         project.name = "Same Version";
         markChecked(project, checkedSha, checkedSha);
       }
-    } else if (index === 1 && scenario === "installed-update") {
+    } else if (
+      index === 1 &&
+      (scenario === "installed-update" || scenario === "installed-update-both")
+    ) {
       markChecked(project, "c".repeat(40), "d".repeat(40));
     } else if (index === 2) {
       project.primaryFunction = "preset";
@@ -284,6 +287,7 @@ async function main() {
     individualVersionScenario ||
     kitVersionScenario ||
     scenario === "installed-update" ||
+    scenario === "installed-update-both" ||
     scenario === "installed-native-update"
   ) {
     await profile.update((draft) => {
@@ -351,9 +355,10 @@ async function main() {
   const capableVersionHost =
     (individualVersionScenario && scenario !== "version-legacy") || kitVersionScenario;
   const writerProject = catalog.projects.find(({ id }) => id === "writer-tool")!;
-  const writerInstalledSha = "c".repeat(40);
+  const writerInstalledSha = scenario === "installed-update-both" ? "b".repeat(40) : "c".repeat(40);
   const writerUpdateAvailable =
     scenario === "installed-update" ||
+    scenario === "installed-update-both" ||
     scenario === "installed-native-update" ||
     scenario === "installed-local-changes";
   const writerNewestSha = writerUpdateAvailable ? "d".repeat(40) : writerInstalledSha;
@@ -399,7 +404,11 @@ async function main() {
         exactUpdateSupported: scenario !== "installed-native-update",
         newestRelationship: writerUpdateAvailable ? "behind" : "equal",
         candidateRelationships:
-          scenario === "installed-update" ? { [writerInstalledSha]: "equal" } : {},
+          scenario === "installed-update"
+            ? { ["c".repeat(40)]: "equal" }
+            : scenario === "installed-update-both"
+              ? { ["c".repeat(40)]: "behind" }
+              : {},
       },
     },
     failures: scenario === "failure" ? { enable: new Error("Enable failed") } : undefined,

@@ -149,7 +149,7 @@ describe("install target resolver", () => {
       kind: "choose",
       checked: {
         target: { kind: "checked", requestedSha: checkedSha },
-        disabledReason: "Update SillyTavern to use the checked version.",
+        disabledReason: "Update SillyTavern to use the latest scanned version.",
       },
       newest: { kind: "newest", requestedSha: null, resolvedAt: null },
     });

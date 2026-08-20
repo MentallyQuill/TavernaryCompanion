@@ -5,4 +5,4 @@ export const STALE_ASSESSMENT_WARNING =
   "TavernKeeper checked an older version of this project. The newest changes have not been checked yet.";
 
 export const UNSANDBOXED_CODE_DISCLOSURE =
-  "Third-party extensions run unsandboxed code inside SillyTavern. Companion installs only from Tavernary’s validated install contract. TavernKeeper provides evidence, not a guarantee of safety. Responsibility for safety falls upon you.";
+  "These extensions are made by third parties. Tavernary lists them but does not control them. TavernKeeper checks one version and may miss problems. Review a project before installing it.";

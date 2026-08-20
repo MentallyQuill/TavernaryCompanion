@@ -146,7 +146,9 @@ describe("lifecycle UI", () => {
 
     render(<OperationReceipt receipt={receipt} />);
 
-    expect(screen.getByRole("heading", { name: "Installed the checked version." })).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Installed the latest scanned version." }),
+    ).toBeVisible();
     const details = screen.getByText("Details").closest("details");
     expect(details).not.toHaveAttribute("open");
     expect(
@@ -181,7 +183,7 @@ describe("lifecycle UI", () => {
     render(<OperationTray active={null} receipt={receipt} />);
 
     expect(screen.getByRole("status", { name: "Installation complete" })).toHaveTextContent(
-      "Installed the newest version.",
+      "Installed the latest version from the creator.",
     );
   });
 

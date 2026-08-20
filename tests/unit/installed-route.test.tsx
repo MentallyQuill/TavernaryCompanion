@@ -197,7 +197,7 @@ describe("InstalledRoute", () => {
 
     expect(
       screen.getByText(
-        "SillyTavern can update extensions to their newest version. Updating to a specific TavernKeeper-scanned version isn’t supported by this build.",
+        "SillyTavern can update extensions to the latest version from their creator. Updating to a specific TavernKeeper-scanned version isn’t supported by this build.",
       ),
     ).toBeVisible();
     expect(screen.queryByText("Needs attention")).not.toBeInTheDocument();

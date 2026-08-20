@@ -1346,7 +1346,8 @@
   flex: none;
 }
 
-.tavernary-companion-root .tavernary-companion-tavernkeeper-trigger {
+:is(.tavernary-companion-root, .tavernary-companion-install-version-chooser)
+  .tavernary-companion-tavernkeeper-trigger {
   position: relative;
   display: inline-grid;
   inline-size: 18px;
@@ -1464,12 +1465,12 @@
 
 .tavernary-companion-tavernkeeper-popover > header strong {
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
 }
 
 .tavernary-companion-tavernkeeper-popover > header span span {
   color: var(--tavernary-color-text-secondary);
-  font-size: 10px;
+  font-size: 12px;
   text-transform: capitalize;
 }
 
@@ -1482,7 +1483,7 @@
   flex-wrap: wrap;
   gap: 6px 10px;
   color: var(--tavernary-color-text-secondary);
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 

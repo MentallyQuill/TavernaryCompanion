@@ -96,7 +96,7 @@ export function validateInstallTargetApproval(
     const newestSelected = sameTarget(target, choice.newest);
     if (!checkedSelected && !newestSelected) throw new Error("A Kit install target changed.");
     if (checkedSelected && choice.checked.disabledReason) {
-      throw new Error("The checked version is not available for this Kit install.");
+      throw new Error("The latest scanned version is not available for this Kit install.");
     }
   }
 }

@@ -17,8 +17,8 @@ Companion uses a few special words. Here they are in everyday language.
 | **Installed** | The extension files are present in this SillyTavern profile. |
 | **Enabled / Disabled** | Whether SillyTavern is currently using an installed extension. Switching this does not install or remove it. |
 | **Active** | A Kit is currently guiding the enabled state for Companion-managed extensions. |
-| **Checked version** | The exact version TavernKeeper examined. |
-| **Newest version** | The latest version published by the creator. It may contain changes TavernKeeper has not examined. |
+| **Latest scanned** | The exact version TavernKeeper examined. |
+| **Latest from creator** | The newest version published by the creator. It may contain changes TavernKeeper has not examined. |
 | **TavernKeeper** | A service that checks a specific project version and reports what it found. Its report is evidence, not a guarantee. |
 | **Cached catalog** | A saved copy of the catalog used when Companion cannot get fresh information yet. It may limit actions. |
 | **Partial** | Some members of a Kit are installed, but some are missing. |

@@ -183,10 +183,10 @@ export function OperationSuccessNotification({
 
 function successTitle(receipt: LifecycleReceipt): string {
   if (receipt.kind === "install" && receipt.installProvenance?.targetKind === "checked") {
-    return "Installed the checked version.";
+    return "Installed the latest scanned version.";
   }
   if (receipt.kind === "install" && receipt.installProvenance?.targetKind === "newest") {
-    return "Installed the newest version.";
+    return "Installed the latest version from the creator.";
   }
   return `${receipt.projectName} ${receipt.kind === "install" ? "installed" : "removed"}`;
 }

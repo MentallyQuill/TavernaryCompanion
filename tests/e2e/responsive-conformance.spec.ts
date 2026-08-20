@@ -114,6 +114,8 @@ test("mobile lifecycle disclosure matches Tavernary surfaces", async ({ page }) 
     .getByRole("searchbox", { name: "Search projects" })
     .fill("Alpha");
   await page.getByRole("button", { name: "Install Alpha" }).click();
+  await expect(page.getByRole("dialog", { name: "Install latest from creator?" })).toBeVisible();
+  await page.getByRole("button", { name: "Install latest" }).click();
   await expect(
     page.getByRole("dialog", { name: "Third-party extension disclosure" }),
   ).toBeVisible();

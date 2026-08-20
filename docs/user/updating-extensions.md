@@ -31,10 +31,10 @@ Some installed cards have an **Enabled** or **Disabled** switch. Use it when you
 
 Choose **Update** on the extension. Companion shows the versions that are actually forward from the version you have:
 
-- **Latest scanned version** is the newest forward version TavernKeeper has scanned.
-- **Newest version** is the latest version from the creator. It may contain changes TavernKeeper has not scanned.
+- **Latest scanned** is the newest forward version TavernKeeper has scanned.
+- **Latest from creator** is the newest version published by the creator. Newer changes may not have been scanned yet.
 
-On a standard SillyTavern host, only **Newest version** may be available because that host does not accept a specific commit. Companion still checks that the installed extension changed before it reports success.
+On a standard SillyTavern host, only **Latest from creator** may be available because that host does not accept a specific commit. Companion still checks that the installed extension changed before it reports success.
 
 If the latest scanned version is already installed, Companion does not ask you to install it again. It offers only a newer creator version, if one exists.
 

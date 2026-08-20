@@ -70,6 +70,7 @@ import { KitOperationTray } from "./kits/kit-operation-tray";
 import { KitPreflightDialog } from "./kits/kit-preflight-dialog";
 import { AssessmentWarningDialog } from "./lifecycle/assessment-warning-dialog";
 import { OperationTray } from "./lifecycle/operation-tray";
+import { InstallVersionAwareness } from "./lifecycle/install-version-awareness";
 import {
   dispatchPreparedInstallChoice,
   InstallVersionChooser,
@@ -119,6 +120,11 @@ export interface PopupRuntime {
 }
 
 const emptyInventory = { managed: [], external: [], unknown: [], missingManaged: [] };
+
+function projectScanStatus(snapshot: CatalogSnapshot | undefined, projectId: string) {
+  if (!snapshot || !("catalog" in snapshot)) return null;
+  return snapshot.catalog.projects.find(({ id }) => id === projectId)?.tavernKeeper ?? null;
+}
 
 function selectableInstalledProjectIds(runtime: PopupRuntime): string[] {
   return runtime.discovery
@@ -206,6 +212,12 @@ export function CompanionPopupHost({
     projectName: string;
     anchor: HTMLButtonElement;
     choice: Extract<PreparedInstallTargetChoice, { kind: "choose" }>;
+  } | null>(null);
+  const [pendingInstallAwareness, setPendingInstallAwareness] = useState<{
+    projectId: string;
+    projectName: string;
+    anchor: HTMLButtonElement;
+    selection: PreparedInstallSelection;
   } | null>(null);
   const [pendingUpdateChoice, setPendingUpdateChoice] = useState<{
     projectId: string;
@@ -452,6 +464,7 @@ export function CompanionPopupHost({
             );
           },
           (choice) => setPendingInstallChoice({ projectId, projectName, anchor, choice }),
+          (selection) => setPendingInstallAwareness({ projectId, projectName, anchor, selection }),
         );
       } else if (action.kind === "uninstall") {
         setRemovalImpact(await runtime.lifecycle.previewRemoval(projectId));
@@ -705,6 +718,7 @@ export function CompanionPopupHost({
           forgettingManagedId !== null ||
           preparingInstall ||
           pendingInstallChoice !== null ||
+          pendingInstallAwareness !== null ||
           pendingUpdateChoice !== null ||
           pendingInstallFallback !== null ||
           preparingKitPlan ||
@@ -840,10 +854,30 @@ export function CompanionPopupHost({
           projectName={pendingInstallChoice.projectName}
           anchor={pendingInstallChoice.anchor}
           choice={pendingInstallChoice.choice}
+          scanStatus={projectScanStatus(catalogSnapshot, pendingInstallChoice.projectId)}
           onCancel={() => setPendingInstallChoice(null)}
           onSelect={(selection) => {
             const pending = pendingInstallChoice;
             setPendingInstallChoice(null);
+            void executeInstallSelection(
+              pending.projectId,
+              pending.projectName,
+              pending.anchor,
+              selection,
+            ).catch(showOperationError);
+          }}
+        />
+      ) : null}
+      {pendingInstallAwareness ? (
+        <InstallVersionAwareness
+          projectId={pendingInstallAwareness.projectId}
+          projectName={pendingInstallAwareness.projectName}
+          anchor={pendingInstallAwareness.anchor}
+          selection={pendingInstallAwareness.selection}
+          onCancel={() => setPendingInstallAwareness(null)}
+          onConfirm={(selection) => {
+            const pending = pendingInstallAwareness;
+            setPendingInstallAwareness(null);
             void executeInstallSelection(
               pending.projectId,
               pending.projectName,
@@ -859,6 +893,7 @@ export function CompanionPopupHost({
           projectName={pendingUpdateChoice.projectName}
           anchor={pendingUpdateChoice.anchor}
           choice={pendingUpdateChoice.choice}
+          scanStatus={projectScanStatus(catalogSnapshot, pendingUpdateChoice.projectId)}
           onCancel={() => setPendingUpdateChoice(null)}
           onSelect={(selection) => {
             setPendingUpdateChoice(null);
@@ -883,6 +918,7 @@ export function CompanionPopupHost({
             },
             newest: { selection: pendingInstallFallback.newest },
           }}
+          scanStatus={projectScanStatus(catalogSnapshot, pendingInstallFallback.projectId)}
           onCancel={() => installFallbacks.cancel()}
           onSelect={(selection) => installFallbacks.respond(selection)}
         />

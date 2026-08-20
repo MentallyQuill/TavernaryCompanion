@@ -3,7 +3,17 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "preac
 
 import type { PreparedUpdateChoice } from "../../updates/update-coordinator";
 import type { PreparedUpdateSelection } from "../../updates/update-types";
-import { checkedVersionDescription } from "../lifecycle/install-version-chooser";
+import type { TavernKeeperCardStatus } from "../../catalog/catalog-core";
+import {
+  isVersionChoiceOwnedTarget,
+  hasOpenTavernKeeperPanel,
+  LATEST_CREATOR_DESCRIPTION,
+  LATEST_CREATOR_LABEL,
+  LATEST_SCANNED_LABEL,
+  matchingScanStatus,
+  scannedVersionDescription,
+  VersionChoiceOption,
+} from "../lifecycle/version-choice-option";
 import { resolveOverlayPortalTarget } from "../shared/overlay-portal";
 
 const VIEWPORT_MARGIN = 8;
@@ -14,6 +24,7 @@ interface UpdateVersionChooserProps {
   projectName: string;
   anchor: HTMLElement;
   choice: PreparedUpdateChoice;
+  scanStatus?: TavernKeeperCardStatus | null;
   onSelect(selection: PreparedUpdateSelection): void;
   onCancel(): void;
 }
@@ -23,6 +34,7 @@ export function UpdateVersionChooser({
   projectName,
   anchor,
   choice,
+  scanStatus = null,
   onSelect,
   onCancel,
 }: UpdateVersionChooserProps): preact.JSX.Element | null {
@@ -36,24 +48,26 @@ export function UpdateVersionChooser({
   });
   const headingId = `update-version-${projectId}-heading`;
 
+  const restoreFocus = useCallback(() => {
+    if (anchor.isConnected) anchor.focus({ preventScroll: true });
+  }, [anchor]);
+
   const cancel = useCallback(() => {
     if (settled.current) return;
     settled.current = true;
     onCancel();
-    const restoreFocus = () => {
-      if (anchor.isConnected) anchor.focus({ preventScroll: true });
-    };
     restoreFocus();
     queueMicrotask(restoreFocus);
-  }, [anchor, onCancel]);
+  }, [onCancel, restoreFocus]);
 
   const select = useCallback(
     (selection: PreparedUpdateSelection) => {
       if (settled.current) return;
       settled.current = true;
+      restoreFocus();
       onSelect(selection);
     },
-    [onSelect],
+    [onSelect, restoreFocus],
   );
 
   const updatePosition = useCallback(() => {
@@ -80,11 +94,12 @@ export function UpdateVersionChooser({
   useEffect(() => {
     const dismissOutside = (event: PointerEvent) => {
       const target = event.target;
-      if (!(target instanceof Node) || surfaceRef.current?.contains(target)) return;
+      if (isVersionChoiceOwnedTarget(surfaceRef.current, target)) return;
       cancel();
     };
     const dismissEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
+      if (hasOpenTavernKeeperPanel(projectId)) return;
       event.preventDefault();
       event.stopPropagation();
       cancel();
@@ -96,7 +111,7 @@ export function UpdateVersionChooser({
       document.removeEventListener("pointerdown", dismissOutside);
       document.removeEventListener("keydown", dismissEscape, true);
     };
-  }, [cancel]);
+  }, [cancel, projectId]);
 
   if (typeof document === "undefined") return null;
 
@@ -117,23 +132,27 @@ export function UpdateVersionChooser({
         ) : null}
         {choice.selections.map((selection, index) => {
           const checked = selection.target.kind === "checked";
+          const checkedScanStatus = selection.target.kind === "checked"
+            ? matchingScanStatus(scanStatus, selection.target)
+            : null;
           const description =
             selection.target.kind === "checked"
-              ? `The latest version scanned by TavernKeeper. ${checkedVersionDescription(selection.target.checkedAt)}`
-              : "The latest version from the creator. It may include changes TavernKeeper hasn't checked yet.";
+              ? scannedVersionDescription(
+                  selection.target.checkedAt,
+                  choice.selections.some(({ target }) => target.kind === "newest"),
+                )
+              : LATEST_CREATOR_DESCRIPTION;
           const descriptionId = `${headingId}-${selection.target.kind}-description`;
           return (
-            <button
+            <VersionChoiceOption
               key={`${selection.target.kind}-${selection.target.requestedSha}`}
-              ref={index === 0 ? firstChoiceRef : undefined}
-              type="button"
-              aria-label={checked ? "Latest scanned version" : "Newest version"}
-              aria-describedby={descriptionId}
-              onClick={() => select(selection)}
-            >
-              <strong>{checked ? "Latest scanned version" : "Newest version"}</strong>
-              <span id={descriptionId}>{description}</span>
-            </button>
+              buttonRef={index === 0 ? firstChoiceRef : undefined}
+              label={checked ? LATEST_SCANNED_LABEL : LATEST_CREATOR_LABEL}
+              description={description}
+              descriptionId={descriptionId}
+              onSelect={() => select(selection)}
+              scan={checkedScanStatus ? { projectId, status: checkedScanStatus } : null}
+            />
           );
         })}
         <button

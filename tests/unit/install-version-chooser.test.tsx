@@ -1,6 +1,7 @@
-import { fireEvent, render, screen } from "@testing-library/preact";
+import { cleanup, fireEvent, render, screen } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+import type { TavernKeeperCardStatus } from "../../src/catalog/catalog-core";
 import type {
   PreparedInstallSelection,
   PreparedInstallTargetChoice,
@@ -10,7 +11,10 @@ import {
   InstallVersionChooser,
 } from "../../src/ui/lifecycle/install-version-chooser";
 
-afterEach(() => document.body.replaceChildren());
+afterEach(() => {
+  cleanup();
+  document.body.replaceChildren();
+});
 
 function selection(kind: "checked" | "newest"): PreparedInstallSelection {
   const requestedSha = kind === "checked" ? "a".repeat(40) : "b".repeat(40);
@@ -79,6 +83,40 @@ function anchor(): HTMLButtonElement {
   return button;
 }
 
+function scanStatus(): TavernKeeperCardStatus {
+  return {
+    state: "teal",
+    riskLevel: "low",
+    freshness: "stale",
+    currentSha: "b".repeat(40),
+    report: {
+      reportId: "report-alpha",
+      riskLevel: "low",
+      headline: "Low concern",
+      summary: "No material security concerns were identified in the reviewed source.",
+      minorCautions: 0,
+      materialConcerns: 0,
+      highDanger: 0,
+      maliciousEvidence: "",
+      citedFindingIds: [],
+      scannedSha: "a".repeat(40),
+      treeUrl: `https://github.com/example/alpha/tree/${"a".repeat(40)}`,
+      scannedAt: "2026-08-17T00:00:00.000Z",
+      assessedAt: "2026-08-18T00:00:00.000Z",
+      scannerPolicyVersion: "5",
+      contextualReviewPolicyVersion: "1",
+      synthesisPolicyVersion: "1",
+      synthesisModel: "review-model",
+      dangerBasis: "none",
+      assessmentSource: "model",
+      reportUrl: "https://tavernary.org/security/tavernkeeper/reports/report-alpha/",
+      technicalHistoryUrl: null,
+    },
+    history: [],
+    historyUrl: null,
+  };
+}
+
 describe("InstallVersionChooser", () => {
   it("uses the approved plain-language choices and selects the exact target once", () => {
     const installButton = anchor();
@@ -89,24 +127,53 @@ describe("InstallVersionChooser", () => {
         projectName="Alpha"
         anchor={installButton}
         choice={choice()}
+        scanStatus={scanStatus()}
         onSelect={onSelect}
         onCancel={vi.fn()}
       />,
     );
 
-    expect(screen.getByRole("heading", { name: "Which version would you like?" })).toBeVisible();
-    expect(screen.getByRole("button", { name: "Checked version" })).toHaveAccessibleDescription(
-      "TavernKeeper checked this version on Aug 17.",
+    expect(screen.getByRole("heading", { name: "Choose a version for Alpha" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Latest scanned" })).toHaveAccessibleDescription(
+      "Scanned Aug 17 · older than latest.",
     );
-    expect(screen.getByRole("button", { name: "Newest version" })).toHaveAccessibleDescription(
-      "The latest version from the creator. It may include changes TavernKeeper hasn't checked yet.",
+    expect(screen.getByRole("button", { name: "Latest from creator" })).toHaveAccessibleDescription(
+      "Newer changes have not been scanned yet.",
     );
+    const scan = screen.getByRole("button", {
+      name: "TavernKeeper scan: Low concern; stale assessment.",
+    });
+    fireEvent.pointerEnter(scan, { pointerType: "mouse" });
+    expect(screen.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toBeVisible();
 
-    const checked = screen.getByRole("button", { name: "Checked version" });
+    const checked = screen.getByRole("button", { name: "Latest scanned" });
     fireEvent.click(checked);
     fireEvent.click(checked);
     expect(onSelect).toHaveBeenCalledOnce();
     expect(onSelect).toHaveBeenCalledWith(choice().checked.selection);
+    expect(installButton).toHaveFocus();
+  });
+
+  it("does not show scan evidence from a different prepared revision", () => {
+    const mismatched = scanStatus();
+    mismatched.report = {
+      ...mismatched.report!,
+      reportId: "report-newer",
+      scannedSha: "c".repeat(40),
+    };
+    render(
+      <InstallVersionChooser
+        projectId="alpha"
+        projectName="Alpha"
+        anchor={anchor()}
+        choice={choice()}
+        scanStatus={mismatched}
+        onSelect={vi.fn()}
+        onCancel={vi.fn()}
+      />,
+    );
+
+    expect(screen.queryByRole("button", { name: /TavernKeeper scan:/u })).not.toBeInTheDocument();
   });
 
   it("explains an older SillyTavern without changing the Newest choice", () => {
@@ -116,25 +183,25 @@ describe("InstallVersionChooser", () => {
         projectId="alpha"
         projectName="Alpha"
         anchor={installButton}
-        choice={choice("Update SillyTavern to use the checked version.")}
+        choice={choice("Update SillyTavern to use the latest scanned version.")}
         onSelect={vi.fn()}
         onCancel={vi.fn()}
       />,
     );
 
-    const checked = screen.getByRole("button", { name: "Checked version" });
+    const checked = screen.getByRole("button", { name: "Latest scanned" });
     expect(checked).toBeDisabled();
     expect(checked).toHaveAccessibleDescription(
-      "TavernKeeper checked this version on Aug 17. Update SillyTavern to use the checked version.",
+      "Scanned Aug 17 · older than latest. Update SillyTavern to use the latest scanned version.",
     );
-    expect(screen.getByText("Update SillyTavern to use the checked version.")).toBeVisible();
-    expect(screen.getByRole("button", { name: "Newest version" })).toBeEnabled();
+    expect(screen.getByText("Update SillyTavern to use the latest scanned version.")).toBeVisible();
+    expect(screen.getByRole("button", { name: "Latest from creator" })).toBeEnabled();
   });
 
   it("uses the approved sentence when the checked version disappeared", () => {
     const installButton = anchor();
     const unavailable =
-      "That checked version isn't available anymore. You can choose the newest version or cancel.";
+      "That scanned version isn't available anymore. You can choose Latest from creator or cancel.";
     render(
       <InstallVersionChooser
         projectId="alpha"
@@ -147,7 +214,7 @@ describe("InstallVersionChooser", () => {
     );
 
     expect(screen.getByText(unavailable)).toBeVisible();
-    expect(screen.getByRole("button", { name: "Checked version" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Latest scanned" })).toBeDisabled();
     expect(screen.getByRole("dialog")).not.toHaveTextContent(
       /safe|unsafe|secure|risky|verified|recommended/i,
     );
@@ -192,7 +259,7 @@ describe("InstallVersionChooser", () => {
       />,
     );
 
-    const chooser = screen.getByRole("dialog", { name: "Which version would you like?" });
+    const chooser = screen.getByRole("dialog", { name: "Choose a version for Alpha" });
     expect(chooser.parentElement).toHaveClass(
       "tavernary-companion-install-version-chooser-backdrop",
     );
@@ -203,18 +270,85 @@ describe("InstallVersionChooser", () => {
 });
 
 describe("dispatchPreparedInstallChoice", () => {
-  it("bypasses the chooser when preparation yields one target", () => {
+  it("routes a newest-only target through gentle awareness", () => {
     const onInstall = vi.fn();
     const onChoose = vi.fn();
+    const onAware = vi.fn();
     const single: PreparedInstallTargetChoice = {
       kind: "single",
       selection: selection("newest"),
     };
 
-    dispatchPreparedInstallChoice(single, onInstall, onChoose);
+    dispatchPreparedInstallChoice(single, onInstall, onChoose, onAware);
 
-    expect(onInstall).toHaveBeenCalledOnce();
-    expect(onInstall).toHaveBeenCalledWith(single.selection);
+    expect(onInstall).not.toHaveBeenCalled();
     expect(onChoose).not.toHaveBeenCalled();
+    expect(onAware).toHaveBeenCalledWith(single.selection);
+  });
+
+  it("lets Escape close scan results before dismissing the chooser", () => {
+    const onCancel = vi.fn();
+    render(
+      <InstallVersionChooser
+        projectId="alpha"
+        projectName="Alpha"
+        anchor={anchor()}
+        choice={choice()}
+        scanStatus={scanStatus()}
+        onSelect={vi.fn()}
+        onCancel={onCancel}
+      />,
+    );
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "TavernKeeper scan: Low concern; stale assessment.",
+      }),
+    );
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    expect(
+      screen.queryByRole("dialog", { name: "TavernKeeper Scan Results" }),
+    ).not.toBeInTheDocument();
+    expect(screen.getByRole("dialog", { name: "Choose a version for Alpha" })).toBeVisible();
+    expect(onCancel).not.toHaveBeenCalled();
+  });
+
+  it("keeps the version selection live after a tapped scan panel is toggled", () => {
+    const onSelect = vi.fn();
+    render(
+      <InstallVersionChooser
+        projectId="alpha"
+        projectName="Alpha"
+        anchor={anchor()}
+        choice={choice()}
+        scanStatus={scanStatus()}
+        onSelect={onSelect}
+        onCancel={vi.fn()}
+      />,
+    );
+    const scan = screen.getByRole("button", {
+      name: "TavernKeeper scan: Low concern; stale assessment.",
+    });
+    fireEvent.pointerDown(scan, { pointerType: "touch" });
+    fireEvent.click(scan);
+    fireEvent.pointerDown(scan, { pointerType: "touch" });
+    fireEvent.click(scan);
+    fireEvent.click(screen.getByRole("button", { name: "Latest from creator" }));
+
+    expect(onSelect).toHaveBeenCalledWith(choice().newest.selection);
+  });
+
+  it("keeps a single exact scanned target direct", () => {
+    const onInstall = vi.fn();
+    const onAware = vi.fn();
+    const single: PreparedInstallTargetChoice = {
+      kind: "single",
+      selection: selection("checked"),
+    };
+
+    dispatchPreparedInstallChoice(single, onInstall, vi.fn(), onAware);
+
+    expect(onInstall).toHaveBeenCalledWith(single.selection);
+    expect(onAware).not.toHaveBeenCalled();
   });
 });

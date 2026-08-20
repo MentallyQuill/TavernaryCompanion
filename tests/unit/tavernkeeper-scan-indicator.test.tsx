@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from "@testing-library/preact";
+import { act, cleanup, fireEvent, render, screen, within } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { TavernKeeperCardStatus } from "../../src/catalog/catalog-core";
@@ -6,6 +6,7 @@ import { TavernKeeperScanIndicator } from "../../src/ui/projects/tavernkeeper-sc
 
 afterEach(() => {
   vi.useRealTimers();
+  cleanup();
   document.body.replaceChildren();
 });
 
@@ -111,7 +112,25 @@ describe("TavernKeeperScanIndicator", () => {
     expect(screen.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toBeVisible();
   });
 
-  it("uses literal unsupported, unassessed, and stale state language", () => {
+  it("keeps the first pointer click open after hover and toggles on the next click", () => {
+    render(<TavernKeeperScanIndicator projectId="alpha" status={status()} />);
+    const trigger = screen.getByRole("button", {
+      name: "TavernKeeper scan: Low concern; current.",
+    });
+
+    fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
+    fireEvent.pointerDown(trigger, { pointerType: "mouse" });
+    fireEvent.click(trigger);
+    expect(screen.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toBeVisible();
+
+    fireEvent.pointerDown(trigger, { pointerType: "mouse" });
+    fireEvent.click(trigger);
+    expect(
+      screen.queryByRole("dialog", { name: "TavernKeeper Scan Results" }),
+    ).not.toBeInTheDocument();
+  });
+
+  it("uses literal unsupported, unassessed, and changed-revision stale language", () => {
     const view = render(
       <TavernKeeperScanIndicator
         projectId="alpha"
@@ -141,15 +160,40 @@ describe("TavernKeeperScanIndicator", () => {
     expect(screen.getByRole("button", { name: "TavernKeeper scan: Not assessed." })).toBeVisible();
 
     view.rerender(
-      <TavernKeeperScanIndicator projectId="alpha" status={status({ freshness: "stale" })} />,
+      <TavernKeeperScanIndicator
+        projectId="alpha"
+        status={status({ freshness: "stale", currentSha: "b".repeat(40) })}
+      />,
     );
     const stale = screen.getByRole("button", {
       name: "TavernKeeper scan: Low concern; stale assessment.",
     });
     fireEvent.click(stale);
     fireEvent.click(stale);
-    expect(screen.getByText(/assessment covers an older commit/)).toBeVisible();
+    expect(screen.getByText(/creator has published changes since this scan/)).toBeVisible();
     expect(document.querySelector('svg[data-icon="clock"]')).toBeVisible();
+  });
+
+  it("opens the assessment when its trigger receives keyboard focus", () => {
+    render(<TavernKeeperScanIndicator projectId="alpha" status={status()} />);
+    const trigger = screen.getByRole("button", {
+      name: "TavernKeeper scan: Low concern; current.",
+    });
+
+    act(() => trigger.focus());
+
+    expect(screen.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toBeVisible();
+  });
+
+  it("explains a same-revision stale assessment as due for refresh", () => {
+    render(<TavernKeeperScanIndicator projectId="alpha" status={status({ freshness: "stale" })} />);
+    fireEvent.click(
+      screen.getByRole("button", { name: "TavernKeeper scan: Low concern; stale assessment." }),
+    );
+
+    expect(
+      screen.getByText(/this version was scanned, but the assessment is due for refresh/i),
+    ).toBeVisible();
   });
 
   it("dismisses with Escape and restores focus to the scan trigger", () => {

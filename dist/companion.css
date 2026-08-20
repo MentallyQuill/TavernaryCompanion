@@ -1758,7 +1758,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   display: inline-flex;
   flex: none;
 }
-.tavernary-companion-root .tavernary-companion-tavernkeeper-trigger {
+:is(.tavernary-companion-root, .tavernary-companion-install-version-chooser) .tavernary-companion-tavernkeeper-trigger {
   position: relative;
   display: inline-grid;
   inline-size: 18px;
@@ -1859,11 +1859,11 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 }
 .tavernary-companion-tavernkeeper-popover > header strong {
   white-space: nowrap;
-  font-size: 11px;
+  font-size: 12px;
 }
 .tavernary-companion-tavernkeeper-popover > header span span {
   color: var(--tavernary-color-text-secondary);
-  font-size: 10px;
+  font-size: 12px;
   text-transform: capitalize;
 }
 .tavernary-companion-tavernkeeper-summary {
@@ -1874,7 +1874,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   flex-wrap: wrap;
   gap: 6px 10px;
   color: var(--tavernary-color-text-secondary);
-  font-size: 11px;
+  font-size: 12px;
   font-variant-numeric: tabular-nums;
 }
 .tavernary-companion-tavernkeeper-details {
@@ -3122,6 +3122,13 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   color: var(--tavernary-color-text-secondary);
   font-size: 12px;
 }
+.tavernary-companion-version-choice-option {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 8px;
+}
+.tavernary-companion-version-choice-option__select,
 .tavernary-companion-install-version-chooser > button {
   display: grid;
   inline-size: 100%;
@@ -3134,25 +3141,75 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   background: var(--tavernary-color-control-bg);
   text-align: start;
 }
+.tavernary-companion-version-choice-option__select:not(:disabled):hover,
 .tavernary-companion-install-version-chooser > button:not(:disabled):hover {
   border-color: var(--tavernary-color-border-hover);
   background: var(--tavernary-color-bg-surface-hover);
 }
+.tavernary-companion-version-choice-option__select:focus-visible,
 .tavernary-companion-install-version-chooser > button:focus-visible {
   outline: 2px solid var(--tavernary-color-focus-ring);
   outline-offset: 2px;
 }
+.tavernary-companion-version-choice-option__select:disabled,
 .tavernary-companion-install-version-chooser > button:disabled {
   cursor: not-allowed;
   opacity: 0.58;
 }
+.tavernary-companion-version-choice-option__select strong,
 .tavernary-companion-install-version-chooser > button strong {
   color: var(--tavernary-color-heading);
   font-size: 13px;
 }
+.tavernary-companion-version-choice-option__select span,
 .tavernary-companion-install-version-chooser > button span {
   color: var(--tavernary-color-text-secondary);
-  font-size: 11px;
+  font-size: 12px;
+}
+.tavernary-companion-version-choice-option__scan {
+  display: grid;
+  min-inline-size: 34px;
+  place-items: center;
+}
+.tavernary-companion-install-version-chooser-backdrop.is-awareness {
+  display: grid;
+  padding: 8px;
+  background: rgb(0 0 0 / 32%);
+  backdrop-filter: blur(4px);
+  -webkit-backdrop-filter: blur(4px);
+  pointer-events: auto;
+  place-items: center;
+}
+.tavernary-companion-install-version-awareness {
+  position: static !important;
+  inline-size: min(360px, calc(100vw - 16px));
+}
+.tavernary-companion-install-version-awareness p {
+  margin: 0;
+  color: var(--tavernary-color-text-secondary);
+  font-size: 12px;
+}
+.tavernary-companion-install-version-awareness__actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  margin-block-start: 4px;
+}
+.tavernary-companion-install-version-awareness__actions button {
+  min-block-size: 36px;
+  padding: 7px 12px;
+  border: 1px solid var(--tavernary-color-control-border);
+  border-radius: 6px;
+  color: var(--tavernary-color-text-primary);
+  background: var(--tavernary-color-control-bg);
+}
+.tavernary-companion-install-version-awareness__actions button:hover {
+  border-color: var(--tavernary-color-border-hover);
+  background: var(--tavernary-color-bg-surface-hover);
+}
+.tavernary-companion-install-version-awareness__actions button:focus-visible {
+  outline: 2px solid var(--tavernary-color-focus-ring);
+  outline-offset: 2px;
 }
 .tavernary-companion-install-version-chooser > .tavernary-companion-install-version-chooser__cancel {
   min-block-size: 36px;

@@ -2,7 +2,7 @@ import type { InstallTarget } from "./install-target";
 import type { PreparedInstallSelection } from "./lifecycle-coordinator";
 
 export const CHECKED_VERSION_UNAVAILABLE_REASON =
-  "That checked version isn't available anymore. You can choose the newest version or cancel.";
+  "That scanned version isn't available anymore. You can choose Latest from creator or cancel.";
 
 type CheckedSelection = PreparedInstallSelection<Extract<InstallTarget, { kind: "checked" }>>;
 type NewestSelection = PreparedInstallSelection<Extract<InstallTarget, { kind: "newest" }>>;

@@ -59,7 +59,7 @@ If the Installed entry offers **Forget record**, use it only after you are sure 
 
 - **Could not check:** choose **Retry**.
 - **Needs attention:** use SillyTavern's extension manager to inspect the repository, branch, history, or local files.
-- **Newest version only:** this host does not accept a specific TavernKeeper-scanned revision. Choose the newest creator version if you want to continue.
+- **Latest from creator only:** this host does not accept a specific TavernKeeper-scanned revision. Choose the creator’s latest version if you want to continue.
 - **Local changes:** Companion will not stash, reset, force, roll back, or downgrade your work.
 
 A catalog-matched extension installed outside Companion can sometimes update, but it stays external. Companion does not adopt it into a Kit or gain uninstall ownership.

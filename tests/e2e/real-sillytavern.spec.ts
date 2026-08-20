@@ -51,8 +51,8 @@ test.describe("real SillyTavern acceptance", () => {
       return;
     }
 
-    await expect(chooser.getByRole("button", { name: "Checked version" })).toBeDisabled();
-    await chooser.getByRole("button", { name: "Newest version" }).click();
+    await expect(chooser.getByRole("button", { name: "Latest scanned" })).toBeDisabled();
+    await chooser.getByRole("button", { name: "Latest from creator" }).click();
     const nativeConfirm = page.getByRole("button", { name: "Yes, install it" });
     await expect(nativeConfirm).toBeVisible();
     expect(await isTopmostAtCenter(nativeConfirm)).toBe(true);

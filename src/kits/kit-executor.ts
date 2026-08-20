@@ -338,7 +338,7 @@ export class KitExecutor {
                 step.projectId,
                 "install",
                 "failed",
-                "The newest version was not installed.",
+                "The latest version from the creator was not installed.",
                 true,
               ),
             );
@@ -357,8 +357,8 @@ export class KitExecutor {
             "install",
             "verified",
             target.kind === "checked"
-              ? "Installed the checked version."
-              : "Installed the newest version.",
+              ? "Installed the latest scanned version."
+              : "Installed the latest version from the creator.",
             false,
             provenance,
           ),
@@ -881,7 +881,7 @@ function installProvenance(
 
 function kitInstallFailureMessage(error: unknown): string {
   if (error instanceof HostRevisionUnavailableError) {
-    return "We couldn't find the newest version. Try again.";
+    return "We couldn't find the latest version from the creator. Try again.";
   }
   if (error instanceof VerifiedInstallError) {
     if (error.stage === "preflight") {

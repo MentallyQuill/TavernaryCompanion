@@ -2,7 +2,12 @@ import type { KitInstallStep } from "../../kits/kit-plan";
 import type { KitInstallTargetSelection } from "../../kits/kit-install-targets";
 import { sameInstallTarget } from "../../kits/kit-install-targets";
 import type { InstallTarget } from "../../lifecycle/install-target";
-import { checkedVersionDescription } from "../lifecycle/install-version-chooser";
+import {
+  LATEST_CREATOR_DESCRIPTION,
+  LATEST_CREATOR_LABEL,
+  LATEST_SCANNED_LABEL,
+  scannedVersionDescription,
+} from "../lifecycle/version-choice-option";
 
 export function KitVersionChoices({
   steps,
@@ -45,7 +50,7 @@ function ProjectVersionChoice({
     return (
       <section class="tavernary-companion-kit-version-choice" role="status">
         <strong>{step.projectName}</strong>
-        <span>We couldn't find the newest version. Try again.</span>
+        <span>We couldn't find the latest version from the creator. Try again.</span>
       </section>
     );
   }
@@ -68,7 +73,7 @@ function ProjectVersionChoice({
         <input
           type="radio"
           name={`kit-version-${step.projectId}`}
-          aria-label={`Checked version for ${step.projectName}`}
+          aria-label={`${LATEST_SCANNED_LABEL} for ${step.projectName}`}
           aria-describedby={
             choice.checked.disabledReason
               ? `${checkedDescriptionId} ${checkedDisabledId}`
@@ -79,9 +84,9 @@ function ProjectVersionChoice({
           onChange={() => onChange(choice.checked.target)}
         />
         <span>
-          <strong>Checked version</strong>
+          <strong>{LATEST_SCANNED_LABEL}</strong>
           <small id={checkedDescriptionId}>
-            {checkedVersionDescription(choice.checked.target.checkedAt)}
+            {scannedVersionDescription(choice.checked.target.checkedAt)}
           </small>
           {choice.checked.disabledReason ? (
             <small id={checkedDisabledId}>{choice.checked.disabledReason}</small>
@@ -92,13 +97,13 @@ function ProjectVersionChoice({
         <input
           type="radio"
           name={`kit-version-${step.projectId}`}
-          aria-label={`Newest version for ${step.projectName}`}
+          aria-label={`${LATEST_CREATOR_LABEL} for ${step.projectName}`}
           aria-describedby={newestDescriptionId}
           checked={Boolean(selected && sameInstallTarget(selected, choice.newest))}
           onChange={() => onChange(choice.newest)}
         />
         <span>
-          <strong>Newest version</strong>
+          <strong>{LATEST_CREATOR_LABEL}</strong>
           <small id={newestDescriptionId}>{targetDescription(choice.newest)}</small>
         </span>
       </label>
@@ -107,11 +112,11 @@ function ProjectVersionChoice({
 }
 
 function targetLabel(target: InstallTarget): string {
-  return target.kind === "checked" ? "Checked version" : "Newest version";
+  return target.kind === "checked" ? LATEST_SCANNED_LABEL : LATEST_CREATOR_LABEL;
 }
 
 function targetDescription(target: InstallTarget): string {
   return target.kind === "checked"
-    ? checkedVersionDescription(target.checkedAt)
-    : "The latest version from the creator. It may include changes TavernKeeper hasn't checked yet.";
+    ? scannedVersionDescription(target.checkedAt, false)
+    : LATEST_CREATOR_DESCRIPTION;
 }

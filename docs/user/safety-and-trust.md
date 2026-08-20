@@ -14,27 +14,26 @@ If a project has a scan, open the result when you want more detail. If Companion
 
 ## Read the first-install disclosure
 
-Third-party extensions run code inside SillyTavern. Before the first extension install, Companion explains that:
+Before the first extension install, Companion explains that:
 
-- the extension is not running in a protective sandbox;
-- the install comes from the catalog's validated install information;
-- TavernKeeper provides evidence, not a guarantee;
-- you are responsible for deciding whether to continue.
+- extensions are made by third parties that Tavernary does not control;
+- TavernKeeper checks one version and may miss problems;
+- you should review a project before installing it.
 
 ![The first-install disclosure appears before an extension is installed](../../tests/e2e/responsive-conformance.spec.ts-snapshots/lifecycle-disclosure-390x844.png)
 
 Choose **I understand** only when you have read the message and want to continue. Choose **Cancel** when you want to stop and look at the project more closely.
 
-## Checked version or Newest version?
+## Latest scanned or Latest from creator?
 
 When TavernKeeper checked an older version and the creator has published something newer, Companion gives you a choice:
 
-- **Checked version:** the exact version TavernKeeper examined. It has a known check date.
-- **Newest version:** the latest version from the creator. It may include changes that have not been examined yet.
+- **Latest scanned:** the exact version TavernKeeper examined. It has a scan date and a scan-result icon you can hover, focus, click, or tap.
+- **Latest from creator:** the newest version published by the creator. Its newer changes may not have been scanned yet.
 
-Neither choice is automatically better. The Checked version gives you the checked revision. The Newest version gives you the creator's latest changes. Choose the one that fits what you want to try.
+Neither choice is automatically better. Choose the one that fits what you want to try.
 
-Companion does not switch from Checked to Newest by itself. If the Checked version is no longer available, it stops and lets you choose Newest or cancel.
+Companion does not switch versions by itself. If Latest scanned is no longer available, it stops and lets you choose Latest from creator or cancel. If only Latest from creator is available and Companion cannot match it to a scan, a short note explains that before installation.
 
 ## Who controls an extension?
 

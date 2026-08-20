@@ -41,7 +41,9 @@ function stateCopy(status: TavernKeeperCardStatus): string {
   if (status.report) {
     const freshness =
       status.freshness === "stale"
-        ? " This assessment covers an older commit. An updated scan is pending."
+        ? status.currentSha?.toLowerCase() === status.report.scannedSha.toLowerCase()
+          ? " This version was scanned, but the assessment is due for refresh."
+          : " The creator has published changes since this scan."
         : status.freshness === "unavailable"
           ? " Tavernary cannot confirm the repository's current commit, so freshness is unavailable."
           : "";
@@ -138,11 +140,13 @@ function formatDate(scannedAt: string): string {
 interface TavernKeeperScanIndicatorProps {
   projectId: string;
   status: TavernKeeperCardStatus;
+  inlinePanel?: boolean;
 }
 
 export function TavernKeeperScanIndicator({
   projectId,
   status,
+  inlinePanel = false,
 }: TavernKeeperScanIndicatorProps): preact.JSX.Element {
   const [open, setOpen] = useState(false);
   const [position, setPosition] = useState<preact.JSX.CSSProperties | null>(null);
@@ -150,7 +154,9 @@ export function TavernKeeperScanIndicator({
   const popoverRef = useRef<HTMLElement>(null);
   const firstLinkRef = useRef<HTMLAnchorElement>(null);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const openRef = useRef(false);
   const pointerOpenState = useRef<boolean | null>(null);
+  const suppressNextFocusOpen = useRef(false);
   const content = stateCopy(status);
   const report = status.report;
   const popoverId = `tavernkeeper-scan-${projectId}`;
@@ -165,6 +171,7 @@ export function TavernKeeperScanIndicator({
 
   const closePopover = useCallback(() => {
     clearCloseTimer();
+    openRef.current = false;
     setOpen(false);
     setPosition(null);
   }, [clearCloseTimer]);
@@ -172,8 +179,17 @@ export function TavernKeeperScanIndicator({
   const openPopover = useCallback(() => {
     clearCloseTimer();
     if (activeDismiss && activeDismiss !== closePopover) activeDismiss();
+    openRef.current = true;
     setOpen(true);
   }, [clearCloseTimer, closePopover]);
+
+  const openFromFocus = useCallback(() => {
+    if (suppressNextFocusOpen.current) {
+      suppressNextFocusOpen.current = false;
+      return;
+    }
+    openPopover();
+  }, [openPopover]);
 
   const delayClose = useCallback(() => {
     clearCloseTimer();
@@ -182,29 +198,32 @@ export function TavernKeeperScanIndicator({
 
   const openFromPointer = useCallback(
     (event: preact.JSX.TargetedPointerEvent<HTMLElement>) => {
-      if (event.pointerType !== "touch") openPopover();
+      if (event.pointerType !== "touch") {
+        pointerOpenState.current ??= openRef.current;
+        openPopover();
+      }
     },
     [openPopover],
   );
 
   const delayCloseFromPointer = useCallback(
     (event: preact.JSX.TargetedPointerEvent<HTMLElement>) => {
-      if (event.pointerType !== "touch") delayClose();
+      if (event.pointerType !== "touch") {
+        pointerOpenState.current = null;
+        delayClose();
+      }
     },
     [delayClose],
   );
 
-  const rememberPointerOpenState = useCallback(
-    (event: preact.JSX.TargetedPointerEvent<HTMLButtonElement>) => {
-      pointerOpenState.current = event.pointerType === "touch" ? open : null;
-    },
-    [open],
-  );
+  const rememberPointerOpenState = useCallback(() => {
+    pointerOpenState.current ??= openRef.current;
+  }, []);
 
   const togglePopover = useCallback(() => {
-    const wasOpenBeforePointerFocus = pointerOpenState.current;
+    const wasOpenBeforePointerFocus = pointerOpenState.current ?? openRef.current;
     pointerOpenState.current = null;
-    if (wasOpenBeforePointerFocus === true) closePopover();
+    if (wasOpenBeforePointerFocus) closePopover();
     else openPopover();
   }, [closePopover, openPopover]);
 
@@ -215,9 +234,9 @@ export function TavernKeeperScanIndicator({
 
   const closeOnFocusExit = useCallback(
     (event: preact.JSX.TargetedFocusEvent<HTMLElement>) => {
-      if (!containsInteractiveElement(event.relatedTarget)) closePopover();
+      if (!containsInteractiveElement(event.relatedTarget)) delayClose();
     },
-    [closePopover, containsInteractiveElement],
+    [containsInteractiveElement, delayClose],
   );
 
   const focusFirstLink = useCallback(
@@ -248,6 +267,13 @@ export function TavernKeeperScanIndicator({
   useEffect(() => () => clearCloseTimer(), [clearCloseTimer]);
 
   useEffect(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    trigger.addEventListener("focus", openFromFocus);
+    return () => trigger.removeEventListener("focus", openFromFocus);
+  }, [openFromFocus]);
+
+  useEffect(() => {
     if (!open) return;
     activeDismiss = closePopover;
     return () => {
@@ -273,7 +299,7 @@ export function TavernKeeperScanIndicator({
   useEffect(() => {
     if (!open) return;
     const dismissOnPointerDown = (event: PointerEvent) => {
-      if (!containsInteractiveElement(event.target)) closePopover();
+      if (!containsInteractiveElement(event.target)) delayClose();
     };
     const dismissOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") {
@@ -281,11 +307,15 @@ export function TavernKeeperScanIndicator({
         event.stopPropagation();
         event.stopImmediatePropagation();
         closePopover();
+        suppressNextFocusOpen.current = true;
         triggerRef.current?.focus();
+        queueMicrotask(() => {
+          suppressNextFocusOpen.current = false;
+        });
       }
     };
     const dismissOnFocus = (event: FocusEvent) => {
-      if (!containsInteractiveElement(event.target)) closePopover();
+      if (!containsInteractiveElement(event.target)) delayClose();
     };
     document.addEventListener("pointerdown", dismissOnPointerDown);
     document.addEventListener("keydown", dismissOnEscape, true);
@@ -295,7 +325,7 @@ export function TavernKeeperScanIndicator({
       document.removeEventListener("keydown", dismissOnEscape, true);
       document.removeEventListener("focusin", dismissOnFocus);
     };
-  }, [closePopover, containsInteractiveElement, open]);
+  }, [closePopover, containsInteractiveElement, delayClose, open]);
 
   return (
     <>
@@ -306,7 +336,6 @@ export function TavernKeeperScanIndicator({
         class={`tavernary-companion-tavernkeeper-trigger state-${status.state}`}
         onBlur={closeOnFocusExit}
         onClick={togglePopover}
-        onFocus={openPopover}
         onKeyDown={focusFirstLink}
         onPointerDown={rememberPointerOpenState}
         onPointerEnter={openFromPointer}
@@ -318,104 +347,108 @@ export function TavernKeeperScanIndicator({
         {status.freshness === "stale" ? <ClockIcon /> : null}
       </button>
       {open && typeof document !== "undefined"
-        ? createPortal(
-            <section
-              aria-labelledby={headingId}
-              class="tavernary-companion-tavernkeeper-popover"
-              id={popoverId}
-              onBlurCapture={closeOnFocusExit}
-              onFocusCapture={openPopover}
-              onPointerEnter={openFromPointer}
-              onPointerLeave={delayCloseFromPointer}
-              ref={popoverRef}
-              role="dialog"
-              style={{
-                ...position,
-                visibility: position ? "visible" : "hidden",
-              }}
-            >
-              <header class="tavernary-companion-tavernkeeper-popover__header">
-                <h2 id={headingId}>TavernKeeper Scan Results</h2>
+        ? (() => {
+            const panel = (
+              <section
+                aria-labelledby={headingId}
+                class="tavernary-companion-tavernkeeper-popover"
+                id={popoverId}
+                onBlurCapture={closeOnFocusExit}
+                onFocusCapture={openPopover}
+                onPointerEnter={openFromPointer}
+                onPointerLeave={delayCloseFromPointer}
+                ref={popoverRef}
+                role="dialog"
+                style={{
+                  ...position,
+                  visibility: position ? "visible" : "hidden",
+                }}
+              >
+                <header class="tavernary-companion-tavernkeeper-popover__header">
+                  <h2 id={headingId}>TavernKeeper Scan Results</h2>
+                  {report ? (
+                    <span
+                      class={`tavernary-companion-tavernkeeper-popover__status state-${status.state}`}
+                    >
+                      <strong>{riskGradeLabels[report.riskLevel]}</strong>
+                      <span>{freshnessLabels[status.freshness]}</span>
+                    </span>
+                  ) : null}
+                </header>
                 {report ? (
-                  <span
-                    class={`tavernary-companion-tavernkeeper-popover__status state-${status.state}`}
-                  >
-                    <strong>{riskGradeLabels[report.riskLevel]}</strong>
-                    <span>{freshnessLabels[status.freshness]}</span>
-                  </span>
-                ) : null}
-              </header>
-              {report ? (
-                <>
-                  <p class="tavernary-companion-tavernkeeper-summary">{content}</p>
-                  <p
-                    aria-label="Assessment finding counts"
-                    class="tavernary-companion-tavernkeeper-counts"
-                  >
-                    <span>{countLabel(report.minorCautions, "minor caution")}</span>
-                    <span>{countLabel(report.materialConcerns, "material concern")}</span>
-                    <span>{countLabel(report.highDanger, "high-danger finding")}</span>
-                  </p>
-                  <dl class="tavernary-companion-tavernkeeper-details">
-                    {report.riskLevel === "high" && report.dangerBasis !== "none" ? (
+                  <>
+                    <p class="tavernary-companion-tavernkeeper-summary">{content}</p>
+                    <p
+                      aria-label="Assessment finding counts"
+                      class="tavernary-companion-tavernkeeper-counts"
+                    >
+                      <span>{countLabel(report.minorCautions, "minor caution")}</span>
+                      <span>{countLabel(report.materialConcerns, "material concern")}</span>
+                      <span>{countLabel(report.highDanger, "high-danger finding")}</span>
+                    </p>
+                    <dl class="tavernary-companion-tavernkeeper-details">
+                      {report.riskLevel === "high" && report.dangerBasis !== "none" ? (
+                        <div>
+                          <dt>Danger basis</dt>
+                          <dd>{dangerBasisLabels[report.dangerBasis]}</dd>
+                        </div>
+                      ) : null}
                       <div>
-                        <dt>Danger basis</dt>
-                        <dd>{dangerBasisLabels[report.dangerBasis]}</dd>
+                        <dt>Scanned</dt>
+                        <dd>
+                          <time dateTime={report.scannedAt}>{formatDate(report.scannedAt)}</time>
+                          <span aria-hidden="true"> · </span>
+                          <a
+                            aria-label={`Browse scanned source at commit ${report.scannedSha} on GitHub`}
+                            href={report.treeUrl}
+                            onKeyDown={focusTrigger}
+                            ref={firstLinkRef}
+                            rel="noopener noreferrer"
+                            target="_blank"
+                          >
+                            {report.scannedSha.slice(0, 7)}
+                            <span aria-hidden="true"> ↗</span>
+                          </a>
+                        </dd>
+                      </div>
+                      <div>
+                        <dt>Assessed</dt>
+                        <dd>
+                          <time dateTime={report.assessedAt}>{formatDate(report.assessedAt)}</time>
+                          {" by Tavernary"}
+                        </dd>
+                      </div>
+                    </dl>
+                    {status.history.length >= 2 ? (
+                      <div class="tavernary-companion-tavernkeeper-recent">
+                        <span>Recent scans</span>
+                        <TavernKeeperHistoryStrip history={status.history} />
                       </div>
                     ) : null}
-                    <div>
-                      <dt>Scanned</dt>
-                      <dd>
-                        <time dateTime={report.scannedAt}>{formatDate(report.scannedAt)}</time>
-                        <span aria-hidden="true"> · </span>
+                    <footer class="tavernary-companion-tavernkeeper-actions">
+                      <a href={report.reportUrl} rel="noopener noreferrer" target="_blank">
+                        View full report<span aria-hidden="true"> ↗</span>
+                      </a>
+                      {status.historyUrl ? (
                         <a
-                          aria-label={`Browse scanned source at commit ${report.scannedSha} on GitHub`}
-                          href={report.treeUrl}
-                          onKeyDown={focusTrigger}
-                          ref={firstLinkRef}
+                          href={externalTavernaryUrl(status.historyUrl)}
                           rel="noopener noreferrer"
                           target="_blank"
                         >
-                          {report.scannedSha.slice(0, 7)}
-                          <span aria-hidden="true"> ↗</span>
+                          View scan history<span aria-hidden="true"> →</span>
                         </a>
-                      </dd>
-                    </div>
-                    <div>
-                      <dt>Assessed</dt>
-                      <dd>
-                        <time dateTime={report.assessedAt}>{formatDate(report.assessedAt)}</time>
-                        {" by Tavernary"}
-                      </dd>
-                    </div>
-                  </dl>
-                  {status.history.length >= 2 ? (
-                    <div class="tavernary-companion-tavernkeeper-recent">
-                      <span>Recent scans</span>
-                      <TavernKeeperHistoryStrip history={status.history} />
-                    </div>
-                  ) : null}
-                  <footer class="tavernary-companion-tavernkeeper-actions">
-                    <a href={report.reportUrl} rel="noopener noreferrer" target="_blank">
-                      View full report<span aria-hidden="true"> ↗</span>
-                    </a>
-                    {status.historyUrl ? (
-                      <a
-                        href={externalTavernaryUrl(status.historyUrl)}
-                        rel="noopener noreferrer"
-                        target="_blank"
-                      >
-                        View scan history<span aria-hidden="true"> →</span>
-                      </a>
-                    ) : null}
-                  </footer>
-                </>
-              ) : (
-                <p class="tavernary-companion-tavernkeeper-summary">{content}</p>
-              )}
-            </section>,
-            resolveOverlayPortalTarget(triggerRef.current),
-          )
+                      ) : null}
+                    </footer>
+                  </>
+                ) : (
+                  <p class="tavernary-companion-tavernkeeper-summary">{content}</p>
+                )}
+              </section>
+            );
+            return inlinePanel
+              ? panel
+              : createPortal(panel, resolveOverlayPortalTarget(triggerRef.current));
+          })()
         : null}
     </>
   );

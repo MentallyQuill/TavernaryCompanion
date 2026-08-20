@@ -77,7 +77,9 @@ it("consolidates warnings, preserves review, and binds approval to the plan", ()
   expect(screen.getByRole("dialog")).not.toHaveTextContent(/security concerns|immediate danger/i);
   const confirmButton = screen.getByRole("button", { name: "Install anyway" });
   expect(confirmButton).toBeDisabled();
-  fireEvent.click(screen.getByRole("radio", { name: "Checked version for Alpha" }));
+  expect(screen.getByText("Scanned Aug 17 · older than latest.")).toBeVisible();
+  expect(screen.getByText("Newer changes have not been scanned yet.")).toBeVisible();
+  fireEvent.click(screen.getByRole("radio", { name: "Latest scanned for Alpha" }));
   expect(confirmButton).toBeEnabled();
   fireEvent.click(confirmButton);
   const selectedInstallTargets = [

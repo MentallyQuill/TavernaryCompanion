@@ -32,12 +32,7 @@ Repeated clicks cannot create duplicate requests. Closing the overlay does not c
 
 ## One-time trust disclosure
 
-The first eligible installation in a profile explains:
-
-- Third-party extensions run unsandboxed code inside SillyTavern.
-- Tavernary metadata and TavernKeeper scanning do not guarantee safety.
-- The user should review the project and source before installing.
-- Companion will use the catalog's validated install contract and will record the project as managed.
+The first eligible installation in a profile explains in plain language that extensions are made by third parties Tavernary does not control, TavernKeeper checks one version and may miss problems, and the player should review a project before installing it.
 
 The disclosure is acknowledged once per profile. Resetting Companion trust settings makes it appear again. A schema or terms change may intentionally invalidate the stored acknowledgement through a disclosure-version field.
 

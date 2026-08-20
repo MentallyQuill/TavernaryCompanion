@@ -3,8 +3,10 @@ import type { CatalogProject } from "../catalog/catalog-core";
 import type { HostExtensionAdapter } from "../host/host-types";
 import { isFullCommitSha, type InstallTarget } from "./install-target";
 
-export const LEGACY_CHECKED_DISABLED_REASON = "Update SillyTavern to use the checked version.";
-export const NEWEST_LOOKUP_FAILED_REASON = "We couldn't find the newest version. Try again.";
+export const LEGACY_CHECKED_DISABLED_REASON =
+  "Update SillyTavern to use the latest scanned version.";
+export const NEWEST_LOOKUP_FAILED_REASON =
+  "We couldn't find the latest version from the creator. Try again.";
 
 export type InstallTargetChoice =
   | { kind: "single"; target: InstallTarget }

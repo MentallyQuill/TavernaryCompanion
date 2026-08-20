@@ -12689,7 +12689,7 @@ function createRuntimeId() {
 // src/trust/trust-copy.ts
 var CURRENT_ASSESSMENT_WARNING = "TavernKeeper found concerns in this version. You can view the check before choosing whether to install it.";
 var STALE_ASSESSMENT_WARNING = "TavernKeeper checked an older version of this project. The newest changes have not been checked yet.";
-var UNSANDBOXED_CODE_DISCLOSURE = "Third-party extensions run unsandboxed code inside SillyTavern. Companion installs only from Tavernary\u2019s validated install contract. TavernKeeper provides evidence, not a guarantee of safety. Responsibility for safety falls upon you.";
+var UNSANDBOXED_CODE_DISCLOSURE = "These extensions are made by third parties. Tavernary lists them but does not control them. TavernKeeper checks one version and may miss problems. Review a project before installing it.";
 
 // src/trust/trust-policy.ts
 function selectTrustPrompts({
@@ -12779,8 +12779,8 @@ function installedEntry(projectId, managed, external) {
 }
 
 // src/lifecycle/install-target-resolver.ts
-var LEGACY_CHECKED_DISABLED_REASON = "Update SillyTavern to use the checked version.";
-var NEWEST_LOOKUP_FAILED_REASON = "We couldn't find the newest version. Try again.";
+var LEGACY_CHECKED_DISABLED_REASON = "Update SillyTavern to use the latest scanned version.";
+var NEWEST_LOOKUP_FAILED_REASON = "We couldn't find the latest version from the creator. Try again.";
 var InstallTargetPreparationError = class extends Error {
   reason;
   constructor(reason, options = {}) {
@@ -13752,7 +13752,7 @@ function createLifecycleCoordinator(options) {
 }
 
 // src/lifecycle/install-target-fallback-broker.ts
-var CHECKED_VERSION_UNAVAILABLE_REASON = "That checked version isn't available anymore. You can choose the newest version or cancel.";
+var CHECKED_VERSION_UNAVAILABLE_REASON = "That scanned version isn't available anymore. You can choose Latest from creator or cancel.";
 var InstallTargetFallbackBroker = class {
   #listeners = /* @__PURE__ */ new Set();
   #pending = null;
@@ -14292,7 +14292,7 @@ function validateInstallTargetApproval(plan, selections, binding) {
     const newestSelected = sameTarget(target, choice.newest);
     if (!checkedSelected && !newestSelected) throw new Error("A Kit install target changed.");
     if (checkedSelected && choice.checked.disabledReason) {
-      throw new Error("The checked version is not available for this Kit install.");
+      throw new Error("The latest scanned version is not available for this Kit install.");
     }
   }
 }
@@ -14952,7 +14952,7 @@ var KitExecutor = class {
                 step2.projectId,
                 "install",
                 "failed",
-                "The newest version was not installed.",
+                "The latest version from the creator was not installed.",
                 true
               )
             );
@@ -14970,7 +14970,7 @@ var KitExecutor = class {
             step2.projectId,
             "install",
             "verified",
-            target.kind === "checked" ? "Installed the checked version." : "Installed the newest version.",
+            target.kind === "checked" ? "Installed the latest scanned version." : "Installed the latest version from the creator.",
             false,
             provenance
           )
@@ -15400,7 +15400,7 @@ function installProvenance(target, installedSha, catalogGeneratedAt) {
 }
 function kitInstallFailureMessage(error) {
   if (error instanceof HostRevisionUnavailableError) {
-    return "We couldn't find the newest version. Try again.";
+    return "We couldn't find the latest version from the creator. Try again.";
   }
   if (error instanceof VerifiedInstallError) {
     if (error.stage === "preflight") {
@@ -16841,186 +16841,117 @@ function resolveOverlayPortalTarget(source) {
   return source?.closest("dialog[open]") ?? document.body;
 }
 
-// src/ui/lifecycle/install-version-chooser.tsx
-var VIEWPORT_MARGIN = 8;
-var ANCHOR_GAP = 8;
-function InstallVersionChooser({
-  projectId,
-  projectName,
-  anchor,
-  choice,
-  notice = null,
-  onSelect,
-  onCancel
+// src/ui/projects/tavernkeeper-history-strip.tsx
+var riskLabels = {
+  low: "low concern",
+  material: "material concern",
+  high: "immediate danger"
+};
+function TavernKeeperHistoryStrip({
+  history
 }) {
-  const surfaceRef = A2(null);
-  const checkedRef = A2(null);
-  const newestRef = A2(null);
-  const settled = A2(false);
-  const [position, setPosition] = d2({
-    left: VIEWPORT_MARGIN,
-    top: VIEWPORT_MARGIN,
-    visibility: "hidden"
-  });
-  const headingId = `install-version-${projectId}-heading`;
-  const checkedDescriptionId = `${headingId}-checked-description`;
-  const checkedDisabledId = `${headingId}-checked-disabled`;
-  const newestDescriptionId = `${headingId}-newest-description`;
-  const cancel = q2(() => {
-    if (settled.current) return;
-    settled.current = true;
-    onCancel();
-    const restoreFocus = () => {
-      if (anchor.isConnected) anchor.focus({ preventScroll: true });
-    };
-    restoreFocus();
-    queueMicrotask(restoreFocus);
-  }, [anchor, onCancel]);
-  const select = q2(
-    (selection) => {
-      if (settled.current) return;
-      settled.current = true;
-      onSelect(selection);
-    },
-    [onSelect]
-  );
-  const updatePosition = q2(() => {
-    const surface = surfaceRef.current;
-    if (!surface) return;
-    setPosition(positionChooser(anchor.getBoundingClientRect(), surface.getBoundingClientRect()));
-  }, [anchor]);
-  _2(() => {
-    updatePosition();
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, true);
-    window.visualViewport?.addEventListener("resize", updatePosition);
-    window.visualViewport?.addEventListener("scroll", updatePosition);
-    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updatePosition);
-    observer?.observe(anchor);
-    if (surfaceRef.current) observer?.observe(surfaceRef.current);
-    return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-      window.visualViewport?.removeEventListener("resize", updatePosition);
-      window.visualViewport?.removeEventListener("scroll", updatePosition);
-      observer?.disconnect();
-    };
-  }, [anchor, updatePosition]);
-  h2(() => {
-    const dismissOutside = (event) => {
-      const target = event.target;
-      if (!(target instanceof Node)) return;
-      if (surfaceRef.current?.contains(target)) return;
-      cancel();
-    };
-    const dismissEscape = (event) => {
-      if (event.key !== "Escape") return;
-      event.preventDefault();
-      event.stopPropagation();
-      cancel();
-    };
-    document.addEventListener("pointerdown", dismissOutside);
-    document.addEventListener("keydown", dismissEscape, true);
-    const firstChoice = choice.checked.disabledReason ? newestRef.current : checkedRef.current;
-    firstChoice?.focus({ preventScroll: true });
-    return () => {
-      document.removeEventListener("pointerdown", dismissOutside);
-      document.removeEventListener("keydown", dismissEscape, true);
-    };
-  }, [cancel, choice.checked.disabledReason]);
-  if (typeof document === "undefined") return null;
-  const checkedDescription = checkedVersionDescription(choice.checked.selection.target.checkedAt);
-  const checkedDescribedBy = choice.checked.disabledReason ? `${checkedDescriptionId} ${checkedDisabledId}` : checkedDescriptionId;
-  return $2(
-    /* @__PURE__ */ u3("div", { class: "tavernary-companion-install-version-chooser-backdrop", children: /* @__PURE__ */ u3(
-      "section",
-      {
-        ref: surfaceRef,
-        class: "tavernary-companion-install-version-chooser",
-        role: "dialog",
-        "aria-labelledby": headingId,
-        "data-project-name": projectName,
-        style: { position: "fixed", ...position },
-        children: [
-          /* @__PURE__ */ u3("h2", { id: headingId, children: "Which version would you like?" }),
-          notice ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-install-version-chooser__notice", role: "status", children: notice }) : null,
-          /* @__PURE__ */ u3(
-            "button",
-            {
-              ref: checkedRef,
-              type: "button",
-              "aria-label": "Checked version",
-              "aria-describedby": checkedDescribedBy,
-              disabled: choice.checked.disabledReason !== null,
-              onClick: () => select(choice.checked.selection),
-              children: [
-                /* @__PURE__ */ u3("strong", { children: "Checked version" }),
-                /* @__PURE__ */ u3("span", { id: checkedDescriptionId, children: checkedDescription }),
-                choice.checked.disabledReason ? /* @__PURE__ */ u3("span", { id: checkedDisabledId, children: choice.checked.disabledReason }) : null
-              ]
-            }
-          ),
-          /* @__PURE__ */ u3(
-            "button",
-            {
-              ref: newestRef,
-              type: "button",
-              "aria-label": "Newest version",
-              "aria-describedby": newestDescriptionId,
-              onClick: () => select(choice.newest.selection),
-              children: [
-                /* @__PURE__ */ u3("strong", { children: "Newest version" }),
-                /* @__PURE__ */ u3("span", { id: newestDescriptionId, children: "The latest version from the creator. It may include changes TavernKeeper hasn't checked yet." })
-              ]
-            }
-          ),
-          /* @__PURE__ */ u3(
-            "button",
-            {
-              type: "button",
-              class: "tavernary-companion-install-version-chooser__cancel",
-              onClick: cancel,
-              children: "Cancel"
-            }
-          )
-        ]
-      }
-    ) }),
-    resolveOverlayPortalTarget(anchor)
+  const conclusions = history.slice(-12);
+  if (conclusions.length < 2) return null;
+  return /* @__PURE__ */ u3(
+    "span",
+    {
+      class: "tavernary-companion-tavernkeeper-history",
+      role: "group",
+      "aria-label": "Recent TavernKeeper scan history",
+      children: conclusions.map((conclusion) => {
+        const label2 = `TavernKeeper scan history: ${riskLabels[conclusion.riskLevel]} on ${formatDate2(conclusion.assessedAt)} at commit ${conclusion.scannedSha.slice(0, 7)} under policy ${conclusion.scannerPolicyVersion}`;
+        return /* @__PURE__ */ u3(
+          "a",
+          {
+            "aria-label": `Open TavernKeeper report for ${label2}`,
+            href: conclusion.reportUrl,
+            rel: "noopener noreferrer",
+            target: "_blank",
+            children: /* @__PURE__ */ u3("i", { class: `risk-${conclusion.riskLevel}`, role: "img", "aria-label": label2 })
+          },
+          conclusion.reportId
+        );
+      })
+    }
   );
 }
-function dispatchPreparedInstallChoice(choice, onInstall, onChoose) {
-  if (choice.kind === "single") onInstall(choice.selection);
-  else onChoose(choice);
-}
-function checkedVersionDescription(checkedAt) {
-  const date = new Date(checkedAt);
-  const label2 = Number.isNaN(date.valueOf()) ? "recently" : new Intl.DateTimeFormat("en-US", {
+function formatDate2(value) {
+  return new Intl.DateTimeFormat("en-US", {
     day: "numeric",
-    month: "short",
-    timeZone: "UTC"
-  }).format(date);
-  return `TavernKeeper checked this version on ${label2}.`;
+    month: "long",
+    timeZone: "UTC",
+    year: "numeric"
+  }).format(new Date(value));
 }
-function positionChooser(anchor, chooser) {
-  const viewport = viewportBounds();
-  const maxWidth = Math.max(0, viewport.width - VIEWPORT_MARGIN * 2);
-  const width = Math.min(360, maxWidth);
-  const measuredWidth = Math.min(chooser.width || width, maxWidth);
-  const measuredHeight = Math.min(chooser.height, viewport.height - VIEWPORT_MARGIN * 2);
-  const left = clamp(
-    anchor.right - measuredWidth,
-    viewport.left + VIEWPORT_MARGIN,
-    viewport.left + viewport.width - measuredWidth - VIEWPORT_MARGIN
-  );
-  const below = anchor.bottom + ANCHOR_GAP;
-  const above = anchor.top - measuredHeight - ANCHOR_GAP;
-  const top = clamp(
-    below + measuredHeight <= viewport.top + viewport.height - VIEWPORT_MARGIN ? below : above,
-    viewport.top + VIEWPORT_MARGIN,
-    viewport.top + viewport.height - measuredHeight - VIEWPORT_MARGIN
-  );
-  return { left, top, width, visibility: "visible" };
+
+// src/ui/projects/tavernkeeper-scan-indicator.tsx
+var encodedCitationPattern = /\s*\uE200cite\uE202[^\uE201]*\uE201/giu;
+var findingReferencePattern = /\s*\((?:V\d+\s+)?findings?\s+[^)]*\b[0-9a-f]{64}\b[^)]*\)/giu;
+var bracketedFindingReferencePattern = /\s*\[[0-9a-f]{64}(?:,\s*[0-9a-f]{64})*\]/giu;
+var danglingFindingReferencePattern = /\s*\[(?=[0-9a-f]{64}(?:,|$))[\s\S]*$/iu;
+var bareFindingReferencePattern = /(?:Findings:\s*)?(?:\[|\(|【)?[0-9a-f]{64}\b(?:\]|\)|】)?/giu;
+var invisibleFormattingPattern = /[\u200B-\u200D\u2060\uFEFF]/gu;
+function conciseAssessmentSummary(summary) {
+  const withoutArtifacts = summary.replace(encodedCitationPattern, "").replace(findingReferencePattern, "").replace(bracketedFindingReferencePattern, "").replace(danglingFindingReferencePattern, "").replace(bareFindingReferencePattern, "").replace(invisibleFormattingPattern, "");
+  let display = withoutArtifacts.replace(/\s+([,.;!?])/gu, "$1").replace(/\s+/gu, " ").trim();
+  if (withoutArtifacts !== summary && !/[.!?]["')\]]?$/u.test(display)) {
+    const lastCompleteSentence = Math.max(
+      display.lastIndexOf("."),
+      display.lastIndexOf("!"),
+      display.lastIndexOf("?")
+    );
+    if (lastCompleteSentence >= 0) display = display.slice(0, lastCompleteSentence + 1);
+    else if (display) display += ".";
+  }
+  return display;
+}
+function stateCopy(status) {
+  if (status.report) {
+    const freshness = status.freshness === "stale" ? status.currentSha?.toLowerCase() === status.report.scannedSha.toLowerCase() ? " This version was scanned, but the assessment is due for refresh." : " The creator has published changes since this scan." : status.freshness === "unavailable" ? " Tavernary cannot confirm the repository's current commit, so freshness is unavailable." : "";
+    return `${conciseAssessmentSummary(status.report.summary)}${freshness}`;
+  }
+  if (status.state === "unsupported") {
+    return "TavernKeeper scanning is not supported for this project's source.";
+  }
+  if (status.freshness === "unavailable") {
+    return "Tavernary cannot confirm the repository's current commit, and no completed assessment is available.";
+  }
+  return "This project hasn't been scanned by TavernKeeper.";
+}
+var freshnessLabels = {
+  current: "current",
+  stale: "stale assessment",
+  unavailable: "freshness unavailable",
+  unassessed: "not assessed",
+  unsupported: "unsupported source"
+};
+var riskGradeLabels = {
+  low: "Low concern",
+  material: "Material concern",
+  high: "Immediate danger"
+};
+var dangerBasisLabels = {
+  malicious_or_compromised: "Credible malicious or compromised behavior",
+  critical_exploitable_vulnerability: "Critical, readily exploitable vulnerability",
+  mixed: "Malicious or compromised behavior and an exploitable vulnerability"
+};
+function countLabel(count, singular, plural = `${singular}s`) {
+  return `${count} ${count === 1 ? singular : plural}`;
+}
+function accessibleStatus(status) {
+  if (!status.report) {
+    if (status.freshness === "unsupported") return "Unsupported source.";
+    if (status.freshness === "unavailable") return "Not assessed; freshness unavailable.";
+    return "Not assessed.";
+  }
+  return `${riskGradeLabels[status.report.riskLevel]}; ${freshnessLabels[status.freshness]}.`;
+}
+var CLOSE_DELAY = 150;
+var VIEWPORT_MARGIN = 8;
+var POPOVER_GAP = 8;
+var activeDismiss = null;
+function clamp(value, minimum, maximum) {
+  return Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
 }
 function viewportBounds() {
   const viewport = window.visualViewport;
@@ -17031,8 +16962,414 @@ function viewportBounds() {
     width: viewport.width
   } : { height: window.innerHeight, left: 0, top: 0, width: window.innerWidth };
 }
-function clamp(value, minimum, maximum) {
-  return Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
+function popoverPosition(trigger, popover) {
+  const viewport = viewportBounds();
+  const left = clamp(
+    trigger.left + trigger.width / 2 - popover.width / 2,
+    viewport.left + VIEWPORT_MARGIN,
+    viewport.left + viewport.width - popover.width - VIEWPORT_MARGIN
+  );
+  const above = trigger.top - popover.height - POPOVER_GAP;
+  const below = trigger.bottom + POPOVER_GAP;
+  const top = clamp(
+    above >= viewport.top + VIEWPORT_MARGIN ? above : below,
+    viewport.top + VIEWPORT_MARGIN,
+    viewport.top + viewport.height - popover.height - VIEWPORT_MARGIN
+  );
+  return { left, top };
+}
+function formatDate3(scannedAt) {
+  return new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "long",
+    timeZone: "UTC",
+    year: "numeric"
+  }).format(new Date(scannedAt));
+}
+function TavernKeeperScanIndicator({
+  projectId,
+  status,
+  inlinePanel = false
+}) {
+  const [open, setOpen] = d2(false);
+  const [position, setPosition] = d2(null);
+  const triggerRef = A2(null);
+  const popoverRef = A2(null);
+  const firstLinkRef = A2(null);
+  const closeTimer = A2(null);
+  const openRef = A2(false);
+  const pointerOpenState = A2(null);
+  const suppressNextFocusOpen = A2(false);
+  const content = stateCopy(status);
+  const report2 = status.report;
+  const popoverId = `tavernkeeper-scan-${projectId}`;
+  const headingId = `${popoverId}-heading`;
+  const clearCloseTimer = q2(() => {
+    if (closeTimer.current) {
+      clearTimeout(closeTimer.current);
+      closeTimer.current = null;
+    }
+  }, []);
+  const closePopover = q2(() => {
+    clearCloseTimer();
+    openRef.current = false;
+    setOpen(false);
+    setPosition(null);
+  }, [clearCloseTimer]);
+  const openPopover = q2(() => {
+    clearCloseTimer();
+    if (activeDismiss && activeDismiss !== closePopover) activeDismiss();
+    openRef.current = true;
+    setOpen(true);
+  }, [clearCloseTimer, closePopover]);
+  const openFromFocus = q2(() => {
+    if (suppressNextFocusOpen.current) {
+      suppressNextFocusOpen.current = false;
+      return;
+    }
+    openPopover();
+  }, [openPopover]);
+  const delayClose = q2(() => {
+    clearCloseTimer();
+    closeTimer.current = setTimeout(closePopover, CLOSE_DELAY);
+  }, [clearCloseTimer, closePopover]);
+  const openFromPointer = q2(
+    (event) => {
+      if (event.pointerType !== "touch") {
+        pointerOpenState.current ??= openRef.current;
+        openPopover();
+      }
+    },
+    [openPopover]
+  );
+  const delayCloseFromPointer = q2(
+    (event) => {
+      if (event.pointerType !== "touch") {
+        pointerOpenState.current = null;
+        delayClose();
+      }
+    },
+    [delayClose]
+  );
+  const rememberPointerOpenState = q2(() => {
+    pointerOpenState.current ??= openRef.current;
+  }, []);
+  const togglePopover = q2(() => {
+    const wasOpenBeforePointerFocus = pointerOpenState.current ?? openRef.current;
+    pointerOpenState.current = null;
+    if (wasOpenBeforePointerFocus) closePopover();
+    else openPopover();
+  }, [closePopover, openPopover]);
+  const containsInteractiveElement = q2((target) => {
+    if (!(target instanceof Node)) return false;
+    return Boolean(triggerRef.current?.contains(target) || popoverRef.current?.contains(target));
+  }, []);
+  const closeOnFocusExit = q2(
+    (event) => {
+      if (!containsInteractiveElement(event.relatedTarget)) delayClose();
+    },
+    [containsInteractiveElement, delayClose]
+  );
+  const focusFirstLink = q2(
+    (event) => {
+      if (event.key !== "Tab" || event.shiftKey || !open || !firstLinkRef.current) return;
+      event.preventDefault();
+      firstLinkRef.current.focus();
+    },
+    [open]
+  );
+  const focusTrigger = q2((event) => {
+    if (event.key !== "Tab" || !event.shiftKey) return;
+    event.preventDefault();
+    triggerRef.current?.focus();
+  }, []);
+  const updatePosition = q2(() => {
+    if (!triggerRef.current || !popoverRef.current) return;
+    setPosition(
+      popoverPosition(
+        triggerRef.current.getBoundingClientRect(),
+        popoverRef.current.getBoundingClientRect()
+      )
+    );
+  }, []);
+  h2(() => () => clearCloseTimer(), [clearCloseTimer]);
+  h2(() => {
+    const trigger = triggerRef.current;
+    if (!trigger) return;
+    trigger.addEventListener("focus", openFromFocus);
+    return () => trigger.removeEventListener("focus", openFromFocus);
+  }, [openFromFocus]);
+  h2(() => {
+    if (!open) return;
+    activeDismiss = closePopover;
+    return () => {
+      if (activeDismiss === closePopover) activeDismiss = null;
+    };
+  }, [closePopover, open]);
+  _2(() => {
+    if (!open) return;
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, { capture: true, passive: true });
+    window.visualViewport?.addEventListener("resize", updatePosition);
+    window.visualViewport?.addEventListener("scroll", updatePosition);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+      window.visualViewport?.removeEventListener("resize", updatePosition);
+      window.visualViewport?.removeEventListener("scroll", updatePosition);
+    };
+  }, [open, updatePosition]);
+  h2(() => {
+    if (!open) return;
+    const dismissOnPointerDown = (event) => {
+      if (!containsInteractiveElement(event.target)) delayClose();
+    };
+    const dismissOnEscape = (event) => {
+      if (event.key === "Escape") {
+        event.preventDefault();
+        event.stopPropagation();
+        event.stopImmediatePropagation();
+        closePopover();
+        suppressNextFocusOpen.current = true;
+        triggerRef.current?.focus();
+        queueMicrotask(() => {
+          suppressNextFocusOpen.current = false;
+        });
+      }
+    };
+    const dismissOnFocus = (event) => {
+      if (!containsInteractiveElement(event.target)) delayClose();
+    };
+    document.addEventListener("pointerdown", dismissOnPointerDown);
+    document.addEventListener("keydown", dismissOnEscape, true);
+    document.addEventListener("focusin", dismissOnFocus);
+    return () => {
+      document.removeEventListener("pointerdown", dismissOnPointerDown);
+      document.removeEventListener("keydown", dismissOnEscape, true);
+      document.removeEventListener("focusin", dismissOnFocus);
+    };
+  }, [closePopover, containsInteractiveElement, delayClose, open]);
+  return /* @__PURE__ */ u3(S, { children: [
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        "aria-controls": popoverId,
+        "aria-expanded": open,
+        "aria-label": `TavernKeeper scan: ${accessibleStatus(status)}`,
+        class: `tavernary-companion-tavernkeeper-trigger state-${status.state}`,
+        onBlur: closeOnFocusExit,
+        onClick: togglePopover,
+        onKeyDown: focusFirstLink,
+        onPointerDown: rememberPointerOpenState,
+        onPointerEnter: openFromPointer,
+        onPointerLeave: delayCloseFromPointer,
+        ref: triggerRef,
+        type: "button",
+        children: [
+          /* @__PURE__ */ u3(ScanIcon, {}),
+          status.freshness === "stale" ? /* @__PURE__ */ u3(ClockIcon, {}) : null
+        ]
+      }
+    ),
+    open && typeof document !== "undefined" ? (() => {
+      const panel = /* @__PURE__ */ u3(
+        "section",
+        {
+          "aria-labelledby": headingId,
+          class: "tavernary-companion-tavernkeeper-popover",
+          id: popoverId,
+          onBlurCapture: closeOnFocusExit,
+          onFocusCapture: openPopover,
+          onPointerEnter: openFromPointer,
+          onPointerLeave: delayCloseFromPointer,
+          ref: popoverRef,
+          role: "dialog",
+          style: {
+            ...position,
+            visibility: position ? "visible" : "hidden"
+          },
+          children: [
+            /* @__PURE__ */ u3("header", { class: "tavernary-companion-tavernkeeper-popover__header", children: [
+              /* @__PURE__ */ u3("h2", { id: headingId, children: "TavernKeeper Scan Results" }),
+              report2 ? /* @__PURE__ */ u3(
+                "span",
+                {
+                  class: `tavernary-companion-tavernkeeper-popover__status state-${status.state}`,
+                  children: [
+                    /* @__PURE__ */ u3("strong", { children: riskGradeLabels[report2.riskLevel] }),
+                    /* @__PURE__ */ u3("span", { children: freshnessLabels[status.freshness] })
+                  ]
+                }
+              ) : null
+            ] }),
+            report2 ? /* @__PURE__ */ u3(S, { children: [
+              /* @__PURE__ */ u3("p", { class: "tavernary-companion-tavernkeeper-summary", children: content }),
+              /* @__PURE__ */ u3(
+                "p",
+                {
+                  "aria-label": "Assessment finding counts",
+                  class: "tavernary-companion-tavernkeeper-counts",
+                  children: [
+                    /* @__PURE__ */ u3("span", { children: countLabel(report2.minorCautions, "minor caution") }),
+                    /* @__PURE__ */ u3("span", { children: countLabel(report2.materialConcerns, "material concern") }),
+                    /* @__PURE__ */ u3("span", { children: countLabel(report2.highDanger, "high-danger finding") })
+                  ]
+                }
+              ),
+              /* @__PURE__ */ u3("dl", { class: "tavernary-companion-tavernkeeper-details", children: [
+                report2.riskLevel === "high" && report2.dangerBasis !== "none" ? /* @__PURE__ */ u3("div", { children: [
+                  /* @__PURE__ */ u3("dt", { children: "Danger basis" }),
+                  /* @__PURE__ */ u3("dd", { children: dangerBasisLabels[report2.dangerBasis] })
+                ] }) : null,
+                /* @__PURE__ */ u3("div", { children: [
+                  /* @__PURE__ */ u3("dt", { children: "Scanned" }),
+                  /* @__PURE__ */ u3("dd", { children: [
+                    /* @__PURE__ */ u3("time", { dateTime: report2.scannedAt, children: formatDate3(report2.scannedAt) }),
+                    /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \xB7 " }),
+                    /* @__PURE__ */ u3(
+                      "a",
+                      {
+                        "aria-label": `Browse scanned source at commit ${report2.scannedSha} on GitHub`,
+                        href: report2.treeUrl,
+                        onKeyDown: focusTrigger,
+                        ref: firstLinkRef,
+                        rel: "noopener noreferrer",
+                        target: "_blank",
+                        children: [
+                          report2.scannedSha.slice(0, 7),
+                          /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \u2197" })
+                        ]
+                      }
+                    )
+                  ] })
+                ] }),
+                /* @__PURE__ */ u3("div", { children: [
+                  /* @__PURE__ */ u3("dt", { children: "Assessed" }),
+                  /* @__PURE__ */ u3("dd", { children: [
+                    /* @__PURE__ */ u3("time", { dateTime: report2.assessedAt, children: formatDate3(report2.assessedAt) }),
+                    " by Tavernary"
+                  ] })
+                ] })
+              ] }),
+              status.history.length >= 2 ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-tavernkeeper-recent", children: [
+                /* @__PURE__ */ u3("span", { children: "Recent scans" }),
+                /* @__PURE__ */ u3(TavernKeeperHistoryStrip, { history: status.history })
+              ] }) : null,
+              /* @__PURE__ */ u3("footer", { class: "tavernary-companion-tavernkeeper-actions", children: [
+                /* @__PURE__ */ u3("a", { href: report2.reportUrl, rel: "noopener noreferrer", target: "_blank", children: [
+                  "View full report",
+                  /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \u2197" })
+                ] }),
+                status.historyUrl ? /* @__PURE__ */ u3(
+                  "a",
+                  {
+                    href: externalTavernaryUrl(status.historyUrl),
+                    rel: "noopener noreferrer",
+                    target: "_blank",
+                    children: [
+                      "View scan history",
+                      /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \u2192" })
+                    ]
+                  }
+                ) : null
+              ] })
+            ] }) : /* @__PURE__ */ u3("p", { class: "tavernary-companion-tavernkeeper-summary", children: content })
+          ]
+        }
+      );
+      return inlinePanel ? panel : $2(panel, resolveOverlayPortalTarget(triggerRef.current));
+    })() : null
+  ] });
+}
+function externalTavernaryUrl(value) {
+  return new URL(value, "https://tavernary.org").href;
+}
+function ScanIcon() {
+  return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", "data-icon": "scan-fill", fill: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M4.257 5.671l2.137 2.137a7 7 0 1 0 1.414-1.414L5.67 4.257A9.959 9.959 0 0 1 12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12c0-2.401.846-4.605 2.257-6.329zm3.571 3.572L12 13.414 13.414 12 9.243 7.828a5 5 0 1 1-1.414 1.414z" }) });
+}
+function ClockIcon() {
+  return /* @__PURE__ */ u3(
+    "svg",
+    {
+      "aria-hidden": "true",
+      class: "tavernary-companion-tavernkeeper-freshness-clock",
+      "data-icon": "clock",
+      fill: "none",
+      stroke: "currentColor",
+      viewBox: "0 0 24 24",
+      children: /* @__PURE__ */ u3(
+        "path",
+        {
+          d: "M12 7V12L14.5 13.5M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z",
+          "stroke-linecap": "round",
+          "stroke-linejoin": "round",
+          "stroke-width": "2"
+        }
+      )
+    }
+  );
+}
+
+// src/ui/lifecycle/version-choice-option.tsx
+var LATEST_SCANNED_LABEL = "Latest scanned";
+var LATEST_CREATOR_LABEL = "Latest from creator";
+var LATEST_CREATOR_DESCRIPTION = "Newer changes have not been scanned yet.";
+function VersionChoiceOption({
+  buttonRef,
+  description,
+  descriptionId,
+  disabledReason = null,
+  disabledReasonId,
+  label: label2,
+  onSelect,
+  scan = null
+}) {
+  const describedBy = disabledReason && disabledReasonId ? `${descriptionId} ${disabledReasonId}` : descriptionId;
+  return /* @__PURE__ */ u3("div", { class: "tavernary-companion-version-choice-option", children: [
+    /* @__PURE__ */ u3(
+      "button",
+      {
+        ref: buttonRef,
+        type: "button",
+        class: "tavernary-companion-version-choice-option__select",
+        "aria-label": label2,
+        "aria-describedby": describedBy,
+        disabled: disabledReason !== null,
+        onClick: onSelect,
+        children: [
+          /* @__PURE__ */ u3("strong", { children: label2 }),
+          /* @__PURE__ */ u3("span", { id: descriptionId, children: description }),
+          disabledReason && disabledReasonId ? /* @__PURE__ */ u3("span", { id: disabledReasonId, children: disabledReason }) : null
+        ]
+      }
+    ),
+    scan ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-version-choice-option__scan", children: /* @__PURE__ */ u3(TavernKeeperScanIndicator, { projectId: scan.projectId, status: scan.status, inlinePanel: true }) }) : null
+  ] });
+}
+function scannedVersionDescription(checkedAt, olderThanLatest = true) {
+  const date = new Date(checkedAt);
+  const label2 = Number.isNaN(date.valueOf()) ? "recently" : new Intl.DateTimeFormat("en-US", {
+    day: "numeric",
+    month: "short",
+    timeZone: "UTC"
+  }).format(date);
+  return olderThanLatest ? `Scanned ${label2} \xB7 older than latest.` : `Scanned ${label2}.`;
+}
+function matchingScanStatus(status, target) {
+  if (!status?.report) return null;
+  if (status.report.reportId !== target.reportId) return null;
+  if (status.report.scannedSha.toLowerCase() !== target.requestedSha.toLowerCase()) return null;
+  return status;
+}
+function isVersionChoiceOwnedTarget(surface, target) {
+  if (!(target instanceof Node)) return false;
+  if (surface?.contains(target)) return true;
+  const element = target instanceof Element ? target : target.parentElement;
+  return Boolean(element?.closest(".tavernary-companion-tavernkeeper-popover"));
+}
+function hasOpenTavernKeeperPanel(projectId) {
+  return document.getElementById(`tavernkeeper-scan-${projectId}`) !== null;
 }
 
 // src/ui/kits/kit-version-choices.tsx
@@ -17066,7 +17403,7 @@ function ProjectVersionChoice({
   if (!choice) {
     return /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-version-choice", role: "status", children: [
       /* @__PURE__ */ u3("strong", { children: step2.projectName }),
-      /* @__PURE__ */ u3("span", { children: "We couldn't find the newest version. Try again." })
+      /* @__PURE__ */ u3("span", { children: "We couldn't find the latest version from the creator. Try again." })
     ] });
   }
   if (choice.kind === "single") {
@@ -17087,7 +17424,7 @@ function ProjectVersionChoice({
         {
           type: "radio",
           name: `kit-version-${step2.projectId}`,
-          "aria-label": `Checked version for ${step2.projectName}`,
+          "aria-label": `${LATEST_SCANNED_LABEL} for ${step2.projectName}`,
           "aria-describedby": choice.checked.disabledReason ? `${checkedDescriptionId} ${checkedDisabledId}` : checkedDescriptionId,
           checked: Boolean(selected && sameInstallTarget(selected, choice.checked.target)),
           disabled: choice.checked.disabledReason !== null,
@@ -17095,8 +17432,8 @@ function ProjectVersionChoice({
         }
       ),
       /* @__PURE__ */ u3("span", { children: [
-        /* @__PURE__ */ u3("strong", { children: "Checked version" }),
-        /* @__PURE__ */ u3("small", { id: checkedDescriptionId, children: checkedVersionDescription(choice.checked.target.checkedAt) }),
+        /* @__PURE__ */ u3("strong", { children: LATEST_SCANNED_LABEL }),
+        /* @__PURE__ */ u3("small", { id: checkedDescriptionId, children: scannedVersionDescription(choice.checked.target.checkedAt) }),
         choice.checked.disabledReason ? /* @__PURE__ */ u3("small", { id: checkedDisabledId, children: choice.checked.disabledReason }) : null
       ] })
     ] }),
@@ -17106,24 +17443,24 @@ function ProjectVersionChoice({
         {
           type: "radio",
           name: `kit-version-${step2.projectId}`,
-          "aria-label": `Newest version for ${step2.projectName}`,
+          "aria-label": `${LATEST_CREATOR_LABEL} for ${step2.projectName}`,
           "aria-describedby": newestDescriptionId,
           checked: Boolean(selected && sameInstallTarget(selected, choice.newest)),
           onChange: () => onChange(choice.newest)
         }
       ),
       /* @__PURE__ */ u3("span", { children: [
-        /* @__PURE__ */ u3("strong", { children: "Newest version" }),
+        /* @__PURE__ */ u3("strong", { children: LATEST_CREATOR_LABEL }),
         /* @__PURE__ */ u3("small", { id: newestDescriptionId, children: targetDescription(choice.newest) })
       ] })
     ] })
   ] });
 }
 function targetLabel(target) {
-  return target.kind === "checked" ? "Checked version" : "Newest version";
+  return target.kind === "checked" ? LATEST_SCANNED_LABEL : LATEST_CREATOR_LABEL;
 }
 function targetDescription(target) {
-  return target.kind === "checked" ? checkedVersionDescription(target.checkedAt) : "The latest version from the creator. It may include changes TavernKeeper hasn't checked yet.";
+  return target.kind === "checked" ? scannedVersionDescription(target.checkedAt, false) : LATEST_CREATOR_DESCRIPTION;
 }
 
 // src/ui/kits/kit-preflight-dialog.tsx
@@ -17262,10 +17599,10 @@ function OperationReceipt({
 function receiptHeading2(receipt) {
   if (receipt.status === "succeeded") {
     if (receipt.kind === "install" && receipt.installProvenance?.targetKind === "checked") {
-      return "Installed the checked version.";
+      return "Installed the latest scanned version.";
     }
     if (receipt.kind === "install" && receipt.installProvenance?.targetKind === "newest") {
-      return "Installed the newest version.";
+      return "Installed the latest version from the creator.";
     }
     return `${receipt.projectName} ${receipt.kind === "install" ? "installed" : "removed"} and verified`;
   }
@@ -17465,10 +17802,10 @@ function OperationSuccessNotification({
 }
 function successTitle(receipt) {
   if (receipt.kind === "install" && receipt.installProvenance?.targetKind === "checked") {
-    return "Installed the checked version.";
+    return "Installed the latest scanned version.";
   }
   if (receipt.kind === "install" && receipt.installProvenance?.targetKind === "newest") {
-    return "Installed the newest version.";
+    return "Installed the latest version from the creator.";
   }
   return `${receipt.projectName} ${receipt.kind === "install" ? "installed" : "removed"}`;
 }
@@ -17597,7 +17934,7 @@ function updateSuccessLabel(receipt) {
     return "Updated to the latest scanned version.";
   }
   if (receipt.installProvenance?.targetKind === "newest") {
-    return "Updated to the newest version.";
+    return "Updated to the latest version from the creator.";
   }
   return `${receipt.projectName} updated.`;
 }
@@ -17610,6 +17947,288 @@ function phaseLabel(phase2) {
     verifying: "Verifying installed state\u2026",
     recording: "Recording verified state\u2026"
   }[phase2] ?? "Working\u2026";
+}
+
+// src/ui/lifecycle/install-version-awareness.tsx
+function InstallVersionAwareness({
+  projectId,
+  projectName,
+  anchor,
+  selection,
+  onConfirm,
+  onCancel
+}) {
+  const surfaceRef = A2(null);
+  const confirmRef = A2(null);
+  const settled = A2(false);
+  const headingId = `install-latest-${projectId}-heading`;
+  const restoreFocus = q2(() => {
+    if (anchor.isConnected) anchor.focus({ preventScroll: true });
+  }, [anchor]);
+  const cancel = q2(() => {
+    if (settled.current) return;
+    settled.current = true;
+    onCancel();
+    restoreFocus();
+    queueMicrotask(restoreFocus);
+  }, [onCancel, restoreFocus]);
+  const confirm = q2(() => {
+    if (settled.current) return;
+    settled.current = true;
+    restoreFocus();
+    onConfirm(selection);
+  }, [onConfirm, restoreFocus, selection]);
+  h2(() => {
+    const dismissEscape = (event) => {
+      if (event.key !== "Escape") return;
+      event.preventDefault();
+      event.stopPropagation();
+      cancel();
+    };
+    const containFocus = (event) => {
+      if (event.key !== "Tab") return;
+      const controls = surfaceRef.current?.querySelectorAll(
+        'button:not([disabled]), a[href], input:not([disabled]), [tabindex="0"]'
+      );
+      if (!controls?.length) return;
+      const first = controls[0];
+      const last2 = controls[controls.length - 1];
+      if (event.shiftKey && document.activeElement === first) {
+        event.preventDefault();
+        last2.focus();
+      } else if (!event.shiftKey && document.activeElement === last2) {
+        event.preventDefault();
+        first.focus();
+      } else if (!surfaceRef.current?.contains(document.activeElement)) {
+        event.preventDefault();
+        (event.shiftKey ? last2 : first).focus();
+      }
+    };
+    document.addEventListener("keydown", dismissEscape, true);
+    document.addEventListener("keydown", containFocus, true);
+    confirmRef.current?.focus({ preventScroll: true });
+    return () => {
+      document.removeEventListener("keydown", dismissEscape, true);
+      document.removeEventListener("keydown", containFocus, true);
+    };
+  }, [cancel]);
+  if (typeof document === "undefined") return null;
+  return $2(
+    /* @__PURE__ */ u3(
+      "div",
+      {
+        class: "tavernary-companion-install-version-chooser-backdrop is-awareness",
+        onPointerDown: (event) => {
+          if (event.target === event.currentTarget) cancel();
+        },
+        children: /* @__PURE__ */ u3(
+          "section",
+          {
+            ref: surfaceRef,
+            class: "tavernary-companion-install-version-chooser tavernary-companion-install-version-awareness",
+            role: "dialog",
+            "aria-labelledby": headingId,
+            "aria-modal": "true",
+            "data-project-name": projectName,
+            children: [
+              /* @__PURE__ */ u3("h2", { id: headingId, children: "Install latest from creator?" }),
+              /* @__PURE__ */ u3("p", { children: "This installs the creator\u2019s latest version." }),
+              /* @__PURE__ */ u3("p", { children: "TavernKeeper has not scanned this exact version." }),
+              /* @__PURE__ */ u3("div", { class: "tavernary-companion-install-version-awareness__actions", children: [
+                /* @__PURE__ */ u3("button", { type: "button", onClick: cancel, children: "Cancel" }),
+                /* @__PURE__ */ u3("button", { ref: confirmRef, type: "button", onClick: confirm, children: "Install latest" })
+              ] })
+            ]
+          }
+        )
+      }
+    ),
+    resolveOverlayPortalTarget(anchor)
+  );
+}
+
+// src/ui/lifecycle/install-version-chooser.tsx
+var VIEWPORT_MARGIN3 = 8;
+var ANCHOR_GAP = 8;
+function InstallVersionChooser({
+  projectId,
+  projectName,
+  anchor,
+  choice,
+  scanStatus = null,
+  notice = null,
+  onSelect,
+  onCancel
+}) {
+  const surfaceRef = A2(null);
+  const checkedRef = A2(null);
+  const newestRef = A2(null);
+  const settled = A2(false);
+  const [position, setPosition] = d2({
+    left: VIEWPORT_MARGIN3,
+    top: VIEWPORT_MARGIN3,
+    visibility: "hidden"
+  });
+  const headingId = `install-version-${projectId}-heading`;
+  const checkedDescriptionId = `${headingId}-checked-description`;
+  const checkedDisabledId = `${headingId}-checked-disabled`;
+  const newestDescriptionId = `${headingId}-newest-description`;
+  const restoreFocus = q2(() => {
+    if (anchor.isConnected) anchor.focus({ preventScroll: true });
+  }, [anchor]);
+  const cancel = q2(() => {
+    if (settled.current) return;
+    settled.current = true;
+    onCancel();
+    restoreFocus();
+    queueMicrotask(restoreFocus);
+  }, [onCancel, restoreFocus]);
+  const select = q2(
+    (selection) => {
+      if (settled.current) return;
+      settled.current = true;
+      restoreFocus();
+      onSelect(selection);
+    },
+    [onSelect, restoreFocus]
+  );
+  const updatePosition = q2(() => {
+    const surface = surfaceRef.current;
+    if (!surface) return;
+    setPosition(positionChooser(anchor.getBoundingClientRect(), surface.getBoundingClientRect()));
+  }, [anchor]);
+  _2(() => {
+    updatePosition();
+    window.addEventListener("resize", updatePosition);
+    window.addEventListener("scroll", updatePosition, true);
+    window.visualViewport?.addEventListener("resize", updatePosition);
+    window.visualViewport?.addEventListener("scroll", updatePosition);
+    const observer = typeof ResizeObserver === "undefined" ? null : new ResizeObserver(updatePosition);
+    observer?.observe(anchor);
+    if (surfaceRef.current) observer?.observe(surfaceRef.current);
+    return () => {
+      window.removeEventListener("resize", updatePosition);
+      window.removeEventListener("scroll", updatePosition, true);
+      window.visualViewport?.removeEventListener("resize", updatePosition);
+      window.visualViewport?.removeEventListener("scroll", updatePosition);
+      observer?.disconnect();
+    };
+  }, [anchor, updatePosition]);
+  h2(() => {
+    const dismissOutside = (event) => {
+      const target = event.target;
+      if (isVersionChoiceOwnedTarget(surfaceRef.current, target)) return;
+      cancel();
+    };
+    const dismissEscape = (event) => {
+      if (event.key !== "Escape") return;
+      if (hasOpenTavernKeeperPanel(projectId)) return;
+      event.preventDefault();
+      event.stopPropagation();
+      cancel();
+    };
+    document.addEventListener("pointerdown", dismissOutside);
+    document.addEventListener("keydown", dismissEscape, true);
+    const firstChoice = choice.checked.disabledReason ? newestRef.current : checkedRef.current;
+    firstChoice?.focus({ preventScroll: true });
+    return () => {
+      document.removeEventListener("pointerdown", dismissOutside);
+      document.removeEventListener("keydown", dismissEscape, true);
+    };
+  }, [cancel, choice.checked.disabledReason, projectId]);
+  if (typeof document === "undefined") return null;
+  const checkedDescription = scannedVersionDescription(choice.checked.selection.target.checkedAt);
+  const checkedScanStatus = matchingScanStatus(scanStatus, choice.checked.selection.target);
+  return $2(
+    /* @__PURE__ */ u3("div", { class: "tavernary-companion-install-version-chooser-backdrop", children: /* @__PURE__ */ u3(
+      "section",
+      {
+        ref: surfaceRef,
+        class: "tavernary-companion-install-version-chooser",
+        role: "dialog",
+        "aria-labelledby": headingId,
+        "data-project-name": projectName,
+        style: { position: "fixed", ...position },
+        children: [
+          /* @__PURE__ */ u3("h2", { id: headingId, children: [
+            "Choose a version for ",
+            projectName
+          ] }),
+          notice ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-install-version-chooser__notice", role: "status", children: notice }) : null,
+          /* @__PURE__ */ u3(
+            VersionChoiceOption,
+            {
+              buttonRef: checkedRef,
+              label: LATEST_SCANNED_LABEL,
+              description: checkedDescription,
+              descriptionId: checkedDescriptionId,
+              disabledReason: choice.checked.disabledReason,
+              disabledReasonId: checkedDisabledId,
+              onSelect: () => select(choice.checked.selection),
+              scan: checkedScanStatus ? { projectId, status: checkedScanStatus } : null
+            }
+          ),
+          /* @__PURE__ */ u3(
+            VersionChoiceOption,
+            {
+              buttonRef: newestRef,
+              label: LATEST_CREATOR_LABEL,
+              description: LATEST_CREATOR_DESCRIPTION,
+              descriptionId: newestDescriptionId,
+              onSelect: () => select(choice.newest.selection)
+            }
+          ),
+          /* @__PURE__ */ u3(
+            "button",
+            {
+              type: "button",
+              class: "tavernary-companion-install-version-chooser__cancel",
+              onClick: cancel,
+              children: "Cancel"
+            }
+          )
+        ]
+      }
+    ) }),
+    resolveOverlayPortalTarget(anchor)
+  );
+}
+function dispatchPreparedInstallChoice(choice, onInstall, onChoose, onAware) {
+  if (choice.kind === "choose") onChoose(choice);
+  else if (choice.selection.target.kind === "newest") onAware(choice.selection);
+  else onInstall(choice.selection);
+}
+function positionChooser(anchor, chooser) {
+  const viewport = viewportBounds2();
+  const maxWidth = Math.max(0, viewport.width - VIEWPORT_MARGIN3 * 2);
+  const width = Math.min(360, maxWidth);
+  const measuredWidth = Math.min(chooser.width || width, maxWidth);
+  const measuredHeight = Math.min(chooser.height, viewport.height - VIEWPORT_MARGIN3 * 2);
+  const left = clamp2(
+    anchor.right - measuredWidth,
+    viewport.left + VIEWPORT_MARGIN3,
+    viewport.left + viewport.width - measuredWidth - VIEWPORT_MARGIN3
+  );
+  const below = anchor.bottom + ANCHOR_GAP;
+  const above = anchor.top - measuredHeight - ANCHOR_GAP;
+  const top = clamp2(
+    below + measuredHeight <= viewport.top + viewport.height - VIEWPORT_MARGIN3 ? below : above,
+    viewport.top + VIEWPORT_MARGIN3,
+    viewport.top + viewport.height - measuredHeight - VIEWPORT_MARGIN3
+  );
+  return { left, top, width, visibility: "visible" };
+}
+function viewportBounds2() {
+  const viewport = window.visualViewport;
+  return viewport ? {
+    height: viewport.height,
+    left: viewport.offsetLeft,
+    top: viewport.offsetTop,
+    width: viewport.width
+  } : { height: window.innerHeight, left: 0, top: 0, width: window.innerWidth };
+}
+function clamp2(value, minimum, maximum) {
+  return Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
 }
 
 // src/ui/lifecycle/removal-dialog.tsx
@@ -17650,24 +18269,24 @@ function TrustDisclosureDialog({
 }
 
 // src/ui/shared/tooltip.tsx
-var VIEWPORT_MARGIN3 = 8;
+var VIEWPORT_MARGIN4 = 8;
 var TOOLTIP_GAP = 8;
-function clamp2(value, minimum, maximum) {
+function clamp3(value, minimum, maximum) {
   return Math.min(Math.max(value, minimum), maximum);
 }
 function tooltipPosition(trigger, tooltip) {
-  const left = clamp2(
+  const left = clamp3(
     trigger.left + trigger.width / 2 - tooltip.width / 2,
-    VIEWPORT_MARGIN3,
-    window.innerWidth - tooltip.width - VIEWPORT_MARGIN3
+    VIEWPORT_MARGIN4,
+    window.innerWidth - tooltip.width - VIEWPORT_MARGIN4
   );
   const above = trigger.top - tooltip.height - TOOLTIP_GAP;
   const below = trigger.bottom + TOOLTIP_GAP;
-  const preferredTop = above >= VIEWPORT_MARGIN3 ? above : below;
-  const top = clamp2(
+  const preferredTop = above >= VIEWPORT_MARGIN4 ? above : below;
+  const top = clamp3(
     preferredTop,
-    VIEWPORT_MARGIN3,
-    window.innerHeight - tooltip.height - VIEWPORT_MARGIN3
+    VIEWPORT_MARGIN4,
+    window.innerHeight - tooltip.height - VIEWPORT_MARGIN4
   );
   return { left, top };
 }
@@ -18349,7 +18968,7 @@ function InstalledRoute({
         }
       ) : null
     ] }),
-    usingNativeUpdates ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-update-note", children: "SillyTavern can update extensions to their newest version. Updating to a specific TavernKeeper-scanned version isn\u2019t supported by this build." }) : null,
+    usingNativeUpdates ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-update-note", children: "SillyTavern can update extensions to the latest version from their creator. Updating to a specific TavernKeeper-scanned version isn\u2019t supported by this build." }) : null,
     installedKits.length ? /* @__PURE__ */ u3(
       "section",
       {
@@ -19649,452 +20268,6 @@ function ProjectKitControl({
             ),
             compact ? null : /* @__PURE__ */ u3("small", { children: "Kit" })
           ] })
-        }
-      )
-    }
-  );
-}
-
-// src/ui/projects/tavernkeeper-history-strip.tsx
-var riskLabels = {
-  low: "low concern",
-  material: "material concern",
-  high: "immediate danger"
-};
-function TavernKeeperHistoryStrip({
-  history
-}) {
-  const conclusions = history.slice(-12);
-  if (conclusions.length < 2) return null;
-  return /* @__PURE__ */ u3(
-    "span",
-    {
-      class: "tavernary-companion-tavernkeeper-history",
-      role: "group",
-      "aria-label": "Recent TavernKeeper scan history",
-      children: conclusions.map((conclusion) => {
-        const label2 = `TavernKeeper scan history: ${riskLabels[conclusion.riskLevel]} on ${formatDate2(conclusion.assessedAt)} at commit ${conclusion.scannedSha.slice(0, 7)} under policy ${conclusion.scannerPolicyVersion}`;
-        return /* @__PURE__ */ u3(
-          "a",
-          {
-            "aria-label": `Open TavernKeeper report for ${label2}`,
-            href: conclusion.reportUrl,
-            rel: "noopener noreferrer",
-            target: "_blank",
-            children: /* @__PURE__ */ u3("i", { class: `risk-${conclusion.riskLevel}`, role: "img", "aria-label": label2 })
-          },
-          conclusion.reportId
-        );
-      })
-    }
-  );
-}
-function formatDate2(value) {
-  return new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "long",
-    timeZone: "UTC",
-    year: "numeric"
-  }).format(new Date(value));
-}
-
-// src/ui/projects/tavernkeeper-scan-indicator.tsx
-var encodedCitationPattern = /\s*\uE200cite\uE202[^\uE201]*\uE201/giu;
-var findingReferencePattern = /\s*\((?:V\d+\s+)?findings?\s+[^)]*\b[0-9a-f]{64}\b[^)]*\)/giu;
-var bracketedFindingReferencePattern = /\s*\[[0-9a-f]{64}(?:,\s*[0-9a-f]{64})*\]/giu;
-var danglingFindingReferencePattern = /\s*\[(?=[0-9a-f]{64}(?:,|$))[\s\S]*$/iu;
-var bareFindingReferencePattern = /(?:Findings:\s*)?(?:\[|\(|【)?[0-9a-f]{64}\b(?:\]|\)|】)?/giu;
-var invisibleFormattingPattern = /[\u200B-\u200D\u2060\uFEFF]/gu;
-function conciseAssessmentSummary(summary) {
-  const withoutArtifacts = summary.replace(encodedCitationPattern, "").replace(findingReferencePattern, "").replace(bracketedFindingReferencePattern, "").replace(danglingFindingReferencePattern, "").replace(bareFindingReferencePattern, "").replace(invisibleFormattingPattern, "");
-  let display = withoutArtifacts.replace(/\s+([,.;!?])/gu, "$1").replace(/\s+/gu, " ").trim();
-  if (withoutArtifacts !== summary && !/[.!?]["')\]]?$/u.test(display)) {
-    const lastCompleteSentence = Math.max(
-      display.lastIndexOf("."),
-      display.lastIndexOf("!"),
-      display.lastIndexOf("?")
-    );
-    if (lastCompleteSentence >= 0) display = display.slice(0, lastCompleteSentence + 1);
-    else if (display) display += ".";
-  }
-  return display;
-}
-function stateCopy(status) {
-  if (status.report) {
-    const freshness = status.freshness === "stale" ? " This assessment covers an older commit. An updated scan is pending." : status.freshness === "unavailable" ? " Tavernary cannot confirm the repository's current commit, so freshness is unavailable." : "";
-    return `${conciseAssessmentSummary(status.report.summary)}${freshness}`;
-  }
-  if (status.state === "unsupported") {
-    return "TavernKeeper scanning is not supported for this project's source.";
-  }
-  if (status.freshness === "unavailable") {
-    return "Tavernary cannot confirm the repository's current commit, and no completed assessment is available.";
-  }
-  return "This project hasn't been scanned by TavernKeeper.";
-}
-var freshnessLabels = {
-  current: "current",
-  stale: "stale assessment",
-  unavailable: "freshness unavailable",
-  unassessed: "not assessed",
-  unsupported: "unsupported source"
-};
-var riskGradeLabels = {
-  low: "Low concern",
-  material: "Material concern",
-  high: "Immediate danger"
-};
-var dangerBasisLabels = {
-  malicious_or_compromised: "Credible malicious or compromised behavior",
-  critical_exploitable_vulnerability: "Critical, readily exploitable vulnerability",
-  mixed: "Malicious or compromised behavior and an exploitable vulnerability"
-};
-function countLabel(count, singular, plural = `${singular}s`) {
-  return `${count} ${count === 1 ? singular : plural}`;
-}
-function accessibleStatus(status) {
-  if (!status.report) {
-    if (status.freshness === "unsupported") return "Unsupported source.";
-    if (status.freshness === "unavailable") return "Not assessed; freshness unavailable.";
-    return "Not assessed.";
-  }
-  return `${riskGradeLabels[status.report.riskLevel]}; ${freshnessLabels[status.freshness]}.`;
-}
-var CLOSE_DELAY = 150;
-var VIEWPORT_MARGIN4 = 8;
-var POPOVER_GAP = 8;
-var activeDismiss = null;
-function clamp3(value, minimum, maximum) {
-  return Math.min(Math.max(value, minimum), Math.max(minimum, maximum));
-}
-function viewportBounds2() {
-  const viewport = window.visualViewport;
-  return viewport ? {
-    height: viewport.height,
-    left: viewport.offsetLeft,
-    top: viewport.offsetTop,
-    width: viewport.width
-  } : { height: window.innerHeight, left: 0, top: 0, width: window.innerWidth };
-}
-function popoverPosition(trigger, popover) {
-  const viewport = viewportBounds2();
-  const left = clamp3(
-    trigger.left + trigger.width / 2 - popover.width / 2,
-    viewport.left + VIEWPORT_MARGIN4,
-    viewport.left + viewport.width - popover.width - VIEWPORT_MARGIN4
-  );
-  const above = trigger.top - popover.height - POPOVER_GAP;
-  const below = trigger.bottom + POPOVER_GAP;
-  const top = clamp3(
-    above >= viewport.top + VIEWPORT_MARGIN4 ? above : below,
-    viewport.top + VIEWPORT_MARGIN4,
-    viewport.top + viewport.height - popover.height - VIEWPORT_MARGIN4
-  );
-  return { left, top };
-}
-function formatDate3(scannedAt) {
-  return new Intl.DateTimeFormat("en-US", {
-    day: "numeric",
-    month: "long",
-    timeZone: "UTC",
-    year: "numeric"
-  }).format(new Date(scannedAt));
-}
-function TavernKeeperScanIndicator({
-  projectId,
-  status
-}) {
-  const [open, setOpen] = d2(false);
-  const [position, setPosition] = d2(null);
-  const triggerRef = A2(null);
-  const popoverRef = A2(null);
-  const firstLinkRef = A2(null);
-  const closeTimer = A2(null);
-  const pointerOpenState = A2(null);
-  const content = stateCopy(status);
-  const report2 = status.report;
-  const popoverId = `tavernkeeper-scan-${projectId}`;
-  const headingId = `${popoverId}-heading`;
-  const clearCloseTimer = q2(() => {
-    if (closeTimer.current) {
-      clearTimeout(closeTimer.current);
-      closeTimer.current = null;
-    }
-  }, []);
-  const closePopover = q2(() => {
-    clearCloseTimer();
-    setOpen(false);
-    setPosition(null);
-  }, [clearCloseTimer]);
-  const openPopover = q2(() => {
-    clearCloseTimer();
-    if (activeDismiss && activeDismiss !== closePopover) activeDismiss();
-    setOpen(true);
-  }, [clearCloseTimer, closePopover]);
-  const delayClose = q2(() => {
-    clearCloseTimer();
-    closeTimer.current = setTimeout(closePopover, CLOSE_DELAY);
-  }, [clearCloseTimer, closePopover]);
-  const openFromPointer = q2(
-    (event) => {
-      if (event.pointerType !== "touch") openPopover();
-    },
-    [openPopover]
-  );
-  const delayCloseFromPointer = q2(
-    (event) => {
-      if (event.pointerType !== "touch") delayClose();
-    },
-    [delayClose]
-  );
-  const rememberPointerOpenState = q2(
-    (event) => {
-      pointerOpenState.current = event.pointerType === "touch" ? open : null;
-    },
-    [open]
-  );
-  const togglePopover = q2(() => {
-    const wasOpenBeforePointerFocus = pointerOpenState.current;
-    pointerOpenState.current = null;
-    if (wasOpenBeforePointerFocus === true) closePopover();
-    else openPopover();
-  }, [closePopover, openPopover]);
-  const containsInteractiveElement = q2((target) => {
-    if (!(target instanceof Node)) return false;
-    return Boolean(triggerRef.current?.contains(target) || popoverRef.current?.contains(target));
-  }, []);
-  const closeOnFocusExit = q2(
-    (event) => {
-      if (!containsInteractiveElement(event.relatedTarget)) closePopover();
-    },
-    [closePopover, containsInteractiveElement]
-  );
-  const focusFirstLink = q2(
-    (event) => {
-      if (event.key !== "Tab" || event.shiftKey || !open || !firstLinkRef.current) return;
-      event.preventDefault();
-      firstLinkRef.current.focus();
-    },
-    [open]
-  );
-  const focusTrigger = q2((event) => {
-    if (event.key !== "Tab" || !event.shiftKey) return;
-    event.preventDefault();
-    triggerRef.current?.focus();
-  }, []);
-  const updatePosition = q2(() => {
-    if (!triggerRef.current || !popoverRef.current) return;
-    setPosition(
-      popoverPosition(
-        triggerRef.current.getBoundingClientRect(),
-        popoverRef.current.getBoundingClientRect()
-      )
-    );
-  }, []);
-  h2(() => () => clearCloseTimer(), [clearCloseTimer]);
-  h2(() => {
-    if (!open) return;
-    activeDismiss = closePopover;
-    return () => {
-      if (activeDismiss === closePopover) activeDismiss = null;
-    };
-  }, [closePopover, open]);
-  _2(() => {
-    if (!open) return;
-    updatePosition();
-    window.addEventListener("resize", updatePosition);
-    window.addEventListener("scroll", updatePosition, { capture: true, passive: true });
-    window.visualViewport?.addEventListener("resize", updatePosition);
-    window.visualViewport?.addEventListener("scroll", updatePosition);
-    return () => {
-      window.removeEventListener("resize", updatePosition);
-      window.removeEventListener("scroll", updatePosition, true);
-      window.visualViewport?.removeEventListener("resize", updatePosition);
-      window.visualViewport?.removeEventListener("scroll", updatePosition);
-    };
-  }, [open, updatePosition]);
-  h2(() => {
-    if (!open) return;
-    const dismissOnPointerDown = (event) => {
-      if (!containsInteractiveElement(event.target)) closePopover();
-    };
-    const dismissOnEscape = (event) => {
-      if (event.key === "Escape") {
-        event.preventDefault();
-        event.stopPropagation();
-        event.stopImmediatePropagation();
-        closePopover();
-        triggerRef.current?.focus();
-      }
-    };
-    const dismissOnFocus = (event) => {
-      if (!containsInteractiveElement(event.target)) closePopover();
-    };
-    document.addEventListener("pointerdown", dismissOnPointerDown);
-    document.addEventListener("keydown", dismissOnEscape, true);
-    document.addEventListener("focusin", dismissOnFocus);
-    return () => {
-      document.removeEventListener("pointerdown", dismissOnPointerDown);
-      document.removeEventListener("keydown", dismissOnEscape, true);
-      document.removeEventListener("focusin", dismissOnFocus);
-    };
-  }, [closePopover, containsInteractiveElement, open]);
-  return /* @__PURE__ */ u3(S, { children: [
-    /* @__PURE__ */ u3(
-      "button",
-      {
-        "aria-controls": popoverId,
-        "aria-expanded": open,
-        "aria-label": `TavernKeeper scan: ${accessibleStatus(status)}`,
-        class: `tavernary-companion-tavernkeeper-trigger state-${status.state}`,
-        onBlur: closeOnFocusExit,
-        onClick: togglePopover,
-        onFocus: openPopover,
-        onKeyDown: focusFirstLink,
-        onPointerDown: rememberPointerOpenState,
-        onPointerEnter: openFromPointer,
-        onPointerLeave: delayCloseFromPointer,
-        ref: triggerRef,
-        type: "button",
-        children: [
-          /* @__PURE__ */ u3(ScanIcon, {}),
-          status.freshness === "stale" ? /* @__PURE__ */ u3(ClockIcon, {}) : null
-        ]
-      }
-    ),
-    open && typeof document !== "undefined" ? $2(
-      /* @__PURE__ */ u3(
-        "section",
-        {
-          "aria-labelledby": headingId,
-          class: "tavernary-companion-tavernkeeper-popover",
-          id: popoverId,
-          onBlurCapture: closeOnFocusExit,
-          onFocusCapture: openPopover,
-          onPointerEnter: openFromPointer,
-          onPointerLeave: delayCloseFromPointer,
-          ref: popoverRef,
-          role: "dialog",
-          style: {
-            ...position,
-            visibility: position ? "visible" : "hidden"
-          },
-          children: [
-            /* @__PURE__ */ u3("header", { class: "tavernary-companion-tavernkeeper-popover__header", children: [
-              /* @__PURE__ */ u3("h2", { id: headingId, children: "TavernKeeper Scan Results" }),
-              report2 ? /* @__PURE__ */ u3(
-                "span",
-                {
-                  class: `tavernary-companion-tavernkeeper-popover__status state-${status.state}`,
-                  children: [
-                    /* @__PURE__ */ u3("strong", { children: riskGradeLabels[report2.riskLevel] }),
-                    /* @__PURE__ */ u3("span", { children: freshnessLabels[status.freshness] })
-                  ]
-                }
-              ) : null
-            ] }),
-            report2 ? /* @__PURE__ */ u3(S, { children: [
-              /* @__PURE__ */ u3("p", { class: "tavernary-companion-tavernkeeper-summary", children: content }),
-              /* @__PURE__ */ u3(
-                "p",
-                {
-                  "aria-label": "Assessment finding counts",
-                  class: "tavernary-companion-tavernkeeper-counts",
-                  children: [
-                    /* @__PURE__ */ u3("span", { children: countLabel(report2.minorCautions, "minor caution") }),
-                    /* @__PURE__ */ u3("span", { children: countLabel(report2.materialConcerns, "material concern") }),
-                    /* @__PURE__ */ u3("span", { children: countLabel(report2.highDanger, "high-danger finding") })
-                  ]
-                }
-              ),
-              /* @__PURE__ */ u3("dl", { class: "tavernary-companion-tavernkeeper-details", children: [
-                report2.riskLevel === "high" && report2.dangerBasis !== "none" ? /* @__PURE__ */ u3("div", { children: [
-                  /* @__PURE__ */ u3("dt", { children: "Danger basis" }),
-                  /* @__PURE__ */ u3("dd", { children: dangerBasisLabels[report2.dangerBasis] })
-                ] }) : null,
-                /* @__PURE__ */ u3("div", { children: [
-                  /* @__PURE__ */ u3("dt", { children: "Scanned" }),
-                  /* @__PURE__ */ u3("dd", { children: [
-                    /* @__PURE__ */ u3("time", { dateTime: report2.scannedAt, children: formatDate3(report2.scannedAt) }),
-                    /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \xB7 " }),
-                    /* @__PURE__ */ u3(
-                      "a",
-                      {
-                        "aria-label": `Browse scanned source at commit ${report2.scannedSha} on GitHub`,
-                        href: report2.treeUrl,
-                        onKeyDown: focusTrigger,
-                        ref: firstLinkRef,
-                        rel: "noopener noreferrer",
-                        target: "_blank",
-                        children: [
-                          report2.scannedSha.slice(0, 7),
-                          /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \u2197" })
-                        ]
-                      }
-                    )
-                  ] })
-                ] }),
-                /* @__PURE__ */ u3("div", { children: [
-                  /* @__PURE__ */ u3("dt", { children: "Assessed" }),
-                  /* @__PURE__ */ u3("dd", { children: [
-                    /* @__PURE__ */ u3("time", { dateTime: report2.assessedAt, children: formatDate3(report2.assessedAt) }),
-                    " by Tavernary"
-                  ] })
-                ] })
-              ] }),
-              status.history.length >= 2 ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-tavernkeeper-recent", children: [
-                /* @__PURE__ */ u3("span", { children: "Recent scans" }),
-                /* @__PURE__ */ u3(TavernKeeperHistoryStrip, { history: status.history })
-              ] }) : null,
-              /* @__PURE__ */ u3("footer", { class: "tavernary-companion-tavernkeeper-actions", children: [
-                /* @__PURE__ */ u3("a", { href: report2.reportUrl, rel: "noopener noreferrer", target: "_blank", children: [
-                  "View full report",
-                  /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \u2197" })
-                ] }),
-                status.historyUrl ? /* @__PURE__ */ u3(
-                  "a",
-                  {
-                    href: externalTavernaryUrl(status.historyUrl),
-                    rel: "noopener noreferrer",
-                    target: "_blank",
-                    children: [
-                      "View scan history",
-                      /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: " \u2192" })
-                    ]
-                  }
-                ) : null
-              ] })
-            ] }) : /* @__PURE__ */ u3("p", { class: "tavernary-companion-tavernkeeper-summary", children: content })
-          ]
-        }
-      ),
-      resolveOverlayPortalTarget(triggerRef.current)
-    ) : null
-  ] });
-}
-function externalTavernaryUrl(value) {
-  return new URL(value, "https://tavernary.org").href;
-}
-function ScanIcon() {
-  return /* @__PURE__ */ u3("svg", { "aria-hidden": "true", "data-icon": "scan-fill", fill: "currentColor", viewBox: "0 0 24 24", children: /* @__PURE__ */ u3("path", { d: "M4.257 5.671l2.137 2.137a7 7 0 1 0 1.414-1.414L5.67 4.257A9.959 9.959 0 0 1 12 2c5.523 0 10 4.477 10 10s-4.477 10-10 10S2 17.523 2 12c0-2.401.846-4.605 2.257-6.329zm3.571 3.572L12 13.414 13.414 12 9.243 7.828a5 5 0 1 1-1.414 1.414z" }) });
-}
-function ClockIcon() {
-  return /* @__PURE__ */ u3(
-    "svg",
-    {
-      "aria-hidden": "true",
-      class: "tavernary-companion-tavernkeeper-freshness-clock",
-      "data-icon": "clock",
-      fill: "none",
-      stroke: "currentColor",
-      viewBox: "0 0 24 24",
-      children: /* @__PURE__ */ u3(
-        "path",
-        {
-          d: "M12 7V12L14.5 13.5M21 12C21 16.9706 16.9706 21 12 21C7.02944 21 3 16.9706 3 12C3 7.02944 7.02944 3 12 3C16.9706 3 21 7.02944 21 12Z",
-          "stroke-linecap": "round",
-          "stroke-linejoin": "round",
-          "stroke-width": "2"
         }
       )
     }
@@ -21863,6 +22036,7 @@ function UpdateVersionChooser({
   projectName,
   anchor,
   choice,
+  scanStatus = null,
   onSelect,
   onCancel
 }) {
@@ -21875,23 +22049,24 @@ function UpdateVersionChooser({
     visibility: "hidden"
   });
   const headingId = `update-version-${projectId}-heading`;
+  const restoreFocus = q2(() => {
+    if (anchor.isConnected) anchor.focus({ preventScroll: true });
+  }, [anchor]);
   const cancel = q2(() => {
     if (settled.current) return;
     settled.current = true;
     onCancel();
-    const restoreFocus = () => {
-      if (anchor.isConnected) anchor.focus({ preventScroll: true });
-    };
     restoreFocus();
     queueMicrotask(restoreFocus);
-  }, [anchor, onCancel]);
+  }, [onCancel, restoreFocus]);
   const select = q2(
     (selection) => {
       if (settled.current) return;
       settled.current = true;
+      restoreFocus();
       onSelect(selection);
     },
-    [onSelect]
+    [onSelect, restoreFocus]
   );
   const updatePosition = q2(() => {
     const surface = surfaceRef.current;
@@ -21914,11 +22089,12 @@ function UpdateVersionChooser({
   h2(() => {
     const dismissOutside = (event) => {
       const target = event.target;
-      if (!(target instanceof Node) || surfaceRef.current?.contains(target)) return;
+      if (isVersionChoiceOwnedTarget(surfaceRef.current, target)) return;
       cancel();
     };
     const dismissEscape = (event) => {
       if (event.key !== "Escape") return;
+      if (hasOpenTavernKeeperPanel(projectId)) return;
       event.preventDefault();
       event.stopPropagation();
       cancel();
@@ -21930,7 +22106,7 @@ function UpdateVersionChooser({
       document.removeEventListener("pointerdown", dismissOutside);
       document.removeEventListener("keydown", dismissEscape, true);
     };
-  }, [cancel]);
+  }, [cancel, projectId]);
   if (typeof document === "undefined") return null;
   return $2(
     /* @__PURE__ */ u3("div", { class: "tavernary-companion-install-version-chooser-backdrop", children: /* @__PURE__ */ u3(
@@ -21949,20 +22125,21 @@ function UpdateVersionChooser({
           choice.notice ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-install-version-chooser__notice", role: "status", children: choice.notice }) : null,
           choice.selections.map((selection, index) => {
             const checked = selection.target.kind === "checked";
-            const description = selection.target.kind === "checked" ? `The latest version scanned by TavernKeeper. ${checkedVersionDescription(selection.target.checkedAt)}` : "The latest version from the creator. It may include changes TavernKeeper hasn't checked yet.";
+            const checkedScanStatus = selection.target.kind === "checked" ? matchingScanStatus(scanStatus, selection.target) : null;
+            const description = selection.target.kind === "checked" ? scannedVersionDescription(
+              selection.target.checkedAt,
+              choice.selections.some(({ target }) => target.kind === "newest")
+            ) : LATEST_CREATOR_DESCRIPTION;
             const descriptionId = `${headingId}-${selection.target.kind}-description`;
             return /* @__PURE__ */ u3(
-              "button",
+              VersionChoiceOption,
               {
-                ref: index === 0 ? firstChoiceRef : void 0,
-                type: "button",
-                "aria-label": checked ? "Latest scanned version" : "Newest version",
-                "aria-describedby": descriptionId,
-                onClick: () => select(selection),
-                children: [
-                  /* @__PURE__ */ u3("strong", { children: checked ? "Latest scanned version" : "Newest version" }),
-                  /* @__PURE__ */ u3("span", { id: descriptionId, children: description })
-                ]
+                buttonRef: index === 0 ? firstChoiceRef : void 0,
+                label: checked ? LATEST_SCANNED_LABEL : LATEST_CREATOR_LABEL,
+                description,
+                descriptionId,
+                onSelect: () => select(selection),
+                scan: checkedScanStatus ? { projectId, status: checkedScanStatus } : null
               },
               `${selection.target.kind}-${selection.target.requestedSha}`
             );
@@ -22123,6 +22300,10 @@ function BulkRemovalDialog({
 
 // src/ui/popup-host.tsx
 var emptyInventory = { managed: [], external: [], unknown: [], missingManaged: [] };
+function projectScanStatus(snapshot, projectId) {
+  if (!snapshot || !("catalog" in snapshot)) return null;
+  return snapshot.catalog.projects.find(({ id }) => id === projectId)?.tavernKeeper ?? null;
+}
 function selectableInstalledProjectIds(runtime) {
   return runtime.discovery.read().installedSections.flatMap(
     ({ rows }) => rows.filter(({ selectionEligible }) => selectionEligible).map(({ id }) => id)
@@ -22195,6 +22376,7 @@ function CompanionPopupHost({
   const [preparingInstall, setPreparingInstall] = d2(false);
   const [preparingKitPlan, setPreparingKitPlan] = d2(false);
   const [pendingInstallChoice, setPendingInstallChoice] = d2(null);
+  const [pendingInstallAwareness, setPendingInstallAwareness] = d2(null);
   const [pendingUpdateChoice, setPendingUpdateChoice] = d2(null);
   const localInstallFallbacks = T2(() => new InstallTargetFallbackBroker(), []);
   const installFallbacks = runtime?.installFallbacks ?? localInstallFallbacks;
@@ -22403,7 +22585,8 @@ function CompanionPopupHost({
               showOperationError
             );
           },
-          (choice) => setPendingInstallChoice({ projectId, projectName, anchor, choice })
+          (choice) => setPendingInstallChoice({ projectId, projectName, anchor, choice }),
+          (selection) => setPendingInstallAwareness({ projectId, projectName, anchor, selection })
         );
       } else if (action.kind === "uninstall") {
         setRemovalImpact(await runtime.lifecycle.previewRemoval(projectId));
@@ -22625,7 +22808,7 @@ function CompanionPopupHost({
         onOpenExtensionManager: () => void host?.openExtensionManager(),
         onUpdateCompanion: () => void host?.openExtensionManager(),
         onOpenTavernary: () => host?.openExternal("https://tavernary.org/"),
-        lifecycleDisabled: activeOperation !== null || togglingInternalName !== null || forgettingManagedId !== null || preparingInstall || pendingInstallChoice !== null || pendingUpdateChoice !== null || pendingInstallFallback !== null || preparingKitPlan || preparingBulkRemoval,
+        lifecycleDisabled: activeOperation !== null || togglingInternalName !== null || forgettingManagedId !== null || preparingInstall || pendingInstallChoice !== null || pendingInstallAwareness !== null || pendingUpdateChoice !== null || pendingInstallFallback !== null || preparingKitPlan || preparingBulkRemoval,
         kitDiscovery: runtime?.kitDiscovery,
         kitInspectors,
         installedKits: installedKitCards,
@@ -22750,10 +22933,31 @@ function CompanionPopupHost({
         projectName: pendingInstallChoice.projectName,
         anchor: pendingInstallChoice.anchor,
         choice: pendingInstallChoice.choice,
+        scanStatus: projectScanStatus(catalogSnapshot, pendingInstallChoice.projectId),
         onCancel: () => setPendingInstallChoice(null),
         onSelect: (selection) => {
           const pending = pendingInstallChoice;
           setPendingInstallChoice(null);
+          void executeInstallSelection(
+            pending.projectId,
+            pending.projectName,
+            pending.anchor,
+            selection
+          ).catch(showOperationError);
+        }
+      }
+    ) : null,
+    pendingInstallAwareness ? /* @__PURE__ */ u3(
+      InstallVersionAwareness,
+      {
+        projectId: pendingInstallAwareness.projectId,
+        projectName: pendingInstallAwareness.projectName,
+        anchor: pendingInstallAwareness.anchor,
+        selection: pendingInstallAwareness.selection,
+        onCancel: () => setPendingInstallAwareness(null),
+        onConfirm: (selection) => {
+          const pending = pendingInstallAwareness;
+          setPendingInstallAwareness(null);
           void executeInstallSelection(
             pending.projectId,
             pending.projectName,
@@ -22770,6 +22974,7 @@ function CompanionPopupHost({
         projectName: pendingUpdateChoice.projectName,
         anchor: pendingUpdateChoice.anchor,
         choice: pendingUpdateChoice.choice,
+        scanStatus: projectScanStatus(catalogSnapshot, pendingUpdateChoice.projectId),
         onCancel: () => setPendingUpdateChoice(null),
         onSelect: (selection) => {
           setPendingUpdateChoice(null);
@@ -22791,6 +22996,7 @@ function CompanionPopupHost({
           },
           newest: { selection: pendingInstallFallback.newest }
         },
+        scanStatus: projectScanStatus(catalogSnapshot, pendingInstallFallback.projectId),
         onCancel: () => installFallbacks.cancel(),
         onSelect: (selection) => installFallbacks.respond(selection)
       }

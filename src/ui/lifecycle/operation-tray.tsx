@@ -105,7 +105,7 @@ function updateSuccessLabel(receipt: LifecycleReceipt): string {
     return "Updated to the latest scanned version.";
   }
   if (receipt.installProvenance?.targetKind === "newest") {
-    return "Updated to the newest version.";
+    return "Updated to the latest version from the creator.";
   }
   return `${receipt.projectName} updated.`;
 }

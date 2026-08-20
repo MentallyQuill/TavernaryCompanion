@@ -5,7 +5,18 @@ import type {
   PreparedInstallSelection,
   PreparedInstallTargetChoice,
 } from "../../lifecycle/lifecycle-coordinator";
+import type { TavernKeeperCardStatus } from "../../catalog/catalog-core";
 import { resolveOverlayPortalTarget } from "../shared/overlay-portal";
+import {
+  isVersionChoiceOwnedTarget,
+  hasOpenTavernKeeperPanel,
+  LATEST_CREATOR_DESCRIPTION,
+  LATEST_CREATOR_LABEL,
+  LATEST_SCANNED_LABEL,
+  matchingScanStatus,
+  scannedVersionDescription,
+  VersionChoiceOption,
+} from "./version-choice-option";
 
 const VIEWPORT_MARGIN = 8;
 const ANCHOR_GAP = 8;
@@ -17,6 +28,7 @@ interface InstallVersionChooserProps {
   projectName: string;
   anchor: HTMLElement;
   choice: VersionChoice;
+  scanStatus?: TavernKeeperCardStatus | null;
   notice?: string | null;
   onSelect(selection: PreparedInstallSelection): void;
   onCancel(): void;
@@ -27,6 +39,7 @@ export function InstallVersionChooser({
   projectName,
   anchor,
   choice,
+  scanStatus = null,
   notice = null,
   onSelect,
   onCancel,
@@ -45,24 +58,26 @@ export function InstallVersionChooser({
   const checkedDisabledId = `${headingId}-checked-disabled`;
   const newestDescriptionId = `${headingId}-newest-description`;
 
+  const restoreFocus = useCallback(() => {
+    if (anchor.isConnected) anchor.focus({ preventScroll: true });
+  }, [anchor]);
+
   const cancel = useCallback(() => {
     if (settled.current) return;
     settled.current = true;
     onCancel();
-    const restoreFocus = () => {
-      if (anchor.isConnected) anchor.focus({ preventScroll: true });
-    };
     restoreFocus();
     queueMicrotask(restoreFocus);
-  }, [anchor, onCancel]);
+  }, [onCancel, restoreFocus]);
 
   const select = useCallback(
     (selection: PreparedInstallSelection) => {
       if (settled.current) return;
       settled.current = true;
+      restoreFocus();
       onSelect(selection);
     },
-    [onSelect],
+    [onSelect, restoreFocus],
   );
 
   const updatePosition = useCallback(() => {
@@ -93,12 +108,12 @@ export function InstallVersionChooser({
   useEffect(() => {
     const dismissOutside = (event: PointerEvent) => {
       const target = event.target;
-      if (!(target instanceof Node)) return;
-      if (surfaceRef.current?.contains(target)) return;
+      if (isVersionChoiceOwnedTarget(surfaceRef.current, target)) return;
       cancel();
     };
     const dismissEscape = (event: KeyboardEvent) => {
       if (event.key !== "Escape") return;
+      if (hasOpenTavernKeeperPanel(projectId)) return;
       event.preventDefault();
       event.stopPropagation();
       cancel();
@@ -111,13 +126,11 @@ export function InstallVersionChooser({
       document.removeEventListener("pointerdown", dismissOutside);
       document.removeEventListener("keydown", dismissEscape, true);
     };
-  }, [cancel, choice.checked.disabledReason]);
+  }, [cancel, choice.checked.disabledReason, projectId]);
 
   if (typeof document === "undefined") return null;
-  const checkedDescription = checkedVersionDescription(choice.checked.selection.target.checkedAt);
-  const checkedDescribedBy = choice.checked.disabledReason
-    ? `${checkedDescriptionId} ${checkedDisabledId}`
-    : checkedDescriptionId;
+  const checkedDescription = scannedVersionDescription(choice.checked.selection.target.checkedAt);
+  const checkedScanStatus = matchingScanStatus(scanStatus, choice.checked.selection.target);
 
   return createPortal(
     <div class="tavernary-companion-install-version-chooser-backdrop">
@@ -129,39 +142,29 @@ export function InstallVersionChooser({
         data-project-name={projectName}
         style={{ position: "fixed", ...position }}
       >
-        <h2 id={headingId}>Which version would you like?</h2>
+        <h2 id={headingId}>Choose a version for {projectName}</h2>
         {notice ? (
           <p class="tavernary-companion-install-version-chooser__notice" role="status">
             {notice}
           </p>
         ) : null}
-        <button
-          ref={checkedRef}
-          type="button"
-          aria-label="Checked version"
-          aria-describedby={checkedDescribedBy}
-          disabled={choice.checked.disabledReason !== null}
-          onClick={() => select(choice.checked.selection)}
-        >
-          <strong>Checked version</strong>
-          <span id={checkedDescriptionId}>{checkedDescription}</span>
-          {choice.checked.disabledReason ? (
-            <span id={checkedDisabledId}>{choice.checked.disabledReason}</span>
-          ) : null}
-        </button>
-        <button
-          ref={newestRef}
-          type="button"
-          aria-label="Newest version"
-          aria-describedby={newestDescriptionId}
-          onClick={() => select(choice.newest.selection)}
-        >
-          <strong>Newest version</strong>
-          <span id={newestDescriptionId}>
-            The latest version from the creator. It may include changes TavernKeeper hasn't checked
-            yet.
-          </span>
-        </button>
+        <VersionChoiceOption
+          buttonRef={checkedRef}
+          label={LATEST_SCANNED_LABEL}
+          description={checkedDescription}
+          descriptionId={checkedDescriptionId}
+          disabledReason={choice.checked.disabledReason}
+          disabledReasonId={checkedDisabledId}
+          onSelect={() => select(choice.checked.selection)}
+          scan={checkedScanStatus ? { projectId, status: checkedScanStatus } : null}
+        />
+        <VersionChoiceOption
+          buttonRef={newestRef}
+          label={LATEST_CREATOR_LABEL}
+          description={LATEST_CREATOR_DESCRIPTION}
+          descriptionId={newestDescriptionId}
+          onSelect={() => select(choice.newest.selection)}
+        />
         <button
           type="button"
           class="tavernary-companion-install-version-chooser__cancel"
@@ -179,21 +182,15 @@ export function dispatchPreparedInstallChoice(
   choice: PreparedInstallTargetChoice,
   onInstall: (selection: PreparedInstallSelection) => void,
   onChoose: (choice: VersionChoice) => void,
+  onAware: (selection: PreparedInstallSelection) => void,
 ): void {
-  if (choice.kind === "single") onInstall(choice.selection);
-  else onChoose(choice);
+  if (choice.kind === "choose") onChoose(choice);
+  else if (choice.selection.target.kind === "newest") onAware(choice.selection);
+  else onInstall(choice.selection);
 }
 
 export function checkedVersionDescription(checkedAt: string): string {
-  const date = new Date(checkedAt);
-  const label = Number.isNaN(date.valueOf())
-    ? "recently"
-    : new Intl.DateTimeFormat("en-US", {
-        day: "numeric",
-        month: "short",
-        timeZone: "UTC",
-      }).format(date);
-  return `TavernKeeper checked this version on ${label}.`;
+  return scannedVersionDescription(checkedAt);
 }
 
 function positionChooser(anchor: DOMRect, chooser: DOMRect): preact.JSX.CSSProperties {

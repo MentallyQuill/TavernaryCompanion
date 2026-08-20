@@ -36,14 +36,14 @@ Read the reason beside a disabled action. “Browse-only,” “Install contract
 2. Read the card and its warning, if there is one.
 3. Choose **Install**.
 4. Read the first-install disclosure about third-party code.
-5. If two versions are offered, choose **Checked version** or **Newest version**.
+5. If two versions are offered, choose **Latest scanned** or **Latest from creator**.
 6. Read the result. Companion verifies the installed state before it calls the install complete.
 
-![The version choice dialog shows Checked version and Newest version](../../tests/e2e/install-version-choice.spec.ts-snapshots/checked-or-newest-1440x960.png)
+![The version choice dialog shows Latest scanned and Latest from creator](../../tests/e2e/install-version-choice.spec.ts-snapshots/checked-or-newest-1440x960.png)
 
-*Choose the version yourself. The Checked version is the one TavernKeeper examined. The Newest version is the latest creator version and may contain changes that have not been examined yet.*
+*Choose the version yourself. Latest scanned is the version TavernKeeper examined. Latest from creator may include newer changes that have not been scanned yet.*
 
-If the two choices point to the same version, Companion skips the extra question. If the Checked version is no longer available, Companion stops instead of silently switching to Newest.
+If the two choices point to the same version, Companion skips the extra question. If only Latest from creator can be installed and its exact scan status is unknown, Companion shows a short note before continuing. If Latest scanned is no longer available, Companion stops instead of silently switching versions.
 
 ## Add projects to a Kit
 
