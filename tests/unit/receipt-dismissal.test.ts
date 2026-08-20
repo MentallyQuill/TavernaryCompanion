@@ -6,7 +6,7 @@ import { clearStoredReceipt } from "../../src/ui/popup-host";
 it("clears only the persisted receipt that the user dismissed", async () => {
   const profile = new ProfileStore({
     extensionSettings: {},
-    saveSettingsDebounced: () => undefined,
+    saveSettings: () => undefined,
   });
   await profile.update((draft) => {
     draft.operationReceipt = { id: "receipt-1", kind: "install" };

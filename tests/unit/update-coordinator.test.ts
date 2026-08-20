@@ -91,7 +91,7 @@ function setup(hostOverrides: FakeHostOptions = {}) {
     },
     ...hostOverrides,
   });
-  const store = new ProfileStore({ extensionSettings: {}, saveSettingsDebounced: vi.fn() });
+  const store = new ProfileStore({ extensionSettings: {}, saveSettings: vi.fn() });
   const confirm = vi.fn(async (prompt: TrustPrompt) => {
     void prompt;
     return true;
@@ -213,7 +213,7 @@ describe("ExtensionUpdateCoordinator", () => {
     });
     const coordinator = createExtensionUpdateCoordinator({
       host,
-      store: new ProfileStore({ extensionSettings: {}, saveSettingsDebounced: vi.fn() }),
+      store: new ProfileStore({ extensionSettings: {}, saveSettings: vi.fn() }),
       lock: new OperationLock(),
       getSnapshot: () => snapshot,
       getInventory: () => inventory,

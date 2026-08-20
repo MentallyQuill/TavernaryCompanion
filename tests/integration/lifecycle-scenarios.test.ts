@@ -25,7 +25,7 @@ it("runs disclosure, verified install, and exact managed removal as one service 
       },
     },
   });
-  const store = new ProfileStore({ extensionSettings: {}, saveSettingsDebounced: () => undefined });
+  const store = new ProfileStore({ extensionSettings: {}, saveSettings: () => undefined });
   const confirm = vi.fn(async () => true);
   const lifecycle = createLifecycleCoordinator({
     host,

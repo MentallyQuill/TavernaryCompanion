@@ -17,7 +17,7 @@ it("mounts exactly one Tavernary Companion launcher", async () => {
   document.body.innerHTML = '<div><div id="extensions_details">Manage extensions</div></div>';
   const context: CompanionContext = {
     extensionSettings: {},
-    saveSettingsDebounced: vi.fn(),
+    saveSettings: vi.fn(),
     host: createFakeHost(),
   };
 
@@ -45,7 +45,7 @@ it("uses lifecycle start and stop without deleting profile state", async () => {
   };
   const context: CompanionContext = {
     extensionSettings,
-    saveSettingsDebounced: vi.fn(),
+    saveSettings: vi.fn(),
     host: createFakeHost(),
   };
 
@@ -64,7 +64,7 @@ it("constructs the host once when SillyTavern context does not inject one", asyn
   const hostFactory = vi.fn().mockResolvedValue(createFakeHost());
   const context: CompanionContext = {
     extensionSettings: {},
-    saveSettingsDebounced: vi.fn(),
+    saveSettings: vi.fn(),
     hostFactory,
   };
 

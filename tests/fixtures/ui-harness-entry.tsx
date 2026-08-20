@@ -232,7 +232,7 @@ async function main() {
   const catalogClient = staticCatalogClient(snapshot, scenario === "refresh-pending" ? 600 : 0);
   const profile = new ProfileStore({
     extensionSettings: {},
-    saveSettingsDebounced: () => undefined,
+    saveSettings: () => undefined,
   });
   if (scenario === "success-receipt") {
     await profile.update((draft) => {

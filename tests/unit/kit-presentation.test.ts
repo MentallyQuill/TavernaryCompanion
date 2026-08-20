@@ -10,7 +10,7 @@ import { extension } from "../helpers/kit-executor-fixture";
 it("derives personal Kit status from current inventory instead of stored labels", async () => {
   const profile = new ProfileStore({
     extensionSettings: {},
-    saveSettingsDebounced: () => undefined,
+    saveSettings: () => undefined,
   });
   const kits = new KitStore(profile, {
     uuid: () => "018f6f42-7142-7a1f-9b52-9d3a7d548120",
@@ -59,7 +59,7 @@ it("derives personal Kit status from current inventory instead of stored labels"
 
 it("hydrates unknown legacy topology only when its fingerprint matches the current definition", async () => {
   const extensionSettings: Record<string, unknown> = {};
-  const profile = new ProfileStore({ extensionSettings, saveSettingsDebounced: () => undefined });
+  const profile = new ProfileStore({ extensionSettings, saveSettings: () => undefined });
   const kits = new KitStore(profile, {
     uuid: () => "018f6f42-7142-7a1f-9b52-9d3a7d548120",
     now: () => "2026-08-18T00:00:00.000Z",
@@ -92,7 +92,7 @@ it("hydrates unknown legacy topology only when its fingerprint matches the curre
 it("builds Installed Kit cards from installed topology instead of edited definitions", async () => {
   const profile = new ProfileStore({
     extensionSettings: {},
-    saveSettingsDebounced: () => undefined,
+    saveSettings: () => undefined,
   });
   const kits = new KitStore(profile, {
     uuid: () => "018f6f42-7142-7a1f-9b52-9d3a7d548120",
@@ -138,7 +138,7 @@ it("builds Installed Kit cards from installed topology instead of edited definit
 it("keeps orphaned installed Kits visible with their installed topology", async () => {
   const profile = new ProfileStore({
     extensionSettings: {},
-    saveSettingsDebounced: () => undefined,
+    saveSettings: () => undefined,
   });
   const kits = new KitStore(profile);
   await kits.recordInstalledState({

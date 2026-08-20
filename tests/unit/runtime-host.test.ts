@@ -2,6 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 
 import {
   createSillyTavernRuntimeHost,
+  resolveImmediateSettingsSave,
   showNativePopup,
   type RuntimeSillyTavernContext,
 } from "../../src/host/runtime-host";
@@ -26,7 +27,7 @@ it("forwards a checked commit through the runtime extension helper", async () =>
   }
   const context = {
     extensionSettings: {},
-    saveSettingsDebounced: vi.fn(),
+    saveSettings: vi.fn(),
     getRequestHeaders: () => ({}),
     Popup,
     POPUP_TYPE: { DISPLAY: 1 },
@@ -55,6 +56,41 @@ it("forwards a checked commit through the runtime extension helper", async () =>
   );
 });
 
+describe("resolveImmediateSettingsSave", () => {
+  it("uses an injected immediate saver without loading the script module", async () => {
+    const saveSettings = vi.fn(async () => undefined);
+    const loadScriptModule = vi.fn();
+    const context = {
+      extensionSettings: {},
+      saveSettings,
+    } satisfies RuntimeSillyTavernContext;
+
+    const save = await resolveImmediateSettingsSave(context, loadScriptModule);
+    await save();
+
+    expect(saveSettings).toHaveBeenCalledOnce();
+    expect(loadScriptModule).not.toHaveBeenCalled();
+  });
+
+  it("loads and validates SillyTavern's immediate saver", async () => {
+    const saveSettings = vi.fn(async () => undefined);
+    const context = { extensionSettings: {} } satisfies RuntimeSillyTavernContext;
+
+    const save = await resolveImmediateSettingsSave(context, async () => ({ saveSettings }));
+    await save();
+
+    expect(saveSettings).toHaveBeenCalledOnce();
+  });
+
+  it("fails closed when SillyTavern has no immediate saver", async () => {
+    const context = { extensionSettings: {} } satisfies RuntimeSillyTavernContext;
+
+    await expect(
+      resolveImmediateSettingsSave(context, async () => ({ saveSettings: null })),
+    ).rejects.toThrow("immediate settings save");
+  });
+});
+
 describe("showNativePopup", () => {
   it("uses a transparent native popup and dismisses only from its backdrop", async () => {
     let resolveShow!: () => void;
@@ -81,7 +117,7 @@ describe("showNativePopup", () => {
     }
     const context = {
       extensionSettings: {},
-      saveSettingsDebounced: vi.fn(),
+      saveSettings: vi.fn(),
       Popup,
       POPUP_TYPE: { DISPLAY: 4 },
     } satisfies RuntimeSillyTavernContext;

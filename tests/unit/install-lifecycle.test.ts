@@ -53,12 +53,12 @@ function attachReport(
 
 function setup({
   folderName = "Alpha",
-  saveSettingsDebounced = vi.fn(),
+  saveSettings = vi.fn(),
   confirm = vi.fn(async () => true),
   createId = () => "receipt-1",
 }: {
   folderName?: string;
-  saveSettingsDebounced?: () => void | Promise<void>;
+  saveSettings?: () => void | Promise<void>;
   confirm?: (prompt: TrustPrompt) => Promise<boolean>;
   createId?: (() => string) | null;
 } = {}) {
@@ -84,7 +84,7 @@ function setup({
     },
   });
   const extensionSettings: Record<string, unknown> = {};
-  const store = new ProfileStore({ extensionSettings, saveSettingsDebounced });
+  const store = new ProfileStore({ extensionSettings, saveSettings });
   const coordinator = createLifecycleCoordinator({
     host,
     store,
@@ -208,7 +208,7 @@ describe("install lifecycle", () => {
 
   it("reports installed-unrecorded when profile persistence fails after verification", async () => {
     const fixture = setup({
-      saveSettingsDebounced: vi.fn().mockRejectedValue(new Error("storage unavailable")),
+      saveSettings: vi.fn().mockRejectedValue(new Error("storage unavailable")),
     });
     const selection = await prepareSingleSelection(fixture.coordinator);
     const receipt = await fixture.coordinator.install("alpha", selection);
@@ -465,7 +465,7 @@ describe("install lifecycle", () => {
     });
     const coordinator = createLifecycleCoordinator({
       host,
-      store: new ProfileStore({ extensionSettings: {}, saveSettingsDebounced: () => undefined }),
+      store: new ProfileStore({ extensionSettings: {}, saveSettings: () => undefined }),
       getSnapshot: () => snapshot,
       confirm: async () => true,
       now: () => "2026-08-19T12:00:00.000Z",
@@ -519,7 +519,7 @@ describe("install lifecycle", () => {
       const confirm = vi.fn(async () => true);
       const coordinator = createLifecycleCoordinator({
         host,
-        store: new ProfileStore({ extensionSettings: {}, saveSettingsDebounced: () => undefined }),
+        store: new ProfileStore({ extensionSettings: {}, saveSettings: () => undefined }),
         getSnapshot: () => snapshot,
         confirm,
       });
@@ -570,7 +570,7 @@ describe("install lifecycle", () => {
     const host = createFakeHost();
     const store = new ProfileStore({
       extensionSettings: {},
-      saveSettingsDebounced: () => undefined,
+      saveSettings: () => undefined,
     });
     const coordinator = createLifecycleCoordinator({
       host,
@@ -621,7 +621,7 @@ describe("install lifecycle", () => {
     vi.spyOn(host, "discover").mockResolvedValueOnce([]).mockResolvedValue([concurrentExtension]);
     const store = new ProfileStore({
       extensionSettings: {},
-      saveSettingsDebounced: () => undefined,
+      saveSettings: () => undefined,
     });
     const coordinator = createLifecycleCoordinator({
       host,
@@ -729,7 +729,7 @@ describe("install lifecycle", () => {
       });
       const coordinator = createLifecycleCoordinator({
         host,
-        store: new ProfileStore({ extensionSettings: {}, saveSettingsDebounced: () => undefined }),
+        store: new ProfileStore({ extensionSettings: {}, saveSettings: () => undefined }),
         getSnapshot: () => snapshot(catalog),
         confirm: async () => true,
       });

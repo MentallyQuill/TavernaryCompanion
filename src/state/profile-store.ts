@@ -5,7 +5,7 @@ const PROFILE_NAMESPACE = "tavernaryCompanion";
 
 export interface ProfileStoreDependencies {
   extensionSettings: Record<string, unknown>;
-  saveSettingsDebounced(): void | Promise<void>;
+  saveSettings(): void | Promise<void>;
 }
 
 export type ProfileStateMutator = (
@@ -38,7 +38,7 @@ export class ProfileStore {
       const previous = this.#dependencies.extensionSettings[PROFILE_NAMESPACE];
       this.#dependencies.extensionSettings[PROFILE_NAMESPACE] = structuredClone(next);
       try {
-        await this.#dependencies.saveSettingsDebounced();
+        await this.#dependencies.saveSettings();
       } catch (error) {
         if (hadPrevious) {
           this.#dependencies.extensionSettings[PROFILE_NAMESPACE] = previous;

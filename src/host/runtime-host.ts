@@ -33,13 +33,33 @@ interface NativePopupConstructor {
 
 export interface RuntimeSillyTavernContext {
   extensionSettings: Record<string, unknown>;
-  saveSettingsDebounced(): void | Promise<void>;
+  saveSettings?(): void | Promise<void>;
   getRequestHeaders?(): Record<string, string>;
   Popup?: NativePopupConstructor;
   POPUP_TYPE?: { DISPLAY: number };
 }
 
 const EXTENSION_MODULE_PATH = "/scripts/extensions.js";
+const SCRIPT_MODULE_PATH = "/script.js";
+
+export async function resolveImmediateSettingsSave(
+  context: RuntimeSillyTavernContext,
+  loadScriptModule: () => Promise<unknown> = async () =>
+    import(/* @vite-ignore */ SCRIPT_MODULE_PATH),
+): Promise<() => Promise<void>> {
+  const module = context.saveSettings ? null : await loadScriptModule();
+  const moduleSave =
+    module && typeof module === "object" && "saveSettings" in module
+      ? (module as { saveSettings?: unknown }).saveSettings
+      : null;
+  const saveSettings = context.saveSettings ?? moduleSave;
+  if (typeof saveSettings !== "function") {
+    throw new Error("SillyTavern is missing the immediate settings save API.");
+  }
+  return async () => {
+    await saveSettings();
+  };
+}
 
 export async function createSillyTavernRuntimeHost(
   context: RuntimeSillyTavernContext,

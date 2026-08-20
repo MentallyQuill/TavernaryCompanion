@@ -82,7 +82,7 @@ it("updates an external checkout through scanned and newest forward targets with
       },
     },
   });
-  const store = new ProfileStore({ extensionSettings: {}, saveSettingsDebounced: vi.fn() });
+  const store = new ProfileStore({ extensionSettings: {}, saveSettings: vi.fn() });
   const coordinator = createExtensionUpdateCoordinator({
     host,
     store,

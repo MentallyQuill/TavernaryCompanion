@@ -1,5 +1,9 @@
 import type { HostExtensionAdapter } from "../host/host-types";
-import { createSillyTavernRuntimeHost, type RuntimeSillyTavernContext } from "../host/runtime-host";
+import {
+  createSillyTavernRuntimeHost,
+  resolveImmediateSettingsSave,
+  type RuntimeSillyTavernContext,
+} from "../host/runtime-host";
 import { ProfileStore } from "../state/profile-store";
 import { mountCompanionLauncher, type CompanionLauncher } from "../ui/launcher";
 
@@ -50,11 +54,14 @@ async function performBootstrap(
     return { ok: false, reason: "missing-context" };
   }
   let host: HostExtensionAdapter;
+  let saveSettings: () => Promise<void>;
   try {
-    host =
-      context.host ?? (await (context.hostFactory?.() ?? createSillyTavernRuntimeHost(context)));
+    [host, saveSettings] = await Promise.all([
+      context.host ?? (context.hostFactory?.() ?? createSillyTavernRuntimeHost(context)),
+      resolveImmediateSettingsSave(context),
+    ]);
   } catch (error) {
-    console.error("Tavernary Companion could not initialize the SillyTavern host adapter.", error);
+    console.error("Tavernary Companion could not initialize the SillyTavern runtime.", error);
     return { ok: false, reason: "missing-host" };
   }
 
@@ -66,7 +73,7 @@ async function performBootstrap(
 
   const store = new ProfileStore({
     extensionSettings: context.extensionSettings,
-    saveSettingsDebounced: context.saveSettingsDebounced,
+    saveSettings,
   });
   const launcher = mountCompanionLauncher({ anchor: launcherAnchor, host, store });
   activeCompanion = { launcher, store };

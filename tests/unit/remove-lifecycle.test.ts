@@ -54,7 +54,7 @@ function setup({
   };
   state.activeKitId = "daily";
   const extensionSettings = { tavernaryCompanion: state };
-  const store = new ProfileStore({ extensionSettings, saveSettingsDebounced: vi.fn() });
+  const store = new ProfileStore({ extensionSettings, saveSettings: vi.fn() });
   const host = createFakeHost({ extensions: [extension] });
   const coordinator = createLifecycleCoordinator({
     host,
