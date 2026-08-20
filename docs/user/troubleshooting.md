@@ -1,66 +1,101 @@
 # Troubleshooting
 
-Use this page when Companion does not behave as expected.
+Use the section that matches what you see. Start with the smallest action, then try again once.
 
-## Catalog does not load
+## The catalog does not load
 
-- Check your internet connection first.
-- Open/refresh the catalog.
-- If the network is down, Companion can still use a last compatible cached catalog for browsing.
+1. Check your internet connection.
+2. Choose **Refresh** in Companion.
+3. If the network is down, use the last compatible cached catalog for browsing.
 
-During cached mode, install actions may be limited.
+Cached browsing may limit install actions. Companion will tell you when a fresh catalog is needed.
 
-## Install button is disabled
+If Companion says it needs an update before it can refresh or change installed extensions, update Companion first and reopen it.
 
-Check the project card reason text.
+## The project list looks old
 
-Common causes are:
+Choose **Refresh**. Companion may show cached projects first, then replace them after the fresh catalog arrives.
 
-- browse-only project,
-- not in the managed install scope,
-- active safety warning for this version.
+If a project changed while you were looking at it, reopen its details before installing. A lifecycle action can stop when the project or installed state changed after review.
 
-If you are in cached-only mode, a safe full fetch may still be needed.
+## The Install button is disabled
 
-## Install completed, but nothing changed
+Read the reason on the project card. Common reasons are:
 
-Companion waits for SillyTavern to confirm installed state.
+- the project is browse-only;
+- it is not a managed install target for this build;
+- its install contract is unavailable;
+- a safety or compatibility condition needs your attention;
+- the catalog is cached and a fresh check is required.
 
-If nothing appears in your extension list, refresh SillyTavern and reopen the project.
+Presets are browse-only in this pre-alpha build.
 
-If it still looks wrong, remove and retry the flow once.
+## The first-install warning keeps appearing
 
-## Project looked installed, then disappeared
+The disclosure is a reminder that third-party extensions run code inside SillyTavern. Read it before the first install and choose **I understand** only when you want to continue. Choose **Cancel** if you want to review the project more first.
 
-This can happen if another process changed files outside Companion.
+TavernKeeper information is evidence, not a guarantee. Read the [Checks and trust](safety-and-trust.md) guide for the version-choice and ownership rules.
 
-Use the refresh/discovery flow so Companion re-reads actual installed state.
+## The install says it worked, but I cannot find the extension
 
-## An installed extension cannot be updated
+Companion waits for SillyTavern to confirm the installed state.
 
-- Choose **Retry** if the card says **Could not check**.
-- Standard SillyTavern releases update extensions to the newest creator version. A neutral note explains that choosing a specific TavernKeeper-scanned version requires Companion's exact-update service.
-- Use SillyTavern's extension manager if the card says **Needs attention**. Companion will not overwrite local changes, switch branches, replace a different repository, or roll back diverged history.
-- Uncataloged, global, and Companion's own extension remain managed in SillyTavern.
+1. Open **Installed** and choose **Check again**.
+2. Refresh SillyTavern if the extension list is stale.
+3. Close and reopen Companion.
+4. Check the operation receipt for the exact step that stopped.
 
-## "Current/stale/high risk" warning appears too often
+Do not repeat the install many times while the first result is still processing.
 
-Risk warnings are a safeguard. You can continue only by confirming.
+## An installed extension disappeared
 
-If this feels incorrect, open the project details and compare scan state with current install intent.
+Another process may have changed the files outside Companion. Open **Installed** and choose **Check again** so Companion reads the real state again.
 
-## I need help
+If it was a missing member of a Kit, the Kit can show **Partial** or **Missing**. The saved Kit list is still there.
 
-Use the in-app app flow first:
+If the Installed entry offers **Forget record**, use it only after you are sure the extension is no longer present. Forgetting the record removes Companion's old memory; it does not delete extension files.
 
-- verify catalog refresh,
-- read the exact warning text,
-- then retry once.
+## An update cannot run
 
-If behavior remains wrong, include:
+- **Could not check:** choose **Retry**.
+- **Needs attention:** use SillyTavern's extension manager to inspect the repository, branch, history, or local files.
+- **Newest version only:** this host does not accept a specific TavernKeeper-scanned revision. Choose the newest creator version if you want to continue.
+- **Local changes:** Companion will not stash, reset, force, roll back, or downgrade your work.
 
-- your action steps,
-- screenshot of the card reason,
-- and the project link,
+A catalog-matched extension installed outside Companion can sometimes update, but it stays external. Companion does not adopt it into a Kit or gain uninstall ownership.
 
-in your support report.
+## A Kit says Partial, Missing, or Drifted
+
+- **Partial:** some Kit members are installed and some are not.
+- **Missing:** none of the Kit members are installed.
+- **Drifted:** installed or enabled extensions no longer match the Kit's last verified state.
+
+Open the Kit details and read the member list. You can apply the Kit again, install missing members, or fix the outside change in SillyTavern first.
+
+## A Kit operation stopped
+
+Read the Kit receipt. It lists each member as finished, left alone, not started, or needing attention.
+
+- Choose **Try again** when the receipt offers it.
+- Choose **Reload now** when the receipt says a reload is required.
+- If the old active Kit is still named, that is the Kit Companion kept active after the interruption.
+
+Companion does not pretend that an unfinished member succeeded.
+
+## A bulk uninstall only partly worked
+
+Verified removals stay removed. Extensions that could not be removed stay installed and remain selected for **Retry failed**.
+
+Read the receipt before trying again. The affected Kits may now be **Partial**, **Missing**, or **Drifted**, but their saved definitions are not deleted.
+
+## I need to report a problem
+
+Include:
+
+- what you clicked, in order;
+- the project or Kit link;
+- the exact reason text on the card or dialog;
+- a screenshot of the warning or receipt;
+- whether the extension was managed by Companion or installed outside it.
+
+Do not include credentials, private tokens, or private files in a support report.

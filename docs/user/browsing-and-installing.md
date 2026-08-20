@@ -1,85 +1,80 @@
 # Browsing and installing
 
-Use this page to find projects, read details, and install what you trust.
+Use **Projects** to find something, learn what it does, and decide whether you want to install it.
 
-## Find projects fast
+## Find projects
 
-Use search and the filter set to narrow the list.
+Use the search box for a project name, creator, tag, or word from the description.
 
-Sort by:
+Use **Filters** when you want to narrow the list. You can filter by things such as:
 
-- popularity
-- last update
-- risk level
-- install state
+- compatible frontend;
+- project kind, such as Extension or System Preset;
+- goals and traits;
+- model family;
+- completion format;
+- risk or installation state when those choices are available.
 
-Use the search box for names, authors, tags, and keywords.
+Use the sort menu to change the order. Active filters appear as small chips so you can see why a project is in the list. Remove a chip to widen the search again.
 
-## Read project cards
+## Read a project card
 
-Each card tells you:
+A card can show:
 
-- what the project is,
-- whether it is installable,
-- whether it is managed by Companion,
-- why action is available or unavailable.
+- the project name and kind;
+- a short description;
+- the creator and project links;
+- tags, license, activity, and version information;
+- a TavernKeeper status or scan note;
+- an action such as **Install**, **Uninstall**, **Add to Kit**, or **Manage in SillyTavern**.
 
-Look for short reasons on disabled actions.
+Read the reason beside a disabled action. “Browse-only,” “Install contract unavailable,” or a safety warning each mean something different. If you want the full context, open the project details and follow the source or TavernKeeper link.
 
-## Install flow
+## Install a project
 
-1. Open the project card.
-2. Read the card details.
-3. Click Install if available.
-4. If Companion asks which version you want, choose Checked or Newest.
-5. If a project note appears, read it before continuing.
+1. Search for the project.
+2. Read the card and its warning, if there is one.
+3. Choose **Install**.
+4. Read the first-install disclosure about third-party code.
+5. If two versions are offered, choose **Checked version** or **Newest version**.
+6. Read the result. Companion verifies the installed state before it calls the install complete.
 
-When the install finishes, Companion tells you which version it installed.
+![The version choice dialog shows Checked version and Newest version](../../tests/e2e/install-version-choice.spec.ts-snapshots/checked-or-newest-1440x960.png)
 
-### Checked or Newest
+*Choose the version yourself. The Checked version is the one TavernKeeper examined. The Newest version is the latest creator version and may contain changes that have not been examined yet.*
 
-Companion asks only when TavernKeeper checked one version and the creator has published a newer one.
+If the two choices point to the same version, Companion skips the extra question. If the Checked version is no longer available, Companion stops instead of silently switching to Newest.
 
-- **Checked version:** the exact version TavernKeeper checked. The date is shown with it.
-- **Newest version:** the latest version from the creator. It may have changes TavernKeeper has not checked yet.
+## Add projects to a Kit
 
-Neither choice is picked for you. If both point to the same version, or there is only one choice, Companion installs it without asking an extra question.
+You can start a Kit while browsing Projects:
 
-If the checked version is no longer available, Companion stops and lets you choose Newest or cancel. It never switches versions by itself.
+1. Choose the **Kit** button on a project card.
+2. Select more projects if you want.
+3. Open the selection bar at the bottom.
+4. Choose **Add to Kit**.
+5. Pick a new Personal Kit or an existing one.
+6. Review the staged list in the Kit Builder, then save it.
 
-Kits use the same choices in their one install list. You only need to pick for projects that really have two versions.
+Adding a project to a Kit records your desired group. It does not install the project and does not transfer ownership of an extension that was installed outside Companion.
 
-After an install, open **Details** if you want to see the exact version numbers and TavernKeeper check link.
+## Uninstall one extension
 
-## Common card reasons
+Open **Installed**, find the extension, choose **Uninstall**, and read the confirmation. Companion only removes extensions it is allowed to manage. An external extension stays under its existing owner.
 
-If you see a disabled install button, common reasons include:
+## Uninstall several extensions
 
-- browse-only in this version;
-- not a managed install target for this build;
-- blocked by safety policy for the project.
+1. Open **Installed** and choose **Select**.
+2. Select the extensions you want, or choose an Installed Kit to select its installed members.
+3. Clear or add individual cards until the selection is right.
+4. Choose **Uninstall** in the action bar.
+5. Read the ownership and Kit impact summary.
+6. Confirm only when the list is what you expect.
 
-If you see a project note, use the Checks and choices page before continuing.
+Companion removes the selected extensions one at a time and verifies each result. If some succeed and some fail, the successful removals stay removed. The failed extensions stay selected so you can choose **Retry failed**.
 
-## Uninstall flow
+An affected Kit is not deleted. It may become **Partial**, **Missing**, or **Drifted** because some of its extensions are no longer present.
 
-For one extension:
+## Presets in this build
 
-1. Open its installed card.
-2. Choose **Uninstall**.
-3. Confirm when prompted.
-
-For several extensions:
-
-1. Open **Installed** and choose **Select**, or choose an Installed Kit to select its present members.
-2. Refine the selection on individual extension cards.
-3. Choose **Uninstall** in the bulk action bar.
-4. Review ownership and the Kits that will become Partial, Missing, or Drifted, then confirm.
-
-Eligible local extensions installed outside Companion can be explicitly selected and uninstalled,
-but selection or Kit membership does not transfer their ownership. Global, uncataloged, missing,
-and Companion-self entries explain why they cannot be selected.
-
-## Presets in this version
-
-Preset installation is not available in this pre-alpha build. You can still browse preset pages and read details.
+You can browse preset pages and read their details, but preset installation is not available in this pre-alpha build.

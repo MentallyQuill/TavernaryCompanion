@@ -1,51 +1,113 @@
 # Tavernary Companion
 
-Tavernary Companion is a SillyTavern extension that helps you manage trusted extensions from the Tavernary catalog.
+Tavernary Companion is a SillyTavern extension for finding, installing, updating, and organizing extensions from the Tavernary catalog.
 
-It is built for players, so your current SillyTavern setup stays in your control while Companion helps you stay organized.
+It keeps the important choices in your hands. You can see what a project is, read its TavernKeeper information, choose a version, and review what will change before Companion acts.
 
-## What this does
+> **Pre-alpha:** Companion is still being improved. Some catalog entries are browse-only, and the screens may change as the tool grows.
 
-- Browse the Tavernary catalog from inside SillyTavern.
-- Install and remove extensions that Companion manages.
-- Check catalog-matched installed extensions for updates, use SillyTavern's native newest-version updater, and choose an exact scanned version when the host supports Companion's exact-update service.
-- Save, switch, and track your extension sets with Kits.
-- Preserve the ownership of manually installed or external extensions.
-- Let you choose the TavernKeeper-checked version or the newest version when they differ.
+<p align="center">
+  <img src="tests/e2e/responsive-conformance.spec.ts-snapshots/projects-1440x960.png" alt="Tavernary Companion Projects view on a wide screen" width="900">
+</p>
 
-## Start here
+<p align="center"><em>Projects is your starting place: search, filter, read, and choose.</em></p>
 
-1. Open SillyTavern and open the Companion tab.
-2. Pick a project in the catalog that looks useful.
-3. Click Install. If Checked and Newest differ, pick the version you want.
-4. Open your Kits view to switch between extension sets.
+## A quick tour
 
-## Companion boundaries to know
+Companion has three main places. Think of them as three rooms in the same tool:
 
-- This is a **pre-alpha** feature. Some behaviors are still improving.
-- In this release, Presets are browse-only.
-- Not every catalog item is installable.
-- Companion only Kit-manages or removes extensions it installed. Updating a catalog-matched external extension does not make it Companion-managed.
-- Extensions in Companion are powerful; if a project was flagged, Companion warns you before install.
+<table>
+  <tr>
+    <td width="33%" valign="top">
+      <strong>Projects</strong><br>
+      Find extensions, presets, and other catalog entries. Search, filter, read the details, and install when the project is eligible.
+    </td>
+    <td width="33%" valign="top">
+      <strong>Kits</strong><br>
+      Save groups of extensions that belong together. Create your own Kit, copy a Published Kit, or switch to a setup you already saved.
+    </td>
+    <td width="33%" valign="top">
+      <strong>Installed</strong><br>
+      See what is present in this SillyTavern profile, check for updates, reload changes, and remove extensions you are allowed to manage.
+    </td>
+  </tr>
+</table>
 
-## Checks at a glance
+<p align="center">
+  <img src="tests/e2e/responsive-conformance.spec.ts-snapshots/projects-390x844.png" alt="Projects view on a phone" width="260">
+  <img src="tests/e2e/responsive-conformance.spec.ts-snapshots/kits-390x844.png" alt="Kits view on a phone" width="260">
+  <img src="tests/e2e/responsive-conformance.spec.ts-snapshots/installed-390x844.png" alt="Installed view on a phone" width="260">
+</p>
 
-TavernKeeper checks a specific project version. When the creator has published newer changes, Companion can show both that Checked version and the Newest version.
+<p align="center"><em>The same three rooms fit on a small screen. The route picker sits below the header.</em></p>
 
-Companion does not switch between them by itself. If there is only one meaningful choice, it skips the extra question.
+## Your first five minutes
 
-## If something feels wrong
+1. Open **Tavernary Companion** from SillyTavern.
+2. Stay in **Projects** and search for something you want to try.
+3. Read the card. Check the project type, summary, tags, license, and any TavernKeeper note.
+4. Choose **Install** when it is available. The first install shows a short warning about third-party code.
+5. If Companion asks which version you want, choose **Checked version** or **Newest version**. When the install finishes, open **Installed** and reload if Companion asks you to.
 
-- I cannot install or remove extensions I do not manage.
-- If the catalog does not look fresh, your cached catalog may be used in browse-only mode.
-- If an action is blocked, open the troubleshooting steps before retrying.
+### Read the warning before you install
 
-## Player docs
+Extensions run code inside SillyTavern. Companion shows this disclosure before the first extension install so you understand what you are choosing.
 
-- [Read the player docs index](docs/user/README.md)
+<p align="center">
+  <img src="tests/e2e/responsive-conformance.spec.ts-snapshots/lifecycle-disclosure-390x844.png" alt="Before installing extensions disclosure on a phone" width="310">
+</p>
+
+<p align="center"><em>A scan gives you information. It does not promise that an extension is safe.</em></p>
+
+### Choose the version yourself
+
+Sometimes TavernKeeper checked one version, but the creator has published a newer one. Companion shows both choices instead of silently picking for you.
+
+<p align="center">
+  <img src="tests/e2e/install-version-choice.spec.ts-snapshots/checked-or-newest-1440x960.png" alt="Dialog comparing the Checked version and Newest version" width="850">
+</p>
+
+- **Checked version** is the exact version TavernKeeper looked at.
+- **Newest version** is the latest version from the creator. It may contain changes that TavernKeeper has not checked yet.
+
+If both choices are the same, Companion skips the extra question.
+
+## Build a Kit when you find a setup you like
+
+A Kit is a saved list of extensions. It does not copy extension files. It remembers the group you want so you can return to it later.
+
+<p align="center">
+  <img src="tests/e2e/kit-switching.spec.ts-snapshots/kit-builder-desktop-1440x960.png" alt="Kit Builder open beside the Projects grid" width="900">
+</p>
+
+<p align="center"><em>Pick extensions in Projects, open the Kit Builder, then save the group with a name.</em></p>
+
+You can also choose an Installed Kit to select its current members, add those members to a Personal Kit, or select a few extensions for a bulk action.
+
+<p align="center">
+  <img src="tests/e2e/responsive-conformance.spec.ts-snapshots/kit-selection-390x844.png" alt="Selected project ready to be added to a Kit on a phone" width="310">
+  <img src="tests/e2e/operation-notification.spec.ts-snapshots/operation-notification-panel-390x844.png" alt="Completed install notification verified in SillyTavern" width="310">
+</p>
+
+## What Companion controls
+
+Companion is careful about ownership:
+
+- It manages extensions that it installed and recorded.
+- An extension you installed another way stays external. Adding it to a Kit does not transfer ownership.
+- Companion will not silently replace local changes, switch a different repository, reset your work, roll back, or downgrade an extension.
+- Preset installation is not available in this pre-alpha build.
+- Bulk update is not available yet. You can still check and update extensions from **Installed** one at a time.
+- TavernKeeper scans are evidence for a particular version, not a guarantee. Review unfamiliar projects before installing them or giving them credentials.
+
+## Player guide
+
+Start with the [Tavernary Companion player guide](docs/user/README.md), or jump directly to:
+
 - [Getting started](docs/user/getting-started.md)
 - [Browsing and installing](docs/user/browsing-and-installing.md)
-- [Updating extensions](docs/user/updating-extensions.md)
-- [Managing kits](docs/user/kits.md)
-- [Checks and choices](docs/user/safety-and-trust.md)
+- [Updating and removing extensions](docs/user/updating-extensions.md)
+- [Managing Kits](docs/user/kits.md)
+- [Checks and trust](docs/user/safety-and-trust.md)
 - [Troubleshooting](docs/user/troubleshooting.md)
+- [Words you’ll see](docs/user/words-to-know.md)

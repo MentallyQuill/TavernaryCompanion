@@ -1,49 +1,80 @@
-# Updating extensions
+# Updating and removing extensions
 
-Open **Installed** to refresh the installed list and check catalog-matched local extensions for updates. Use **Check again** whenever you want a fresh check.
+Use **Installed** when you want to know what is present in this SillyTavern profile.
 
-Standard SillyTavern releases can check whether the newest creator version is available and apply it through SillyTavern's native updater. Companion explains this once on the Installed page; it does not mark every extension as needing attention. A compatible host with Companion's exact-update service can additionally offer a specific TavernKeeper-scanned version.
+![Installed view on a phone, showing Check again, Installed Kits, and a managed extension](../../tests/e2e/responsive-conformance.spec.ts-snapshots/installed-390x844.png)
 
-Each extension shows one compact result: **Update available**, **Up to date**, **Could not check**, or **Needs attention**. A failed check has its own **Retry** action.
+*Installed tells you what Companion can see right now. It also shows whether an extension is managed by Companion or installed outside it.*
 
-## Choose the version
+## Check for updates
 
-Choose **Update** immediately to the left of **Uninstall**. Companion asks which available version to apply:
+1. Open **Installed**.
+2. Choose **Check again**.
+3. Wait for Companion to check the catalog-matched extensions.
+
+Each extension gets one of these results:
+
+| Result | What it means |
+| --- | --- |
+| **Update available** | A newer version can be installed. |
+| **Up to date** | Companion did not find a newer version for this extension. |
+| **Could not check** | The check failed. Choose **Retry** after reading the reason. |
+| **Needs attention** | Companion found a local or repository problem. Use SillyTavern's extension manager to inspect it. |
+
+Standard SillyTavern releases can update an extension to the newest creator version. A compatible host can also offer a specific TavernKeeper-scanned version.
+
+## Turn an extension on or off
+
+Some installed cards have an **Enabled** or **Disabled** switch. Use it when you want to turn that extension on or off in SillyTavern without installing or removing it. The switch changes the host's enabled state and does not change the extension's files or Kit definition.
+
+## Choose an update
+
+Choose **Update** on the extension. Companion shows the versions that are actually forward from the version you have:
 
 - **Latest scanned version** is the newest forward version TavernKeeper has scanned.
-- **Newest version** is the latest version from the creator and may contain changes TavernKeeper has not scanned.
+- **Newest version** is the latest version from the creator. It may contain changes TavernKeeper has not scanned.
 
-On a standard SillyTavern host, only **Newest version** is available because the native updater does not accept a specific commit. Companion still verifies that the installed commit changed before reporting success.
+On a standard SillyTavern host, only **Newest version** may be available because that host does not accept a specific commit. Companion still checks that the installed extension changed before it reports success.
 
-Companion omits any choice that is not a forward update. If the scanned version is already installed but a newer creator version exists, it says **You already have the latest scanned version.** and offers only **Newest version**.
+If the latest scanned version is already installed, Companion does not ask you to install it again. It offers only a newer creator version, if one exists.
 
-The selected version is bound to the installed commit Companion just checked. If the catalog or installed extension changes before the update starts, Companion stops and asks you to check again.
+The choice is tied to the installed state Companion just checked. If the catalog or the extension changes before the update begins, Companion stops and asks you to check again.
 
 ## What Companion will not overwrite
 
-Companion does not update an extension when its repository, branch, or history does not match the catalog, or when the extension has local changes. It does not stash, reset, force, roll back, or downgrade extension files.
+Companion will not update an extension when:
 
-A catalog-matched extension installed outside Companion can be updated, but it remains externally owned. Companion does not adopt it into Kits or gain uninstall ownership.
+- the repository does not match the catalog;
+- the branch or history is different;
+- local changes are present;
+- the action would roll back, downgrade, reset, stash, or force a change.
 
-Adding that extension to a Kit also leaves ownership unchanged. Kit membership records the desired
-set; it does not adopt, reinstall, or otherwise transfer the extension.
+A catalog-matched extension installed outside Companion can sometimes be updated. It remains externally owned. Adding it to a Kit also leaves the ownership unchanged.
 
-## Finish the update
+When the problem is local or repository-related, use SillyTavern's extension manager. Companion will not take over work that belongs to another installation path.
 
-After SillyTavern applies an update, Companion rediscovers the extension and verifies the installed commit. Exact updates must match the selected commit; native newest updates must produce a new installed commit. A successful update leaves **Reload to apply updates** visible for the current Companion session. You can update other extensions first, then choose **Reload now** once.
+If an Installed entry says the extension is missing, **Forget record** removes Companion's old record of it. It does not delete files, and it does not remove the saved Kit that once included it.
 
-V1 intentionally has no bulk update, background polling, persisted update cache, or self-update control.
+## Finish an update
 
-## Bulk uninstall
+After SillyTavern applies the update, Companion reads the installed state again and verifies the result. A successful update leaves **Reload to apply updates** visible for this Companion session.
 
-Open **Installed**, choose **Select**, and select any combination of eligible local extensions. You
-can also choose an Installed Kit to select its currently installed members. The sticky action bar
-shows the deduplicated count.
+You can update more than one extension first, then choose **Reload now** once.
 
-Choose **Uninstall** to review ownership and every affected Kit in one confirmation. Companion then
-uninstalls extensions one at a time and verifies each result before continuing. A completed receipt
-lists every success and failure. If only part of the batch succeeds, verified removals stay removed
-and the remaining installed failures stay selected for **Retry failed**.
+There is no bulk update, background update polling, saved update cache, or Companion self-update control in V1.
 
-Bulk uninstall changes Kit fulfillment, not Kit definitions. A Kit can remain visible as Partial,
-Missing, or Drifted after its children are removed.
+## Remove several extensions at once
+
+1. Open **Installed** and choose **Select**.
+2. Select individual extensions, or choose an Installed Kit to select its current members.
+3. Choose **Uninstall** in the action bar.
+4. Read the ownership and Kit impact summary.
+5. Confirm the list.
+
+Companion removes the extensions one at a time and verifies each result. A receipt lists every success and failure.
+
+![A completed operation notification says the result was verified in SillyTavern](../../tests/e2e/operation-notification.spec.ts-snapshots/operation-notification-panel-390x844.png)
+
+*A receipt is a record of what happened. If only part of a batch worked, the failed items remain selected for **Retry failed**.*
+
+Bulk uninstall changes which Kit members are present. It does not delete the Kit definition. An affected Kit can become **Partial**, **Missing**, or **Drifted**.

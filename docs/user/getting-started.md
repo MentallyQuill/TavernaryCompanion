@@ -1,44 +1,54 @@
 # Getting started
 
-This is the quickest route to your first install.
+This is the shortest path from opening Companion to installing your first extension.
 
-## Open Companion
+## 1. Open Companion
 
-1. Open SillyTavern.
-2. Open the Companion extension panel.
-3. Wait until the catalog finishes loading.
+Open SillyTavern and choose **Tavernary Companion** from the extension menu. Companion opens inside SillyTavern, so you can keep your normal setup in view.
 
-If the catalog list is empty, open Troubleshooting first.
+When the catalog is ready, you will start in **Projects**. If Companion already has a recent catalog saved, it may show that list while it checks for fresh information.
 
-## Install your first extension
+## 2. Learn the three places
 
-1. Pick a project from the list.
-2. Open the project card and check what it is, whether install is available, and any current warning notes.
-3. Click Install if the action is enabled.
-4. Read any warning popup and click Confirm only if you want to continue.
+- **Projects** is where you look for things.
+- **Kits** is where you save groups of extensions.
+- **Installed** is where you see what is really on this SillyTavern profile.
 
-When install succeeds, the extension joins your managed list for this SillyTavern install.
+On a phone, tap the route picker under the header to move between them.
 
-## Installable vs browse-only
+![Projects view on a phone, with the route picker, search box, filters, and project cards](../../tests/e2e/responsive-conformance.spec.ts-snapshots/projects-390x844.png)
 
-Some catalog entries are marked so you can only browse them right now.
+*Notice the search box, the **Browse** route picker, the filter button, and the project cards. The same controls are available on a wide screen too.*
 
-- This includes entries outside Companion’s current install scope.
-- Presets are currently browse-only in this pre-alpha build.
-- You can still view details and metadata.
+## 3. Install one extension
 
-If you cannot install something you expected, check if the card says browse-only.
+1. Stay in **Projects**.
+2. Search for a project or use the filters.
+3. Read the project card. Look at its type, description, tags, license, and any TavernKeeper message.
+4. Choose **Install** if the button is available.
+5. Read the first-install warning. Choose **I understand** only if you want to continue.
+6. If Companion asks you to choose a version, read both choices and pick the one you want.
 
-## Manage installed state
+Some projects are **browse-only**. You can read about them, but Companion cannot install them in this build. Presets are browse-only right now.
 
-- Use the action on a project card to uninstall a managed extension.
-- If uninstall is blocked, it usually means the project is not owned by Companion.
-- Your manual or external extensions stay where they are.
+## 4. Wait for the result
 
-## What not to expect yet
+Companion asks SillyTavern whether the extension was actually installed. A success message tells you that the result was verified. If a reload is needed, the message says so.
 
-- No advanced submission or publishing tools from Companion.
-- No automatic migration of third-party folders outside Companion.
-- No silent install; every install path is visible and confirmable.
+Choose **Reload now** when you are ready. You can also finish another action first and reload once at the end.
 
-If you run into a block, open [Troubleshooting](troubleshooting.md).
+## 5. Find what you installed
+
+Open **Installed**. Your extension should appear there with its current state and ownership:
+
+- **Managed by Companion** means Companion installed and recorded it.
+- **Installed outside Companion** means it was already there or was installed another way. Companion does not take ownership of it.
+
+If the catalog is empty or an action is blocked, read [Troubleshooting](troubleshooting.md).
+
+## What this version does not do yet
+
+- It does not install presets.
+- It does not silently choose between two different versions.
+- It does not move ownership of extensions you installed yourself.
+- It does not update every extension in one bulk action.
