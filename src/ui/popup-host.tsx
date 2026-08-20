@@ -175,6 +175,9 @@ export function CompanionPopupHost({
   );
   const [inventoryRefreshing, setInventoryRefreshing] = useState(false);
   const inventoryReady = useRef(false);
+  const inventoryRefreshRequested = useRef(0);
+  const inventoryRefreshCompleted = useRef(0);
+  const inventoryRefreshDrain = useRef<Promise<boolean> | null>(null);
   const [togglingInternalName, setTogglingInternalName] = useState<string | null>(null);
   const [activeOperation, setActiveOperation] = useState<ActiveOperation | null>(
     runtime?.lifecycle.lock.read() ?? null,
@@ -264,38 +267,54 @@ export function CompanionPopupHost({
     );
   }, [runtime, store]);
 
-  const refreshInventory = useCallback(async (): Promise<boolean> => {
-    if (!runtime || !host || !store) return false;
-    setOperationError(null);
-    if (!inventoryReady.current) setInventoryLoadState("loading");
-    setInventoryRefreshing(true);
-    try {
-      const extensions = await discoverAndPruneManagedRecords({
-        host,
-        store,
-        canPrune: () => runtime.lifecycle.lock.read() === null,
-      });
-      const snapshot = runtime.catalog.read();
-      const inventory = await reconcileHostInventory({
-        projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
-        host,
-        hostExtensions: extensions,
-        managed: normalizeManagedExtensionMap(store.read().managedExtensions),
-      });
-      runtime.kitContext.inventory = inventory;
-      runtime.discovery.setInventory(inventory);
-      runtime.updates.invalidate();
-      await syncKits();
-      inventoryReady.current = true;
-      setInventoryLoadState("ready");
-      return true;
-    } catch {
-      if (!inventoryReady.current) setInventoryLoadState("error");
-      setOperationError("Could not refresh installed extensions. Try again.");
-      return false;
-    } finally {
-      setInventoryRefreshing(false);
-    }
+  const refreshInventory = useCallback((): Promise<boolean> => {
+    if (!runtime || !host || !store) return Promise.resolve(false);
+    inventoryRefreshRequested.current += 1;
+    if (inventoryRefreshDrain.current) return inventoryRefreshDrain.current;
+
+    const drain = (async () => {
+      let refreshed = false;
+      setInventoryRefreshing(true);
+      try {
+        while (inventoryRefreshCompleted.current < inventoryRefreshRequested.current) {
+          const requestNumber = inventoryRefreshRequested.current;
+          setOperationError(null);
+          if (!inventoryReady.current) setInventoryLoadState("loading");
+          try {
+            const extensions = await discoverAndPruneManagedRecords({
+              host,
+              store,
+              canPrune: () => runtime.lifecycle.lock.read() === null,
+            });
+            const snapshot = runtime.catalog.read();
+            const inventory = await reconcileHostInventory({
+              projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
+              host,
+              hostExtensions: extensions,
+              managed: normalizeManagedExtensionMap(store.read().managedExtensions),
+            });
+            runtime.kitContext.inventory = inventory;
+            runtime.discovery.setInventory(inventory);
+            runtime.updates.invalidate();
+            await syncKits();
+            inventoryReady.current = true;
+            setInventoryLoadState("ready");
+            refreshed = true;
+          } catch {
+            if (!inventoryReady.current) setInventoryLoadState("error");
+            setOperationError("Could not refresh installed extensions. Try again.");
+            refreshed = false;
+          }
+          inventoryRefreshCompleted.current = requestNumber;
+        }
+        return refreshed;
+      } finally {
+        setInventoryRefreshing(false);
+        inventoryRefreshDrain.current = null;
+      }
+    })();
+    inventoryRefreshDrain.current = drain;
+    return drain;
   }, [host, runtime, store, syncKits]);
 
   const refreshCatalog = useCallback(async () => {

@@ -367,6 +367,15 @@ async function main() {
           });
         })
       : undefined;
+  const overlappingInventoryGates =
+    scenario === "overlapping-inventory"
+      ? ["tavernary-test-release-inventory-1", "tavernary-test-release-inventory-2"].map(
+          (eventName) =>
+            new Promise<void>((resolve) => {
+              window.addEventListener(eventName, () => resolve(), { once: true });
+            }),
+        )
+      : null;
   const writerInstalledSha = scenario === "installed-update-both" ? "b".repeat(40) : "c".repeat(40);
   const writerUpdateAvailable =
     scenario === "installed-update" ||
@@ -377,6 +386,12 @@ async function main() {
   const host = createFakeHost({
     extensions: initialHostExtensions,
     discoverGate: inventoryDiscoveryGate,
+    discoverSteps: overlappingInventoryGates
+      ? [
+          { gate: overlappingInventoryGates[0], extensions: [] },
+          { gate: overlappingInventoryGates[1], extensions: initialHostExtensions },
+        ]
+      : undefined,
     ...(capableVersionHost
       ? {
           capabilities: {

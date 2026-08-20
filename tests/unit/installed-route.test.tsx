@@ -70,11 +70,12 @@ describe("InstalledRoute", () => {
   });
 
   it("presents a failed initial discovery as unavailable instead of confirmed empty", () => {
+    const onRefresh = vi.fn();
     render(
       <InstalledRoute
         sections={sections.map((section) => ({ ...section, rows: [] }))}
         loadState="error"
-        onRefresh={vi.fn()}
+        onRefresh={onRefresh}
       />,
     );
 
@@ -83,7 +84,9 @@ describe("InstalledRoute", () => {
     expect(
       screen.queryByText("No installed extensions were found in this profile."),
     ).not.toBeInTheDocument();
-    expect(screen.getByRole("button", { name: "Check for updates" })).toBeDisabled();
+    onRefresh.mockClear();
+    fireEvent.click(screen.getByRole("button", { name: "Retry loading installed extensions" }));
+    expect(onRefresh).toHaveBeenCalledOnce();
   });
 
   it("selects an eligible extension by clicking its card without a selection-mode button", () => {

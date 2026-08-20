@@ -118,11 +118,17 @@ export function InstalledRoute({
         ) : null}
         <button
           type="button"
-          aria-label={checkingUpdates ? "Checking for updates" : "Check for updates"}
-          disabled={loadState !== "ready" || checkingUpdates || lifecycleDisabled}
-          onClick={() => void onCheckUpdates?.()}
+          aria-label={
+            loadState === "error"
+              ? "Retry loading installed extensions"
+              : checkingUpdates
+                ? "Checking for updates"
+                : "Check for updates"
+          }
+          disabled={loadState === "loading" || checkingUpdates || lifecycleDisabled}
+          onClick={() => (loadState === "error" ? void onRefresh() : void onCheckUpdates?.())}
         >
-          {checkingUpdates ? "Checking…" : "Check again"}
+          {loadState === "error" ? "Retry" : checkingUpdates ? "Checking…" : "Check again"}
         </button>
       </header>
       {loadState === "ready" && usingNativeUpdates ? (

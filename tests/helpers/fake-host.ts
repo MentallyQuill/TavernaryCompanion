@@ -10,6 +10,7 @@ import type { HostUpdateInspection } from "../../src/updates/update-types";
 export interface FakeHostOptions {
   extensions?: HostExtension[];
   discoverGate?: Promise<void>;
+  discoverSteps?: Array<{ gate?: Promise<void>; extensions: HostExtension[] }>;
   installResults?: Record<string, HostExtension>;
   capabilities?: HostInstallCapabilities;
   remoteHeads?: Record<string, string>;
@@ -40,6 +41,7 @@ export type FakeHostOperation =
 export class FakeHost implements HostExtensionAdapter {
   readonly #extensions: HostExtension[];
   readonly #discoverGate: Promise<void> | null;
+  readonly #discoverSteps: Array<{ gate: Promise<void> | null; extensions: HostExtension[] }>;
   readonly #installResults: Record<string, HostExtension>;
   readonly #capabilities: HostInstallCapabilities;
   readonly #remoteHeads: Record<string, string>;
@@ -50,11 +52,16 @@ export class FakeHost implements HostExtensionAdapter {
   readonly #updateInspections: Record<string, HostUpdateInspection>;
   readonly #failures: Partial<Record<FakeHostOperation, Error>>;
   readonly calls: Array<{ operation: string; [key: string]: unknown }> = [];
+  #discoveryCount = 0;
   reloadCount = 0;
 
   constructor(options: FakeHostOptions = {}) {
     this.#extensions = structuredClone(options.extensions ?? []);
     this.#discoverGate = options.discoverGate ?? null;
+    this.#discoverSteps = (options.discoverSteps ?? []).map((step) => ({
+      gate: step.gate ?? null,
+      extensions: structuredClone(step.extensions),
+    }));
     this.#installResults = structuredClone(options.installResults ?? {});
     this.#capabilities = structuredClone(
       options.capabilities ?? {
@@ -75,6 +82,11 @@ export class FakeHost implements HostExtensionAdapter {
   async discover(): Promise<HostExtension[]> {
     this.calls.push({ operation: "discover" });
     this.#throwConfiguredFailure("discover");
+    const step = this.#discoverSteps[this.#discoveryCount++];
+    if (step) {
+      await step.gate;
+      return structuredClone(step.extensions);
+    }
     await this.#discoverGate;
     return structuredClone(this.#extensions);
   }
