@@ -259,6 +259,7 @@ describe("CompanionShell", () => {
       originLabel: "Published Kit" as const,
       componentCount: 1,
       flaggedCount: 0,
+      supporterCount: null,
       operationalStatus: "Changed on Tavernary",
       primaryAction: { kind: "review" as const, label: "Review" as const },
       editable: false,

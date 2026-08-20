@@ -13735,6 +13735,7 @@ function toPersonalKitCardViewModel(kit2, status) {
     originLabel: "Personal Kit",
     componentCount: kit2.projectIds.length,
     flaggedCount: 0,
+    supporterCount: null,
     operationalStatus: statusLabel(status),
     primaryAction: actionFor2(status)
   };
@@ -13748,6 +13749,7 @@ function toPublishedKitCardViewModel(kit2, status) {
     originLabel: "Published Kit",
     componentCount: kit2.components.length,
     flaggedCount: kit2.flaggedProjectCount,
+    supporterCount: kit2.supporterCount,
     operationalStatus: statusLabel(status),
     primaryAction: kit2.components.some(({ availability }) => availability === "available") ? actionFor2(status) : { kind: "view", label: "View Kit" }
   };
@@ -18120,6 +18122,10 @@ function KitCard({
         /* @__PURE__ */ u3("dt", { children: "Status" }),
         /* @__PURE__ */ u3("dd", { children: kit2.operationalStatus })
       ] }),
+      kit2.origin === "published" ? /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("dt", { children: "Votes" }),
+        /* @__PURE__ */ u3("dd", { children: kit2.supporterCount ?? "Unavailable" })
+      ] }) : null,
       kit2.flaggedCount ? /* @__PURE__ */ u3("div", { children: [
         /* @__PURE__ */ u3("dt", { children: "Flagged" }),
         /* @__PURE__ */ u3("dd", { children: kit2.flaggedCount })
@@ -18606,8 +18612,6 @@ function KitsRoute({
   lifecycleDisabled = false,
   onOpenKit,
   onAction,
-  onNewKit,
-  onImport,
   switcherKits = [],
   activeKitId = null,
   onActivate,
@@ -18650,10 +18654,6 @@ function KitsRoute({
         " ",
         state.visible.length === 1 ? "Kit" : "Kits",
         " shown"
-      ] }),
-      /* @__PURE__ */ u3("div", { class: "tavernary-companion-route-actions", children: [
-        /* @__PURE__ */ u3("button", { type: "button", onClick: onNewKit, children: "New Kit" }),
-        /* @__PURE__ */ u3("button", { type: "button", onClick: onImport, children: "Import" })
       ] })
     ] }),
     switcherKits.some(

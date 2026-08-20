@@ -10,8 +10,6 @@ export function KitsRoute({
   lifecycleDisabled = false,
   onOpenKit,
   onAction,
-  onNewKit,
-  onImport,
   switcherKits = [],
   activeKitId = null,
   onActivate,
@@ -76,14 +74,6 @@ export function KitsRoute({
         <span>
           {state.visible.length} {state.visible.length === 1 ? "Kit" : "Kits"} shown
         </span>
-        <div class="tavernary-companion-route-actions">
-          <button type="button" onClick={onNewKit}>
-            New Kit
-          </button>
-          <button type="button" onClick={onImport}>
-            Import
-          </button>
-        </div>
       </header>
       {switcherKits.some(
         ({ operationalStatus }) =>
