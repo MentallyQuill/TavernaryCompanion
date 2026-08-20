@@ -33,10 +33,16 @@ export function extension(folderName: string, enabled = true): HostExtension {
 export async function executorFixture(
   catalog: CatalogV7,
   hostOptions: FakeHostOptions = {},
-  options: { confirm?: (prompt: TrustPrompt, project: CatalogProject) => Promise<boolean> } = {},
+  options: {
+    confirm?: (prompt: TrustPrompt, project: CatalogProject) => Promise<boolean>;
+    saveSettings?: (extensionSettings: Readonly<Record<string, unknown>>) => void | Promise<void>;
+  } = {},
 ) {
   const extensionSettings: Record<string, unknown> = {};
-  const profile = new ProfileStore({ extensionSettings, saveSettings: () => undefined });
+  const profile = new ProfileStore({
+    extensionSettings,
+    saveSettings: () => options.saveSettings?.(structuredClone(extensionSettings)),
+  });
   const kits = new KitStore(profile, { now: () => "2026-08-18T12:00:00.000Z" });
   const host = createFakeHost(hostOptions);
   let currentFingerprint = "fixture-fingerprint";

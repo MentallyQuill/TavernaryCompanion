@@ -1,9 +1,9 @@
-import { expect, it } from "vitest";
+import { expect, it, vi } from "vitest";
 
 import { reconcileInventory } from "../../src/inventory/inventory-reconciler";
 import type { ManagedExtensionMap } from "../../src/inventory/inventory-types";
 import { planKitOperation } from "../../src/kits/kit-planner";
-import { catalogFixture, catalogProjectFixture } from "../helpers/catalog-fixtures";
+import { catalogFixture, catalogProjectFixture, deferred } from "../helpers/catalog-fixtures";
 import { approve, executorFixture, extension } from "../helpers/kit-executor-fixture";
 
 it("commits activation state and returns reload work without navigating", async () => {
@@ -46,7 +46,29 @@ it("commits activation state and returns reload work without navigating", async 
     }),
   );
   app.setFingerprint(plan.inventoryFingerprint);
-  const receipt = await app.executor.execute(plan, approve(plan));
+  const mutationWriteStarted = deferred<void>();
+  const releaseMutationWrite = deferred<void>();
+  const mutationWriteCounts: number[] = [];
+  const writeJournal = app.executor.journal.write.bind(app.executor.journal);
+  vi.spyOn(app.executor.journal, "write").mockImplementation(async (journal) => {
+    const completedMutations = (journal as typeof journal & { completedMutations?: unknown[] })
+      .completedMutations;
+    if (completedMutations?.length) {
+      mutationWriteCounts.push(completedMutations.length);
+      if (completedMutations.length === 1) {
+        mutationWriteStarted.resolve();
+        await releaseMutationWrite.promise;
+      }
+    }
+    await writeJournal(journal);
+  });
+
+  const executing = app.executor.execute(plan, approve(plan));
+  await mutationWriteStarted.promise;
+  expect(app.host.calls.some(({ operation }) => operation === "enable")).toBe(true);
+  expect(app.host.calls.some(({ operation }) => operation === "disable")).toBe(false);
+  releaseMutationWrite.resolve();
+  const receipt = await executing;
   expect(receipt.outcome).toBe("completed");
   expect(receipt.reloadRequired).toBe(true);
   expect(app.kits.readActiveId()).toBe("new-kit");
@@ -57,6 +79,7 @@ it("commits activation state and returns reload work without navigating", async 
   expect(app.host.calls.map(({ operation }) => operation)).not.toContain("reload");
   expect(app.profile.read().operationReceipt).toEqual(receipt);
   expect(app.executor.journal.read()).toBeNull();
+  expect(mutationWriteCounts).toEqual(expect.arrayContaining([1, 2]));
 });
 
 it("preserves the prior active identity when a required install fails", async () => {

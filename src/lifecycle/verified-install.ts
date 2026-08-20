@@ -94,7 +94,17 @@ export async function executeVerifiedInstall(input: {
         type: installed.type,
       });
     } catch (cause) {
-      if (input.target.requestedSha === null) throw cause;
+      if (input.target.requestedSha === null) {
+        throw new VerifiedInstallError({
+          message: "SillyTavern could not report the installed revision.",
+          stage: "post-install-verification",
+          subtype: "local-revision-read-failed",
+          cleanupOutcome: "not-needed",
+          requestedSha: null,
+          installedSha: null,
+          cause,
+        });
+      }
       throw await cleanupMismatch({
         host: input.host,
         extension: installed,

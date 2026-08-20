@@ -1,7 +1,7 @@
 import { expect, it, vi } from "vitest";
 
 import { planKitOperation } from "../../src/kits/kit-planner";
-import { catalogFixture, catalogProjectFixture } from "../helpers/catalog-fixtures";
+import { catalogFixture, catalogProjectFixture, deferred } from "../helpers/catalog-fixtures";
 import { approve, executorFixture, extension } from "../helpers/kit-executor-fixture";
 import type { KitInstallTargetSelection } from "../../src/kits/kit-install-targets";
 import { normalizeManagedExtensionMap } from "../../src/inventory/managed-registry";
@@ -40,6 +40,104 @@ it("continues independent installs, records verified ownership, and leaves an in
   expect(app.kits.readInstalled("writers")?.status).toBe("incomplete");
   expect(app.profile.read().managedExtensions.beta).toBeTruthy();
   expect(app.profile.read().managedExtensions.alpha).toBeUndefined();
+  expect(app.executor.journal.read()).toBeNull();
+});
+
+it("requires reload when legacy Newest mutates before revision inspection fails", async () => {
+  const alpha = catalogProjectFixture({ id: "alpha", folderName: "Alpha" });
+  const catalog = { ...catalogFixture(), projects: [alpha] };
+  const app = await executorFixture(catalog, {
+    capabilities: {
+      pinnedCommitInstall: false,
+      remoteRevisionLookup: false,
+      localRevisionLookup: true,
+    },
+    failures: { readLocalRevision: new Error("version endpoint failed") },
+    installResults: { [alpha.install!.repositoryUrl]: extension("Alpha") },
+  });
+  const plan = await app.prepare(
+    planKitOperation({
+      operation: "install",
+      kit: { id: "legacy", projectIds: ["alpha"], origin: "personal" },
+      catalog,
+      inventory: await app.inventory(),
+      managed: {},
+      installedKits: [],
+      activeKitId: null,
+      catalogCanMutate: true,
+    }),
+  );
+  app.setFingerprint(plan.inventoryFingerprint);
+
+  const receipt = await app.executor.execute(plan, approve(plan));
+
+  expect(receipt.reloadRequired).toBe(true);
+  expect(receipt.projects).toEqual([
+    expect.objectContaining({ projectId: "alpha", action: "install", status: "failed" }),
+  ]);
+  expect((await app.host.discover()).some(({ folderName }) => folderName === "Alpha")).toBe(true);
+});
+
+it("awaits durable receipt persistence and journal clearing before resolving", async () => {
+  const receiptSaveStarted = deferred<void>();
+  const releaseReceiptSave = deferred<void>();
+  const clearSaveStarted = deferred<void>();
+  const releaseClearSave = deferred<void>();
+  let heldReceiptSave = false;
+  let heldClearSave = false;
+  const app = await executorFixture(
+    catalogFixture(),
+    {},
+    {
+      saveSettings: async (extensionSettings) => {
+        const state = extensionSettings.tavernaryCompanion as
+          { operationReceipt?: unknown; kitOperationJournal?: unknown } | undefined;
+        if (state?.operationReceipt && state.kitOperationJournal && !heldReceiptSave) {
+          heldReceiptSave = true;
+          receiptSaveStarted.resolve();
+          await releaseReceiptSave.promise;
+        } else if (
+          state?.operationReceipt &&
+          state.kitOperationJournal === null &&
+          !heldClearSave
+        ) {
+          heldClearSave = true;
+          clearSaveStarted.resolve();
+          await releaseClearSave.promise;
+        }
+      },
+    },
+  );
+  const plan = await app.prepare(
+    planKitOperation({
+      operation: "install",
+      kit: { id: "empty", projectIds: [], origin: "personal" },
+      catalog: catalogFixture(),
+      inventory: await app.inventory(),
+      managed: {},
+      installedKits: [],
+      activeKitId: null,
+      catalogCanMutate: true,
+    }),
+  );
+  app.setFingerprint(plan.inventoryFingerprint);
+  let settled = false;
+
+  const executing = app.executor.execute(plan, approve(plan)).finally(() => {
+    settled = true;
+  });
+  await receiptSaveStarted.promise;
+  expect(settled).toBe(false);
+  expect(app.profile.read().operationReceipt).toBeNull();
+  releaseReceiptSave.resolve();
+
+  await clearSaveStarted.promise;
+  expect(settled).toBe(false);
+  expect(app.executor.journal.read()).not.toBeNull();
+  releaseClearSave.resolve();
+
+  const receipt = await executing;
+  expect(app.profile.read().operationReceipt).toEqual(receipt);
   expect(app.executor.journal.read()).toBeNull();
 });
 

@@ -100,6 +100,33 @@ describe("verified install", () => {
     );
   });
 
+  it("reports a typed post-install failure when legacy Newest revision lookup fails", async () => {
+    const { host, project } = fixture({
+      capabilities: {
+        pinnedCommitInstall: false,
+        remoteRevisionLookup: false,
+        localRevisionLookup: true,
+      },
+      failures: { readLocalRevision: new Error("version endpoint failed") },
+    });
+    const legacyNewest: InstallTarget = {
+      kind: "newest",
+      requestedSha: null,
+      resolvedAt: null,
+    };
+
+    await expect(
+      executeVerifiedInstall({ host, project, target: legacyNewest }),
+    ).rejects.toMatchObject({
+      name: "VerifiedInstallError",
+      stage: "post-install-verification",
+      subtype: "local-revision-read-failed",
+      cleanupOutcome: "not-needed",
+      requestedSha: null,
+    } satisfies Partial<VerifiedInstallError>);
+    expect((await host.discover()).some(({ folderName }) => folderName === "Alpha")).toBe(true);
+  });
+
   it("rejects a pinned target before mutation when local revision lookup is unavailable", async () => {
     const { host, project } = fixture({
       capabilities: {

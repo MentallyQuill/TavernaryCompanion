@@ -16,27 +16,43 @@ for (const viewport of [
     const geometry = await row.evaluate((element) => {
       const rowBox = element.getBoundingClientRect();
       return {
+        clientHeight: element.clientHeight,
         clientWidth: element.clientWidth,
+        scrollHeight: element.scrollHeight,
         scrollWidth: element.scrollWidth,
         children: [...element.children].map((child) => {
           const box = child.getBoundingClientRect();
           return {
+            bottom: box.bottom,
+            clientHeight: child.clientHeight,
             clientWidth: child.clientWidth,
             left: box.left,
             right: box.right,
+            scrollHeight: child.scrollHeight,
             scrollWidth: child.scrollWidth,
+            top: box.top,
           };
         }),
+        bottom: rowBox.bottom,
         left: rowBox.left,
         right: rowBox.right,
+        top: rowBox.top,
       };
     });
 
+    expect(geometry.scrollHeight).toBeLessThanOrEqual(geometry.clientHeight);
     expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
     for (const child of geometry.children) {
+      expect(child.top).toBeGreaterThanOrEqual(geometry.top - 1);
+      expect(child.bottom).toBeLessThanOrEqual(geometry.bottom + 1);
       expect(child.left).toBeGreaterThanOrEqual(geometry.left - 1);
       expect(child.right).toBeLessThanOrEqual(geometry.right + 1);
+      expect(child.scrollHeight).toBeLessThanOrEqual(child.clientHeight);
       expect(child.scrollWidth).toBeLessThanOrEqual(child.clientWidth);
+    }
+    if (viewport.width === 390) {
+      expect(geometry.children[1].top).toBeGreaterThan(geometry.children[0].top);
+      expect(geometry.children[2].top).toBeGreaterThan(geometry.children[1].top);
     }
   });
 }

@@ -2,6 +2,7 @@ import type { ProfileStore } from "../state/profile-store";
 import type { KitOperation } from "./kit-plan";
 import type { KitProjectResult } from "./kit-receipt";
 import type { KitInstallTargetSelection } from "./kit-install-targets";
+import type { ActivationMutationResult } from "./kit-activation-commit";
 
 export interface KitOperationJournalV1 {
   formatVersion: 1;
@@ -19,6 +20,8 @@ export interface KitOperationJournalV1 {
   actionableProjectIds?: string[];
   /** Absent only in legacy journals created before Kit version selection. */
   selectedInstallTargets?: KitInstallTargetSelection[];
+  /** Absent only in journals created before per-mutation activation progress. */
+  completedMutations?: ActivationMutationResult[];
 }
 
 export class KitOperationJournal {
@@ -66,8 +69,22 @@ function isJournal(value: unknown): value is KitOperationJournalV1 {
     (!Object.hasOwn(journal, "selectedInstallTargets") ||
       (Array.isArray(journal.selectedInstallTargets) &&
         journal.selectedInstallTargets.every(isInstallTargetSelection))) &&
+    (!Object.hasOwn(journal, "completedMutations") ||
+      (Array.isArray(journal.completedMutations) &&
+        journal.completedMutations.every(isActivationMutationResult))) &&
     (journal.preOperationActiveKitId === null ||
       typeof journal.preOperationActiveKitId === "string")
+  );
+}
+
+function isActivationMutationResult(value: unknown): boolean {
+  if (typeof value !== "object" || value === null || Array.isArray(value)) return false;
+  const mutation = value as Partial<ActivationMutationResult>;
+  return (
+    typeof mutation.projectId === "string" &&
+    (mutation.action === "enable" || mutation.action === "disable") &&
+    typeof mutation.changed === "boolean" &&
+    (mutation.error === null || typeof mutation.error === "string")
   );
 }
 

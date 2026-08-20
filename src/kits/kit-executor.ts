@@ -15,7 +15,7 @@ import type { ProfileStore } from "../state/profile-store";
 import { selectTrustPrompts } from "../trust/trust-policy";
 import type { TrustPrompt } from "../trust/trust-types";
 import { executeVerifiedInstall, VerifiedInstallError } from "../lifecycle/verified-install";
-import { applyActivationMutations } from "./kit-activation-commit";
+import { applyActivationMutations, type ActivationMutationResult } from "./kit-activation-commit";
 import {
   sameInstallTarget,
   validateInstallTargetApproval,
@@ -102,6 +102,7 @@ export class KitExecutor {
         requiredProjectIds: [...plan.requiredProjectIds],
         actionableProjectIds: [...plan.actionableProjectIds],
         selectedInstallTargets: structuredClone(approval.selectedInstallTargets),
+        completedMutations: [],
       };
       await this.journal.write(journal);
       const progress: KitExecutionProgress = { reloadRequired: false };
@@ -413,6 +414,7 @@ export class KitExecutor {
         disable: plan.disable,
         resolveInternalName: (projectId, planned) =>
           planned ?? records[projectId]?.internalName ?? null,
+        onResult: (mutation) => this.#recordMutationProgress(journal, progress, mutation),
       });
       progress.reloadRequired ||= mutations.changed;
       for (const failure of mutations.failures)
@@ -464,6 +466,7 @@ export class KitExecutor {
       enable: [],
       disable: plan.disable,
       resolveInternalName: (_id, planned) => planned,
+      onResult: (mutation) => this.#recordMutationProgress(journal, progress, mutation),
     });
     let discovered: HostExtension[] | null = null;
     let discoveryError: string | null = null;
@@ -518,6 +521,7 @@ export class KitExecutor {
         enable: [],
         disable: plan.disable,
         resolveInternalName: (_id, planned) => planned,
+        onResult: (mutation) => this.#recordMutationProgress(journal, progress, mutation),
       });
       progress.reloadRequired ||= mutations.changed;
       if (mutations.failures.length) {
@@ -636,6 +640,17 @@ export class KitExecutor {
       });
       draft.managedExtensions = registry.read();
     });
+  }
+
+  async #recordMutationProgress(
+    journal: KitOperationJournalV1,
+    progress: KitExecutionProgress,
+    mutation: Readonly<ActivationMutationResult>,
+  ): Promise<void> {
+    progress.reloadRequired ||= mutation.changed;
+    journal.currentProjectId = mutation.projectId;
+    journal.completedMutations = [...(journal.completedMutations ?? []), structuredClone(mutation)];
+    await this.journal.write(journal);
   }
 
   async #confirmChangedTarget(project: CatalogProject, target: InstallTarget): Promise<boolean> {
