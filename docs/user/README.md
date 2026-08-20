@@ -11,6 +11,7 @@ Companion is a **pre-alpha** tool. The names and screens may change while it is 
 - **I want to update or remove something.** Read [Updating and removing extensions](updating-extensions.md).
 - **I want a saved group of extensions.** Read [Managing Kits](kits.md).
 - **I want to understand a warning.** Read [Checks and trust](safety-and-trust.md).
+- **I want to know how Companion connects to Tavernary.org.** Read [TavernKeeper and the catalog](tavernkeeper-and-catalog.md).
 - **Something is not working.** Open [Troubleshooting](troubleshooting.md).
 - **A word is confusing.** Open [Words you’ll see](words-to-know.md).
 
