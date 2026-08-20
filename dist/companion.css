@@ -2184,11 +2184,9 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 .tavernary-companion-installed-kit-card.is-active {
   box-shadow: inset 2px 0 var(--tavernary-color-accent-teal), var(--tavernary-shadow-card);
 }
-.tavernary-companion-installed-kit-card.is-selected,
-.tavernary-companion-installed-card.is-selected {
-  border-color: var(--tavernary-color-accent-teal);
-  background: var(--tavernary-color-accent-teal-bg);
-  box-shadow: inset 0 0 0 1px var(--tavernary-color-accent-teal), var(--tavernary-shadow-card);
+.tavernary-companion-installed-kit-card.is-selected {
+  border-color: var(--tavernary-color-functional);
+  box-shadow: inset 0 0 0 1px var(--tavernary-color-functional), var(--tavernary-shadow-card);
 }
 .tavernary-companion-installed-kit-card > .tavernary-companion-tooltip-anchor:first-child,
 .tavernary-companion-installed-kit-card__select {
@@ -2321,40 +2319,17 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   background: var(--tavernary-color-bg-surface);
   box-shadow: var(--tavernary-shadow-card);
 }
-.tavernary-companion-installed-selection-control {
+.tavernary-companion-installed-card__select {
   position: absolute;
-  z-index: 3;
-  inset-block-start: 8px;
-  inset-inline-end: 8px;
-  display: grid;
-  min-inline-size: 44px;
-  min-block-size: 44px;
-  place-items: center;
+  z-index: 1;
+  inset: 0;
+  inline-size: 100%;
+  block-size: 100%;
   padding: 0;
-  border: 1px solid var(--tavernary-color-control-border);
-  border-radius: 50%;
-  background: var(--tavernary-color-control-bg);
-}
-.tavernary-companion-installed-card:has(.tavernary-companion-installed-selection-control) {
-  padding-inline-end: 62px;
-}
-.tavernary-companion-installed-selection-control span {
-  display: grid;
-  inline-size: 20px;
-  block-size: 20px;
-  place-items: center;
-  border: 1px solid var(--tavernary-color-border-strong);
-  border-radius: 4px;
-}
-.tavernary-companion-installed-selection-control[aria-checked=true] span {
-  border-color: var(--tavernary-color-accent-teal);
-  color: var(--tavernary-color-heading);
-  background: var(--tavernary-color-accent-teal-muted);
-}
-.tavernary-companion-installed-selection-disabled {
-  margin: 4px 50px 4px 0;
-  color: var(--tavernary-color-text-muted);
-  font-size: 9px;
+  border: 0;
+  border-radius: inherit;
+  background: transparent;
+  pointer-events: none;
 }
 .tavernary-companion-installed-card.is-installed {
   border-color: color-mix(in srgb, var(--tavernary-color-accent-teal) 58%, var(--tavernary-color-border-default));
@@ -2366,6 +2341,14 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 .tavernary-companion-installed-card.is-disabled {
   border-color: var(--tavernary-color-border-default);
   box-shadow: var(--tavernary-shadow-card);
+}
+.tavernary-companion-installed-card.is-selected {
+  border-color: var(--tavernary-color-functional);
+  box-shadow: inset 0 0 0 1px var(--tavernary-color-functional), var(--tavernary-shadow-card);
+}
+.tavernary-companion-installed-card:has(.tavernary-companion-installed-card__select:focus-visible) {
+  outline: 2px solid var(--tavernary-color-functional);
+  outline-offset: 2px;
 }
 .tavernary-companion-installed-card > header {
   display: flex;

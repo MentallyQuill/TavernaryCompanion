@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from "@testing-library/preact";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/preact";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
 import type { InstalledSectionViewModel } from "../../src/catalog/installed-view-model";
@@ -70,7 +70,8 @@ describe("InstalledRoute", () => {
       ".tavernary-companion-installed-card.is-installed",
     );
     expect(alphaCard).not.toBeNull();
-    fireEvent.click(alphaCard!);
+    expect(within(alphaCard!).queryByRole("checkbox")).not.toBeInTheDocument();
+    fireEvent.click(within(alphaCard!).getByRole("button", { name: "Select Alpha" }));
     expect(onToggleSelection).toHaveBeenCalledWith("alpha");
   });
 
@@ -109,8 +110,9 @@ describe("InstalledRoute", () => {
       />,
     );
 
-    const alpha = screen.getByRole("checkbox", { name: "Select Alpha" });
-    expect(alpha).toHaveAttribute("aria-checked", "true");
+    expect(screen.queryByRole("checkbox")).not.toBeInTheDocument();
+    const alpha = screen.getByRole("button", { name: "Deselect Alpha" });
+    expect(alpha).toHaveAttribute("aria-pressed", "true");
     expect(screen.getByRole("status")).toHaveTextContent("1 selected");
     const bulkBar = screen.getByRole("complementary", { name: "Bulk actions" });
     expect(bulkBar).toHaveClass("tavernary-companion-kit-selection-dock");

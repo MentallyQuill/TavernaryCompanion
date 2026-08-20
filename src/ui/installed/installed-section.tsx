@@ -117,14 +117,11 @@ function InstalledCard({
       {row.selectionEligible ? (
         <button
           type="button"
-          role="checkbox"
-          class="tavernary-companion-installed-selection-control"
-          aria-checked={selected}
-          aria-label={`Select ${row.name}`}
+          class="tavernary-companion-installed-card__select"
+          aria-pressed={selected}
+          aria-label={`${selected ? "Deselect" : "Select"} ${row.name}`}
           onClick={() => onToggleSelection?.(row.id)}
-        >
-          <span aria-hidden="true">{selected ? "✓" : ""}</span>
-        </button>
+        />
       ) : null}
       <header>
         <span>{sectionLabel(sectionId)}</span>

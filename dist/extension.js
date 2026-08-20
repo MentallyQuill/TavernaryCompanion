@@ -18760,12 +18760,10 @@ function InstalledCard({
           "button",
           {
             type: "button",
-            role: "checkbox",
-            class: "tavernary-companion-installed-selection-control",
-            "aria-checked": selected,
-            "aria-label": `Select ${row.name}`,
-            onClick: () => onToggleSelection?.(row.id),
-            children: /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: selected ? "\u2713" : "" })
+            class: "tavernary-companion-installed-card__select",
+            "aria-pressed": selected,
+            "aria-label": `${selected ? "Deselect" : "Select"} ${row.name}`,
+            onClick: () => onToggleSelection?.(row.id)
           }
         ) : null,
         /* @__PURE__ */ u3("header", { children: [
