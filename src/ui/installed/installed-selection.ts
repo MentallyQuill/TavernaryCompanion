@@ -10,10 +10,6 @@ export const EMPTY_INSTALLED_SELECTION: InstalledSelectionState = {
   sourceKitIds: [],
 };
 
-export function startInstalledSelection(): InstalledSelectionState {
-  return { active: true, projectIds: [], sourceKitIds: [] };
-}
-
 export function clearInstalledSelection(): InstalledSelectionState {
   return EMPTY_INSTALLED_SELECTION;
 }
@@ -35,6 +31,9 @@ export function toggleInstalledProject(
   state: InstalledSelectionState,
   projectId: string,
 ): InstalledSelectionState {
+  if (state.projectIds.length === 1 && state.projectIds[0] === projectId) {
+    return EMPTY_INSTALLED_SELECTION;
+  }
   return {
     ...state,
     active: true,

@@ -218,7 +218,6 @@ describe("CompanionShell", () => {
         ],
       },
     });
-    const onStart = vi.fn();
     const onToggle = vi.fn();
     const onClear = vi.fn();
     render(
@@ -226,14 +225,17 @@ describe("CompanionShell", () => {
         controller={createShellController({ initialRoute: "installed" })}
         discovery={discovery}
         installedSelection={{ active: false, projectIds: [], sourceKitIds: [] }}
-        onStartInstalledSelection={onStart}
         onToggleInstalledSelection={onToggle}
         onClearInstalledSelection={onClear}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Select installed extensions" }));
-    expect(onStart).toHaveBeenCalledOnce();
+    const card = document.querySelector<HTMLElement>(
+      ".tavernary-companion-installed-card.is-installed",
+    );
+    expect(card).not.toBeNull();
+    fireEvent.click(card!);
+    expect(onToggle).toHaveBeenCalledWith(project.id);
   });
 
   it("navigates primary routes with the compact Browse menu", () => {

@@ -41,33 +41,42 @@ test("selects installed Kit members, deduplicates overlap, and clears the mode",
   await expect(page.locator(".tavernary-companion-installed-kit-card.is-selected")).toHaveCount(2);
 
   await page.getByRole("checkbox", { name: "Select Writer Tool" }).click();
-  await expect(selectedCount(page)).toHaveText("0 selected");
+  await expect(page.getByRole("complementary", { name: "Bulk actions" })).toHaveCount(0);
   await expect(page.locator(".tavernary-companion-installed-kit-card.is-selected")).toHaveCount(0);
   await page.getByRole("checkbox", { name: "Select Writer Tool" }).click();
   await expect(selectedCount(page)).toHaveText("1 selected");
   await expect(page.locator(".tavernary-companion-installed-kit-card.is-selected")).toHaveCount(0);
 
   await page.getByRole("button", { name: "Clear selection and exit" }).click();
-  await expect(page.getByRole("button", { name: "Select installed extensions" })).toBeVisible();
+  await expect(page.getByRole("button", { name: "Select installed extensions" })).toHaveCount(0);
   await expect(page.getByRole("complementary", { name: "Bulk actions" })).toHaveCount(0);
   await expect(page.locator(".tavernary-companion-installed-card.is-selected")).toHaveCount(0);
 });
 
-test("supports keyboard selection and preserves selection when Add to Kit is canceled", async ({
+test("supports direct card and keyboard selection and preserves selection when Add to Kit is canceled", async ({
   page,
 }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await openInstalled(page);
 
-  const selectMode = page.getByRole("button", { name: "Select installed extensions" });
-  await selectMode.focus();
-  await page.keyboard.press("Enter");
+  await expect(page.getByRole("button", { name: "Select installed extensions" })).toHaveCount(0);
+  const card = page
+    .locator(".tavernary-companion-installed-card")
+    .filter({ hasText: "Writer Tool" });
+  await card.locator(":scope > header > span").click();
+  await expect(selectedCount(page)).toHaveText("1 selected");
+
   const extension = page.getByRole("checkbox", { name: "Select Writer Tool" });
   await extension.focus();
   await page.keyboard.press("Space");
+  await expect(page.getByRole("complementary", { name: "Bulk actions" })).toHaveCount(0);
+  await page.keyboard.press("Space");
   await expect(selectedCount(page)).toHaveText("1 selected");
 
-  await page.getByRole("button", { name: "Add selected extensions to a Kit" }).click();
+  const addToKit = page.getByRole("button", { name: "Add selected extensions to a Kit" });
+  await expect(addToKit).toHaveClass(/tavernary-companion-kit-selection-add/u);
+  await expect(addToKit.locator(".selection-count")).toHaveText("1");
+  await addToKit.click();
   await expect(page.getByRole("dialog", { name: "Add 1 extension to a Kit" })).toBeVisible();
   await expect(
     page.getByText("Adding to a Kit does not change extension ownership."),
@@ -75,7 +84,7 @@ test("supports keyboard selection and preserves selection when Add to Kit is can
   await page.getByRole("button", { name: "Cancel" }).click();
   await expect(selectedCount(page)).toHaveText("1 selected");
 
-  await page.getByRole("button", { name: "Add selected extensions to a Kit" }).click();
+  await addToKit.click();
   await page.getByRole("button", { name: "Add to Writer's Kit" }).click();
   const builder = page.getByRole("complementary", { name: "Kit Builder" });
   await expect(builder).toBeVisible();

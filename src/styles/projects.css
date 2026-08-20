@@ -2049,32 +2049,6 @@
   font-size: 9px;
 }
 
-.tavernary-companion-installed-bulk-bar {
-  position: sticky;
-  z-index: 30;
-  inset-block-end: max(8px, env(safe-area-inset-bottom, 0px));
-  display: flex;
-  align-items: center;
-  gap: 8px;
-  margin: 20px auto 8px;
-  padding: 8px;
-  border: 1px solid var(--tavernary-color-accent-teal-border);
-  border-radius: 9px;
-  background: var(--tavernary-color-bg-surface-raised);
-  box-shadow: var(--tavernary-shadow-overlay);
-}
-
-.tavernary-companion-installed-bulk-bar > strong {
-  margin-inline-end: auto;
-  padding-inline: 6px;
-  color: var(--tavernary-color-heading);
-  font-size: 12px;
-}
-
-.tavernary-companion-installed-bulk-bar .tavernary-companion-tooltip-anchor > button {
-  min-block-size: 44px;
-}
-
 .tavernary-companion-installed-card.is-installed {
   border-color: color-mix(
     in srgb,
@@ -2264,20 +2238,6 @@
 
   .tavernary-companion-installed-card {
     min-block-size: 150px;
-  }
-
-  .tavernary-companion-installed-bulk-bar {
-    display: grid;
-    grid-template-columns: repeat(3, minmax(0, 1fr));
-  }
-
-  .tavernary-companion-installed-bulk-bar > strong {
-    grid-column: 1 / -1;
-  }
-
-  .tavernary-companion-installed-bulk-bar .tavernary-companion-tooltip-anchor,
-  .tavernary-companion-installed-bulk-bar .tavernary-companion-tooltip-anchor > button {
-    inline-size: 100%;
   }
 }
 

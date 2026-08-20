@@ -53,18 +53,43 @@ const sections: InstalledSectionViewModel[] = [
 ];
 
 describe("InstalledRoute", () => {
-  it("enters explicit selection mode from the Installed toolbar", () => {
-    const onStartSelection = vi.fn();
+  it("selects an eligible extension by clicking its card without a selection-mode button", () => {
+    const onToggleSelection = vi.fn();
+    const { container } = render(
+      <InstalledRoute
+        sections={sections}
+        onRefresh={vi.fn()}
+        onToggleSelection={onToggleSelection}
+      />,
+    );
+
+    expect(
+      screen.queryByRole("button", { name: "Select installed extensions" }),
+    ).not.toBeInTheDocument();
+    const alphaCard = container.querySelector<HTMLElement>(
+      ".tavernary-companion-installed-card.is-installed",
+    );
+    expect(alphaCard).not.toBeNull();
+    fireEvent.click(alphaCard!);
+    expect(onToggleSelection).toHaveBeenCalledWith("alpha");
+  });
+
+  it("keeps card controls independent from card selection", () => {
+    const onToggleSelection = vi.fn();
+    const onToggleExtension = vi.fn();
     render(
       <InstalledRoute
         sections={sections}
         onRefresh={vi.fn()}
-        onStartSelection={onStartSelection}
+        onToggleSelection={onToggleSelection}
+        onToggleExtension={onToggleExtension}
       />,
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Select installed extensions" }));
-    expect(onStartSelection).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("link", { name: "Alpha" }));
+    fireEvent.click(screen.getByRole("switch", { name: "Disable Alpha" }));
+    expect(onToggleSelection).not.toHaveBeenCalled();
+    expect(onToggleExtension).toHaveBeenCalledWith("alpha", "third-party/Alpha", false);
   });
 
   it("renders selected extension cards and the approved bulk actions", () => {
@@ -87,6 +112,12 @@ describe("InstalledRoute", () => {
     const alpha = screen.getByRole("checkbox", { name: "Select Alpha" });
     expect(alpha).toHaveAttribute("aria-checked", "true");
     expect(screen.getByRole("status")).toHaveTextContent("1 selected");
+    const bulkBar = screen.getByRole("complementary", { name: "Bulk actions" });
+    expect(bulkBar).toHaveClass("tavernary-companion-kit-selection-dock");
+    expect(screen.getByRole("button", { name: "Add selected extensions to a Kit" })).toHaveClass(
+      "tavernary-companion-kit-selection-add",
+    );
+    expect(bulkBar.querySelector(".selection-count")).toHaveTextContent("1");
     fireEvent.click(alpha);
     fireEvent.click(screen.getByRole("button", { name: "Add selected extensions to a Kit" }));
     fireEvent.click(screen.getByRole("button", { name: "Uninstall selected extensions" }));

@@ -18444,58 +18444,80 @@ function InstalledBulkBar({
   onClear
 }) {
   const id = g2();
-  return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-installed-bulk-bar", "aria-label": "Bulk actions", children: [
-    /* @__PURE__ */ u3("strong", { role: "status", "aria-live": "polite", children: [
-      count,
-      " selected"
-    ] }),
-    /* @__PURE__ */ u3(
-      Tooltip,
-      {
-        id: `${id}-add-to-kit`,
-        label: "Create a new Kit or add these extensions to a personal Kit. Ownership does not change.",
-        className: "tavernary-companion-control-tooltip",
-        children: /* @__PURE__ */ u3(
-          "button",
-          {
-            type: "button",
-            "aria-label": "Add selected extensions to a Kit",
-            disabled: disabled || count === 0,
-            onClick: onAddToKit,
-            children: "Add to Kit"
-          }
-        )
-      }
-    ),
-    /* @__PURE__ */ u3(
-      Tooltip,
-      {
-        id: `${id}-uninstall`,
-        label: "Review and uninstall the selected extensions.",
-        className: "tavernary-companion-control-tooltip",
-        children: /* @__PURE__ */ u3(
-          "button",
-          {
-            type: "button",
-            class: "is-danger",
-            "aria-label": "Uninstall selected extensions",
-            disabled: disabled || count === 0,
-            onClick: onUninstall,
-            children: "Uninstall"
-          }
-        )
-      }
-    ),
-    /* @__PURE__ */ u3(
-      Tooltip,
-      {
-        id: `${id}-clear`,
-        label: "Clear the selection and exit selection mode.",
-        className: "tavernary-companion-control-tooltip",
-        children: /* @__PURE__ */ u3("button", { type: "button", "aria-label": "Clear selection and exit", onClick: onClear, children: "Clear" })
-      }
-    )
-  ] });
+  return /* @__PURE__ */ u3(
+    "aside",
+    {
+      class: "tavernary-companion-kit-selection-dock tavernary-companion-installed-bulk-bar",
+      "aria-label": "Bulk actions",
+      children: [
+        /* @__PURE__ */ u3("span", { class: "tavernary-companion-sr-only", role: "status", "aria-live": "polite", children: [
+          count,
+          " selected"
+        ] }),
+        /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-selection-actions", children: [
+          /* @__PURE__ */ u3(
+            Tooltip,
+            {
+              id: `${id}-clear`,
+              label: "Clear the selection and exit selection mode.",
+              className: "tavernary-companion-control-tooltip",
+              children: /* @__PURE__ */ u3(
+                "button",
+                {
+                  type: "button",
+                  class: "tavernary-companion-kit-selection-cancel",
+                  "aria-label": "Clear selection and exit",
+                  onClick: onClear,
+                  children: "Clear"
+                }
+              )
+            }
+          ),
+          /* @__PURE__ */ u3(
+            Tooltip,
+            {
+              id: `${id}-uninstall`,
+              label: "Review and uninstall the selected extensions.",
+              className: "tavernary-companion-control-tooltip",
+              children: /* @__PURE__ */ u3(
+                "button",
+                {
+                  type: "button",
+                  class: "is-danger",
+                  "aria-label": "Uninstall selected extensions",
+                  disabled: disabled || count === 0,
+                  onClick: onUninstall,
+                  children: "Uninstall"
+                }
+              )
+            }
+          ),
+          /* @__PURE__ */ u3(
+            Tooltip,
+            {
+              id: `${id}-add-to-kit`,
+              label: "Create a new Kit or add these extensions to a personal Kit. Ownership does not change.",
+              className: "tavernary-companion-control-tooltip",
+              children: /* @__PURE__ */ u3(
+                "button",
+                {
+                  type: "button",
+                  class: "tavernary-companion-kit-selection-add",
+                  "aria-label": "Add selected extensions to a Kit",
+                  disabled: disabled || count === 0,
+                  onClick: onAddToKit,
+                  children: [
+                    "Add to Kit",
+                    /* @__PURE__ */ u3("span", { class: "selection-count", "aria-hidden": "true", children: count })
+                  ]
+                }
+              )
+            }
+          )
+        ] })
+      ]
+    }
+  );
 }
 
 // src/ui/installed/installed-status-help.tsx
@@ -18677,7 +18699,6 @@ function InstalledSection({
   onManage,
   onToggleExtension,
   lifecycleDisabled,
-  selectionActive = false,
   selectedProjectIds = [],
   onToggleSelection
 }) {
@@ -18701,7 +18722,6 @@ function InstalledSection({
         onManage,
         onToggleExtension,
         lifecycleDisabled,
-        selectionActive,
         selected: selectedProjectIds.includes(row.id),
         onToggleSelection
       },
@@ -18722,7 +18742,6 @@ function InstalledCard({
   onManage,
   onToggleExtension,
   lifecycleDisabled,
-  selectionActive,
   selected,
   onToggleSelection
 }) {
@@ -18732,8 +18751,12 @@ function InstalledCard({
     "article",
     {
       class: `tavernary-companion-installed-card${row.enabled !== null ? " is-installed" : " is-missing"}${row.enabled === false ? " is-disabled" : ""}${selected ? " is-selected" : ""}`,
+      onClick: (event) => {
+        if (!row.selectionEligible || isInteractiveTarget(event.target)) return;
+        onToggleSelection?.(row.id);
+      },
       children: [
-        selectionActive && row.selectionEligible ? /* @__PURE__ */ u3(
+        row.selectionEligible ? /* @__PURE__ */ u3(
           "button",
           {
             type: "button",
@@ -18745,7 +18768,6 @@ function InstalledCard({
             children: /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: selected ? "\u2713" : "" })
           }
         ) : null,
-        selectionActive && !row.selectionEligible && row.selectionDisabledReason ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-selection-disabled", children: row.selectionDisabledReason }) : null,
         /* @__PURE__ */ u3("header", { children: [
           /* @__PURE__ */ u3("span", { children: sectionLabel(sectionId) }),
           updateState && updateState.kind !== "idle" ? /* @__PURE__ */ u3(
@@ -18765,7 +18787,7 @@ function InstalledCard({
         ] }) : null,
         updateState?.kind === "attention" || updateState?.kind === "error" ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-attention-reason", children: updateState.reason }) : null,
         missing ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-attention-reason", children: row.detail }) : null,
-        !selectionActive || !row.selectionEligible ? /* @__PURE__ */ u3("footer", { children: [
+        /* @__PURE__ */ u3("footer", { children: [
           row.toggleable && row.internalName && row.enabled !== null ? /* @__PURE__ */ u3(
             "button",
             {
@@ -18839,10 +18861,13 @@ function InstalledCard({
               onAction: (action, anchor) => onAction?.(row.id, action, anchor)
             }
           )
-        ] }) : null
+        ] })
       ]
     }
   );
+}
+function isInteractiveTarget(target) {
+  return target instanceof Element && Boolean(target.closest("a, button, input, select, textarea"));
 }
 function updateStatusLabel(state) {
   if (state.kind === "available" && state.notice === "You already have the latest scanned version.") {
@@ -18890,7 +18915,6 @@ function InstalledRoute({
   onOpenKit,
   onUninstallKit,
   onToggleExtension,
-  onStartSelection,
   onSelectKit,
   selection = { active: false, projectIds: [], sourceKitIds: [] },
   onToggleSelection,
@@ -18899,7 +18923,6 @@ function InstalledRoute({
   onClearSelection,
   lifecycleDisabled
 }) {
-  const selectHelpId = g2();
   h2(() => {
     void onRefresh();
   }, [onRefresh]);
@@ -18948,25 +18971,7 @@ function InstalledRoute({
           onClick: () => void onCheckUpdates?.(),
           children: checkingUpdates ? "Checking\u2026" : "Check again"
         }
-      ),
-      !selection.active ? /* @__PURE__ */ u3(
-        Tooltip,
-        {
-          id: `${selectHelpId}-select-installed`,
-          label: "Select installed extensions for bulk actions.",
-          className: "tavernary-companion-control-tooltip",
-          children: /* @__PURE__ */ u3(
-            "button",
-            {
-              type: "button",
-              "aria-label": "Select installed extensions",
-              disabled: lifecycleDisabled,
-              onClick: () => onStartSelection?.(),
-              children: "Select"
-            }
-          )
-        }
-      ) : null
+      )
     ] }),
     usingNativeUpdates ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-update-note", children: "SillyTavern can update extensions to the latest version from their creator. Updating to a specific TavernKeeper-scanned version isn\u2019t supported by this build." }) : null,
     installedKits.length ? /* @__PURE__ */ u3(
@@ -19013,7 +19018,6 @@ function InstalledRoute({
         onManage,
         onToggleExtension,
         lifecycleDisabled,
-        selectionActive: selection.active,
         selectedProjectIds: selection.projectIds,
         onToggleSelection
       },
@@ -21196,7 +21200,6 @@ function CompanionShell({
   togglingInternalName = null,
   onToggleExtension,
   installedSelection,
-  onStartInstalledSelection,
   onSelectInstalledKit,
   onToggleInstalledSelection,
   onAddInstalledSelectionToKit,
@@ -21353,7 +21356,6 @@ function CompanionShell({
                     onUninstallKit,
                     onToggleExtension,
                     selection: installedSelection,
-                    onStartSelection: onStartInstalledSelection,
                     onSelectKit: onSelectInstalledKit,
                     onToggleSelection: onToggleInstalledSelection,
                     onAddSelectedToKit: onAddInstalledSelectionToKit,
@@ -22223,9 +22225,6 @@ var EMPTY_INSTALLED_SELECTION = {
   projectIds: [],
   sourceKitIds: []
 };
-function startInstalledSelection() {
-  return { active: true, projectIds: [], sourceKitIds: [] };
-}
 function clearInstalledSelection() {
   return EMPTY_INSTALLED_SELECTION;
 }
@@ -22238,6 +22237,9 @@ function selectInstalledKit(state, kitId, projectIds) {
   };
 }
 function toggleInstalledProject(state, projectId) {
+  if (state.projectIds.length === 1 && state.projectIds[0] === projectId) {
+    return EMPTY_INSTALLED_SELECTION;
+  }
   return {
     ...state,
     active: true,
@@ -22776,7 +22778,6 @@ function CompanionPopupHost({
         },
         onToggleExtension: (projectId, internalName, enabled) => void toggleExtension(projectId, internalName, enabled),
         installedSelection,
-        onStartInstalledSelection: () => setInstalledSelection(startInstalledSelection()),
         onSelectInstalledKit: (kitId) => {
           const kit2 = installedKitCards.find(({ id }) => id === kitId);
           if (!kit2) return;

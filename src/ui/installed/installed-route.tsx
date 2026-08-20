@@ -1,4 +1,4 @@
-import { useEffect, useId } from "preact/hooks";
+import { useEffect } from "preact/hooks";
 
 import type { InstalledSectionViewModel } from "../../catalog/installed-view-model";
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
@@ -9,7 +9,6 @@ import { InstalledBulkBar } from "./installed-bulk-bar";
 import { InstalledKitCard } from "./installed-kit-card";
 import { InstalledSection } from "./installed-section";
 import { InstalledStatusHelp } from "./installed-status-help";
-import { Tooltip } from "../shared/tooltip";
 
 interface InstalledRouteProps {
   sections: InstalledSectionViewModel[];
@@ -28,7 +27,6 @@ interface InstalledRouteProps {
   onOpenKit?(id: string): void;
   onUninstallKit?(id: string): void;
   onToggleExtension?(projectId: string, internalName: string, enabled: boolean): void;
-  onStartSelection?(): void;
   onSelectKit?(kitId: string): void;
   selection?: InstalledSelectionState;
   onToggleSelection?(projectId: string): void;
@@ -54,7 +52,6 @@ export function InstalledRoute({
   onOpenKit,
   onUninstallKit,
   onToggleExtension,
-  onStartSelection,
   onSelectKit,
   selection = { active: false, projectIds: [], sourceKitIds: [] },
   onToggleSelection,
@@ -63,7 +60,6 @@ export function InstalledRoute({
   onClearSelection,
   lifecycleDisabled,
 }: InstalledRouteProps): preact.JSX.Element {
-  const selectHelpId = useId();
   useEffect(() => {
     void onRefresh();
   }, [onRefresh]);
@@ -117,22 +113,6 @@ export function InstalledRoute({
         >
           {checkingUpdates ? "Checking…" : "Check again"}
         </button>
-        {!selection.active ? (
-          <Tooltip
-            id={`${selectHelpId}-select-installed`}
-            label="Select installed extensions for bulk actions."
-            className="tavernary-companion-control-tooltip"
-          >
-            <button
-              type="button"
-              aria-label="Select installed extensions"
-              disabled={lifecycleDisabled}
-              onClick={() => onStartSelection?.()}
-            >
-              Select
-            </button>
-          </Tooltip>
-        ) : null}
       </header>
       {usingNativeUpdates ? (
         <p class="tavernary-companion-installed-update-note">
@@ -184,7 +164,6 @@ export function InstalledRoute({
             onManage={onManage}
             onToggleExtension={onToggleExtension}
             lifecycleDisabled={lifecycleDisabled}
-            selectionActive={selection.active}
             selectedProjectIds={selection.projectIds}
             onToggleSelection={onToggleSelection}
           />

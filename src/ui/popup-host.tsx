@@ -93,7 +93,6 @@ import {
   EMPTY_INSTALLED_SELECTION,
   reconcileInstalledSelection,
   selectInstalledKit,
-  startInstalledSelection,
   toggleInstalledProject,
   type InstalledSelectionState,
 } from "./installed/installed-selection";
@@ -680,7 +679,6 @@ export function CompanionPopupHost({
           void toggleExtension(projectId, internalName, enabled)
         }
         installedSelection={installedSelection}
-        onStartInstalledSelection={() => setInstalledSelection(startInstalledSelection())}
         onSelectInstalledKit={(kitId) => {
           const kit = installedKitCards.find(({ id }) => id === kitId);
           if (!kit) return;

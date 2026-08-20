@@ -5,7 +5,6 @@ import {
   EMPTY_INSTALLED_SELECTION,
   reconcileInstalledSelection,
   selectInstalledKit,
-  startInstalledSelection,
   toggleInstalledProject,
 } from "../../src/ui/installed/installed-selection";
 
@@ -32,12 +31,16 @@ describe("Installed selection", () => {
     ).toEqual({ active: true, projectIds: ["alpha"], sourceKitIds: [] });
   });
 
-  it("enters empty selection mode explicitly and Clear exits it", () => {
-    expect(startInstalledSelection()).toEqual({
-      active: true,
-      projectIds: [],
-      sourceKitIds: [],
-    });
+  it("exits selection when the final selected extension is toggled off", () => {
+    expect(
+      toggleInstalledProject(
+        { active: true, projectIds: ["alpha"], sourceKitIds: ["writers"] },
+        "alpha",
+      ),
+    ).toBe(EMPTY_INSTALLED_SELECTION);
+  });
+
+  it("Clear exits selection", () => {
     expect(clearInstalledSelection()).toBe(EMPTY_INSTALLED_SELECTION);
   });
 });

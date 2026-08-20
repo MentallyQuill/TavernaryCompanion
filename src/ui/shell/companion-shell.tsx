@@ -37,7 +37,6 @@ interface CompanionShellProps {
   togglingInternalName?: string | null;
   onToggleExtension?(projectId: string, internalName: string, enabled: boolean): void;
   installedSelection?: InstalledSelectionState;
-  onStartInstalledSelection?(): void;
   onSelectInstalledKit?(kitId: string): void;
   onToggleInstalledSelection?(projectId: string): void;
   onAddInstalledSelectionToKit?(): void;
@@ -86,7 +85,6 @@ export function CompanionShell({
   togglingInternalName = null,
   onToggleExtension,
   installedSelection,
-  onStartInstalledSelection,
   onSelectInstalledKit,
   onToggleInstalledSelection,
   onAddInstalledSelectionToKit,
@@ -262,7 +260,6 @@ export function CompanionShell({
                     onUninstallKit={onUninstallKit}
                     onToggleExtension={onToggleExtension}
                     selection={installedSelection}
-                    onStartSelection={onStartInstalledSelection}
                     onSelectKit={onSelectInstalledKit}
                     onToggleSelection={onToggleInstalledSelection}
                     onAddSelectedToKit={onAddInstalledSelectionToKit}
