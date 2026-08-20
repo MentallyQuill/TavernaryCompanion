@@ -289,4 +289,3 @@ Expected: fast-forward push succeeds without force.
 - [ ] **Step 7: Verify GitHub and installed/deployed parity**
 
 Use authenticated GitHub CLI to confirm `main` SHA and relevant Actions. Rebuild/reinstall the exact final artifact in the QA profile if the push changes the bundle, then repeat the persistence smoke path against that exact SHA.
-

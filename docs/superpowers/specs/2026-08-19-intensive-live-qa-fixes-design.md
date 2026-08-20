@@ -80,4 +80,3 @@ After focused tests, run `npm.cmd run check`, the complete Playwright suite, rel
 ## Integration
 
 Implementation starts from current `origin/main` in an isolated worktree. The final branch is reviewed, committed, pushed directly to `main` as authorized, and checked against GitHub plus the deployed/installed artifact where applicable. The existing dirty primary checkout and its untracked files remain untouched.
-
