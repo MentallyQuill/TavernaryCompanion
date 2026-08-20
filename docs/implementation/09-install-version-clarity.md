@@ -75,5 +75,5 @@
 
 - [x] Run formatting, lint, typecheck, the full unit suite, build, and the full Playwright suite.
 - [x] Review the final diff against this specification.
-- [ ] Rebase or merge safely against current remote `main`, push the branch, then fast-forward `main` and push it.
-- [ ] Verify remote `main` points to the tested commit.
+- [x] Rebase safely against current remote `main` and fast-forward `main`.
+- [x] Verify remote `main` points to the tested commit.
