@@ -69,8 +69,7 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
   async getInstallCapabilities(): Promise<HostInstallCapabilities> {
     if (!this.#installCapabilities) {
       const request = this.#requestInstallCapabilities();
-      let cached: Promise<HostInstallCapabilities>;
-      cached = request.catch((error: unknown) => {
+      const cached = request.catch((error: unknown) => {
         if (this.#installCapabilities === cached) this.#installCapabilities = null;
         throw error;
       });
