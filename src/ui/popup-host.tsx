@@ -737,6 +737,7 @@ export function CompanionPopupHost({
       <KitOperationTray
         active={activeOperation}
         receipt={kitReceipt}
+        onReload={() => host?.reload()}
         onDismiss={() => {
           if (kitReceipt) void clearStoredReceipt(store, kitReceipt.id);
           setKitReceipt(null);
@@ -864,6 +865,7 @@ export function parseKitReceipt(
     !isKitOutcome(value.outcome) ||
     !isNullableString(value.previousActiveKitId) ||
     !isNullableString(value.activeKitId) ||
+    (value.reloadRequired !== undefined && typeof value.reloadRequired !== "boolean") ||
     !Array.isArray(value.projects) ||
     !value.projects.every(isKitProjectResult) ||
     !Array.isArray(value.keptForOtherKits) ||
@@ -871,7 +873,10 @@ export function parseKitReceipt(
   ) {
     return null;
   }
-  return structuredClone(value) as unknown as KitReceipt;
+  return {
+    ...(structuredClone(value) as unknown as KitReceipt),
+    reloadRequired: value.reloadRequired === true,
+  };
 }
 
 function isKitOperation(value: unknown): value is KitOperation {

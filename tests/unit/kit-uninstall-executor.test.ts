@@ -45,11 +45,15 @@ it("keeps shared managed members and removes only the final-reference member", a
   });
   app.setFingerprint(plan.inventoryFingerprint);
   const receipt = await app.executor.execute(plan, approve(plan));
+  expect(receipt.reloadRequired).toBe(true);
   expect(receipt.keptForOtherKits).toEqual(["shared"]);
   expect(app.host.calls.filter(({ operation }) => operation === "remove")).toEqual([
     expect.objectContaining({ internalName: "third-party/OnlyA" }),
   ]);
   expect(app.kits.readInstalled("a")).toBeNull();
+  expect(app.host.reloadCount).toBe(0);
+  expect(app.profile.read().operationReceipt).toEqual(receipt);
+  expect(app.executor.journal.read()).toBeNull();
 });
 
 it("does not clear or remove an active Kit when deactivation cannot be verified", async () => {

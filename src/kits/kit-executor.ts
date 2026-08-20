@@ -41,6 +41,10 @@ interface KitExecutorDependencies {
   operationId?: () => string;
 }
 
+interface KitExecutionProgress {
+  reloadRequired: boolean;
+}
+
 export class KitExecutor {
   readonly #host: HostExtensionAdapter;
   readonly #profile: ProfileStore;
@@ -100,6 +104,7 @@ export class KitExecutor {
         selectedInstallTargets: structuredClone(approval.selectedInstallTargets),
       };
       await this.journal.write(journal);
+      const progress: KitExecutionProgress = { reloadRequired: false };
       let receipt: KitReceipt;
       try {
         switch (plan.operation) {
@@ -112,27 +117,47 @@ export class KitExecutor {
               setPhase,
               catalog,
               structuredClone(approval.selectedInstallTargets),
+              progress,
             );
             break;
           case "deactivate":
-            receipt = await this.#deactivate(plan, journal, previousActiveKitId, setPhase);
+            receipt = await this.#deactivate(
+              plan,
+              journal,
+              previousActiveKitId,
+              setPhase,
+              progress,
+            );
             break;
           case "uninstall":
-            receipt = await this.#uninstall(plan, journal, previousActiveKitId, setPhase);
+            receipt = await this.#uninstall(
+              plan,
+              journal,
+              previousActiveKitId,
+              setPhase,
+              progress,
+            );
             break;
           default:
             throw new Error("Unsupported Kit operation.");
         }
       } catch (error) {
-        receipt = this.#receipt(plan, journal, previousActiveKitId, "failed", [
-          {
-            projectId: journal.currentProjectId ?? plan.kitId,
-            action: "context",
-            status: "failed",
-            message: error instanceof Error ? error.message : "Kit operation failed.",
-            retryable: true,
-          },
-        ]);
+        receipt = this.#receipt(
+          plan,
+          journal,
+          previousActiveKitId,
+          "failed",
+          [
+            {
+              projectId: journal.currentProjectId ?? plan.kitId,
+              action: "context",
+              status: "failed",
+              message: error instanceof Error ? error.message : "Kit operation failed.",
+              retryable: true,
+            },
+          ],
+          progress.reloadRequired,
+        );
       }
       await this.#persistReceipt(receipt);
       await this.journal.clear();
@@ -187,6 +212,7 @@ export class KitExecutor {
       outcome: "interrupted",
       previousActiveKitId: journal.preOperationActiveKitId,
       activeKitId: this.#kits.readActiveId(),
+      reloadRequired: false,
       projects: [...journal.completedProjects, ...results],
       keptForOtherKits: [],
     };
@@ -248,13 +274,13 @@ export class KitExecutor {
     setPhase: (phase: string) => void,
     catalog: CatalogV7,
     selectedInstallTargets: KitInstallTargetSelection[],
+    progress: KitExecutionProgress,
   ): Promise<KitReceipt> {
     const byId = new Map(catalog.projects.map((project) => [project.id, project]));
     const selected = new Map(
       selectedInstallTargets.map((selection) => [selection.projectId, selection.target]),
     );
     const results: KitProjectResult[] = [];
-    let changed = false;
     let stopRemainingInstalls = false;
     for (let index = 0; index < plan.install.length; index += 1) {
       const step = plan.install[index];
@@ -327,7 +353,7 @@ export class KitExecutor {
           }
           verified = await executeVerifiedInstall({ host: this.#host, project, target });
         }
-        changed = true;
+        progress.reloadRequired = true;
         const provenance = installProvenance(target, verified.installedSha, catalog.generatedAt);
         await this.#recordManaged(project, verified.extension, provenance);
         results.push(
@@ -344,7 +370,7 @@ export class KitExecutor {
         );
       } catch (error) {
         if (error instanceof VerifiedInstallError && error.stage === "post-install-verification") {
-          changed = true;
+          progress.reloadRequired = true;
         }
         results.push(
           result(step.projectId, "install", "failed", kitInstallFailureMessage(error), true),
@@ -373,8 +399,14 @@ export class KitExecutor {
       missing.length ? "incomplete" : "installed",
     );
     if (plan.operation === "activate" && missing.length) {
-      if (changed) this.#host.reload();
-      return this.#receipt(plan, journal, previousActiveKitId, "partial", results);
+      return this.#receipt(
+        plan,
+        journal,
+        previousActiveKitId,
+        "partial",
+        results,
+        progress.reloadRequired,
+      );
     }
     if (plan.operation === "activate") {
       journal.phase = "activating";
@@ -388,7 +420,7 @@ export class KitExecutor {
         resolveInternalName: (projectId, planned) =>
           planned ?? records[projectId]?.internalName ?? null,
       });
-      changed ||= mutations.changed;
+      progress.reloadRequired ||= mutations.changed;
       for (const failure of mutations.failures)
         results.push(result(failure.projectId, failure.action, "failed", failure.error, true));
       const verified = await this.#verifyEnabled(
@@ -398,8 +430,14 @@ export class KitExecutor {
       if (mutations.failures.length || !verified) {
         await this.#markDrifted(plan.kitId);
         if (previousActiveKitId) await this.#markDrifted(previousActiveKitId);
-        if (changed) this.#host.reload();
-        return this.#receipt(plan, journal, previousActiveKitId, "failed", results);
+        return this.#receipt(
+          plan,
+          journal,
+          previousActiveKitId,
+          "failed",
+          results,
+          progress.reloadRequired,
+        );
       }
       await this.#kits.setActive(plan.kitId);
     }
@@ -407,13 +445,13 @@ export class KitExecutor {
       results.push(
         result(step.projectId, "context", "external", "External extension left unchanged.", false),
       );
-    if (changed) this.#host.reload();
     return this.#receipt(
       plan,
       journal,
       previousActiveKitId,
       results.some(({ status }) => status === "failed") ? "partial" : "completed",
       results,
+      progress.reloadRequired,
     );
   }
 
@@ -422,6 +460,7 @@ export class KitExecutor {
     journal: KitOperationJournalV1,
     previousActiveKitId: string | null,
     setPhase: (phase: string) => void,
+    progress: KitExecutionProgress,
   ): Promise<KitReceipt> {
     journal.phase = "deactivating";
     setPhase("deactivating");
@@ -460,13 +499,14 @@ export class KitExecutor {
     const failed = results.some(({ status }) => status === "failed");
     if (failed) await this.#markDrifted(plan.kitId);
     else await this.#kits.setActive(null);
-    if (mutations.changed) this.#host.reload();
+    progress.reloadRequired ||= mutations.changed;
     return this.#receipt(
       plan,
       journal,
       previousActiveKitId,
       failed ? "partial" : "completed",
       results,
+      progress.reloadRequired,
     );
   }
 
@@ -475,9 +515,9 @@ export class KitExecutor {
     journal: KitOperationJournalV1,
     previousActiveKitId: string | null,
     setPhase: (phase: string) => void,
+    progress: KitExecutionProgress,
   ): Promise<KitReceipt> {
     const results: KitProjectResult[] = [];
-    let changed = false;
     if (previousActiveKitId === plan.kitId && plan.disable.length) {
       const mutations = await applyActivationMutations({
         host: this.#host,
@@ -485,13 +525,19 @@ export class KitExecutor {
         disable: plan.disable,
         resolveInternalName: (_id, planned) => planned,
       });
-      changed ||= mutations.changed;
+      progress.reloadRequired ||= mutations.changed;
       if (mutations.failures.length) {
         await this.#markDrifted(plan.kitId);
         for (const failure of mutations.failures)
           results.push(result(failure.projectId, "disable", "failed", failure.error, true));
-        if (changed) this.#host.reload();
-        return this.#receipt(plan, journal, previousActiveKitId, "failed", results);
+        return this.#receipt(
+          plan,
+          journal,
+          previousActiveKitId,
+          "failed",
+          results,
+          progress.reloadRequired,
+        );
       }
       let disabledVerified = false;
       try {
@@ -518,8 +564,14 @@ export class KitExecutor {
             ),
           );
         }
-        if (changed) this.#host.reload();
-        return this.#receipt(plan, journal, previousActiveKitId, "failed", results);
+        return this.#receipt(
+          plan,
+          journal,
+          previousActiveKitId,
+          "failed",
+          results,
+          progress.reloadRequired,
+        );
       }
       await this.#kits.setActive(null);
     }
@@ -539,7 +591,7 @@ export class KitExecutor {
         );
         if (!extension) throw new Error("Managed extension is already missing.");
         await this.#host.remove({ internalName: extension.internalName, type: extension.type });
-        changed = true;
+        progress.reloadRequired = true;
         const stillPresent = (await this.#host.discover()).some(
           (candidate) =>
             candidate.internalName === extension.internalName && candidate.type === extension.type,
@@ -562,13 +614,13 @@ export class KitExecutor {
     const failed = results.some(({ status }) => status === "failed");
     if (failed) await this.#markDrifted(plan.kitId);
     else await this.#kits.removeInstalledState(plan.kitId);
-    if (changed) this.#host.reload();
     return this.#receipt(
       plan,
       journal,
       previousActiveKitId,
       failed ? "partial" : "completed",
       results,
+      progress.reloadRequired,
     );
   }
 
@@ -673,6 +725,7 @@ export class KitExecutor {
     previousActiveKitId: string | null,
     outcome: KitReceipt["outcome"],
     projects: KitProjectResult[],
+    reloadRequired: boolean,
   ): KitReceipt {
     return {
       formatVersion: 1,
@@ -686,6 +739,7 @@ export class KitExecutor {
       outcome,
       previousActiveKitId,
       activeKitId: this.#kits.readActiveId(),
+      reloadRequired,
       projects,
       keptForOtherKits: plan.keptForOtherKits.map(({ projectId }) => projectId),
     };

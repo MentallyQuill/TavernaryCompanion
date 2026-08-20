@@ -19,6 +19,7 @@ it.each<KitOperation>(["install", "activate", "deactivate", "uninstall"])(
       outcome: "failed",
       previousActiveKitId: null,
       activeKitId: null,
+      reloadRequired: false,
       projects: [],
       keptForOtherKits: [],
     } satisfies KitReceipt;
@@ -45,4 +46,24 @@ it("rejects persisted Kit receipts with an unknown operation", () => {
       keptForOtherKits: [],
     }),
   ).toBeNull();
+});
+
+it("reads legacy Kit receipts as not requiring a reload", () => {
+  expect(
+    parseKitReceipt({
+      formatVersion: 1,
+      kind: "kit-operation",
+      id: "receipt",
+      planId: "plan",
+      operation: "install",
+      kitId: "kit",
+      startedAt: "2026-08-18T00:00:00.000Z",
+      completedAt: "2026-08-18T00:01:00.000Z",
+      outcome: "completed",
+      previousActiveKitId: null,
+      activeKitId: null,
+      projects: [],
+      keptForOtherKits: [],
+    }),
+  ).toMatchObject({ reloadRequired: false });
 });

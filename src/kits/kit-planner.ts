@@ -96,7 +96,7 @@ export function planKitOperation(input: PlanKitOperationInput): Readonly<KitPlan
       plan.externalContext.push(stepFor(project, externalEntry.extension.internalName));
       continue;
     }
-    if (managedEntry) {
+    if (managedEntry && input.operation !== "uninstall") {
       plan.alreadyManaged.push(stepFor(project, managedEntry.extension.internalName));
     }
     switch (input.operation) {

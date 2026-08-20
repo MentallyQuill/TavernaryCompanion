@@ -58,25 +58,36 @@ describe("Kit planner", () => {
 
   it("keeps shared members and never removes external context", () => {
     const shared = catalogProjectFixture({ id: "shared", folderName: "Shared" });
+    const final = catalogProjectFixture({ id: "final", folderName: "Final" });
     const external = catalogProjectFixture({ id: "external", folderName: "External" });
-    const managed = { shared: record("shared", "Shared") };
+    const managed = {
+      shared: record("shared", "Shared"),
+      final: record("final", "Final"),
+    };
     const plan = planKitOperation({
       operation: "uninstall",
-      kit: { id: "a", projectIds: ["shared", "external"], origin: "personal" },
-      catalog: { ...catalogFixture(), projects: [shared, external] },
+      kit: { id: "a", projectIds: ["shared", "final", "external"], origin: "personal" },
+      catalog: { ...catalogFixture(), projects: [shared, final, external] },
       inventory: {
         ...emptyInventory,
-        managed: [managedEntry(shared, managed.shared, true)],
+        managed: [
+          managedEntry(shared, managed.shared, true),
+          managedEntry(final, managed.final, true),
+        ],
         external: [{ project: external, extension: extension("External", true) }],
       },
       managed,
-      installedKits: [installed("a", ["shared", "external"]), installed("b", ["shared"])],
+      installedKits: [
+        installed("a", ["shared", "final", "external"]),
+        installed("b", ["shared"]),
+      ],
       activeKitId: null,
       catalogCanMutate: true,
     });
-    expect(plan.remove).toEqual([]);
+    expect(plan.remove.map(({ projectId }) => projectId)).toEqual(["final"]);
     expect(plan.keptForOtherKits.map(({ projectId }) => projectId)).toEqual(["shared"]);
     expect(plan.externalContext.map(({ projectId }) => projectId)).toEqual(["external"]);
+    expect(plan.alreadyManaged).toEqual([]);
   });
 
   it("blocks unavailable required extensions and incompatible catalogs", () => {

@@ -26,6 +26,7 @@ export interface KitReceipt {
   outcome: "completed" | "partial" | "failed" | "interrupted";
   previousActiveKitId: string | null;
   activeKitId: string | null;
+  reloadRequired: boolean;
   projects: KitProjectResult[];
   keptForOtherKits: string[];
 }

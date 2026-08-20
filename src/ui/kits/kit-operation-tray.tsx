@@ -6,11 +6,13 @@ export function KitOperationTray({
   active,
   receipt,
   onDismiss,
+  onReload,
   onRetry,
 }: {
   active: ActiveOperation | null;
   receipt: KitReceiptModel | null;
   onDismiss(): void;
+  onReload(): void;
   onRetry?(): void;
 }): preact.JSX.Element | null {
   if (active?.operationId.startsWith("kit:"))
@@ -22,7 +24,12 @@ export function KitOperationTray({
   if (receipt)
     return (
       <aside class="tavernary-companion-kit-operation-tray">
-        <KitReceipt receipt={receipt} onDismiss={onDismiss} onRetry={onRetry} />
+        <KitReceipt
+          receipt={receipt}
+          onDismiss={onDismiss}
+          onReload={onReload}
+          onRetry={onRetry}
+        />
       </aside>
     );
   return null;

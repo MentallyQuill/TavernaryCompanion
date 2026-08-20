@@ -352,7 +352,10 @@ it("does not count a failed-verification leftover as an installed Kit member", a
     status: "incomplete",
   });
   expect(normalizeManagedExtensionMap(app.profile.read().managedExtensions).alpha).toBeUndefined();
-  expect(app.host.reloadCount).toBe(1);
+  expect(receipt.reloadRequired).toBe(true);
+  expect(app.host.reloadCount).toBe(0);
+  expect(app.profile.read().operationReceipt).toEqual(receipt);
+  expect(app.executor.journal.read()).toBeNull();
 });
 
 function scannedProject(id: string, folderName: string, scannedSha: string) {

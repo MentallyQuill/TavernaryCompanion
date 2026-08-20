@@ -34,10 +34,13 @@ it("deactivates managed members without removing repositories", async () => {
     catalogCanMutate: true,
   });
   app.setFingerprint(plan.inventoryFingerprint);
-  await app.executor.execute(plan, approve(plan));
+  const receipt = await app.executor.execute(plan, approve(plan));
   expect(app.kits.readActiveId()).toBeNull();
   expect(app.host.calls.some(({ operation }) => operation === "remove")).toBe(false);
-  expect(app.host.reloadCount).toBe(1);
+  expect(receipt.reloadRequired).toBe(true);
+  expect(app.host.reloadCount).toBe(0);
+  expect(app.profile.read().operationReceipt).toEqual(receipt);
+  expect(app.executor.journal.read()).toBeNull();
 });
 
 it("keeps the active marker and records drift when disable does not take effect", async () => {

@@ -3,10 +3,12 @@ import type { KitReceipt as KitReceiptModel } from "../../kits/kit-receipt";
 export function KitReceipt({
   receipt,
   onDismiss,
+  onReload,
   onRetry,
 }: {
   receipt: KitReceiptModel;
   onDismiss(): void;
+  onReload(): void;
   onRetry?(): void;
 }): preact.JSX.Element {
   return (
@@ -39,6 +41,11 @@ export function KitReceipt({
           </li>
         ))}
       </ul>
+      {receipt.reloadRequired ? (
+        <button type="button" onClick={onReload}>
+          Reload now
+        </button>
+      ) : null}
       {receipt.projects.some(({ retryable }) => retryable) ? (
         <button type="button" onClick={onRetry}>
           Try again

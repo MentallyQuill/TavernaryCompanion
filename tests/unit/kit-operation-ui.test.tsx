@@ -1,13 +1,15 @@
-import { render, screen } from "@testing-library/preact";
-import { expect, it } from "vitest";
+import { fireEvent, render, screen } from "@testing-library/preact";
+import { expect, it, vi } from "vitest";
 import { KitOperationTray } from "../../src/ui/kits/kit-operation-tray";
 
 it("announces per-project progress and preserves prior-active failure context", () => {
+  const reload = vi.fn();
   const { rerender } = render(
     <KitOperationTray
       active={{ operationId: "kit:plan", phase: "installing:alpha" }}
       receipt={null}
       onDismiss={() => undefined}
+      onReload={reload}
     />,
   );
   expect(screen.getByRole("status")).toHaveTextContent("Installing alpha");
@@ -15,6 +17,7 @@ it("announces per-project progress and preserves prior-active failure context", 
     <KitOperationTray
       active={null}
       onDismiss={() => undefined}
+      onReload={reload}
       receipt={{
         formatVersion: 1,
         kind: "kit-operation",
@@ -27,6 +30,7 @@ it("announces per-project progress and preserves prior-active failure context", 
         outcome: "failed",
         previousActiveKitId: "old",
         activeKitId: "old",
+        reloadRequired: true,
         projects: [
           {
             projectId: "alpha",
@@ -42,4 +46,6 @@ it("announces per-project progress and preserves prior-active failure context", 
   );
   expect(screen.getByText("old remains active.")).toBeVisible();
   expect(screen.getByRole("button", { name: "Try again" })).toBeVisible();
+  fireEvent.click(screen.getByRole("button", { name: "Reload now" }));
+  expect(reload).toHaveBeenCalledOnce();
 });

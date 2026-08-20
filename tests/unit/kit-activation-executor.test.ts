@@ -6,7 +6,7 @@ import { planKitOperation } from "../../src/kits/kit-planner";
 import { catalogFixture, catalogProjectFixture } from "../helpers/catalog-fixtures";
 import { approve, executorFixture, extension } from "../helpers/kit-executor-fixture";
 
-it("installs behind an activation barrier, commits identity, and reloads once", async () => {
+it("commits activation state and returns reload work without navigating", async () => {
   const alpha = catalogProjectFixture({ id: "alpha", folderName: "Alpha" });
   const old = catalogProjectFixture({ id: "old", folderName: "Old" });
   const catalog = { ...catalogFixture(), projects: [alpha, old] };
@@ -48,11 +48,15 @@ it("installs behind an activation barrier, commits identity, and reloads once", 
   app.setFingerprint(plan.inventoryFingerprint);
   const receipt = await app.executor.execute(plan, approve(plan));
   expect(receipt.outcome).toBe("completed");
+  expect(receipt.reloadRequired).toBe(true);
   expect(app.kits.readActiveId()).toBe("new-kit");
-  expect(app.host.reloadCount).toBe(1);
+  expect(app.host.reloadCount).toBe(0);
   expect(app.host.calls.map(({ operation }) => operation)).toEqual(
-    expect.arrayContaining(["install", "enable", "disable", "reload"]),
+    expect.arrayContaining(["install", "enable", "disable"]),
   );
+  expect(app.host.calls.map(({ operation }) => operation)).not.toContain("reload");
+  expect(app.profile.read().operationReceipt).toEqual(receipt);
+  expect(app.executor.journal.read()).toBeNull();
 });
 
 it("preserves the prior active identity when a required install fails", async () => {
