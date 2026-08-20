@@ -3294,14 +3294,25 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   list-style: none;
 }
 .tavernary-companion-dialog ol li,
-.tavernary-companion-kit-warnings li,
-.tavernary-companion-kit-receipt li {
+.tavernary-companion-kit-warnings li {
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
   padding: 0.45rem;
   border-block-end: 1px solid var(--tavernary-companion-border);
+}
+.tavernary-companion-kit-receipt li {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) max-content minmax(0, 2fr);
+  align-items: start;
+  gap: 0.5rem;
+  padding: 0.45rem;
+  border-block-end: 1px solid var(--tavernary-companion-border);
+}
+.tavernary-companion-kit-receipt li > * {
+  min-inline-size: 0;
+  overflow-wrap: anywhere;
 }
 .tavernary-companion-kit-operation-tray {
   position: absolute;
@@ -3617,6 +3628,9 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   font-size: 11px;
 }
 @container tavernary-companion (max-width: 719px) {
+  .tavernary-companion-kit-receipt li {
+    grid-template-columns: minmax(0, 1fr);
+  }
   .tavernary-companion-published-kit-workspace {
     display: block;
     margin-inline: -13px;

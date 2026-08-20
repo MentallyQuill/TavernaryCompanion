@@ -6932,6 +6932,9 @@ var HostRevisionUnavailableError = class extends Error {
 var SillyTavernHostAdapter = class {
   #dependencies;
   #removedExtensions = /* @__PURE__ */ new Set();
+  #installCapabilities = null;
+  #updateInspectionSupported = null;
+  #updateSupportProbe = null;
   constructor(dependencies) {
     this.#dependencies = dependencies;
   }
@@ -6954,6 +6957,17 @@ var SillyTavernHostAdapter = class {
     });
   }
   async getInstallCapabilities() {
+    if (!this.#installCapabilities) {
+      const request = this.#requestInstallCapabilities();
+      const cached = request.catch((error) => {
+        if (this.#installCapabilities === cached) this.#installCapabilities = null;
+        throw error;
+      });
+      this.#installCapabilities = cached;
+    }
+    return structuredClone(await this.#installCapabilities);
+  }
+  async #requestInstallCapabilities() {
     let response;
     try {
       response = await this.#dependencies.fetch("/api/extensions/capabilities", {
@@ -7077,6 +7091,33 @@ var SillyTavernHostAdapter = class {
     return parseCommitSha(body.currentCommitHash, "readRevision");
   }
   async inspectUpdate(input) {
+    if (this.#updateInspectionSupported === false) throw unsupportedUpdateInspectionError();
+    if (this.#updateInspectionSupported === true) {
+      return this.#requestUpdateInspection(input);
+    }
+    if (this.#updateSupportProbe) {
+      await this.#updateSupportProbe;
+      if (this.#updateInspectionSupported === false) throw unsupportedUpdateInspectionError();
+      return this.#requestUpdateInspection(input);
+    }
+    const probe = this.#requestUpdateInspection(input).then(
+      (inspection) => {
+        this.#updateInspectionSupported = true;
+        return inspection;
+      },
+      (error) => {
+        if (isUnsupportedUpdateInspectionError(error)) this.#updateInspectionSupported = false;
+        throw error;
+      }
+    );
+    this.#updateSupportProbe = probe;
+    try {
+      return await probe;
+    } finally {
+      if (this.#updateSupportProbe === probe) this.#updateSupportProbe = null;
+    }
+  }
+  async #requestUpdateInspection(input) {
     const repositoryUrl = parseRepositoryUrl(input.repositoryUrl, "inspectUpdate");
     const candidateShas = input.candidateShas.map((sha) => parseCommitSha(sha, "inspectUpdate"));
     let response;
@@ -7100,11 +7141,7 @@ var SillyTavernHostAdapter = class {
       );
     }
     if (response.status === 404) {
-      throw new HostOperationError(
-        "inspectUpdate",
-        "This version of SillyTavern cannot check updates safely.",
-        { status: 404 }
-      );
+      throw unsupportedUpdateInspectionError();
     }
     if (!response.ok) {
       throw await responseError(
@@ -7236,6 +7273,16 @@ var SillyTavernHostAdapter = class {
     }
   }
 };
+function unsupportedUpdateInspectionError() {
+  return new HostOperationError(
+    "inspectUpdate",
+    "This version of SillyTavern cannot check updates safely.",
+    { status: 404 }
+  );
+}
+function isUnsupportedUpdateInspectionError(error) {
+  return error instanceof HostOperationError && error.operation === "inspectUpdate" && error.status === 404;
+}
 function extensionIdentity(internalName, type) {
   return `${type}:${internalName}`;
 }
@@ -7321,6 +7368,21 @@ function sanitizeResponseDetails(input) {
 
 // src/host/runtime-host.ts
 var EXTENSION_MODULE_PATH = "/scripts/extensions.js";
+var SCRIPT_MODULE_PATH = "/script.js";
+async function resolveImmediateSettingsSave(context, loadScriptModule = async () => import(
+  /* @vite-ignore */
+  SCRIPT_MODULE_PATH
+)) {
+  const module = context.saveSettings ? null : await loadScriptModule();
+  const moduleSave = module && typeof module === "object" && "saveSettings" in module ? module.saveSettings : null;
+  const saveSettings = context.saveSettings ?? moduleSave;
+  if (typeof saveSettings !== "function") {
+    throw new Error("SillyTavern is missing the immediate settings save API.");
+  }
+  return async () => {
+    await saveSettings();
+  };
+}
 async function createSillyTavernRuntimeHost(context, loadExtensionModule = async () => await import(
   /* @vite-ignore */
   EXTENSION_MODULE_PATH
@@ -7480,7 +7542,7 @@ var ProfileStore = class {
       const previous = this.#dependencies.extensionSettings[PROFILE_NAMESPACE];
       this.#dependencies.extensionSettings[PROFILE_NAMESPACE] = structuredClone(next);
       try {
-        await this.#dependencies.saveSettingsDebounced();
+        await this.#dependencies.saveSettings();
       } catch (error) {
         if (hadPrevious) {
           this.#dependencies.extensionSettings[PROFILE_NAMESPACE] = previous;
@@ -14126,7 +14188,7 @@ function planKitOperation(input) {
       plan.externalContext.push(stepFor(project2, externalEntry.extension.internalName));
       continue;
     }
-    if (managedEntry) {
+    if (managedEntry && input.operation !== "uninstall") {
       plan.alreadyManaged.push(stepFor(project2, managedEntry.extension.internalName));
     }
     switch (input.operation) {
@@ -14429,6 +14491,7 @@ var KitExecutor = class {
         selectedInstallTargets: structuredClone(approval.selectedInstallTargets)
       };
       await this.journal.write(journal);
+      const progress = { reloadRequired: false };
       let receipt;
       try {
         switch (plan.operation) {
@@ -14440,28 +14503,42 @@ var KitExecutor = class {
               previousActiveKitId,
               setPhase,
               catalog,
-              structuredClone(approval.selectedInstallTargets)
+              structuredClone(approval.selectedInstallTargets),
+              progress
             );
             break;
           case "deactivate":
-            receipt = await this.#deactivate(plan, journal, previousActiveKitId, setPhase);
+            receipt = await this.#deactivate(
+              plan,
+              journal,
+              previousActiveKitId,
+              setPhase,
+              progress
+            );
             break;
           case "uninstall":
-            receipt = await this.#uninstall(plan, journal, previousActiveKitId, setPhase);
+            receipt = await this.#uninstall(plan, journal, previousActiveKitId, setPhase, progress);
             break;
           default:
             throw new Error("Unsupported Kit operation.");
         }
       } catch (error) {
-        receipt = this.#receipt(plan, journal, previousActiveKitId, "failed", [
-          {
-            projectId: journal.currentProjectId ?? plan.kitId,
-            action: "context",
-            status: "failed",
-            message: error instanceof Error ? error.message : "Kit operation failed.",
-            retryable: true
-          }
-        ]);
+        receipt = this.#receipt(
+          plan,
+          journal,
+          previousActiveKitId,
+          "failed",
+          [
+            {
+              projectId: journal.currentProjectId ?? plan.kitId,
+              action: "context",
+              status: "failed",
+              message: error instanceof Error ? error.message : "Kit operation failed.",
+              retryable: true
+            }
+          ],
+          progress.reloadRequired
+        );
       }
       await this.#persistReceipt(receipt);
       await this.journal.clear();
@@ -14512,6 +14589,7 @@ var KitExecutor = class {
       outcome: "interrupted",
       previousActiveKitId: journal.preOperationActiveKitId,
       activeKitId: this.#kits.readActiveId(),
+      reloadRequired: false,
       projects: [...journal.completedProjects, ...results],
       keptForOtherKits: []
     };
@@ -14548,13 +14626,12 @@ var KitExecutor = class {
       lastVerifiedAt: this.#now()
     });
   }
-  async #installOrActivate(plan, journal, previousActiveKitId, setPhase, catalog, selectedInstallTargets) {
+  async #installOrActivate(plan, journal, previousActiveKitId, setPhase, catalog, selectedInstallTargets, progress) {
     const byId = new Map(catalog.projects.map((project2) => [project2.id, project2]));
     const selected = new Map(
       selectedInstallTargets.map((selection) => [selection.projectId, selection.target])
     );
     const results = [];
-    let changed = false;
     let stopRemainingInstalls = false;
     for (let index = 0; index < plan.install.length; index += 1) {
       const step2 = plan.install[index];
@@ -14624,7 +14701,7 @@ var KitExecutor = class {
           }
           verified = await executeVerifiedInstall({ host: this.#host, project: project2, target });
         }
-        changed = true;
+        progress.reloadRequired = true;
         const provenance = installProvenance(target, verified.installedSha, catalog.generatedAt);
         await this.#recordManaged(project2, verified.extension, provenance);
         results.push(
@@ -14639,7 +14716,7 @@ var KitExecutor = class {
         );
       } catch (error) {
         if (error instanceof VerifiedInstallError && error.stage === "post-install-verification") {
-          changed = true;
+          progress.reloadRequired = true;
         }
         results.push(
           result(step2.projectId, "install", "failed", kitInstallFailureMessage(error), true)
@@ -14668,8 +14745,14 @@ var KitExecutor = class {
       missing.length ? "incomplete" : "installed"
     );
     if (plan.operation === "activate" && missing.length) {
-      if (changed) this.#host.reload();
-      return this.#receipt(plan, journal, previousActiveKitId, "partial", results);
+      return this.#receipt(
+        plan,
+        journal,
+        previousActiveKitId,
+        "partial",
+        results,
+        progress.reloadRequired
+      );
     }
     if (plan.operation === "activate") {
       journal.phase = "activating";
@@ -14682,7 +14765,7 @@ var KitExecutor = class {
         disable: plan.disable,
         resolveInternalName: (projectId, planned) => planned ?? records[projectId]?.internalName ?? null
       });
-      changed ||= mutations.changed;
+      progress.reloadRequired ||= mutations.changed;
       for (const failure of mutations.failures)
         results.push(result(failure.projectId, failure.action, "failed", failure.error, true));
       const verified = await this.#verifyEnabled(
@@ -14692,8 +14775,14 @@ var KitExecutor = class {
       if (mutations.failures.length || !verified) {
         await this.#markDrifted(plan.kitId);
         if (previousActiveKitId) await this.#markDrifted(previousActiveKitId);
-        if (changed) this.#host.reload();
-        return this.#receipt(plan, journal, previousActiveKitId, "failed", results);
+        return this.#receipt(
+          plan,
+          journal,
+          previousActiveKitId,
+          "failed",
+          results,
+          progress.reloadRequired
+        );
       }
       await this.#kits.setActive(plan.kitId);
     }
@@ -14701,16 +14790,16 @@ var KitExecutor = class {
       results.push(
         result(step2.projectId, "context", "external", "External extension left unchanged.", false)
       );
-    if (changed) this.#host.reload();
     return this.#receipt(
       plan,
       journal,
       previousActiveKitId,
       results.some(({ status }) => status === "failed") ? "partial" : "completed",
-      results
+      results,
+      progress.reloadRequired
     );
   }
-  async #deactivate(plan, journal, previousActiveKitId, setPhase) {
+  async #deactivate(plan, journal, previousActiveKitId, setPhase, progress) {
     journal.phase = "deactivating";
     setPhase("deactivating");
     await this.journal.write(journal);
@@ -14744,18 +14833,18 @@ var KitExecutor = class {
     const failed = results.some(({ status }) => status === "failed");
     if (failed) await this.#markDrifted(plan.kitId);
     else await this.#kits.setActive(null);
-    if (mutations.changed) this.#host.reload();
+    progress.reloadRequired ||= mutations.changed;
     return this.#receipt(
       plan,
       journal,
       previousActiveKitId,
       failed ? "partial" : "completed",
-      results
+      results,
+      progress.reloadRequired
     );
   }
-  async #uninstall(plan, journal, previousActiveKitId, setPhase) {
+  async #uninstall(plan, journal, previousActiveKitId, setPhase, progress) {
     const results = [];
-    let changed = false;
     if (previousActiveKitId === plan.kitId && plan.disable.length) {
       const mutations = await applyActivationMutations({
         host: this.#host,
@@ -14763,13 +14852,19 @@ var KitExecutor = class {
         disable: plan.disable,
         resolveInternalName: (_id, planned) => planned
       });
-      changed ||= mutations.changed;
+      progress.reloadRequired ||= mutations.changed;
       if (mutations.failures.length) {
         await this.#markDrifted(plan.kitId);
         for (const failure of mutations.failures)
           results.push(result(failure.projectId, "disable", "failed", failure.error, true));
-        if (changed) this.#host.reload();
-        return this.#receipt(plan, journal, previousActiveKitId, "failed", results);
+        return this.#receipt(
+          plan,
+          journal,
+          previousActiveKitId,
+          "failed",
+          results,
+          progress.reloadRequired
+        );
       }
       let disabledVerified = false;
       try {
@@ -14796,8 +14891,14 @@ var KitExecutor = class {
             )
           );
         }
-        if (changed) this.#host.reload();
-        return this.#receipt(plan, journal, previousActiveKitId, "failed", results);
+        return this.#receipt(
+          plan,
+          journal,
+          previousActiveKitId,
+          "failed",
+          results,
+          progress.reloadRequired
+        );
       }
       await this.#kits.setActive(null);
     }
@@ -14815,7 +14916,7 @@ var KitExecutor = class {
         );
         if (!extension) throw new Error("Managed extension is already missing.");
         await this.#host.remove({ internalName: extension.internalName, type: extension.type });
-        changed = true;
+        progress.reloadRequired = true;
         const stillPresent = (await this.#host.discover()).some(
           (candidate) => candidate.internalName === extension.internalName && candidate.type === extension.type
         );
@@ -14837,13 +14938,13 @@ var KitExecutor = class {
     const failed = results.some(({ status }) => status === "failed");
     if (failed) await this.#markDrifted(plan.kitId);
     else await this.#kits.removeInstalledState(plan.kitId);
-    if (changed) this.#host.reload();
     return this.#receipt(
       plan,
       journal,
       previousActiveKitId,
       failed ? "partial" : "completed",
-      results
+      results,
+      progress.reloadRequired
     );
   }
   async #recordManaged(project2, extension, provenance) {
@@ -14922,7 +15023,7 @@ var KitExecutor = class {
       return false;
     }
   }
-  #receipt(plan, journal, previousActiveKitId, outcome, projects) {
+  #receipt(plan, journal, previousActiveKitId, outcome, projects, reloadRequired) {
     return {
       formatVersion: 1,
       kind: "kit-operation",
@@ -14935,6 +15036,7 @@ var KitExecutor = class {
       outcome,
       previousActiveKitId,
       activeKitId: this.#kits.readActiveId(),
+      reloadRequired,
       projects,
       keptForOtherKits: plan.keptForOtherKits.map(({ projectId }) => projectId)
     };
@@ -16223,6 +16325,7 @@ function previewCounts(kit2, projects) {
 function KitReceipt({
   receipt,
   onDismiss,
+  onReload,
   onRetry
 }) {
   return /* @__PURE__ */ u3("article", { class: "tavernary-companion-kit-receipt", children: [
@@ -16245,6 +16348,7 @@ function KitReceipt({
       ] }),
       /* @__PURE__ */ u3("span", { children: project2.message })
     ] }, `${project2.projectId}-${project2.action}-${index}`)) }),
+    receipt.reloadRequired ? /* @__PURE__ */ u3("button", { type: "button", onClick: onReload, children: "Reload now" }) : null,
     receipt.projects.some(({ retryable }) => retryable) ? /* @__PURE__ */ u3("button", { type: "button", onClick: onRetry, children: "Try again" }) : null
   ] });
 }
@@ -16282,6 +16386,7 @@ function KitOperationTray({
   active,
   receipt,
   onDismiss,
+  onReload,
   onRetry
 }) {
   if (active?.operationId.startsWith("kit:"))
@@ -16291,7 +16396,7 @@ function KitOperationTray({
       /* @__PURE__ */ u3("p", { children: phase(active.phase) })
     ] });
   if (receipt)
-    return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-kit-operation-tray", children: /* @__PURE__ */ u3(KitReceipt, { receipt, onDismiss, onRetry }) });
+    return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-kit-operation-tray", children: /* @__PURE__ */ u3(KitReceipt, { receipt, onDismiss, onReload, onRetry }) });
   return null;
 }
 function phase(value) {
@@ -22004,6 +22109,7 @@ function CompanionPopupHost({
       {
         active: activeOperation,
         receipt: kitReceipt,
+        onReload: () => host?.reload(),
         onDismiss: () => {
           if (kitReceipt) void clearStoredReceipt(store, kitReceipt.id);
           setKitReceipt(null);
@@ -22103,10 +22209,13 @@ function parseReceipt(value) {
   return structuredClone(value);
 }
 function parseKitReceipt(value) {
-  if (!value || value.kind !== "kit-operation" || value.formatVersion !== 1 || typeof value.id !== "string" || typeof value.planId !== "string" || !isKitOperation2(value.operation) || typeof value.kitId !== "string" || typeof value.startedAt !== "string" || typeof value.completedAt !== "string" || !isKitOutcome(value.outcome) || !isNullableString(value.previousActiveKitId) || !isNullableString(value.activeKitId) || !Array.isArray(value.projects) || !value.projects.every(isKitProjectResult) || !Array.isArray(value.keptForOtherKits) || !value.keptForOtherKits.every((item) => typeof item === "string")) {
+  if (!value || value.kind !== "kit-operation" || value.formatVersion !== 1 || typeof value.id !== "string" || typeof value.planId !== "string" || !isKitOperation2(value.operation) || typeof value.kitId !== "string" || typeof value.startedAt !== "string" || typeof value.completedAt !== "string" || !isKitOutcome(value.outcome) || !isNullableString(value.previousActiveKitId) || !isNullableString(value.activeKitId) || value.reloadRequired !== void 0 && typeof value.reloadRequired !== "boolean" || !Array.isArray(value.projects) || !value.projects.every(isKitProjectResult) || !Array.isArray(value.keptForOtherKits) || !value.keptForOtherKits.every((item) => typeof item === "string")) {
     return null;
   }
-  return structuredClone(value);
+  return {
+    ...structuredClone(value),
+    reloadRequired: value.reloadRequired === true
+  };
 }
 function isKitOperation2(value) {
   return value === "install" || value === "activate" || value === "deactivate" || value === "uninstall";
@@ -22325,10 +22434,14 @@ async function performBootstrap(suppliedContext) {
     return { ok: false, reason: "missing-context" };
   }
   let host;
+  let saveSettings;
   try {
-    host = context.host ?? await (context.hostFactory?.() ?? createSillyTavernRuntimeHost(context));
+    [host, saveSettings] = await Promise.all([
+      context.host ?? context.hostFactory?.() ?? createSillyTavernRuntimeHost(context),
+      resolveImmediateSettingsSave(context)
+    ]);
   } catch (error) {
-    console.error("Tavernary Companion could not initialize the SillyTavern host adapter.", error);
+    console.error("Tavernary Companion could not initialize the SillyTavern runtime.", error);
     return { ok: false, reason: "missing-host" };
   }
   await whenDocumentReady();
@@ -22338,7 +22451,7 @@ async function performBootstrap(suppliedContext) {
   }
   const store = new ProfileStore({
     extensionSettings: context.extensionSettings,
-    saveSettingsDebounced: context.saveSettingsDebounced
+    saveSettings
   });
   const launcher = mountCompanionLauncher({ anchor: launcherAnchor, host, store });
   activeCompanion = { launcher, store };
