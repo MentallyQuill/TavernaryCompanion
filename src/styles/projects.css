@@ -2007,7 +2007,7 @@
   box-shadow: var(--tavernary-shadow-card);
 }
 
-.tavernary-companion-installed-card__select {
+.tavernary-companion-root .tavernary-companion-installed-card__select {
   position: absolute;
   z-index: 1;
   inset: 0;

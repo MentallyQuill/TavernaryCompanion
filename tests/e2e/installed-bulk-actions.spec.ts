@@ -95,6 +95,24 @@ test("uses the yellow-orange selection border without shifting the lifecycle act
   expect(cardBox!.y + cardBox!.height - (actionBox!.y + actionBox!.height)).toBeLessThanOrEqual(18);
 });
 
+test("keeps catalog card content visible beneath the full-card selection control", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openInstalled(page);
+
+  const card = page
+    .locator(".tavernary-companion-installed-card")
+    .filter({ hasText: "Writer Tool" });
+  await card.locator(":scope > header > span").click();
+
+  await expect(card.getByRole("heading", { name: "Writer Tool" })).toBeVisible();
+  await expect(card.locator(":scope > .tavernary-companion-installed-card__select")).toHaveCSS(
+    "background-color",
+    "rgba(0, 0, 0, 0)",
+  );
+});
+
 test("supports direct card and keyboard selection and preserves selection when Add to Kit is canceled", async ({
   page,
 }) => {
