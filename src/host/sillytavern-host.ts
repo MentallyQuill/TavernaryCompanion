@@ -33,6 +33,9 @@ export interface SillyTavernHostDependencies {
 export class SillyTavernHostAdapter implements HostExtensionAdapter {
   readonly #dependencies: SillyTavernHostDependencies;
   readonly #removedExtensions = new Set<string>();
+  #installCapabilities: Promise<HostInstallCapabilities> | null = null;
+  #updateInspectionSupported: boolean | null = null;
+  #updateSupportProbe: Promise<HostUpdateInspection> | null = null;
 
   constructor(dependencies: SillyTavernHostDependencies) {
     this.#dependencies = dependencies;
@@ -64,6 +67,19 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
   }
 
   async getInstallCapabilities(): Promise<HostInstallCapabilities> {
+    if (!this.#installCapabilities) {
+      const request = this.#requestInstallCapabilities();
+      let cached: Promise<HostInstallCapabilities>;
+      cached = request.catch((error: unknown) => {
+        if (this.#installCapabilities === cached) this.#installCapabilities = null;
+        throw error;
+      });
+      this.#installCapabilities = cached;
+    }
+    return structuredClone(await this.#installCapabilities);
+  }
+
+  async #requestInstallCapabilities(): Promise<HostInstallCapabilities> {
     let response: Response;
     try {
       response = await this.#dependencies.fetch("/api/extensions/capabilities", {
@@ -213,6 +229,41 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
     branch: string | null;
     candidateShas: string[];
   }): Promise<HostUpdateInspection> {
+    if (this.#updateInspectionSupported === false) throw unsupportedUpdateInspectionError();
+    if (this.#updateInspectionSupported === true) {
+      return this.#requestUpdateInspection(input);
+    }
+    if (this.#updateSupportProbe) {
+      await this.#updateSupportProbe;
+      if (this.#updateInspectionSupported === false) throw unsupportedUpdateInspectionError();
+      return this.#requestUpdateInspection(input);
+    }
+
+    const probe = this.#requestUpdateInspection(input).then(
+      (inspection) => {
+        this.#updateInspectionSupported = true;
+        return inspection;
+      },
+      (error: unknown) => {
+        if (isUnsupportedUpdateInspectionError(error)) this.#updateInspectionSupported = false;
+        throw error;
+      },
+    );
+    this.#updateSupportProbe = probe;
+    try {
+      return await probe;
+    } finally {
+      if (this.#updateSupportProbe === probe) this.#updateSupportProbe = null;
+    }
+  }
+
+  async #requestUpdateInspection(input: {
+    internalName: string;
+    type: "local" | "global";
+    repositoryUrl: string;
+    branch: string | null;
+    candidateShas: string[];
+  }): Promise<HostUpdateInspection> {
     const repositoryUrl = parseRepositoryUrl(input.repositoryUrl, "inspectUpdate");
     const candidateShas = input.candidateShas.map((sha) => parseCommitSha(sha, "inspectUpdate"));
     let response: Response;
@@ -236,11 +287,7 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
       );
     }
     if (response.status === 404) {
-      throw new HostOperationError(
-        "inspectUpdate",
-        "This version of SillyTavern cannot check updates safely.",
-        { status: 404 },
-      );
+      throw unsupportedUpdateInspectionError();
     }
     if (!response.ok) {
       throw await responseError(
@@ -396,6 +443,22 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
       }
     }
   }
+}
+
+function unsupportedUpdateInspectionError(): HostOperationError {
+  return new HostOperationError(
+    "inspectUpdate",
+    "This version of SillyTavern cannot check updates safely.",
+    { status: 404 },
+  );
+}
+
+function isUnsupportedUpdateInspectionError(error: unknown): boolean {
+  return (
+    error instanceof HostOperationError &&
+    error.operation === "inspectUpdate" &&
+    error.status === 404
+  );
 }
 
 function extensionIdentity(internalName: string, type: "local" | "global"): string {

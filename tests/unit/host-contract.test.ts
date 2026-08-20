@@ -28,6 +28,20 @@ function createSillyTavernHost(overrides: Record<string, unknown> = {}) {
   });
 }
 
+function validUpdateInspectionResponse() {
+  return Response.json({
+    installedSha,
+    newestSha: remoteSha,
+    remoteUrl: repositoryUrl,
+    branch: "main",
+    worktreeClean: true,
+    branchMatches: true,
+    exactUpdateSupported: true,
+    newestRelationship: "behind",
+    candidateRelationships: { [checkedSha]: "behind" },
+  });
+}
+
 it("falls back to legacy install capabilities when the capability endpoint is absent", async () => {
   const host = createSillyTavernHost({
     fetch: vi.fn().mockResolvedValue(new Response("missing", { status: 404 })),
@@ -38,6 +52,51 @@ it("falls back to legacy install capabilities when the capability endpoint is ab
     remoteRevisionLookup: false,
     localRevisionLookup: true,
   });
+});
+
+it("shares one legacy capability probe across concurrent and later callers", async () => {
+  let finishProbe!: (response: Response) => void;
+  const pending = new Promise<Response>((resolve) => {
+    finishProbe = resolve;
+  });
+  const fetchMock = vi.fn(() => pending);
+  const host = createSillyTavernHost({ fetch: fetchMock });
+
+  const probes = [
+    host.getInstallCapabilities(),
+    host.getInstallCapabilities(),
+    host.getInstallCapabilities(),
+  ];
+  expect(fetchMock).toHaveBeenCalledOnce();
+  finishProbe(new Response("missing", { status: 404 }));
+
+  await expect(Promise.all(probes)).resolves.toEqual([
+    { pinnedCommitInstall: false, remoteRevisionLookup: false, localRevisionLookup: true },
+    { pinnedCommitInstall: false, remoteRevisionLookup: false, localRevisionLookup: true },
+    { pinnedCommitInstall: false, remoteRevisionLookup: false, localRevisionLookup: true },
+  ]);
+  await host.getInstallCapabilities();
+  expect(fetchMock).toHaveBeenCalledOnce();
+});
+
+it("retries capability discovery after a transient host failure", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(new Response("busy", { status: 503 }))
+    .mockResolvedValueOnce(
+      Response.json({
+        pinnedCommitInstall: true,
+        remoteRevisionLookup: true,
+        localRevisionLookup: true,
+      }),
+    );
+  const host = createSillyTavernHost({ fetch: fetchMock });
+
+  await expect(host.getInstallCapabilities()).rejects.toMatchObject({ status: 503 });
+  await expect(host.getInstallCapabilities()).resolves.toMatchObject({
+    pinnedCommitInstall: true,
+  });
+  expect(fetchMock).toHaveBeenCalledTimes(2);
 });
 
 it("reads advertised install capabilities", async () => {
@@ -198,6 +257,53 @@ it("explains when safe update inspection is unavailable on an older host", async
       candidateShas: [],
     }),
   ).rejects.toThrow("This version of SillyTavern cannot check updates safely.");
+});
+
+it("shares one unsupported update probe across concurrent and later checks", async () => {
+  let finishProbe!: (response: Response) => void;
+  const pending = new Promise<Response>((resolve) => {
+    finishProbe = resolve;
+  });
+  const fetchMock = vi.fn(() => pending);
+  const host = createSillyTavernHost({ fetch: fetchMock });
+  const inspect = (internalName: string) =>
+    host.inspectUpdate({
+      internalName,
+      type: "local",
+      repositoryUrl,
+      branch: null,
+      candidateShas: [],
+    });
+
+  const probes = [inspect("third-party/Alpha"), inspect("third-party/Beta"), inspect("Gamma")];
+  expect(fetchMock).toHaveBeenCalledOnce();
+  finishProbe(new Response("missing", { status: 404 }));
+
+  const results = await Promise.allSettled(probes);
+  expect(results.every(({ status }) => status === "rejected")).toBe(true);
+  await expect(inspect("third-party/Delta")).rejects.toThrow(
+    "This version of SillyTavern cannot check updates safely.",
+  );
+  expect(fetchMock).toHaveBeenCalledOnce();
+});
+
+it("retries update support discovery after a transient response", async () => {
+  const fetchMock = vi
+    .fn()
+    .mockResolvedValueOnce(new Response("busy", { status: 503 }))
+    .mockResolvedValueOnce(validUpdateInspectionResponse());
+  const host = createSillyTavernHost({ fetch: fetchMock });
+  const input = {
+    internalName: "third-party/Alpha",
+    type: "local" as const,
+    repositoryUrl,
+    branch: null,
+    candidateShas: [checkedSha],
+  };
+
+  await expect(host.inspectUpdate(input)).rejects.toMatchObject({ status: 503 });
+  await expect(host.inspectUpdate(input)).resolves.toMatchObject({ installedSha, newestSha: remoteSha });
+  expect(fetchMock).toHaveBeenCalledTimes(2);
 });
 
 it("rejects non-boolean update safety evidence", async () => {
