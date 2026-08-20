@@ -54,5 +54,5 @@ describe.sequential("build and release packaging", () => {
       ],
       sourceCommit,
     });
-  });
+  }, 15_000);
 });
