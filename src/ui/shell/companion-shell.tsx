@@ -274,28 +274,38 @@ export function CompanionShell({
               </>
             ) : null}
             {detail ? (
-              <section aria-label="kit detail">
-                <button type="button" onClick={() => restoreAfterBack(controller)}>
-                  Back
-                </button>
-                {kitInspectors[detail.id] ? (
-                  <KitInspector
-                    kit={kitInspectors[detail.id]}
-                    disabled={lifecycleDisabled}
-                    onAction={(action) => onKitAction?.(detail.id, action)}
-                    onEdit={() => onEditKit?.(detail.id)}
-                    onCopy={() => onCopyKit?.(detail.id)}
-                    onExport={() => onExportKit?.(detail.id)}
-                    onUninstall={() => onUninstallKit?.(detail.id)}
-                    onDuplicate={() => onDuplicateKit?.(detail.id)}
-                    onRemove={() => {
-                      onRemoveKit?.(detail.id);
-                      restoreAfterBack(controller);
-                    }}
-                  />
-                ) : (
-                  <h2>{detail.id}</h2>
-                )}
+              <section class="tavernary-companion-kit-detail" aria-label="Kit detail">
+                <div class="tavernary-companion-kit-detail__inner">
+                  <div class="tavernary-companion-kit-detail__navigation">
+                    <button
+                      type="button"
+                      class="tavernary-companion-button tavernary-companion-button--secondary"
+                      aria-label="Back"
+                      onClick={() => restoreAfterBack(controller)}
+                    >
+                      <span aria-hidden="true">←</span>
+                      <span>Kits</span>
+                    </button>
+                  </div>
+                  {kitInspectors[detail.id] ? (
+                    <KitInspector
+                      kit={kitInspectors[detail.id]}
+                      disabled={lifecycleDisabled}
+                      onAction={(action) => onKitAction?.(detail.id, action)}
+                      onEdit={() => onEditKit?.(detail.id)}
+                      onCopy={() => onCopyKit?.(detail.id)}
+                      onExport={() => onExportKit?.(detail.id)}
+                      onUninstall={() => onUninstallKit?.(detail.id)}
+                      onDuplicate={() => onDuplicateKit?.(detail.id)}
+                      onRemove={() => {
+                        onRemoveKit?.(detail.id);
+                        restoreAfterBack(controller);
+                      }}
+                    />
+                  ) : (
+                    <h2>{detail.id}</h2>
+                  )}
+                </div>
               </section>
             ) : null}
           </CatalogBoundary>

@@ -474,6 +474,15 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   color: var(--tavernary-color-action-secondary-text) !important;
   background: var(--tavernary-color-action-secondary-bg) !important;
 }
+.tavernary-companion-button--danger {
+  border-color: var(--tavernary-color-danger-border) !important;
+  color: var(--tavernary-color-danger-text) !important;
+  background: var(--tavernary-color-danger-bg) !important;
+  font-weight: 700 !important;
+}
+.tavernary-companion-button--danger:hover:not(:disabled) {
+  border-color: var(--tavernary-color-danger) !important;
+}
 .tavernary-companion-shell__content {
   block-size: 100%;
   min-inline-size: 0;
@@ -3713,6 +3722,334 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   .tavernary-companion-kits-route,
   .tavernary-companion-kit-inspector {
     padding: 16px 13px 50px;
+  }
+}
+.tavernary-companion-catalog-state > .tavernary-companion-kit-detail {
+  block-size: 100%;
+  min-inline-size: 0;
+  min-block-size: 0;
+  margin: 0;
+  padding: 18px 22px 60px;
+  overflow: auto;
+  background: var(--tavernary-color-bg-canvas);
+}
+.tavernary-companion-kit-detail__inner {
+  inline-size: min(100%, 56rem);
+  margin-inline: auto;
+}
+.tavernary-companion-kit-detail__navigation {
+  margin-block-end: 10px;
+}
+.tavernary-companion-kit-detail__navigation button {
+  display: inline-flex;
+  min-block-size: 34px;
+  align-items: center;
+  gap: 7px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1;
+}
+.tavernary-companion-kit-detail__navigation button span:first-child {
+  color: var(--tavernary-color-functional);
+  font-size: 15px;
+}
+.tavernary-companion-kit-inspector {
+  display: grid;
+  block-size: auto;
+  min-inline-size: 0;
+  gap: 12px;
+  padding: 0;
+  overflow: visible;
+  background: transparent;
+}
+.tavernary-companion-kit-inspector__header,
+.tavernary-companion-kit-inspector__overview,
+.tavernary-companion-kit-inspector__topology,
+.tavernary-companion-kit-components {
+  margin: 0;
+  border: 1px solid var(--tavernary-color-border-default);
+  border-radius: var(--tavernary-radius);
+  background: var(--tavernary-color-bg-surface);
+  box-shadow: var(--tavernary-shadow-card);
+}
+.tavernary-companion-kit-inspector__header {
+  padding: 16px 18px;
+}
+.tavernary-companion-kit-inspector__eyebrow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin: 0 0 8px;
+}
+.tavernary-companion-kit-inspector__eyebrow span {
+  padding: 3px 6px;
+  border: 1px solid var(--tavernary-color-control-border);
+  border-radius: 4px;
+  color: var(--tavernary-color-text-muted);
+  background: var(--tavernary-color-control-bg);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.07em;
+  line-height: 1.2;
+  text-transform: uppercase;
+}
+.tavernary-companion-kit-inspector__eyebrow span:last-child {
+  border-color: var(--tavernary-color-accent-teal-border);
+  color: var(--tavernary-color-accent-teal-text);
+  background: var(--tavernary-color-accent-teal-bg);
+}
+.tavernary-companion-kit-inspector__header h2 {
+  margin: 0;
+  color: var(--tavernary-color-heading);
+  font-size: 20px;
+  font-weight: 740;
+  letter-spacing: -0.025em;
+  line-height: 1.22;
+}
+.tavernary-companion-kit-inspector__description {
+  max-inline-size: 64ch;
+  margin: 6px 0 0;
+  color: var(--tavernary-color-text-secondary);
+  font-size: 12px;
+  line-height: 1.5;
+}
+.tavernary-companion-kit-inspector__overview {
+  background: var(--tavernary-color-bg-sidebar);
+}
+.tavernary-companion-kit-inspector__overview dl {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  margin: 0;
+}
+.tavernary-companion-kit-inspector__overview dl > div {
+  display: grid;
+  gap: 2px;
+  padding: 10px 14px;
+}
+.tavernary-companion-kit-inspector__overview dl > div + div {
+  border-inline-start: 1px solid var(--tavernary-color-divider);
+}
+.tavernary-companion-kit-inspector__overview :is(dt, dd) {
+  margin: 0;
+}
+.tavernary-companion-kit-inspector__overview dt {
+  color: var(--tavernary-color-text-muted);
+  font-size: 9px;
+  font-weight: 750;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+.tavernary-companion-kit-inspector__overview dd {
+  color: var(--tavernary-color-text-primary);
+  font-size: 16px;
+  font-variant-numeric: tabular-nums;
+  font-weight: 720;
+  line-height: 1.2;
+}
+.tavernary-companion-kit-inspector__actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 7px;
+  padding: 10px 12px;
+  border: 1px solid var(--tavernary-color-border-default);
+  border-radius: var(--tavernary-radius);
+  background: var(--tavernary-color-bg-sidebar);
+}
+.tavernary-companion-kit-inspector__actions > button,
+.tavernary-companion-kit-inspector__more > button {
+  min-block-size: 34px;
+  padding: 5px 10px;
+  border-radius: 6px;
+  font-size: 11px;
+  line-height: 1;
+}
+.tavernary-companion-kit-inspector__actions > .tavernary-companion-button--danger {
+  margin-inline-start: auto;
+}
+.tavernary-companion-kit-inspector__more {
+  position: relative;
+}
+.tavernary-companion-kit-inspector__more-panel {
+  position: absolute;
+  z-index: 30;
+  inset-block-start: calc(100% + 5px);
+  inset-inline-end: 0;
+  display: grid;
+  min-inline-size: 190px;
+  gap: 2px;
+  padding: 5px;
+  border: 1px solid var(--tavernary-color-border-default);
+  border-radius: 7px;
+  background: var(--tavernary-color-bg-surface-raised);
+  box-shadow: var(--tavernary-shadow-overlay);
+}
+.tavernary-companion-kit-inspector__more-panel > button {
+  min-block-size: 36px;
+  padding: 6px 9px;
+  border-color: transparent;
+  border-radius: 5px;
+  background: transparent;
+  font-size: 10px;
+  text-align: start;
+}
+.tavernary-companion-kit-inspector__more-panel > button:hover:not(:disabled) {
+  background: var(--tavernary-color-bg-surface-hover);
+}
+.tavernary-companion-kit-inspector__more-panel > button.is-danger {
+  color: var(--tavernary-color-danger-text);
+}
+.tavernary-companion-kit-inspector__topology {
+  padding: 12px 14px;
+  color: var(--tavernary-color-text-secondary);
+  font-size: 10px;
+  line-height: 1.45;
+}
+.tavernary-companion-kit-inspector__topology h3 {
+  margin: 0 0 6px;
+  color: var(--tavernary-color-heading);
+  font-size: 13px;
+}
+.tavernary-companion-kit-inspector__topology p {
+  margin: 3px 0;
+  overflow-wrap: anywhere;
+}
+.tavernary-companion-kit-components {
+  overflow: hidden;
+}
+.tavernary-companion-kit-components h3 {
+  margin: 0;
+  padding: 11px 14px;
+  border-block-end: 1px solid var(--tavernary-color-divider);
+  color: var(--tavernary-color-heading);
+  background: var(--tavernary-color-bg-sidebar);
+  font-size: 13px;
+  font-weight: 720;
+  line-height: 1.3;
+}
+.tavernary-companion-kit-components ul {
+  margin: 0;
+  padding: 0;
+}
+.tavernary-companion-kit-components li {
+  display: grid;
+  min-inline-size: 0;
+  min-block-size: 64px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 9px 14px;
+  border-block-end: 1px solid var(--tavernary-color-border-subtle);
+}
+.tavernary-companion-kit-components li:last-child {
+  border-block-end: 0;
+}
+.tavernary-companion-kit-components li > div {
+  display: grid;
+  min-inline-size: 0;
+  gap: 2px;
+}
+.tavernary-companion-kit-components strong {
+  overflow: hidden;
+  color: var(--tavernary-color-text-primary);
+  font-size: 12px;
+  font-weight: 720;
+  line-height: 1.3;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.tavernary-companion-kit-components small {
+  color: var(--tavernary-color-text-muted);
+  font-size: 10px;
+  line-height: 1.35;
+}
+.tavernary-companion-kit-components li > div > span {
+  color: var(--tavernary-color-accent-teal-text);
+  font-size: 9px;
+  font-weight: 650;
+  line-height: 1.35;
+  text-transform: capitalize;
+}
+.tavernary-companion-kit-components a {
+  display: inline-flex;
+  min-block-size: 34px;
+  align-items: center;
+  gap: 4px;
+  padding: 5px 8px;
+  border: 1px solid var(--tavernary-color-control-border);
+  border-radius: 6px;
+  color: var(--tavernary-color-link);
+  background: var(--tavernary-color-control-bg);
+  font-size: 10px;
+  font-weight: 700;
+  line-height: 1;
+  text-decoration: none;
+}
+.tavernary-companion-kit-components a:is(:hover, :focus-visible) {
+  border-color: var(--tavernary-color-control-border-hover);
+  color: var(--tavernary-color-link-hover);
+}
+@container tavernary-companion (max-width: 719px) {
+  .tavernary-companion-catalog-state > .tavernary-companion-kit-detail {
+    padding: 10px 13px 50px;
+  }
+  .tavernary-companion-kit-detail__navigation {
+    margin-block-end: 8px;
+  }
+  .tavernary-companion-kit-detail__navigation button,
+  .tavernary-companion-kit-inspector__actions > button,
+  .tavernary-companion-kit-inspector__more > button,
+  .tavernary-companion-kit-components a {
+    min-block-size: 44px;
+  }
+  .tavernary-companion-kit-inspector {
+    gap: 10px;
+  }
+  .tavernary-companion-kit-inspector__header {
+    padding: 14px;
+  }
+  .tavernary-companion-kit-inspector__header h2 {
+    font-size: 18px;
+  }
+  .tavernary-companion-kit-inspector__overview dl > div {
+    padding: 9px 8px;
+  }
+  .tavernary-companion-kit-inspector__overview dt {
+    font-size: 8px;
+  }
+  .tavernary-companion-kit-inspector__overview dd {
+    font-size: 15px;
+  }
+  .tavernary-companion-kit-inspector__actions {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    padding: 9px;
+  }
+  .tavernary-companion-kit-inspector__actions > button,
+  .tavernary-companion-kit-inspector__more,
+  .tavernary-companion-kit-inspector__more > button {
+    inline-size: 100%;
+  }
+  .tavernary-companion-kit-inspector__actions > .tavernary-companion-button--primary,
+  .tavernary-companion-kit-inspector__actions > .tavernary-companion-button--danger {
+    grid-column: 1 / -1;
+    margin-inline-start: 0;
+  }
+  .tavernary-companion-kit-inspector__more-panel {
+    inset-inline: 0 auto;
+    inline-size: min(240px, calc(100vw - 52px));
+  }
+  .tavernary-companion-kit-inspector__more-panel > button {
+    min-block-size: 44px;
+  }
+  .tavernary-companion-kit-components h3 {
+    padding: 10px 12px;
+  }
+  .tavernary-companion-kit-components li {
+    min-block-size: 72px;
+    gap: 8px;
+    padding: 9px 12px;
   }
 }
 .tavernary-companion-published-kit-workspace {

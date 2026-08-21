@@ -16,14 +16,20 @@ export function KitComponentGroup({
           <li key={component.projectId}>
             <div>
               <strong>{component.name}</strong>
+              <small>{reasonFor(component.group)}</small>
               <span>
                 {component.available ? "Available" : "Unavailable"}
                 {component.assessment ? ` · ${component.assessment} concern` : ""}
               </span>
             </div>
             {component.canonicalUrl ? (
-              <a href={component.canonicalUrl} target="_blank" rel="noreferrer">
-                Project
+              <a
+                href={component.canonicalUrl}
+                target="_blank"
+                rel="noreferrer"
+                aria-label={`Open ${component.name} project`}
+              >
+                Open <span aria-hidden="true">↗</span>
               </a>
             ) : null}
           </li>
@@ -31,4 +37,13 @@ export function KitComponentGroup({
       </ul>
     </section>
   );
+}
+
+function reasonFor(group: KitComponentViewModel["group"]): string {
+  return {
+    managed: "Eligible for Companion Kit actions.",
+    external: "Installed outside Companion management.",
+    context: "Included as context; Companion does not manage it.",
+    unavailable: "Unavailable or changed in the current catalog.",
+  }[group];
 }

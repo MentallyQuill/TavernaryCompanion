@@ -265,6 +265,38 @@ describe("CompanionShell", () => {
     expect(screen.getByRole("heading", { name: "Tavernary Companion" })).toBeVisible();
   });
 
+  it("renders Kit details as a branded nested view", () => {
+    const controller = createShellController({ initialRoute: "kits" });
+    controller.openDetail({ kind: "kit", id: "alpha", focusKey: "kit-alpha" });
+    render(
+      <CompanionShell
+        controller={controller}
+        kitInspectors={{
+          alpha: {
+            id: "alpha",
+            title: "Standard 4",
+            description: "My standard extensions",
+            origin: "personal",
+            originLabel: "Personal Kit",
+            componentCount: 0,
+            flaggedCount: 0,
+            supporterCount: null,
+            operationalStatus: "Installed",
+            primaryAction: { kind: "activate", label: "Activate" },
+            editable: true,
+            components: [],
+          },
+        }}
+      />,
+    );
+
+    const detail = screen.getByRole("region", { name: "Kit detail" });
+    expect(detail).toHaveClass("tavernary-companion-kit-detail");
+    const back = within(detail).getByRole("button", { name: "Back" });
+    expect(back).toHaveClass("tavernary-companion-button--secondary");
+    expect(within(back).getByText("Kits")).toBeVisible();
+  });
+
   it("dispatches the close intent", () => {
     const onRequestClose = vi.fn();
     const controller = createShellController({ initialRoute: "projects" });

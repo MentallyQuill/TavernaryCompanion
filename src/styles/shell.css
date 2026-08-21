@@ -271,6 +271,17 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   background: var(--tavernary-color-action-secondary-bg) !important;
 }
 
+.tavernary-companion-button--danger {
+  border-color: var(--tavernary-color-danger-border) !important;
+  color: var(--tavernary-color-danger-text) !important;
+  background: var(--tavernary-color-danger-bg) !important;
+  font-weight: 700 !important;
+}
+
+.tavernary-companion-button--danger:hover:not(:disabled) {
+  border-color: var(--tavernary-color-danger) !important;
+}
+
 .tavernary-companion-shell__content {
   block-size: 100%;
   min-inline-size: 0;

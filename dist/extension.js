@@ -19152,14 +19152,35 @@ function KitComponentGroup({
     /* @__PURE__ */ u3("ul", { children: components.map((component2) => /* @__PURE__ */ u3("li", { children: [
       /* @__PURE__ */ u3("div", { children: [
         /* @__PURE__ */ u3("strong", { children: component2.name }),
+        /* @__PURE__ */ u3("small", { children: reasonFor(component2.group) }),
         /* @__PURE__ */ u3("span", { children: [
           component2.available ? "Available" : "Unavailable",
           component2.assessment ? ` \xB7 ${component2.assessment} concern` : ""
         ] })
       ] }),
-      component2.canonicalUrl ? /* @__PURE__ */ u3("a", { href: component2.canonicalUrl, target: "_blank", rel: "noreferrer", children: "Project" }) : null
+      component2.canonicalUrl ? /* @__PURE__ */ u3(
+        "a",
+        {
+          href: component2.canonicalUrl,
+          target: "_blank",
+          rel: "noreferrer",
+          "aria-label": `Open ${component2.name} project`,
+          children: [
+            "Open ",
+            /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: "\u2197" })
+          ]
+        }
+      ) : null
     ] }, component2.projectId)) })
   ] });
+}
+function reasonFor(group) {
+  return {
+    managed: "Eligible for Companion Kit actions.",
+    external: "Installed outside Companion management.",
+    context: "Included as context; Companion does not manage it.",
+    unavailable: "Unavailable or changed in the current catalog."
+  }[group];
 }
 
 // src/ui/kits/kit-inspector.tsx
@@ -19180,16 +19201,44 @@ function KitInspector({
   onDuplicate,
   onRemove
 }) {
-  return /* @__PURE__ */ u3("article", { class: "tavernary-companion-kit-inspector", children: [
-    /* @__PURE__ */ u3("header", { children: [
-      /* @__PURE__ */ u3("p", { children: [
-        kit2.originLabel,
-        " \xB7 ",
-        kit2.operationalStatus
+  const [additionalActionsOpen, setAdditionalActionsOpen] = d2(false);
+  const additionalActionsTriggerRef = A2(null);
+  const additionalActionsId = `kit-actions-${kit2.id}`;
+  const headingId = `kit-heading-${kit2.id}`;
+  const availableCount = kit2.components.filter(({ available }) => available).length;
+  const attentionCount = Math.max(
+    kit2.flaggedCount,
+    kit2.components.filter(
+      ({ available, assessment }) => !available || Boolean(assessment && assessment !== "low")
+    ).length
+  );
+  const runAdditionalAction = (action) => {
+    setAdditionalActionsOpen(false);
+    action?.();
+  };
+  return /* @__PURE__ */ u3("article", { class: "tavernary-companion-kit-inspector", "aria-labelledby": headingId, children: [
+    /* @__PURE__ */ u3("header", { class: "tavernary-companion-kit-inspector__header", children: [
+      /* @__PURE__ */ u3("p", { class: "tavernary-companion-kit-inspector__eyebrow", children: [
+        /* @__PURE__ */ u3("span", { children: kit2.originLabel }),
+        /* @__PURE__ */ u3("span", { children: kit2.operationalStatus })
       ] }),
-      /* @__PURE__ */ u3("h2", { children: kit2.title }),
-      /* @__PURE__ */ u3("p", { children: kit2.description })
+      /* @__PURE__ */ u3("h2", { id: headingId, children: kit2.title }),
+      /* @__PURE__ */ u3("p", { class: "tavernary-companion-kit-inspector__description", children: kit2.description })
     ] }),
+    /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-inspector__overview", "aria-label": "Kit overview", children: /* @__PURE__ */ u3("dl", { children: [
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("dt", { children: "Components" }),
+        /* @__PURE__ */ u3("dd", { children: kit2.componentCount })
+      ] }),
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("dt", { children: "Available" }),
+        /* @__PURE__ */ u3("dd", { children: availableCount })
+      ] }),
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("dt", { children: "Needs attention" }),
+        /* @__PURE__ */ u3("dd", { children: attentionCount })
+      ] })
+    ] }) }),
     kit2.topologyChange ? /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-inspector__topology", children: [
       /* @__PURE__ */ u3("h3", { children: "Membership changes" }),
       kit2.topologyChange.kind === "exact" ? /* @__PURE__ */ u3(S, { children: [
@@ -19212,21 +19261,87 @@ function KitInspector({
       ] })
     ] }) : null,
     /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-inspector__actions", children: [
-      kit2.primaryAction.kind !== "review" && kit2.primaryAction.kind !== "view" ? /* @__PURE__ */ u3("button", { type: "button", disabled, onClick: () => onAction(kit2.primaryAction), children: kit2.primaryAction.label }) : null,
-      kit2.editable ? /* @__PURE__ */ u3("button", { type: "button", onClick: onEdit, children: "Edit" }) : /* @__PURE__ */ u3("button", { type: "button", onClick: onCopy, children: "Copy to Personal Kits" }),
-      kit2.editable ? /* @__PURE__ */ u3("button", { type: "button", onClick: onExport, children: "Export" }) : null,
-      kit2.editable ? /* @__PURE__ */ u3("button", { type: "button", onClick: onDuplicate, children: "Duplicate" }) : null,
+      kit2.primaryAction.kind !== "review" && kit2.primaryAction.kind !== "view" ? /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          class: "tavernary-companion-button tavernary-companion-button--primary",
+          disabled,
+          onClick: () => onAction(kit2.primaryAction),
+          children: kit2.primaryAction.label
+        }
+      ) : null,
       kit2.editable ? /* @__PURE__ */ u3(
         "button",
         {
           type: "button",
-          disabled,
-          title: kit2.operationalStatus === "Saved" ? void 0 : "Remove this Kit while keeping its extensions installed.",
-          onClick: onRemove,
-          children: kit2.operationalStatus === "Saved" ? "Remove saved Kit" : "Remove Kit, keep extensions"
+          class: "tavernary-companion-button tavernary-companion-button--secondary",
+          onClick: onEdit,
+          children: "Edit"
         }
-      ) : null,
-      kit2.operationalStatus !== "Saved" ? /* @__PURE__ */ u3("button", { type: "button", disabled, onClick: onUninstall, children: "Uninstall Kit" }) : null
+      ) : /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          class: "tavernary-companion-button tavernary-companion-button--secondary",
+          onClick: onCopy,
+          children: "Copy to Personal Kits"
+        }
+      ),
+      kit2.editable ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-inspector__more", children: [
+        /* @__PURE__ */ u3(
+          "button",
+          {
+            type: "button",
+            ref: additionalActionsTriggerRef,
+            class: "tavernary-companion-button tavernary-companion-button--secondary",
+            "aria-expanded": additionalActionsOpen,
+            "aria-controls": additionalActionsId,
+            onClick: () => setAdditionalActionsOpen((open) => !open),
+            children: "More Kit actions"
+          }
+        ),
+        additionalActionsOpen ? /* @__PURE__ */ u3(
+          "div",
+          {
+            id: additionalActionsId,
+            class: "tavernary-companion-kit-inspector__more-panel",
+            role: "group",
+            "aria-label": "Additional Kit actions",
+            onKeyDown: (event) => {
+              if (event.key !== "Escape") return;
+              event.preventDefault();
+              setAdditionalActionsOpen(false);
+              additionalActionsTriggerRef.current?.focus();
+            },
+            children: [
+              /* @__PURE__ */ u3("button", { type: "button", onClick: () => runAdditionalAction(onExport), children: "Export" }),
+              /* @__PURE__ */ u3("button", { type: "button", onClick: () => runAdditionalAction(onDuplicate), children: "Duplicate" }),
+              /* @__PURE__ */ u3(
+                "button",
+                {
+                  type: "button",
+                  class: "is-danger",
+                  disabled,
+                  title: kit2.operationalStatus === "Saved" ? void 0 : "Remove this Kit while keeping its extensions installed.",
+                  onClick: () => runAdditionalAction(onRemove),
+                  children: kit2.operationalStatus === "Saved" ? "Remove saved Kit" : "Remove Kit, keep extensions"
+                }
+              )
+            ]
+          }
+        ) : null
+      ] }) : null,
+      kit2.operationalStatus !== "Saved" ? /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          class: "tavernary-companion-button tavernary-companion-button--danger",
+          disabled,
+          onClick: onUninstall,
+          children: "Uninstall Kit"
+        }
+      ) : null
     ] }),
     groups2.map(({ id, title }) => /* @__PURE__ */ u3(
       KitComponentGroup,
@@ -21469,8 +21584,20 @@ function CompanionShell({
                     lifecycleDisabled
                   }
                 ) : /* @__PURE__ */ u3("h2", { id: "tavernary-companion-installed-heading", children: "Installed extensions" }) }) : null,
-                detail ? /* @__PURE__ */ u3("section", { "aria-label": "kit detail", children: [
-                  /* @__PURE__ */ u3("button", { type: "button", onClick: () => restoreAfterBack(controller), children: "Back" }),
+                detail ? /* @__PURE__ */ u3("section", { class: "tavernary-companion-kit-detail", "aria-label": "Kit detail", children: /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-detail__inner", children: [
+                  /* @__PURE__ */ u3("div", { class: "tavernary-companion-kit-detail__navigation", children: /* @__PURE__ */ u3(
+                    "button",
+                    {
+                      type: "button",
+                      class: "tavernary-companion-button tavernary-companion-button--secondary",
+                      "aria-label": "Back",
+                      onClick: () => restoreAfterBack(controller),
+                      children: [
+                        /* @__PURE__ */ u3("span", { "aria-hidden": "true", children: "\u2190" }),
+                        /* @__PURE__ */ u3("span", { children: "Kits" })
+                      ]
+                    }
+                  ) }),
                   kitInspectors[detail.id] ? /* @__PURE__ */ u3(
                     KitInspector,
                     {
@@ -21488,7 +21615,7 @@ function CompanionShell({
                       }
                     }
                   ) : /* @__PURE__ */ u3("h2", { children: detail.id })
-                ] }) : null
+                ] }) }) : null
               ]
             }
           ) }),

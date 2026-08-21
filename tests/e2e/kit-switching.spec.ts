@@ -110,9 +110,78 @@ for (const viewport of [
     await page.getByRole("button", { name: "Details" }).click();
     await expect(page.getByRole("heading", { name: "Writer's Kit" })).toBeVisible();
     await expect(page.getByRole("button", { name: "Uninstall Kit" })).toBeVisible();
+    await page.getByRole("button", { name: "More Kit actions" }).click();
     await page.getByRole("button", { name: "Duplicate" }).click();
     await page.getByRole("button", { name: "Back" }).click();
     await expect(page.getByRole("heading", { name: "Writer's Kit copy" })).toBeVisible();
+  });
+}
+
+for (const viewport of [
+  { width: 1440, height: 960 },
+  { width: 390, height: 844 },
+]) {
+  test(`presents a compact Kit detail at ${viewport.width}x${viewport.height}`, async ({
+    page,
+  }) => {
+    await page.setViewportSize(viewport);
+    await openHarness(page);
+    if (viewport.width <= 700) {
+      await page.getByRole("button", { name: "Browse categories" }).click();
+      await page
+        .getByRole("group", { name: "Browse categories menu" })
+        .getByRole("button", { name: "Kits" })
+        .click();
+    } else {
+      await page
+        .getByRole("navigation", { name: "Catalog categories" })
+        .getByRole("button", { name: "Kits" })
+        .click();
+    }
+    await page.getByRole("tab", { name: /Personal/u }).click();
+    await page.getByRole("button", { name: "Details" }).click();
+
+    const detail = page.getByRole("region", { name: "Kit detail" });
+    const inspector = detail.locator(".tavernary-companion-kit-inspector");
+    const title = inspector.getByRole("heading", { name: "Writer's Kit" });
+    const description = inspector.locator(".tavernary-companion-kit-inspector__description");
+    const componentGroup = inspector.locator(".tavernary-companion-kit-components").first();
+    const geometry = await detail.evaluate((element) => {
+      const inner = element.querySelector<HTMLElement>(".tavernary-companion-kit-detail__inner")!;
+      const innerBox = inner.getBoundingClientRect();
+      return {
+        clientWidth: element.clientWidth,
+        innerWidth: innerBox.width,
+        scrollWidth: element.scrollWidth,
+      };
+    });
+    const titleSize = Number.parseFloat(
+      await title.evaluate((node) => getComputedStyle(node).fontSize),
+    );
+    const descriptionSize = Number.parseFloat(
+      await description.evaluate((node) => getComputedStyle(node).fontSize),
+    );
+    const componentSurface = await componentGroup.evaluate(
+      (node) => getComputedStyle(node).backgroundColor,
+    );
+
+    expect(geometry.scrollWidth).toBeLessThanOrEqual(geometry.clientWidth);
+    expect(titleSize).toBeLessThanOrEqual(20);
+    expect(descriptionSize).toBeLessThanOrEqual(12);
+    expect(componentSurface).not.toBe("rgba(0, 0, 0, 0)");
+    if (viewport.width > 700) {
+      expect(geometry.innerWidth).toBeLessThanOrEqual(898);
+    } else {
+      const activateBox = await inspector.getByRole("button", { name: "Activate" }).boundingBox();
+      const inspectorBox = await inspector.boundingBox();
+      expect(activateBox).not.toBeNull();
+      expect(inspectorBox).not.toBeNull();
+      expect(activateBox!.width).toBeGreaterThanOrEqual(inspectorBox!.width * 0.9);
+    }
+
+    await expect(page).toHaveScreenshot(`kit-detail-${viewport.width}x${viewport.height}.png`, {
+      animations: "disabled",
+    });
   });
 }
 
@@ -155,6 +224,7 @@ test("builds and removes a personal Kit from project-card selection", async ({ p
   await expect(page.getByRole("heading", { name: "Quick Kit" })).toBeVisible();
   const quick = page.locator("[data-kit-id]").filter({ hasText: "Quick Kit" });
   await quick.getByRole("button", { name: "Details" }).click();
+  await page.getByRole("button", { name: "More Kit actions" }).click();
   await page.getByRole("button", { name: "Remove saved Kit" }).click();
   await expect(page.getByRole("heading", { name: "Quick Kit" })).not.toBeVisible();
 });
@@ -175,6 +245,7 @@ test("removes an active Kit while keeping its extensions installed", async ({ pa
   await page.getByRole("button", { name: "Dismiss" }).click();
   await page.getByRole("button", { name: "Details" }).click();
 
+  await page.getByRole("button", { name: "More Kit actions" }).click();
   const remove = page.getByRole("button", { name: "Remove Kit, keep extensions" });
   await expect(remove).toBeEnabled();
   await remove.click();
