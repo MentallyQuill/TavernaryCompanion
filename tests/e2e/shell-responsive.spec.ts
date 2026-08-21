@@ -35,13 +35,14 @@ for (const viewport of viewports) {
 }
 
 for (const viewport of [
-  { width: 1440, height: 960, columns: 4 },
-  { width: 1200, height: 800, columns: 3 },
-  { width: 1024, height: 768, columns: 2 },
-  { width: 390, height: 844, columns: 1 },
+  { width: 1440, height: 960, standardColumns: 3, compactColumns: 4 },
+  { width: 1366, height: 768, standardColumns: 3, compactColumns: 4 },
+  { width: 1200, height: 800, standardColumns: 2, compactColumns: 3 },
+  { width: 1024, height: 768, standardColumns: 2, compactColumns: 2 },
+  { width: 390, height: 844, standardColumns: 1, compactColumns: 1 },
 ]) {
-  const columnLabel = viewport.columns === 1 ? "column" : "columns";
-  test(`adaptive project grid uses ${viewport.columns} ${columnLabel} at ${viewport.width}px`, async ({
+  const columnLabel = viewport.standardColumns === 1 ? "column" : "columns";
+  test(`adaptive project grid uses ${viewport.standardColumns} standard ${columnLabel} at ${viewport.width}px`, async ({
     page,
   }) => {
     await page.setViewportSize(viewport);
@@ -54,9 +55,9 @@ for (const viewport of [
           getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length,
       );
 
-    expect(await columnCount()).toBe(viewport.columns);
+    expect(await columnCount()).toBe(viewport.standardColumns);
     await page.getByRole("button", { name: "Use compact cards" }).click();
-    expect(await columnCount()).toBe(viewport.columns);
+    expect(await columnCount()).toBe(viewport.compactColumns);
   });
 }
 
@@ -70,7 +71,7 @@ test("adaptive project grid releases a column when the Kit Builder expands", asy
     await grid.evaluate(
       (element) => getComputedStyle(element).gridTemplateColumns.split(" ").filter(Boolean).length,
     ),
-  ).toBe(3);
+  ).toBe(2);
   expect(await grid.evaluate((element) => element.scrollWidth - element.clientWidth)).toBe(0);
 });
 
@@ -83,8 +84,8 @@ test("sparse adaptive project results retain a scannable desktop card width", as
   await expect(cards).toHaveCount(1);
   const card = await cards.first().boundingBox();
   expect(card).not.toBeNull();
-  expect(card!.width).toBeGreaterThanOrEqual(210);
-  expect(card!.width).toBeLessThanOrEqual(250);
+  expect(card!.width).toBeGreaterThanOrEqual(280);
+  expect(card!.width).toBeLessThanOrEqual(320);
 });
 
 test("200 percent text does not create horizontal overflow", async ({ page }) => {

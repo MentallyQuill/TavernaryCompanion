@@ -241,7 +241,7 @@ test("desktop filters use Tavernary's persistent flush rail", async ({ page }) =
       .evaluate(
         (grid) => getComputedStyle(grid).gridTemplateColumns.split(" ").filter(Boolean).length,
       ),
-  ).toBe(4);
+  ).toBe(3);
   const modelFamily = surface.getByRole("checkbox", { name: "Model-Agnostic" });
   const modelFamilyChip = modelFamily.locator("../..");
   await expect(modelFamilyChip).toHaveCSS("order", "1");
@@ -560,9 +560,6 @@ test("project cards use Tavernary's surface, evidence hierarchy, and action colo
 test("project activity evidence stays compact at three-column widths", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await openHarness(page, "wide-repository-size");
-  await page.addStyleTag({
-    content: ".tavernary-companion-project-grid { grid-template-columns: repeat(3, 286px); }",
-  });
   await page
     .locator(".tavernary-companion-shell__header")
     .getByRole("searchbox", { name: "Search projects" })
