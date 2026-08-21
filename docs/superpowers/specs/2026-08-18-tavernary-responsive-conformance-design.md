@@ -51,7 +51,7 @@ The mobile order mirrors Tavernary.org:
 3. Browse selector.
 4. Advisory or route context when present.
 5. One dense results row containing result count, sort, active-query clear, and filter trigger.
-6. Compact active-filter chips only when filters differ from the default scope.
+6. Compact active-filter chips whenever removable filters are selected, including the default scope.
 7. Single-column result cards.
 
 Remove the redundant `Projects` page title and default-scope explanatory paragraph on mobile. Their meaning is already conveyed by the Browse selector and active filters. `Select for Kit` becomes a compact action within the results row or its immediate action group.

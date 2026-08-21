@@ -21032,6 +21032,7 @@ function ProjectsRoute({
     }
   };
   const filterCount = state.query.frontends.length + state.query.kinds.length + state.query.tags.length + (state.query.modelFamilies?.length ?? 0) + (state.query.completionFormats?.length ?? 0) + state.query.development.length + state.query.licenses.length;
+  const hasActiveFilters = filterCount > 0 || state.query.category !== "" || state.query.view !== "all";
   return /* @__PURE__ */ u3(
     "section",
     {
@@ -21126,7 +21127,7 @@ function ProjectsRoute({
                 onQueryChange
               }
             ),
-            hasChangedFilters ? /* @__PURE__ */ u3(ActiveFilterChips, { query: state.query, facets, onQueryChange }) : null,
+            hasActiveFilters ? /* @__PURE__ */ u3(ActiveFilterChips, { query: state.query, facets, onQueryChange }) : null,
             /* @__PURE__ */ u3(
               ProjectGrid,
               {

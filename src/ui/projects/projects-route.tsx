@@ -180,6 +180,8 @@ export function ProjectsRoute({
     (state.query.completionFormats?.length ?? 0) +
     state.query.development.length +
     state.query.licenses.length;
+  const hasActiveFilters =
+    filterCount > 0 || state.query.category !== "" || state.query.view !== "all";
   return (
     <section
       ref={route}
@@ -258,7 +260,7 @@ export function ProjectsRoute({
             resultCount={state.projects.length}
             onQueryChange={onQueryChange}
           />
-          {hasChangedFilters ? (
+          {hasActiveFilters ? (
             <ActiveFilterChips query={state.query} facets={facets} onQueryChange={onQueryChange} />
           ) : null}
           <ProjectGrid

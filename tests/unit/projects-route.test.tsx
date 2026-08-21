@@ -67,7 +67,16 @@ describe("ProjectsRoute", () => {
     expect(screen.getByText("Refine catalog")).toBeVisible();
     expect(screen.getByRole("heading", { name: "Filters" })).toBeVisible();
     expect(screen.getByRole("button", { name: "Close filters" }).textContent).toBe("");
-    expect(screen.queryByLabelText("Active filters")).not.toBeInTheDocument();
+    const activeFilters = screen.getByLabelText("Active filters");
+    expect(
+      within(activeFilters).getByRole("button", { name: "Remove SillyTavern filter" }),
+    ).toBeVisible();
+    expect(
+      within(activeFilters).getByRole("button", { name: "Remove Extension filter" }),
+    ).toBeVisible();
+    expect(
+      within(activeFilters).getByRole("button", { name: "Remove System Preset filter" }),
+    ).toBeVisible();
     expect(
       screen.getByRole("link", {
         name: "Safety: TavernKeeper scans are advisory, not a guarantee. Review a project carefully before installing it or providing credentials.",
