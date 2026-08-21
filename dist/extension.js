@@ -18857,11 +18857,22 @@ function InstalledCard({
   selected,
   onToggleSelection
 }) {
+  const managed = sectionId === "managed";
   const unknown = sectionId === "ambiguous" || sectionId === "unknown" || row.action.kind === "manage-in-sillytavern";
+  const title = /* @__PURE__ */ u3("h4", { children: row.canonicalUrl ? /* @__PURE__ */ u3("a", { href: row.canonicalUrl, target: "_blank", rel: "noopener noreferrer", children: row.name }) : row.name });
+  const updateStatus = updateState && updateState.kind !== "idle" ? /* @__PURE__ */ u3(
+    "strong",
+    {
+      class: `tavernary-companion-installed-update-status is-${updateState.kind}`,
+      role: "status",
+      title: updateState.kind === "attention" ? updateState.reason : void 0,
+      children: updateStatusLabel(updateState)
+    }
+  ) : null;
   return /* @__PURE__ */ u3(
     "article",
     {
-      class: `tavernary-companion-installed-card is-installed${row.enabled === false ? " is-disabled" : ""}${selected ? " is-selected" : ""}`,
+      class: `tavernary-companion-installed-card is-installed${managed ? " is-managed" : ""}${row.enabled === false ? " is-disabled" : ""}${selected ? " is-selected" : ""}`,
       onClick: (event) => {
         if (!row.selectionEligible || isInteractiveTarget(event.target)) return;
         onToggleSelection?.(row.id);
@@ -18877,19 +18888,16 @@ function InstalledCard({
             onClick: () => onToggleSelection?.(row.id)
           }
         ) : null,
-        /* @__PURE__ */ u3("header", { children: [
-          /* @__PURE__ */ u3("span", { children: sectionLabel(sectionId) }),
-          updateState && updateState.kind !== "idle" ? /* @__PURE__ */ u3(
-            "strong",
-            {
-              class: `tavernary-companion-installed-update-status is-${updateState.kind}`,
-              role: "status",
-              title: updateState.kind === "attention" ? updateState.reason : void 0,
-              children: updateStatusLabel(updateState)
-            }
-          ) : null
+        managed ? /* @__PURE__ */ u3("header", { children: [
+          title,
+          updateStatus
+        ] }) : /* @__PURE__ */ u3(S, { children: [
+          /* @__PURE__ */ u3("header", { children: [
+            /* @__PURE__ */ u3("span", { children: sectionLabel(sectionId) }),
+            updateStatus
+          ] }),
+          title
         ] }),
-        /* @__PURE__ */ u3("h4", { children: row.canonicalUrl ? /* @__PURE__ */ u3("a", { href: row.canonicalUrl, target: "_blank", rel: "noopener noreferrer", children: row.name }) : row.name }),
         kitTitles.length ? /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-memberships", title: kitTitles.join(", "), children: [
           "In ",
           kitTitles.join(", ")

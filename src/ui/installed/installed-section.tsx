@@ -106,13 +106,35 @@ function InstalledCard({
   selected: boolean;
   onToggleSelection?: (projectId: string) => void;
 }): preact.JSX.Element {
+  const managed = sectionId === "managed";
   const unknown =
     sectionId === "ambiguous" ||
     sectionId === "unknown" ||
     row.action.kind === "manage-in-sillytavern";
+  const title = (
+    <h4>
+      {row.canonicalUrl ? (
+        <a href={row.canonicalUrl} target="_blank" rel="noopener noreferrer">
+          {row.name}
+        </a>
+      ) : (
+        row.name
+      )}
+    </h4>
+  );
+  const updateStatus =
+    updateState && updateState.kind !== "idle" ? (
+      <strong
+        class={`tavernary-companion-installed-update-status is-${updateState.kind}`}
+        role="status"
+        title={updateState.kind === "attention" ? updateState.reason : undefined}
+      >
+        {updateStatusLabel(updateState)}
+      </strong>
+    ) : null;
   return (
     <article
-      class={`tavernary-companion-installed-card is-installed${row.enabled === false ? " is-disabled" : ""}${selected ? " is-selected" : ""}`}
+      class={`tavernary-companion-installed-card is-installed${managed ? " is-managed" : ""}${row.enabled === false ? " is-disabled" : ""}${selected ? " is-selected" : ""}`}
       onClick={(event) => {
         if (!row.selectionEligible || isInteractiveTarget(event.target)) return;
         onToggleSelection?.(row.id);
@@ -127,27 +149,20 @@ function InstalledCard({
           onClick={() => onToggleSelection?.(row.id)}
         />
       ) : null}
-      <header>
-        <span>{sectionLabel(sectionId)}</span>
-        {updateState && updateState.kind !== "idle" ? (
-          <strong
-            class={`tavernary-companion-installed-update-status is-${updateState.kind}`}
-            role="status"
-            title={updateState.kind === "attention" ? updateState.reason : undefined}
-          >
-            {updateStatusLabel(updateState)}
-          </strong>
-        ) : null}
-      </header>
-      <h4>
-        {row.canonicalUrl ? (
-          <a href={row.canonicalUrl} target="_blank" rel="noopener noreferrer">
-            {row.name}
-          </a>
-        ) : (
-          row.name
-        )}
-      </h4>
+      {managed ? (
+        <header>
+          {title}
+          {updateStatus}
+        </header>
+      ) : (
+        <>
+          <header>
+            <span>{sectionLabel(sectionId)}</span>
+            {updateStatus}
+          </header>
+          {title}
+        </>
+      )}
       {kitTitles.length ? (
         <div class="tavernary-companion-installed-memberships" title={kitTitles.join(", ")}>
           In {kitTitles.join(", ")}
