@@ -4002,6 +4002,7 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
   .tavernary-companion-kit-inspector__more > button,
   .tavernary-companion-kit-inspector__more-panel > button,
   .tavernary-companion-kit-components a {
+    min-inline-size: 44px;
     min-block-size: 44px;
   }
 }

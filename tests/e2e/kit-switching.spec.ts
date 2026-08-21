@@ -188,7 +188,7 @@ for (const viewport of [
 test.describe("wide coarse-pointer Kit detail", () => {
   test.use({ hasTouch: true, viewport: { width: 1024, height: 768 } });
 
-  test("keeps every detail action at least 44px tall", async ({ page }) => {
+  test("keeps every detail action at least 44 by 44px", async ({ page }) => {
     await openHarness(page);
     await page
       .getByRole("navigation", { name: "Catalog categories" })
@@ -204,12 +204,14 @@ test.describe("wide coarse-pointer Kit detail", () => {
       elements.map((element) => ({
         label: element.getAttribute("aria-label") ?? element.textContent?.trim(),
         height: element.getBoundingClientRect().height,
+        width: element.getBoundingClientRect().width,
       })),
     );
 
     expect(heights.length).toBeGreaterThan(0);
     for (const target of heights) {
       expect(target.height, target.label).toBeGreaterThanOrEqual(44);
+      expect(target.width, target.label).toBeGreaterThanOrEqual(44);
     }
   });
 });
