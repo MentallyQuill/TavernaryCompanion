@@ -386,6 +386,26 @@ describe("InstalledRoute", () => {
     expect(screen.getByRole("switch", { name: "Enable Mystery" })).toHaveTextContent("Disabled");
   });
 
+  it("puts a managed extension title in the version row without repeating its ownership", () => {
+    const { container } = render(
+      <InstalledRoute
+        sections={sections}
+        updateStates={{ alpha: { kind: "current" } }}
+        onRefresh={vi.fn()}
+      />,
+    );
+
+    const managedCard = container.querySelector<HTMLElement>(
+      ".tavernary-companion-installed-card.is-managed",
+    );
+    expect(managedCard).not.toBeNull();
+    const identity = managedCard!.querySelector(":scope > header");
+    expect(identity).not.toBeNull();
+    expect(within(identity as HTMLElement).getByRole("heading", { name: "Alpha" })).toBeVisible();
+    expect(within(identity as HTMLElement).getByText("Latest")).toBeVisible();
+    expect(within(managedCard!).queryByText("Companion managed")).not.toBeInTheDocument();
+  });
+
   it("renders installed Kits before extension cards and toggles an extension in place", () => {
     const onToggleExtension = vi.fn();
     const onSelectKit = vi.fn();

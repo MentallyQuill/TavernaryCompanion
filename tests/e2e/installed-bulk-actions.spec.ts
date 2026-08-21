@@ -43,10 +43,10 @@ test("selects installed Kit members, deduplicates overlap, and clears the mode",
   const writerCard = page
     .locator(".tavernary-companion-installed-card")
     .filter({ hasText: "Writer Tool" });
-  await writerCard.locator(":scope > header > span").click();
+  await writerCard.locator(".tavernary-companion-installed-memberships").click();
   await expect(page.getByRole("complementary", { name: "Bulk actions" })).toHaveCount(0);
   await expect(page.locator(".tavernary-companion-installed-kit-card.is-selected")).toHaveCount(0);
-  await writerCard.locator(":scope > header > span").click();
+  await writerCard.locator(".tavernary-companion-installed-memberships").click();
   await expect(selectedCount(page)).toHaveText("1 selected");
   await expect(page.locator(".tavernary-companion-installed-kit-card.is-selected")).toHaveCount(0);
 
@@ -66,7 +66,7 @@ test("uses the yellow-orange selection border without shifting the lifecycle act
     .locator(".tavernary-companion-installed-card")
     .filter({ hasText: "Writer Tool" });
   await expect(card.getByRole("checkbox")).toHaveCount(0);
-  await card.locator(":scope > header > span").click();
+  await card.locator(".tavernary-companion-installed-memberships").click();
   await expect(card.getByRole("button", { name: "Deselect Writer Tool" })).toHaveAttribute(
     "aria-pressed",
     "true",
@@ -93,6 +93,47 @@ test("uses the yellow-orange selection border without shifting the lifecycle act
   expect(actionBox).not.toBeNull();
   expect(cardBox!.x + cardBox!.width - (actionBox!.x + actionBox!.width)).toBeLessThanOrEqual(18);
   expect(cardBox!.y + cardBox!.height - (actionBox!.y + actionBox!.height)).toBeLessThanOrEqual(18);
+  expect(actionBox!.width).toBe(34);
+  expect(actionBox!.height).toBe(34);
+
+  const face = card.locator(".tavernary-companion-project-lifecycle__face");
+  const bulkUninstall = page.getByRole("button", { name: "Uninstall selected extensions" });
+  const [faceTheme, bulkTheme] = await Promise.all(
+    [face, bulkUninstall].map((control) =>
+      control.evaluate((element) => {
+        const style = getComputedStyle(element);
+        return {
+          background: style.backgroundColor,
+          border: style.borderTopColor,
+          color: style.color,
+        };
+      }),
+    ),
+  );
+  expect(faceTheme).toEqual(bulkTheme);
+});
+
+test("centers the bulk bar in the Installed panel for both Kit Builder widths", async ({
+  page,
+}) => {
+  await page.setViewportSize({ width: 1440, height: 960 });
+  await openInstalled(page);
+  await page.getByRole("button", { name: /Select 1 installed extension from/u }).click();
+
+  const centerDelta = async () => {
+    const [route, bulk] = await Promise.all([
+      page.locator(".tavernary-companion-installed-route").boundingBox(),
+      page.getByRole("complementary", { name: "Bulk actions" }).boundingBox(),
+    ]);
+    expect(route).not.toBeNull();
+    expect(bulk).not.toBeNull();
+    return bulk!.x + bulk!.width / 2 - (route!.x + route!.width / 2);
+  };
+
+  expect(Math.abs(await centerDelta())).toBeLessThanOrEqual(1);
+  await page.getByRole("button", { name: "Open Kit Builder" }).click();
+  await expect(page.getByRole("button", { name: "Collapse Kit Builder" })).toBeVisible();
+  await expect.poll(async () => Math.abs(await centerDelta())).toBeLessThanOrEqual(1);
 });
 
 test("keeps catalog card content visible beneath the full-card selection control", async ({
@@ -104,7 +145,7 @@ test("keeps catalog card content visible beneath the full-card selection control
   const card = page
     .locator(".tavernary-companion-installed-card")
     .filter({ hasText: "Writer Tool" });
-  await card.locator(":scope > header > span").click();
+  await card.locator(".tavernary-companion-installed-memberships").click();
 
   await expect(card.getByRole("heading", { name: "Writer Tool" })).toBeVisible();
   await expect(card.locator(":scope > .tavernary-companion-installed-card__select")).toHaveCSS(
@@ -123,7 +164,7 @@ test("supports direct card and keyboard selection and preserves selection when A
   const card = page
     .locator(".tavernary-companion-installed-card")
     .filter({ hasText: "Writer Tool" });
-  await card.locator(":scope > header > span").click();
+  await card.locator(".tavernary-companion-installed-memberships").click();
   await expect(selectedCount(page)).toHaveText("1 selected");
 
   const extension = page.getByRole("button", { name: "Deselect Writer Tool" });
