@@ -4,6 +4,7 @@ import type { InstalledSectionViewModel } from "../../catalog/installed-view-mod
 import type { ProjectPrimaryAction } from "../../catalog/project-view-model";
 import type { InstalledKitViewModel } from "../../kits/kit-view-model";
 import type { ProjectUpdateState } from "../../updates/update-coordinator";
+import type { InstalledInventoryLoadState } from "../inventory-refresh-coordinator";
 import type { InstalledSelectionState } from "./installed-selection";
 import { InstalledBulkBar } from "./installed-bulk-bar";
 import { InstalledKitCard } from "./installed-kit-card";
@@ -14,6 +15,7 @@ interface InstalledRouteProps {
   sections: InstalledSectionViewModel[];
   kits?: readonly InstalledKitViewModel[];
   activeKitId?: string | null;
+  loadState?: InstalledInventoryLoadState;
   refreshing?: boolean;
   togglingInternalName?: string | null;
   updateStates?: Readonly<Record<string, ProjectUpdateState>>;
@@ -38,6 +40,7 @@ interface InstalledRouteProps {
 export function InstalledRoute({
   sections,
   kits = [],
+  loadState = "ready",
   refreshing = false,
   togglingInternalName = null,
   updateStates = {},
@@ -101,26 +104,40 @@ export function InstalledRoute({
       </h2>
       <header class="tavernary-companion-route-toolbar">
         <strong aria-hidden="true">Installed</strong>
-        <span>
-          {installedCount} installed {installedCount === 1 ? "extension" : "extensions"}
-        </span>
-        {refreshing ? <p role="status">Updating installed extensions…</p> : null}
+        {loadState === "loading" ? (
+          <span role="status">Loading installed extensions…</span>
+        ) : loadState === "error" ? (
+          <span>Installed extensions unavailable</span>
+        ) : (
+          <span>
+            {installedCount} installed {installedCount === 1 ? "extension" : "extensions"}
+          </span>
+        )}
+        {loadState === "ready" && refreshing ? (
+          <p role="status">Updating installed extensions…</p>
+        ) : null}
         <button
           type="button"
-          aria-label={checkingUpdates ? "Checking for updates" : "Check for updates"}
-          disabled={checkingUpdates || lifecycleDisabled}
-          onClick={() => void onCheckUpdates?.()}
+          aria-label={
+            loadState === "error"
+              ? "Retry loading installed extensions"
+              : checkingUpdates
+                ? "Checking for updates"
+                : "Check for updates"
+          }
+          disabled={loadState === "loading" || checkingUpdates || lifecycleDisabled}
+          onClick={() => (loadState === "error" ? void onRefresh() : void onCheckUpdates?.())}
         >
-          {checkingUpdates ? "Checking…" : "Check again"}
+          {loadState === "error" ? "Retry" : checkingUpdates ? "Checking…" : "Check again"}
         </button>
       </header>
-      {usingNativeUpdates ? (
+      {loadState === "ready" && usingNativeUpdates ? (
         <p class="tavernary-companion-installed-update-note">
           SillyTavern can update extensions to the latest version from their creator. Updating to a
           specific TavernKeeper-scanned version isn’t supported by this build.
         </p>
       ) : null}
-      {installedKits.length ? (
+      {loadState === "ready" && installedKits.length ? (
         <section
           class="tavernary-companion-installed-kits"
           aria-labelledby="installed-kits-heading"
@@ -153,7 +170,7 @@ export function InstalledRoute({
           </div>
         </section>
       ) : null}
-      {populatedSections.length ? (
+      {loadState === "ready" && populatedSections.length ? (
         populatedSections.map((section) => (
           <InstalledSection
             key={section.id}
@@ -171,10 +188,10 @@ export function InstalledRoute({
             onToggleSelection={onToggleSelection}
           />
         ))
-      ) : installedKits.length === 0 ? (
+      ) : loadState === "ready" && installedKits.length === 0 ? (
         <p>No installed extensions were found in this profile.</p>
       ) : null}
-      {selection.active ? (
+      {loadState === "ready" && selection.active ? (
         <InstalledBulkBar
           count={selection.projectIds.length}
           disabled={lifecycleDisabled}

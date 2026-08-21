@@ -102,6 +102,13 @@ import {
 } from "./installed/installed-selection";
 import { BulkRemovalDialog } from "./lifecycle/bulk-removal-dialog";
 import { createRuntimeId } from "../runtime-id";
+import {
+  createInventoryRefreshCoordinator,
+  type InventoryRefreshCoordinator,
+  type InventoryRefreshSnapshot,
+} from "./inventory-refresh-coordinator";
+
+export { createInventoryRefreshCoordinator } from "./inventory-refresh-coordinator";
 
 interface CompanionPopupHostProps {
   store?: ProfileStore;
@@ -120,6 +127,13 @@ export interface PopupRuntime {
   kitDiscovery: ReturnType<typeof createKitDiscoveryController>;
   kitExecutor: KitExecutor;
   kitContext: { inventory: InventorySnapshot };
+  inventoryRefresh: InventoryRefreshCoordinator;
+  kitPresentation: KitPresentationSnapshot;
+}
+
+interface KitPresentationSnapshot {
+  inspectors: Record<string, KitInspectorViewModel>;
+  installedKits: InstalledKitViewModel[];
 }
 
 const emptyInventory = { managed: [], external: [], unknown: [], missingManaged: [] };
@@ -170,7 +184,9 @@ export function CompanionPopupHost({
     runtime?.catalog.read(),
   );
   const [catalogRefreshing, setCatalogRefreshing] = useState(false);
-  const [inventoryRefreshing, setInventoryRefreshing] = useState(false);
+  const [inventoryRefreshState, setInventoryRefreshState] = useState<InventoryRefreshSnapshot>(
+    runtime?.inventoryRefresh.read() ?? { loadState: "loading", refreshing: false },
+  );
   const [togglingInternalName, setTogglingInternalName] = useState<string | null>(null);
   const [activeOperation, setActiveOperation] = useState<ActiveOperation | null>(
     runtime?.lifecycle.lock.read() ?? null,
@@ -202,8 +218,12 @@ export function CompanionPopupHost({
   const [kitDraftOrigin, setKitDraftOrigin] = useState<"installed-selection" | null>(null);
   const [pendingAddToKitIds, setPendingAddToKitIds] = useState<string[] | null>(null);
   const [kitBuilderCollapsed, setKitBuilderCollapsed] = useState(true);
-  const [kitInspectors, setKitInspectors] = useState<Record<string, KitInspectorViewModel>>({});
-  const [installedKitCards, setInstalledKitCards] = useState<InstalledKitViewModel[]>([]);
+  const [kitInspectors, setKitInspectors] = useState<Record<string, KitInspectorViewModel>>(
+    runtime?.kitPresentation.inspectors ?? {},
+  );
+  const [installedKitCards, setInstalledKitCards] = useState<InstalledKitViewModel[]>(
+    runtime?.kitPresentation.installedKits ?? [],
+  );
   const [installedSelection, setInstalledSelection] =
     useState<InstalledSelectionState>(EMPTY_INSTALLED_SELECTION);
   const [operationError, setOperationError] = useState<string | null>(null);
@@ -235,6 +255,12 @@ export function CompanionPopupHost({
     };
   }, [installFallbacks]);
 
+  useEffect(() => {
+    if (!runtime) return;
+    setInventoryRefreshState(runtime.inventoryRefresh.read());
+    return runtime.inventoryRefresh.subscribe(setInventoryRefreshState);
+  }, [runtime]);
+
   const syncKits = useCallback(async () => {
     if (!runtime || !store) return;
     const snapshot = runtime.catalog.read();
@@ -249,6 +275,10 @@ export function CompanionPopupHost({
       personal: runtime.kits.readDefinitions(),
       statuses: presentation.statuses,
     });
+    runtime.kitPresentation = {
+      inspectors: presentation.inspectors,
+      installedKits: presentation.installedKits,
+    };
     setKitInspectors(presentation.inspectors);
     setInstalledKitCards(presentation.installedKits);
     setInstalledSelection((current) =>
@@ -261,34 +291,21 @@ export function CompanionPopupHost({
   }, [runtime, store]);
 
   const refreshInventory = useCallback(async (): Promise<boolean> => {
-    if (!runtime || !host || !store) return false;
+    if (!runtime) return false;
     setOperationError(null);
-    setInventoryRefreshing(true);
+    const refreshed = await runtime.inventoryRefresh.request();
+    if (!refreshed) {
+      setOperationError("Could not refresh installed extensions. Try again.");
+      return false;
+    }
     try {
-      const extensions = await discoverAndPruneManagedRecords({
-        host,
-        store,
-        canPrune: () => runtime.lifecycle.lock.read() === null,
-      });
-      const snapshot = runtime.catalog.read();
-      const inventory = await reconcileHostInventory({
-        projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
-        host,
-        hostExtensions: extensions,
-        managed: normalizeManagedExtensionMap(store.read().managedExtensions),
-      });
-      runtime.kitContext.inventory = inventory;
-      runtime.discovery.setInventory(inventory);
-      runtime.updates.invalidate();
       await syncKits();
       return true;
     } catch {
       setOperationError("Could not refresh installed extensions. Try again.");
       return false;
-    } finally {
-      setInventoryRefreshing(false);
     }
-  }, [host, runtime, store, syncKits]);
+  }, [runtime, syncKits]);
 
   const refreshCatalog = useCallback(async () => {
     if (!runtime) return;
@@ -638,7 +655,8 @@ export function CompanionPopupHost({
         discovery={runtime?.discovery}
         catalogSnapshot={catalogSnapshot}
         catalogRefreshing={catalogRefreshing}
-        inventoryRefreshing={inventoryRefreshing}
+        inventoryLoadState={inventoryRefreshState.loadState}
+        inventoryRefreshing={inventoryRefreshState.refreshing}
         togglingInternalName={togglingInternalName}
         onRefreshCatalog={refreshCatalog}
         onRefreshInventory={refreshInstalled}
@@ -999,6 +1017,24 @@ export function createPopupRuntime(
     fallbacks: installFallbacks,
     confirm: (prompt, project) => prompts.request(prompt, project),
   });
+  const inventoryRefresh = createInventoryRefreshCoordinator(async () => {
+    const extensions = await discoverAndPruneManagedRecords({
+      host,
+      store,
+      canPrune: () => lifecycle.lock.read() === null,
+    });
+    const snapshot = catalog.read();
+    const inventory = await reconcileHostInventory({
+      projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
+      host,
+      hostExtensions: extensions,
+      managed: normalizeManagedExtensionMap(store.read().managedExtensions),
+    });
+    kitContext.inventory = inventory;
+    discovery.setInventory(inventory);
+    updates.invalidate();
+  });
+  const kitPresentation: KitPresentationSnapshot = { inspectors: {}, installedKits: [] };
   return {
     catalog,
     discovery,
@@ -1010,6 +1046,8 @@ export function createPopupRuntime(
     kitDiscovery,
     kitExecutor,
     kitContext,
+    inventoryRefresh,
+    kitPresentation,
   };
 }
 

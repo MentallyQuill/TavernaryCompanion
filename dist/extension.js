@@ -19001,6 +19001,7 @@ function emptyExplanation(id) {
 function InstalledRoute({
   sections,
   kits = [],
+  loadState = "ready",
   refreshing = false,
   togglingInternalName = null,
   updateStates = {},
@@ -19058,25 +19059,25 @@ function InstalledRoute({
     /* @__PURE__ */ u3("h2", { id: "installed-heading", class: "tavernary-companion-sr-only", children: "Installed extensions" }),
     /* @__PURE__ */ u3("header", { class: "tavernary-companion-route-toolbar", children: [
       /* @__PURE__ */ u3("strong", { "aria-hidden": "true", children: "Installed" }),
-      /* @__PURE__ */ u3("span", { children: [
+      loadState === "loading" ? /* @__PURE__ */ u3("span", { role: "status", children: "Loading installed extensions\u2026" }) : loadState === "error" ? /* @__PURE__ */ u3("span", { children: "Installed extensions unavailable" }) : /* @__PURE__ */ u3("span", { children: [
         installedCount,
         " installed ",
         installedCount === 1 ? "extension" : "extensions"
       ] }),
-      refreshing ? /* @__PURE__ */ u3("p", { role: "status", children: "Updating installed extensions\u2026" }) : null,
+      loadState === "ready" && refreshing ? /* @__PURE__ */ u3("p", { role: "status", children: "Updating installed extensions\u2026" }) : null,
       /* @__PURE__ */ u3(
         "button",
         {
           type: "button",
-          "aria-label": checkingUpdates ? "Checking for updates" : "Check for updates",
-          disabled: checkingUpdates || lifecycleDisabled,
-          onClick: () => void onCheckUpdates?.(),
-          children: checkingUpdates ? "Checking\u2026" : "Check again"
+          "aria-label": loadState === "error" ? "Retry loading installed extensions" : checkingUpdates ? "Checking for updates" : "Check for updates",
+          disabled: loadState === "loading" || checkingUpdates || lifecycleDisabled,
+          onClick: () => loadState === "error" ? void onRefresh() : void onCheckUpdates?.(),
+          children: loadState === "error" ? "Retry" : checkingUpdates ? "Checking\u2026" : "Check again"
         }
       )
     ] }),
-    usingNativeUpdates ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-update-note", children: "SillyTavern can update extensions to the latest version from their creator. Updating to a specific TavernKeeper-scanned version isn\u2019t supported by this build." }) : null,
-    installedKits.length ? /* @__PURE__ */ u3(
+    loadState === "ready" && usingNativeUpdates ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-update-note", children: "SillyTavern can update extensions to the latest version from their creator. Updating to a specific TavernKeeper-scanned version isn\u2019t supported by this build." }) : null,
+    loadState === "ready" && installedKits.length ? /* @__PURE__ */ u3(
       "section",
       {
         class: "tavernary-companion-installed-kits",
@@ -19109,7 +19110,7 @@ function InstalledRoute({
         ]
       }
     ) : null,
-    populatedSections.length ? populatedSections.map((section) => /* @__PURE__ */ u3(
+    loadState === "ready" && populatedSections.length ? populatedSections.map((section) => /* @__PURE__ */ u3(
       InstalledSection,
       {
         section,
@@ -19126,8 +19127,8 @@ function InstalledRoute({
         onToggleSelection
       },
       section.id
-    )) : installedKits.length === 0 ? /* @__PURE__ */ u3("p", { children: "No installed extensions were found in this profile." }) : null,
-    selection.active ? /* @__PURE__ */ u3(
+    )) : loadState === "ready" && installedKits.length === 0 ? /* @__PURE__ */ u3("p", { children: "No installed extensions were found in this profile." }) : null,
+    loadState === "ready" && selection.active ? /* @__PURE__ */ u3(
       InstalledBulkBar,
       {
         count: selection.projectIds.length,
@@ -21300,6 +21301,7 @@ function CompanionShell({
   onCheckUpdates,
   onRetryUpdate,
   onUpdateExtension,
+  inventoryLoadState = "ready",
   inventoryRefreshing = false,
   togglingInternalName = null,
   onToggleExtension,
@@ -21445,6 +21447,7 @@ function CompanionShell({
                     sections: discoveryState.installedSections,
                     kits: installedKits,
                     activeKitId,
+                    loadState: inventoryLoadState,
                     refreshing: inventoryRefreshing,
                     updateStates,
                     togglingInternalName,
@@ -22303,6 +22306,62 @@ function BulkRemovalDialog({
   ] });
 }
 
+// src/ui/inventory-refresh-coordinator.ts
+function createInventoryRefreshCoordinator(refresh) {
+  let snapshot = { loadState: "loading", refreshing: false };
+  let requested = 0;
+  let completed = 0;
+  let drain = null;
+  const listeners = /* @__PURE__ */ new Set();
+  const publish = (next) => {
+    snapshot = next;
+    for (const listener of listeners) listener({ ...snapshot });
+  };
+  return {
+    read: () => ({ ...snapshot }),
+    subscribe(listener) {
+      listeners.add(listener);
+      return () => listeners.delete(listener);
+    },
+    request() {
+      requested += 1;
+      if (drain) return drain;
+      publish({
+        loadState: snapshot.loadState === "ready" ? "ready" : "loading",
+        refreshing: true
+      });
+      drain = (async () => {
+        let refreshed = false;
+        try {
+          while (completed < requested) {
+            const requestNumber = requested;
+            if (snapshot.loadState !== "ready") {
+              publish({ loadState: "loading", refreshing: true });
+            }
+            try {
+              await refresh();
+              refreshed = true;
+              publish({ loadState: "ready", refreshing: true });
+            } catch {
+              refreshed = false;
+              publish({
+                loadState: snapshot.loadState === "ready" ? "ready" : "error",
+                refreshing: true
+              });
+            }
+            completed = requestNumber;
+          }
+          return refreshed;
+        } finally {
+          publish({ ...snapshot, refreshing: false });
+          drain = null;
+        }
+      })();
+      return drain;
+    }
+  };
+}
+
 // src/ui/popup-host.tsx
 var emptyInventory = { managed: [], external: [], unknown: [], missingManaged: [] };
 function projectScanStatus(snapshot, projectId) {
@@ -22341,7 +22400,9 @@ function CompanionPopupHost({
     runtime?.catalog.read()
   );
   const [catalogRefreshing, setCatalogRefreshing] = d2(false);
-  const [inventoryRefreshing, setInventoryRefreshing] = d2(false);
+  const [inventoryRefreshState, setInventoryRefreshState] = d2(
+    runtime?.inventoryRefresh.read() ?? { loadState: "loading", refreshing: false }
+  );
   const [togglingInternalName, setTogglingInternalName] = d2(null);
   const [activeOperation, setActiveOperation] = d2(
     runtime?.lifecycle.lock.read() ?? null
@@ -22373,8 +22434,12 @@ function CompanionPopupHost({
   const [kitDraftOrigin, setKitDraftOrigin] = d2(null);
   const [pendingAddToKitIds, setPendingAddToKitIds] = d2(null);
   const [kitBuilderCollapsed, setKitBuilderCollapsed] = d2(true);
-  const [kitInspectors, setKitInspectors] = d2({});
-  const [installedKitCards, setInstalledKitCards] = d2([]);
+  const [kitInspectors, setKitInspectors] = d2(
+    runtime?.kitPresentation.inspectors ?? {}
+  );
+  const [installedKitCards, setInstalledKitCards] = d2(
+    runtime?.kitPresentation.installedKits ?? []
+  );
   const [installedSelection, setInstalledSelection] = d2(EMPTY_INSTALLED_SELECTION);
   const [operationError, setOperationError] = d2(null);
   const [preparingInstall, setPreparingInstall] = d2(false);
@@ -22392,6 +22457,11 @@ function CompanionPopupHost({
       installFallbacks.cancel();
     };
   }, [installFallbacks]);
+  h2(() => {
+    if (!runtime) return;
+    setInventoryRefreshState(runtime.inventoryRefresh.read());
+    return runtime.inventoryRefresh.subscribe(setInventoryRefreshState);
+  }, [runtime]);
   const syncKits = q2(async () => {
     if (!runtime || !store) return;
     const snapshot = runtime.catalog.read();
@@ -22406,6 +22476,10 @@ function CompanionPopupHost({
       personal: runtime.kits.readDefinitions(),
       statuses: presentation.statuses
     });
+    runtime.kitPresentation = {
+      inspectors: presentation.inspectors,
+      installedKits: presentation.installedKits
+    };
     setKitInspectors(presentation.inspectors);
     setInstalledKitCards(presentation.installedKits);
     setInstalledSelection(
@@ -22417,34 +22491,21 @@ function CompanionPopupHost({
     );
   }, [runtime, store]);
   const refreshInventory = q2(async () => {
-    if (!runtime || !host || !store) return false;
+    if (!runtime) return false;
     setOperationError(null);
-    setInventoryRefreshing(true);
+    const refreshed = await runtime.inventoryRefresh.request();
+    if (!refreshed) {
+      setOperationError("Could not refresh installed extensions. Try again.");
+      return false;
+    }
     try {
-      const extensions = await discoverAndPruneManagedRecords({
-        host,
-        store,
-        canPrune: () => runtime.lifecycle.lock.read() === null
-      });
-      const snapshot = runtime.catalog.read();
-      const inventory = await reconcileHostInventory({
-        projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
-        host,
-        hostExtensions: extensions,
-        managed: normalizeManagedExtensionMap(store.read().managedExtensions)
-      });
-      runtime.kitContext.inventory = inventory;
-      runtime.discovery.setInventory(inventory);
-      runtime.updates.invalidate();
       await syncKits();
       return true;
     } catch {
       setOperationError("Could not refresh installed extensions. Try again.");
       return false;
-    } finally {
-      setInventoryRefreshing(false);
     }
-  }, [host, runtime, store, syncKits]);
+  }, [runtime, syncKits]);
   const refreshCatalog = q2(async () => {
     if (!runtime) return;
     setCatalogRefreshing(true);
@@ -22749,7 +22810,8 @@ function CompanionPopupHost({
         discovery: runtime?.discovery,
         catalogSnapshot,
         catalogRefreshing,
-        inventoryRefreshing,
+        inventoryLoadState: inventoryRefreshState.loadState,
+        inventoryRefreshing: inventoryRefreshState.refreshing,
         togglingInternalName,
         onRefreshCatalog: refreshCatalog,
         onRefreshInventory: refreshInstalled,
@@ -23090,6 +23152,24 @@ function createPopupRuntime(store, host) {
     fallbacks: installFallbacks,
     confirm: (prompt, project2) => prompts.request(prompt, project2)
   });
+  const inventoryRefresh = createInventoryRefreshCoordinator(async () => {
+    const extensions = await discoverAndPruneManagedRecords({
+      host,
+      store,
+      canPrune: () => lifecycle.lock.read() === null
+    });
+    const snapshot = catalog.read();
+    const inventory = await reconcileHostInventory({
+      projects: "catalog" in snapshot ? snapshot.catalog.projects : [],
+      host,
+      hostExtensions: extensions,
+      managed: normalizeManagedExtensionMap(store.read().managedExtensions)
+    });
+    kitContext.inventory = inventory;
+    discovery.setInventory(inventory);
+    updates.invalidate();
+  });
+  const kitPresentation = { inspectors: {}, installedKits: [] };
   return {
     catalog,
     discovery,
@@ -23100,7 +23180,9 @@ function createPopupRuntime(store, host) {
     kits,
     kitDiscovery,
     kitExecutor,
-    kitContext
+    kitContext,
+    inventoryRefresh,
+    kitPresentation
   };
 }
 function parseReceipt(value) {

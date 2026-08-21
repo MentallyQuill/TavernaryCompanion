@@ -2,6 +2,85 @@ import { expect, test } from "@playwright/test";
 
 import { openHarness } from "./harness";
 
+test("Installed reports loading until initial host discovery completes", async ({ page }) => {
+  await openHarness(page, "initial-loading");
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Installed" })
+    .click();
+
+  await expect(page.getByText("Loading installed extensions…", { exact: true })).toBeVisible();
+  await expect(page.getByText("0 installed extensions")).toHaveCount(0);
+  await expect(page.getByText("No installed extensions were found in this profile.")).toHaveCount(
+    0,
+  );
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("tavernary-test-release-inventory"));
+  });
+  await expect(page.getByText("1 installed extension")).toBeVisible();
+  await expect(page.getByText("Loading installed extensions…")).toHaveCount(0);
+});
+
+test("Installed serializes overlapping discovery requests", async ({ page }) => {
+  await openHarness(page, "overlapping-inventory");
+  await page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Installed" })
+    .click();
+
+  await expect(page.getByText("Loading installed extensions…", { exact: true })).toBeVisible();
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("tavernary-test-release-inventory-2"));
+  });
+  await expect(page.getByText("Loading installed extensions…", { exact: true })).toBeVisible();
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("tavernary-test-release-inventory-1"));
+  });
+  await expect(page.getByText("1 installed extension")).toBeVisible();
+  await expect(page.getByText("No installed extensions were found in this profile.")).toHaveCount(
+    0,
+  );
+});
+
+test("Installed retains confirmed inventory across popup remounts", async ({ page }) => {
+  await openHarness(page, "remount-inventory");
+  const installed = page
+    .getByRole("navigation", { name: "Catalog categories" })
+    .getByRole("button", { name: "Installed" });
+  await installed.click();
+  await expect(page.getByText("1 installed extension")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Writer's Kit" })).toBeVisible();
+  await expect(page.getByText("In Writer's Kit")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Select 1 installed extension from Writer's Kit" }),
+  ).toBeVisible();
+  await expect(page.getByText("Updating installed extensions…")).toHaveCount(0);
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("tavernary-test-remount-popup"));
+  });
+  if ((await installed.getAttribute("aria-pressed")) !== "true") await installed.click();
+
+  await expect(page.getByText("1 installed extension")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Writer's Kit" })).toBeVisible();
+  await expect(page.getByText("In Writer's Kit")).toBeVisible();
+  await expect(
+    page.getByRole("button", { name: "Select 1 installed extension from Writer's Kit" }),
+  ).toBeVisible();
+  await expect(page.getByText("Updating installed extensions…")).toBeVisible();
+  await expect(page.getByText("Loading installed extensions…")).toHaveCount(0);
+
+  await page.evaluate(() => {
+    window.dispatchEvent(new Event("tavernary-test-release-remount-inventory"));
+  });
+  await expect(page.getByText("Updating installed extensions…")).toHaveCount(0);
+  await expect(page.getByText("1 installed extension")).toBeVisible();
+  await expect(page.getByRole("heading", { name: "Writer's Kit" })).toBeVisible();
+  await expect(page.getByText("In Writer's Kit")).toBeVisible();
+});
+
 test("Installed uses four desktop columns when its content width permits them", async ({
   page,
 }) => {
