@@ -18809,9 +18809,16 @@ function InstalledSection({
   selectedProjectIds = [],
   onToggleSelection
 }) {
+  const selectionAvailable = section.rows.some((row) => row.selectionEligible);
   return /* @__PURE__ */ u3("section", { class: "tavernary-companion-installed-section", children: [
     /* @__PURE__ */ u3("header", { children: [
-      /* @__PURE__ */ u3("h3", { children: section.title }),
+      /* @__PURE__ */ u3("div", { children: [
+        /* @__PURE__ */ u3("h3", { children: section.title }),
+        selectionAvailable ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-selection-cta", children: [
+          /* @__PURE__ */ u3("strong", { children: "Select extension cards" }),
+          " to make bulk changes."
+        ] }) : null
+      ] }),
       /* @__PURE__ */ u3("span", { children: section.rows.length })
     ] }),
     section.rows.length === 0 ? /* @__PURE__ */ u3("p", { children: emptyExplanation(section.id) }) : /* @__PURE__ */ u3("div", { class: "tavernary-companion-installed-grid", children: section.rows.map((row) => /* @__PURE__ */ u3(
@@ -19030,6 +19037,7 @@ function InstalledRoute({
   }, [onClearSelection, selection.active]);
   const populatedSections = sections.filter((section) => section.rows.length > 0);
   const installedKits = kits;
+  const kitSelectionAvailable = installedKits.some((kit2) => kit2.selectionProjectIds.length > 0);
   const checkingUpdates = Object.values(updateStates).some(({ kind }) => kind === "checking");
   const usingNativeUpdates = Object.values(updateStates).some(
     (state) => state.kind === "current" && state.native === true || state.kind === "available" && state.targets.some(({ requestedSha }) => requestedSha === null)
@@ -19080,7 +19088,10 @@ function InstalledRoute({
                 /* @__PURE__ */ u3("h3", { id: "installed-kits-heading", children: "Installed Kits" }),
                 /* @__PURE__ */ u3(InstalledStatusHelp, {})
               ] }),
-              /* @__PURE__ */ u3("p", { children: "Choose a Kit to select its installed extensions." })
+              kitSelectionAvailable ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-selection-cta", children: [
+                /* @__PURE__ */ u3("strong", { children: "Select a Kit" }),
+                " to choose its installed extensions."
+              ] }) : null
             ] }),
             /* @__PURE__ */ u3("span", { children: installedKits.length })
           ] }),

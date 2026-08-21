@@ -74,6 +74,7 @@ export function InstalledRoute({
   }, [onClearSelection, selection.active]);
   const populatedSections = sections.filter((section) => section.rows.length > 0);
   const installedKits = kits;
+  const kitSelectionAvailable = installedKits.some((kit) => kit.selectionProjectIds.length > 0);
   const checkingUpdates = Object.values(updateStates).some(({ kind }) => kind === "checking");
   const usingNativeUpdates = Object.values(updateStates).some(
     (state) =>
@@ -130,7 +131,11 @@ export function InstalledRoute({
                 <h3 id="installed-kits-heading">Installed Kits</h3>
                 <InstalledStatusHelp />
               </div>
-              <p>Choose a Kit to select its installed extensions.</p>
+              {kitSelectionAvailable ? (
+                <p class="tavernary-companion-installed-selection-cta">
+                  <strong>Select a Kit</strong> to choose its installed extensions.
+                </p>
+              ) : null}
             </div>
             <span>{installedKits.length}</span>
           </header>

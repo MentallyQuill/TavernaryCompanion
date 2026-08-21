@@ -35,10 +35,18 @@ export function InstalledSection({
   selectedProjectIds = [],
   onToggleSelection,
 }: InstalledSectionProps): preact.JSX.Element {
+  const selectionAvailable = section.rows.some((row) => row.selectionEligible);
   return (
     <section class="tavernary-companion-installed-section">
       <header>
-        <h3>{section.title}</h3>
+        <div>
+          <h3>{section.title}</h3>
+          {selectionAvailable ? (
+            <p class="tavernary-companion-installed-selection-cta">
+              <strong>Select extension cards</strong> to make bulk changes.
+            </p>
+          ) : null}
+        </div>
         <span>{section.rows.length}</span>
       </header>
       {section.rows.length === 0 ? (

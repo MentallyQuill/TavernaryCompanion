@@ -65,12 +65,15 @@ describe("InstalledRoute", () => {
     expect(
       screen.queryByRole("button", { name: "Select installed extensions" }),
     ).not.toBeInTheDocument();
+    expect(screen.getByText("Select extension cards").closest("p")).toHaveTextContent(
+      "Select extension cards to make bulk changes.",
+    );
     const alphaCard = container.querySelector<HTMLElement>(
       ".tavernary-companion-installed-card.is-installed",
     );
     expect(alphaCard).not.toBeNull();
     expect(within(alphaCard!).queryByRole("checkbox")).not.toBeInTheDocument();
-    fireEvent.click(within(alphaCard!).getByRole("button", { name: "Select Alpha" }));
+    fireEvent.click(alphaCard!);
     expect(onToggleSelection).toHaveBeenCalledWith("alpha");
   });
 
@@ -385,6 +388,9 @@ describe("InstalledRoute", () => {
     );
 
     expect(screen.getByRole("heading", { name: "Installed Kits" })).toBeVisible();
+    expect(screen.getByText("Select a Kit").closest("p")).toHaveTextContent(
+      "Select a Kit to choose its installed extensions.",
+    );
     const kit = screen.getByRole("button", {
       name: "Select 1 installed extension from Writer Kit",
     });
@@ -399,6 +405,40 @@ describe("InstalledRoute", () => {
     expect(onToggleExtension).toHaveBeenCalledWith("alpha", "third-party/Alpha", false);
     fireEvent.click(kit);
     expect(onSelectKit).toHaveBeenCalledWith("writer-kit");
+  });
+
+  it("does not invite Kit selection when no Kit has selectable installed extensions", () => {
+    render(
+      <InstalledRoute
+        sections={sections.map((section) => ({ ...section, rows: [] }))}
+        kits={[
+          {
+            id: "missing-kit",
+            title: "Missing Kit",
+            description: "Nothing from this Kit is installed.",
+            originLabel: "Personal Kit",
+            operationalStatus: "Installed",
+            components: [{ projectId: "alpha", name: "Alpha" }],
+            installedProjectIds: [],
+            missingProjectIds: ["alpha"],
+            selectionProjectIds: [],
+            installedCount: 0,
+            totalProjectCount: 1,
+            displayStatus: "Missing",
+            statusHelp: "No extensions in this Kit are currently installed.",
+            active: false,
+            orphaned: false,
+          },
+        ]}
+        onRefresh={vi.fn()}
+      />,
+    );
+
+    expect(screen.getByRole("heading", { name: "Installed Kits" })).toBeVisible();
+    expect(screen.queryByText("Select a Kit")).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: /Select 0 installed extensions from/u }),
+    ).toBeDisabled();
   });
 
   it("keeps an orphaned installed Kit visible with an uninstall path", () => {

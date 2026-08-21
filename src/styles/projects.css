@@ -1807,14 +1807,20 @@
   font-size: 10px;
 }
 
-.tavernary-companion-installed-kits > header > div {
+.tavernary-companion-installed-kits > header > div,
+.tavernary-companion-installed-section > header > div {
   min-inline-size: 0;
 }
 
-.tavernary-companion-installed-kits > header p {
+.tavernary-companion-installed-selection-cta {
   margin: 2px 0 5px;
   color: var(--tavernary-color-text-muted);
   font-size: 10px;
+}
+
+.tavernary-companion-installed-selection-cta strong {
+  color: var(--tavernary-color-functional);
+  font-weight: 750;
 }
 
 .tavernary-companion-installed-kits__title {
