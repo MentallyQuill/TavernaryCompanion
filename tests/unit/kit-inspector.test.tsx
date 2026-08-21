@@ -192,6 +192,40 @@ it("closes additional Kit actions with Escape and restores disclosure focus", ()
   expect(more).toHaveFocus();
 });
 
+it("restores disclosure focus when an additional action is chosen", () => {
+  const exportKit = vi.fn();
+  render(
+    <KitInspector
+      kit={{
+        id: "kit",
+        title: "Writer",
+        description: "Tools",
+        origin: "personal",
+        originLabel: "Personal Kit",
+        componentCount: 0,
+        flaggedCount: 0,
+        supporterCount: null,
+        operationalStatus: "Saved",
+        primaryAction: { kind: "install", label: "Install Kit" },
+        editable: true,
+        components: [],
+      }}
+      onAction={() => undefined}
+      onExport={exportKit}
+    />,
+  );
+
+  const more = screen.getByRole("button", { name: "More Kit actions" });
+  fireEvent.click(more);
+  const exportButton = screen.getByRole("button", { name: "Export" });
+  exportButton.focus();
+  fireEvent.click(exportButton);
+
+  expect(exportKit).toHaveBeenCalledOnce();
+  expect(screen.queryByRole("group", { name: "Additional Kit actions" })).not.toBeInTheDocument();
+  expect(more).toHaveFocus();
+});
+
 it("summarizes Kit membership and availability before the component groups", () => {
   render(
     <KitInspector

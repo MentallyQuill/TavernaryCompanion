@@ -44,6 +44,7 @@ export function KitInspector({
 
   const runAdditionalAction = (action: (() => void) | undefined): void => {
     setAdditionalActionsOpen(false);
+    additionalActionsTriggerRef.current?.focus();
     action?.();
   };
 

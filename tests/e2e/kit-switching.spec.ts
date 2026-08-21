@@ -185,6 +185,35 @@ for (const viewport of [
   });
 }
 
+test.describe("wide coarse-pointer Kit detail", () => {
+  test.use({ hasTouch: true, viewport: { width: 1024, height: 768 } });
+
+  test("keeps every detail action at least 44px tall", async ({ page }) => {
+    await openHarness(page);
+    await page
+      .getByRole("navigation", { name: "Catalog categories" })
+      .getByRole("button", { name: "Kits" })
+      .click();
+    await page.getByRole("tab", { name: /Personal/u }).click();
+    await page.getByRole("button", { name: "Details" }).click();
+
+    const detail = page.getByRole("region", { name: "Kit detail" });
+    await detail.getByRole("button", { name: "More Kit actions" }).click();
+    const targets = detail.locator("button:visible, a:visible");
+    const heights = await targets.evaluateAll((elements) =>
+      elements.map((element) => ({
+        label: element.getAttribute("aria-label") ?? element.textContent?.trim(),
+        height: element.getBoundingClientRect().height,
+      })),
+    );
+
+    expect(heights.length).toBeGreaterThan(0);
+    for (const target of heights) {
+      expect(target.height, target.label).toBeGreaterThanOrEqual(44);
+    }
+  });
+});
+
 test("builds and removes a personal Kit from project-card selection", async ({ page }) => {
   await page.setViewportSize({ width: 1440, height: 960 });
   await openHarness(page);

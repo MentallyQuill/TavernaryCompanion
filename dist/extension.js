@@ -19153,7 +19153,7 @@ function KitComponentGroup({
       /* @__PURE__ */ u3("div", { children: [
         /* @__PURE__ */ u3("strong", { children: component2.name }),
         /* @__PURE__ */ u3("small", { children: reasonFor(component2.group) }),
-        /* @__PURE__ */ u3("span", { children: [
+        /* @__PURE__ */ u3("span", { class: `is-${statusKind(component2)}`, children: [
           component2.available ? "Available" : "Unavailable",
           component2.assessment ? ` \xB7 ${component2.assessment} concern` : ""
         ] })
@@ -19173,6 +19173,11 @@ function KitComponentGroup({
       ) : null
     ] }, component2.projectId)) })
   ] });
+}
+function statusKind(component2) {
+  if (!component2.available) return "unavailable";
+  if (component2.assessment && component2.assessment !== "low") return "attention";
+  return "available";
 }
 function reasonFor(group) {
   return {
@@ -19214,6 +19219,7 @@ function KitInspector({
   );
   const runAdditionalAction = (action) => {
     setAdditionalActionsOpen(false);
+    additionalActionsTriggerRef.current?.focus();
     action?.();
   };
   return /* @__PURE__ */ u3("article", { class: "tavernary-companion-kit-inspector", "aria-labelledby": headingId, children: [

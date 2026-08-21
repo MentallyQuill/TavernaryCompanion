@@ -17,7 +17,7 @@ export function KitComponentGroup({
             <div>
               <strong>{component.name}</strong>
               <small>{reasonFor(component.group)}</small>
-              <span>
+              <span class={`is-${statusKind(component)}`}>
                 {component.available ? "Available" : "Unavailable"}
                 {component.assessment ? ` · ${component.assessment} concern` : ""}
               </span>
@@ -37,6 +37,12 @@ export function KitComponentGroup({
       </ul>
     </section>
   );
+}
+
+function statusKind(component: KitComponentViewModel): "available" | "attention" | "unavailable" {
+  if (!component.available) return "unavailable";
+  if (component.assessment && component.assessment !== "low") return "attention";
+  return "available";
 }
 
 function reasonFor(group: KitComponentViewModel["group"]): string {
