@@ -152,21 +152,82 @@ test("Installed groups Kits and lets extensions be enabled and restored from car
   const versionStatus = enable.locator("../..").locator(":scope > header > strong");
   await expect(versionStatus).toHaveText("Latest");
   await expect(versionStatus).not.toHaveText(/Enabled|Disabled/u);
+  await expect(enable.locator("../..").locator(":scope > header > h4")).toHaveText("Writer Tool");
+  await expect(enable.locator("../..").locator(":scope > header > h4")).toHaveCSS(
+    "text-transform",
+    "none",
+  );
+  await expect(enable.locator("../..").locator(":scope > header > h4")).toHaveCSS(
+    "letter-spacing",
+    "normal",
+  );
+  await expect(enable.locator("../..").getByText("Companion managed")).toHaveCount(0);
   await expect(enable.locator("b")).toHaveText("Disabled");
-  const [toggleBox, trackBox, cardBox] = await Promise.all([
+  const [toggleBox, trackBox, thumbBox, cardBox] = await Promise.all([
     enable.boundingBox(),
     enable.locator("span").boundingBox(),
+    enable.locator("i").boundingBox(),
     enable.locator("../..").boundingBox(),
   ]);
   expect(toggleBox).not.toBeNull();
   expect(trackBox).not.toBeNull();
+  expect(thumbBox).not.toBeNull();
   expect(cardBox).not.toBeNull();
   expect(toggleBox!.height).toBeGreaterThanOrEqual(44);
-  expect(trackBox!.width).toBe(42);
-  expect(trackBox!.height).toBe(24);
-  expect(cardBox!.height).toBeLessThanOrEqual(160);
+  expect(trackBox!.width).toBe(34);
+  expect(trackBox!.height).toBe(20);
+  expect(thumbBox!.width).toBe(13);
+  expect(thumbBox!.height).toBe(13);
+  await expect(enable.locator("span")).toHaveCSS("border-radius", "6px");
+  await expect(enable.locator("i")).toHaveCSS("border-radius", "3px");
+  expect(cardBox!.height).toBeLessThanOrEqual(145);
   await expect(enable.locator("b")).toHaveCSS("font-size", "11px");
   await expect(enable.locator("b")).toHaveCSS("font-weight", "700");
+
+  const installedCard = enable.locator("../..");
+  const installedCardStyle = await installedCard.evaluate((element) => {
+    const style = getComputedStyle(element);
+    return {
+      borderWidths: [
+        style.borderTopWidth,
+        style.borderRightWidth,
+        style.borderBottomWidth,
+        style.borderLeftWidth,
+      ],
+      boxShadow: style.boxShadow,
+    };
+  });
+  expect(new Set(installedCardStyle.borderWidths).size).toBe(1);
+  expect(installedCardStyle.boxShadow).not.toContain("inset");
+
+  const kitMenu = page.getByRole("button", { name: "More actions for Writer's Kit" });
+  await expect(kitMenu).toHaveCSS("background-color", "rgba(0, 0, 0, 0)");
+  await expect(kitMenu).toHaveCSS("border-top-width", "0px");
+  await expect(kitMenu).toHaveCSS("font-size", "11px");
+  const [kitCardBounds, kitMenuBounds] = await Promise.all([
+    kitCards.first().boundingBox(),
+    kitMenu.boundingBox(),
+  ]);
+  expect(kitCardBounds).not.toBeNull();
+  expect(kitMenuBounds).not.toBeNull();
+  expect(
+    Math.abs(kitCardBounds!.x + kitCardBounds!.width - 3 - (kitMenuBounds!.x + 44)),
+  ).toBeLessThanOrEqual(1);
+
+  await page.setViewportSize({ width: 390, height: 844 });
+  const installedLifecycle = page
+    .locator(".tavernary-companion-installed-card .tavernary-companion-project-lifecycle")
+    .first();
+  const [mobileLifecycleBounds, mobileLifecycleFaceBounds] = await Promise.all([
+    installedLifecycle.boundingBox(),
+    installedLifecycle.locator(".tavernary-companion-project-lifecycle__face").boundingBox(),
+  ]);
+  expect(mobileLifecycleBounds).not.toBeNull();
+  expect(mobileLifecycleFaceBounds).not.toBeNull();
+  expect(mobileLifecycleBounds!.width).toBeGreaterThanOrEqual(44);
+  expect(mobileLifecycleBounds!.height).toBeGreaterThanOrEqual(44);
+  expect(mobileLifecycleFaceBounds!.width).toBe(34);
+  expect(mobileLifecycleFaceBounds!.height).toBe(34);
 
   await enable.click();
   const disable = page.getByRole("switch", { name: /Disable /u });

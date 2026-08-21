@@ -696,10 +696,10 @@ test("Kits and Installed reuse the Tavernary card and control system", async ({ 
     installedLifecycle.boundingBox(),
     installedLifecycleFace.boundingBox(),
   ]);
-  expect(installedLifecycleBox!.width).toBe(44);
-  expect(installedLifecycleBox!.height).toBe(44);
-  expect(installedLifecycleFaceBox!.width).toBe(44);
-  expect(installedLifecycleFaceBox!.height).toBe(44);
+  expect(installedLifecycleBox!.width).toBe(34);
+  expect(installedLifecycleBox!.height).toBe(34);
+  expect(installedLifecycleFaceBox!.width).toBe(34);
+  expect(installedLifecycleFaceBox!.height).toBe(34);
 });
 
 test("desktop Installed content starts on the compact route rhythm", async ({ page }) => {
@@ -801,15 +801,9 @@ test("mobile Kits and Installed use the compact shared route grammar", async ({ 
   expect(installed).not.toBeNull();
   expect(installed!.x).toBeGreaterThanOrEqual(12);
   expect(installed!.x).toBeLessThanOrEqual(16);
-  const installedMetadata = page
-    .locator(".tavernary-companion-installed-card > header > span")
-    .first();
-  await expect(installedMetadata).toHaveCSS("color", "rgb(130, 144, 153)");
-  expect(
-    await installedMetadata.evaluate((element) =>
-      Number.parseFloat(getComputedStyle(element).fontSize),
-    ),
-  ).toBeLessThanOrEqual(13);
+  const installedTitle = page.locator(".tavernary-companion-installed-card > header > h4").first();
+  await expect(installedTitle).toHaveCSS("color", "rgb(240, 245, 247)");
+  await expect(installedTitle).toHaveCSS("font-size", "15px");
   expect(
     await page.evaluate(
       () => document.documentElement.scrollWidth - document.documentElement.clientWidth,

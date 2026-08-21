@@ -189,7 +189,7 @@ test("removes an active Kit while keeping its extensions installed", async ({ pa
     has: page.getByRole("heading", { name: "Writer Tool" }),
   });
   await expect(writer).toContainText("Writer Tool");
-  await expect(writer).toContainText("Companion managed");
+  await expect(writer).not.toContainText("Companion managed");
   await expect(writer.getByRole("switch", { name: "Disable Writer Tool" })).toHaveAttribute(
     "aria-checked",
     "true",
