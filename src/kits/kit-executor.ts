@@ -1,4 +1,4 @@
-import type { CatalogProject, CatalogV7 } from "../catalog/catalog-core";
+import type { Catalog, CatalogProject } from "../catalog/catalog-core";
 import { HostRevisionUnavailableError } from "../host/host-errors";
 import type { HostExtension, HostExtensionAdapter } from "../host/host-types";
 import { ManagedRegistry, normalizeManagedExtensionMap } from "../inventory/managed-registry";
@@ -33,7 +33,7 @@ interface KitExecutorDependencies {
   profile: ProfileStore;
   kits: KitStore;
   lock: OperationLock;
-  getCatalog(): CatalogV7;
+  getCatalog(): Catalog;
   getInventoryFingerprint(): string | Promise<string>;
   fallbacks: InstallTargetFallbackBroker;
   confirm(prompt: TrustPrompt, project: CatalogProject): Promise<boolean>;
@@ -50,7 +50,7 @@ export class KitExecutor {
   readonly #profile: ProfileStore;
   readonly #kits: KitStore;
   readonly #lock: OperationLock;
-  readonly #getCatalog: () => CatalogV7;
+  readonly #getCatalog: () => Catalog;
   readonly #getInventoryFingerprint: () => string | Promise<string>;
   readonly #fallbacks: InstallTargetFallbackBroker;
   readonly #confirm: KitExecutorDependencies["confirm"];
@@ -267,7 +267,7 @@ export class KitExecutor {
     journal: KitOperationJournalV1,
     previousActiveKitId: string | null,
     setPhase: (phase: string) => void,
-    catalog: CatalogV7,
+    catalog: Catalog,
     selectedInstallTargets: KitInstallTargetSelection[],
     progress: KitExecutionProgress,
   ): Promise<KitReceipt> {
@@ -663,6 +663,7 @@ export class KitExecutor {
             riskLevel: project.tavernKeeper.riskLevel,
             scannedSha: project.tavernKeeper.report?.scannedSha ?? null,
             reportUrl: project.tavernKeeper.report?.reportUrl ?? null,
+            javascriptAnalysisStatus: project.tavernKeeper.report?.javascriptAnalysisStatus ?? null,
           }
         : null,
     });

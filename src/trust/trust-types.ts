@@ -1,10 +1,14 @@
-import type { TavernKeeperRiskLevel } from "../catalog/catalog-core";
+import type {
+  TavernKeeperJavaScriptAnalysisStatus,
+  TavernKeeperRiskLevel,
+} from "../catalog/catalog-core";
 import type { InstallTarget } from "../lifecycle/install-target";
 
 export interface AssessmentTrustInput {
   riskLevel: TavernKeeperRiskLevel | null;
   scannedSha: string | null;
   reportUrl: string | null;
+  javascriptAnalysisStatus: TavernKeeperJavaScriptAnalysisStatus | null;
 }
 
 export type TrustPrompt =

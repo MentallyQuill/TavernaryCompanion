@@ -1,5 +1,5 @@
 import type { CatalogSnapshot } from "../catalog/catalog-client";
-import type { CatalogV7 } from "../catalog/catalog-core";
+import type { Catalog } from "../catalog/catalog-core";
 import type { HostExtensionAdapter } from "../host/host-types";
 import { sha256Hex } from "../integrity/sha256";
 import type { InstallTarget } from "../lifecycle/install-target";
@@ -13,7 +13,7 @@ export interface KitInstallTargetSelection {
 
 export async function prepareKitInstallTargets(input: {
   plan: Readonly<KitPlan>;
-  catalog: CatalogV7;
+  catalog: Catalog;
   host: HostExtensionAdapter;
   now?: () => string;
 }): Promise<Readonly<KitPlan>> {

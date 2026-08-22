@@ -150,6 +150,37 @@ describe("Kit planner", () => {
     expect(planKitOperation({ ...input, operation: "deactivate" }).warnings).toEqual([]);
     expect(planKitOperation({ ...input, operation: "uninstall" }).warnings).toEqual([]);
   });
+
+  it("keeps an incomplete low-concern scan informational during Kit install", () => {
+    const project = flaggedProject("incomplete-low", "IncompleteLow");
+    project.tavernKeeper = {
+      ...project.tavernKeeper!,
+      state: "teal",
+      riskLevel: "low",
+      report: {
+        ...project.tavernKeeper!.report!,
+        riskLevel: "low",
+        headline: "Low concern",
+        materialConcerns: 0,
+        citedFindingIds: [],
+      },
+    };
+
+    const plan = planKitOperation({
+      operation: "install",
+      kit: { id: "kit", projectIds: [project.id], origin: "personal" },
+      catalog: { ...catalogFixture(), projects: [project] },
+      inventory: emptyInventory,
+      managed: {},
+      installedKits: [],
+      activeKitId: null,
+      catalogCanMutate: true,
+    });
+
+    expect(project.tavernKeeper.report?.javascriptAnalysisStatus).toBe("incomplete");
+    expect(plan.warnings).toEqual([]);
+    expect(plan.blockingIssues).toEqual([]);
+  });
 });
 
 function flaggedProject(id: string, folderName: string) {
@@ -183,6 +214,7 @@ function flaggedProject(id: string, folderName: string) {
       assessmentSource: "model",
       reportUrl: `https://example.com/${id}/scan`,
       technicalHistoryUrl: null,
+      javascriptAnalysisStatus: "incomplete",
     },
   };
   return project;

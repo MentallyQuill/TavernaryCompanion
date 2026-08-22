@@ -86,6 +86,7 @@ function scanStatus(): TavernKeeperCardStatus {
       assessmentSource: "model",
       reportUrl: "https://tavernary.org/security/tavernkeeper/reports/report-alpha/",
       technicalHistoryUrl: null,
+      javascriptAnalysisStatus: "complete",
     },
     history: [],
     historyUrl: null,
@@ -119,7 +120,7 @@ describe("UpdateVersionChooser", () => {
     expect(screen.getByRole("dialog")).not.toHaveTextContent(/recommended/i);
 
     const scan = screen.getByRole("button", {
-      name: "TavernKeeper scan: Material concern; stale assessment.",
+      name: "TavernKeeper scan: Material concern observed; JavaScript/TypeScript scan complete; stale assessment.",
     });
     fireEvent.click(scan);
     expect(screen.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toBeVisible();

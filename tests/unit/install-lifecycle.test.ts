@@ -45,6 +45,7 @@ function attachReport(
       assessmentSource: "model",
       reportUrl: `https://example.test/reports/${reportId}`,
       technicalHistoryUrl: null,
+      javascriptAnalysisStatus: "complete",
     },
     history: [],
     historyUrl: null,

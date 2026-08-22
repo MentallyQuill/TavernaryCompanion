@@ -14,13 +14,15 @@ TavernKeeper is a separate checking service. It examines a particular version of
 
 The evidence can tell you which version was checked, when it was checked, and where to read the report. It is useful information, but it is not a guarantee that a project is safe or that you will like it.
 
+Companion shows two separate facts. **Low concern observed** describes what TavernKeeper found in the code it analyzed. **Scan incomplete** means parts of the JavaScript or TypeScript analysis did not finish, so the result does not cover everything. An incomplete low-concern result stays informational rather than blocking an install, but Companion does not present it as a complete check.
+
 Companion does not run the TavernKeeper check itself. It shows the TavernKeeper information that Tavernary publishes with the project.
 
 ## What Tavernary.org publishes
 
 Tavernary.org publishes a public catalog as JSON at:
 
-[`https://tavernary.org/catalog/tavernary-catalog.json`](https://tavernary.org/catalog/tavernary-catalog.json)
+[`https://tavernary.org/catalog/tavernary-catalog-v8.json`](https://tavernary.org/catalog/tavernary-catalog-v8.json)
 
 That JSON contains the catalog information Companion needs for its Projects view, including project descriptions, install information, version information, and available TavernKeeper summaries or report links.
 

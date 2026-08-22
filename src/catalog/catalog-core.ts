@@ -2,7 +2,7 @@ import { DEFAULT_QUERY, type CatalogQuery } from "@tavernary/catalog-core";
 
 export * from "@tavernary/catalog-core";
 
-export const SUPPORTED_CATALOG_SCHEMA = 7 as const;
+export const SUPPORTED_CATALOG_SCHEMA = 8 as const;
 
 export const DEFAULT_COMPANION_QUERY: CatalogQuery = {
   ...DEFAULT_QUERY,

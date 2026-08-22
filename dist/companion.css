@@ -1889,6 +1889,27 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 .tavernary-companion-tavernkeeper-summary {
   overflow-wrap: anywhere;
 }
+.tavernary-companion-tavernkeeper-coverage {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid var(--tavernary-color-border-subtle);
+  border-radius: 6px;
+  color: var(--tavernary-color-text-secondary);
+  background: var(--tavernary-color-bg-surface);
+}
+.tavernary-companion-tavernkeeper-coverage > strong {
+  color: var(--tavernary-color-text-primary);
+  font-size: 11px;
+}
+.tavernary-companion-tavernkeeper-coverage > span {
+  overflow-wrap: anywhere;
+}
+.tavernary-companion-tavernkeeper-coverage.coverage-incomplete,
+.tavernary-companion-tavernkeeper-coverage.coverage-legacy,
+.tavernary-companion-tavernkeeper-coverage.coverage-unavailable {
+  border-style: dashed;
+}
 .tavernary-companion-tavernkeeper-counts {
   display: flex;
   flex-wrap: wrap;
@@ -1960,6 +1981,13 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 }
 .tavernary-companion-tavernkeeper-history .risk-high {
   background: var(--tavernary-color-tavernkeeper-red);
+}
+.tavernary-companion-tavernkeeper-history :is(.coverage-incomplete, .coverage-legacy, .coverage-unavailable) {
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 2px,
+      var(--tavernary-color-bg-surface-raised) 2px 3px);
 }
 .tavernary-companion-tooltip-anchor {
   position: relative;

@@ -3,6 +3,7 @@ import { useCallback, useEffect, useLayoutEffect, useRef, useState } from "preac
 
 import type { TavernKeeperCardStatus } from "../../catalog/catalog-core";
 import { resolveOverlayPortalTarget } from "../shared/overlay-portal";
+import { observedRiskLabels, tavernKeeperCoverage } from "./tavernkeeper-coverage";
 import { TavernKeeperHistoryStrip } from "./tavernkeeper-history-strip";
 
 const encodedCitationPattern = /\s*\uE200cite\uE202[^\uE201]*\uE201/giu;
@@ -65,11 +66,6 @@ const freshnessLabels = {
   unassessed: "not assessed",
   unsupported: "unsupported source",
 };
-const riskGradeLabels = {
-  low: "Low concern",
-  material: "Material concern",
-  high: "Immediate danger",
-};
 const dangerBasisLabels = {
   malicious_or_compromised: "Credible malicious or compromised behavior",
   critical_exploitable_vulnerability: "Critical, readily exploitable vulnerability",
@@ -86,7 +82,8 @@ function accessibleStatus(status: TavernKeeperCardStatus): string {
     if (status.freshness === "unavailable") return "Not assessed; freshness unavailable.";
     return "Not assessed.";
   }
-  return `${riskGradeLabels[status.report.riskLevel]}; ${freshnessLabels[status.freshness]}.`;
+  const coverage = tavernKeeperCoverage(status.report);
+  return `${observedRiskLabels[status.report.riskLevel]}; ${coverage.accessibleLabel}; ${freshnessLabels[status.freshness]}.`;
 }
 
 const CLOSE_DELAY = 150;
@@ -159,6 +156,7 @@ export function TavernKeeperScanIndicator({
   const suppressNextFocusOpen = useRef(false);
   const content = stateCopy(status);
   const report = status.report;
+  const coverage = report ? tavernKeeperCoverage(report) : null;
   const popoverId = `tavernkeeper-scan-${projectId}`;
   const headingId = `${popoverId}-heading`;
 
@@ -370,13 +368,19 @@ export function TavernKeeperScanIndicator({
                     <span
                       class={`tavernary-companion-tavernkeeper-popover__status state-${status.state}`}
                     >
-                      <strong>{riskGradeLabels[report.riskLevel]}</strong>
+                      <strong>{observedRiskLabels[report.riskLevel]}</strong>
                       <span>{freshnessLabels[status.freshness]}</span>
                     </span>
                   ) : null}
                 </header>
                 {report ? (
                   <>
+                    <p
+                      class={`tavernary-companion-tavernkeeper-coverage coverage-${coverage!.kind}`}
+                    >
+                      <strong>{coverage!.label}</strong>
+                      {coverage!.explanation ? <span>{coverage!.explanation}</span> : null}
+                    </p>
                     <p class="tavernary-companion-tavernkeeper-summary">{content}</p>
                     <p
                       aria-label="Assessment finding counts"

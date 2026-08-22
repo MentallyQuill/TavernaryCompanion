@@ -513,6 +513,7 @@ function tavernKeeper(scannedSha: string) {
       assessmentSource: "model" as const,
       reportUrl: "https://example.com/report",
       technicalHistoryUrl: null,
+      javascriptAnalysisStatus: "complete" as const,
     },
     history: [],
     historyUrl: null,

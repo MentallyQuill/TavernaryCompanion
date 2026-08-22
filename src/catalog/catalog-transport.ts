@@ -1,4 +1,4 @@
-export const CATALOG_URL = "https://tavernary.org/catalog/tavernary-catalog.json" as const;
+export const CATALOG_URL = "https://tavernary.org/catalog/tavernary-catalog-v8.json" as const;
 
 export type CatalogFetch = (input: string | URL | Request, init?: RequestInit) => Promise<Response>;
 

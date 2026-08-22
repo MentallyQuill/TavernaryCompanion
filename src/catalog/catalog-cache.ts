@@ -1,6 +1,6 @@
 export interface CatalogCacheRecord {
   id: string;
-  schemaVersion: 7;
+  schemaVersion: 7 | 8;
   generatedAt: string;
   etag: string | null;
   fetchedAt: string;
