@@ -44,6 +44,7 @@ function attachMaterialReport(project: ReturnType<typeof catalogProjectFixture>)
       assessmentSource: "model",
       reportUrl: "https://example.test/report",
       technicalHistoryUrl: null,
+      javascriptAnalysisStatus: "complete",
     },
     history: [],
     historyUrl: null,

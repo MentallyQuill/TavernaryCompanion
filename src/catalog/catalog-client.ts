@@ -1,6 +1,11 @@
 import type { CatalogCache, CatalogCacheRecord } from "./catalog-cache";
 import { CatalogClientError } from "./catalog-errors";
-import { parseCatalogV7, SUPPORTED_CATALOG_SCHEMA, type CatalogV7 } from "./catalog-core";
+import {
+  parseCatalogV7,
+  parseCatalogV8,
+  SUPPORTED_CATALOG_SCHEMA,
+  type Catalog,
+} from "./catalog-core";
 import { fetchCatalog, type CatalogFetch } from "./catalog-transport";
 import { sha256Hex } from "../integrity/sha256";
 
@@ -17,18 +22,18 @@ export type CatalogSnapshot =
   | (SnapshotBase & {
       state: "ready-current" | "ready-stale";
       canMutate: true;
-      catalog: CatalogV7;
+      catalog: Catalog;
     })
   | (SnapshotBase & {
       state: "ready-offline";
       canMutate: true;
-      catalog: CatalogV7;
+      catalog: Catalog;
       error: string;
     })
   | (SnapshotBase & {
       state: "incompatible-with-cache";
       canMutate: false;
-      catalog: CatalogV7;
+      catalog: Catalog;
       remoteSchemaVersion: number;
     })
   | (SnapshotBase & {
@@ -84,7 +89,8 @@ class DefaultCatalogClient implements CatalogClient {
     canMutate: false,
     checkedAt: null,
   };
-  #catalog: CatalogV7 | null = null;
+  #catalog: Catalog | null = null;
+  #catalogSchemaVersion: 7 | 8 | null = null;
   #lastCheckedAt: string | null = null;
   #opened = false;
   #opening: Promise<void> | null = null;
@@ -117,25 +123,39 @@ class DefaultCatalogClient implements CatalogClient {
         if (bodySha256 !== activeRecord.bodySha256) {
           throw new Error("Cached catalog digest does not match its body.");
         }
-        this.#catalog = parseCatalogV7(JSON.parse(activeRecord.body));
+        const value = JSON.parse(activeRecord.body);
+        const catalog =
+          activeRecord.schemaVersion === 8
+            ? parseCatalogV8(value)
+            : activeRecord.schemaVersion === 7
+              ? parseCatalogV7(value)
+              : (() => {
+                  throw new Error("Cached catalog schema version is unsupported.");
+                })();
+        this.#catalog = catalog;
+        this.#catalogSchemaVersion = activeRecord.schemaVersion;
         this.#publish({
           state: "ready-stale",
           canMutate: true,
           checkedAt: this.#lastCheckedAt,
-          catalog: this.#catalog,
+          catalog,
         });
       } catch {
         this.#catalog = null;
+        this.#catalogSchemaVersion = null;
       }
     }
 
     const now = this.#now();
-    if (this.#catalog && elapsed(now, this.#lastCheckedAt) < OPEN_THROTTLE_MS) {
+    if (
+      this.#catalogSchemaVersion === SUPPORTED_CATALOG_SCHEMA &&
+      elapsed(now, this.#lastCheckedAt) < OPEN_THROTTLE_MS
+    ) {
       this.#publish({
         state: "ready-current",
         canMutate: true,
         checkedAt: this.#lastCheckedAt,
-        catalog: this.#catalog,
+        catalog: this.#catalog!,
       });
       return;
     }
@@ -145,7 +165,11 @@ class DefaultCatalogClient implements CatalogClient {
   async refresh({ force = false }: { force?: boolean } = {}) {
     if (this.#refreshing) return this.#refreshing;
     const now = this.#now();
-    if (!force && elapsed(now, this.#lastCheckedAt) < OPEN_THROTTLE_MS) {
+    if (
+      !force &&
+      this.#catalogSchemaVersion === SUPPORTED_CATALOG_SCHEMA &&
+      elapsed(now, this.#lastCheckedAt) < OPEN_THROTTLE_MS
+    ) {
       return;
     }
     this.#refreshing = this.#performRefresh(now).finally(() => {
@@ -173,7 +197,7 @@ class DefaultCatalogClient implements CatalogClient {
     try {
       const response = await fetchCatalog(this.#fetch);
       if (response.status === 304) {
-        if (!this.#catalog) {
+        if (!this.#catalog || this.#catalogSchemaVersion !== SUPPORTED_CATALOG_SCHEMA) {
           throw new CatalogClientError("http", "Catalog returned 304 without a compatible cache.");
         }
         await this.#recordChecked(checkedAt);
@@ -235,9 +259,9 @@ class DefaultCatalogClient implements CatalogClient {
         return;
       }
 
-      let catalog: CatalogV7;
+      let catalog: Catalog;
       try {
-        catalog = parseCatalogV7(value);
+        catalog = parseCatalogV8(value);
       } catch (cause) {
         throw new CatalogClientError("invalid-catalog", "Catalog schema validation failed.", {
           cause,
@@ -257,6 +281,7 @@ class DefaultCatalogClient implements CatalogClient {
       await this.#cache.activate(record.id);
       await this.#recordChecked(checkedAt);
       this.#catalog = catalog;
+      this.#catalogSchemaVersion = SUPPORTED_CATALOG_SCHEMA;
       this.#publish({
         state: "ready-current",
         canMutate: true,

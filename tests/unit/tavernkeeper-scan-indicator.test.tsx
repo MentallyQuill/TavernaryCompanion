@@ -38,6 +38,7 @@ function status(overrides: Partial<TavernKeeperCardStatus> = {}): TavernKeeperCa
       assessmentSource: "model",
       reportUrl: "https://tavernary.org/security/tavernkeeper/reports/report-alpha/",
       technicalHistoryUrl: null,
+      javascriptAnalysisStatus: "complete",
     },
     history: [],
     historyUrl: null,
@@ -55,7 +56,9 @@ describe("TavernKeeperScanIndicator", () => {
     render(<TavernKeeperScanIndicator projectId="alpha" status={status()} />, { container });
 
     fireEvent.click(
-      screen.getByRole("button", { name: "TavernKeeper scan: Low concern; current." }),
+      screen.getByRole("button", {
+        name: "TavernKeeper scan: Low concern observed; JavaScript/TypeScript scan complete; current.",
+      }),
     );
 
     expect(screen.getByRole("dialog", { name: "TavernKeeper Scan Results" }).parentElement).toBe(
@@ -67,7 +70,7 @@ describe("TavernKeeperScanIndicator", () => {
     render(<TavernKeeperScanIndicator projectId="alpha" status={status()} />);
 
     const trigger = screen.getByRole("button", {
-      name: "TavernKeeper scan: Low concern; current.",
+      name: "TavernKeeper scan: Low concern observed; JavaScript/TypeScript scan complete; current.",
     });
     expect(trigger).toHaveAttribute("aria-expanded", "false");
     fireEvent.click(trigger);
@@ -94,11 +97,57 @@ describe("TavernKeeperScanIndicator", () => {
     expect(report).toHaveAttribute("target", "_blank");
   });
 
+  it("separates low observed concern from incomplete scan coverage", () => {
+    const incomplete = status();
+    incomplete.report = {
+      ...incomplete.report!,
+      javascriptAnalysisStatus: "incomplete",
+    };
+    render(<TavernKeeperScanIndicator projectId="alpha" status={incomplete} />);
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "TavernKeeper scan: Low concern observed; scan incomplete; current.",
+      }),
+    );
+
+    const dialog = screen.getByRole("dialog", { name: "TavernKeeper Scan Results" });
+    expect(within(dialog).getByText("Low concern observed")).toBeVisible();
+    expect(within(dialog).getByText("Scan incomplete")).toBeVisible();
+    expect(dialog).toHaveTextContent(
+      "TavernKeeper found low concern in the code it analyzed. Parts of the JavaScript/TypeScript scan were incomplete, so this is not a complete result.",
+    );
+  });
+
+  it.each([
+    ["legacy", "Coverage not recorded"],
+    [null, "Coverage unavailable in cached catalog"],
+  ] as const)("labels %s report coverage without changing risk color", (coverage, label) => {
+    const older = status();
+    older.report = {
+      ...older.report!,
+      javascriptAnalysisStatus: coverage,
+    };
+    render(<TavernKeeperScanIndicator projectId="alpha" status={older} />);
+
+    const trigger = screen.getByRole("button", {
+      name: `TavernKeeper scan: Low concern observed; ${label.toLowerCase()}; current.`,
+    });
+    fireEvent.click(trigger);
+
+    const marker = screen.getByText(label);
+    expect(marker).toBeVisible();
+    expect(trigger).toHaveClass("state-teal");
+    expect(marker.parentElement).toHaveClass(
+      coverage === "legacy" ? "coverage-legacy" : "coverage-unavailable",
+    );
+  });
+
   it("keeps a tapped scan panel open when the touch pointer leaves", () => {
     vi.useFakeTimers();
     render(<TavernKeeperScanIndicator projectId="alpha" status={status()} />);
     const trigger = screen.getByRole("button", {
-      name: "TavernKeeper scan: Low concern; current.",
+      name: "TavernKeeper scan: Low concern observed; JavaScript/TypeScript scan complete; current.",
     });
 
     fireEvent.pointerDown(trigger, { pointerType: "touch" });
@@ -115,7 +164,7 @@ describe("TavernKeeperScanIndicator", () => {
   it("keeps the first pointer click open after hover and toggles on the next click", () => {
     render(<TavernKeeperScanIndicator projectId="alpha" status={status()} />);
     const trigger = screen.getByRole("button", {
-      name: "TavernKeeper scan: Low concern; current.",
+      name: "TavernKeeper scan: Low concern observed; JavaScript/TypeScript scan complete; current.",
     });
 
     fireEvent.pointerEnter(trigger, { pointerType: "mouse" });
@@ -166,7 +215,7 @@ describe("TavernKeeperScanIndicator", () => {
       />,
     );
     const stale = screen.getByRole("button", {
-      name: "TavernKeeper scan: Low concern; stale assessment.",
+      name: "TavernKeeper scan: Low concern observed; JavaScript/TypeScript scan complete; stale assessment.",
     });
     fireEvent.click(stale);
     fireEvent.click(stale);
@@ -177,7 +226,7 @@ describe("TavernKeeperScanIndicator", () => {
   it("opens the assessment when its trigger receives keyboard focus", () => {
     render(<TavernKeeperScanIndicator projectId="alpha" status={status()} />);
     const trigger = screen.getByRole("button", {
-      name: "TavernKeeper scan: Low concern; current.",
+      name: "TavernKeeper scan: Low concern observed; JavaScript/TypeScript scan complete; current.",
     });
 
     act(() => trigger.focus());
@@ -188,7 +237,9 @@ describe("TavernKeeperScanIndicator", () => {
   it("explains a same-revision stale assessment as due for refresh", () => {
     render(<TavernKeeperScanIndicator projectId="alpha" status={status({ freshness: "stale" })} />);
     fireEvent.click(
-      screen.getByRole("button", { name: "TavernKeeper scan: Low concern; stale assessment." }),
+      screen.getByRole("button", {
+        name: "TavernKeeper scan: Low concern observed; JavaScript/TypeScript scan complete; stale assessment.",
+      }),
     );
 
     expect(
@@ -199,7 +250,7 @@ describe("TavernKeeperScanIndicator", () => {
   it("dismisses with Escape and restores focus to the scan trigger", () => {
     render(<TavernKeeperScanIndicator projectId="alpha" status={status()} />);
     const trigger = screen.getByRole("button", {
-      name: "TavernKeeper scan: Low concern; current.",
+      name: "TavernKeeper scan: Low concern observed; JavaScript/TypeScript scan complete; current.",
     });
     fireEvent.click(trigger);
     const hostEscape = vi.fn();
@@ -231,11 +282,16 @@ describe("TavernKeeperScanIndicator", () => {
       />,
     );
     fireEvent.click(
-      screen.getByRole("button", { name: "TavernKeeper scan: Low concern; current." }),
+      screen.getByRole("button", {
+        name: "TavernKeeper scan: Low concern observed; JavaScript/TypeScript scan complete; current.",
+      }),
     );
 
     const history = screen.getByRole("group", { name: "Recent TavernKeeper scan history" });
     expect(within(history).getAllByRole("link")).toHaveLength(2);
+    expect(
+      within(history).getByRole("img", { name: /material concern.*scan complete/iu }),
+    ).toBeVisible();
     expect(screen.getByRole("link", { name: /View scan history/ })).toHaveAttribute(
       "href",
       "https://tavernary.org/security/tavernkeeper/history/source-alpha/",
@@ -250,7 +306,7 @@ describe("TavernKeeperScanIndicator", () => {
     };
     render(<TavernKeeperScanIndicator projectId="alpha" status={dirty} />);
     const trigger = screen.getByRole("button", {
-      name: "TavernKeeper scan: Low concern; current.",
+      name: "TavernKeeper scan: Low concern observed; JavaScript/TypeScript scan complete; current.",
     });
 
     fireEvent.pointerEnter(trigger, { pointerType: "mouse" });

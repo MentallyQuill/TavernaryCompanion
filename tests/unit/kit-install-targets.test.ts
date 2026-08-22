@@ -165,6 +165,7 @@ function scannedProject(id: string, folderName: string, scannedSha: string) {
       assessmentSource: "model",
       reportUrl: `https://example.com/${id}/scan`,
       technicalHistoryUrl: null,
+      javascriptAnalysisStatus: "complete",
     },
   };
   return project;

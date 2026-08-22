@@ -40,6 +40,7 @@ it("updates an external checkout through scanned and newest forward targets with
       assessmentSource: "model",
       reportUrl: "https://example.test/report",
       technicalHistoryUrl: null,
+      javascriptAnalysisStatus: "complete",
     },
     history: [],
     historyUrl: null,

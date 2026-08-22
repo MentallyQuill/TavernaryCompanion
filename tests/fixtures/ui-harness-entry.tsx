@@ -613,6 +613,7 @@ function markChecked(
       assessmentSource: "model",
       reportUrl: `https://example.com/${project.id}/scan`,
       technicalHistoryUrl: null,
+      javascriptAnalysisStatus: "complete",
     },
   };
 }

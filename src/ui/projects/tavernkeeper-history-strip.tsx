@@ -1,10 +1,5 @@
 import type { TavernKeeperReportSummary } from "../../catalog/catalog-core";
-
-const riskLabels = {
-  low: "low concern",
-  material: "material concern",
-  high: "immediate danger",
-};
+import { observedRiskLabels, tavernKeeperCoverage } from "./tavernkeeper-coverage";
 
 export function TavernKeeperHistoryStrip({
   history,
@@ -20,8 +15,10 @@ export function TavernKeeperHistoryStrip({
       aria-label="Recent TavernKeeper scan history"
     >
       {conclusions.map((conclusion) => {
+        const coverage = tavernKeeperCoverage(conclusion);
         const label =
-          `TavernKeeper scan history: ${riskLabels[conclusion.riskLevel]} ` +
+          `TavernKeeper scan history: ${observedRiskLabels[conclusion.riskLevel].toLowerCase()}; ` +
+          `${coverage.accessibleLabel} ` +
           `on ${formatDate(conclusion.assessedAt)} at commit ` +
           `${conclusion.scannedSha.slice(0, 7)} under policy ${conclusion.scannerPolicyVersion}`;
         return (

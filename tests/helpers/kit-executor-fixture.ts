@@ -1,4 +1,4 @@
-import type { CatalogV7 } from "../../src/catalog/catalog-core";
+import type { Catalog } from "../../src/catalog/catalog-core";
 import type { HostExtension } from "../../src/host/host-types";
 import { reconcileInventory } from "../../src/inventory/inventory-reconciler";
 import { normalizeManagedExtensionMap } from "../../src/inventory/managed-registry";
@@ -31,7 +31,7 @@ export function extension(folderName: string, enabled = true): HostExtension {
 }
 
 export async function executorFixture(
-  catalog: CatalogV7,
+  catalog: Catalog,
   hostOptions: FakeHostOptions = {},
   options: {
     confirm?: (prompt: TrustPrompt, project: CatalogProject) => Promise<boolean>;
@@ -76,7 +76,7 @@ export async function executorFixture(
     setFingerprint(value: string) {
       currentFingerprint = value;
     },
-    setCatalog(value: CatalogV7) {
+    setCatalog(value: Catalog) {
       currentCatalog = value;
     },
     prepare(plan: Readonly<KitPlan>) {

@@ -1889,6 +1889,27 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 .tavernary-companion-tavernkeeper-summary {
   overflow-wrap: anywhere;
 }
+.tavernary-companion-tavernkeeper-coverage {
+  display: grid;
+  gap: 3px;
+  padding: 8px 10px;
+  border: 1px solid var(--tavernary-color-border-subtle);
+  border-radius: 6px;
+  color: var(--tavernary-color-text-secondary);
+  background: var(--tavernary-color-bg-surface);
+}
+.tavernary-companion-tavernkeeper-coverage > strong {
+  color: var(--tavernary-color-text-primary);
+  font-size: 11px;
+}
+.tavernary-companion-tavernkeeper-coverage > span {
+  overflow-wrap: anywhere;
+}
+.tavernary-companion-tavernkeeper-coverage.coverage-incomplete,
+.tavernary-companion-tavernkeeper-coverage.coverage-legacy,
+.tavernary-companion-tavernkeeper-coverage.coverage-unavailable {
+  border-style: dashed;
+}
 .tavernary-companion-tavernkeeper-counts {
   display: flex;
   flex-wrap: wrap;

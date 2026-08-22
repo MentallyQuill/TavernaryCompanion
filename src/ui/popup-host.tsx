@@ -961,7 +961,7 @@ export function createPopupRuntime(
   const kitContext = { inventory: emptyInventory as InventorySnapshot };
   const kitDiscovery = createKitDiscoveryController({
     catalog: {
-      schemaVersion: 7,
+      schemaVersion: 8,
       generatedAt: new Date(0).toISOString(),
       tagVocabulary: [],
       projects: [],

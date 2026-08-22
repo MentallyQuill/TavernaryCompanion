@@ -1,9 +1,9 @@
-import type { CatalogKit, CatalogProject, CatalogV7 } from "../../src/catalog/catalog-core";
+import type { CatalogKit, CatalogProject, CatalogV8 } from "../../src/catalog/catalog-core";
 import type { CatalogCacheRecord } from "../../src/catalog/catalog-cache";
 
-export function catalogFixture(generatedAt = "2026-08-18T00:00:00.000Z"): CatalogV7 {
+export function catalogFixture(generatedAt = "2026-08-18T00:00:00.000Z"): CatalogV8 {
   return {
-    schemaVersion: 7,
+    schemaVersion: 8,
     generatedAt,
     tagVocabulary: [],
     projects: [],
@@ -11,7 +11,7 @@ export function catalogFixture(generatedAt = "2026-08-18T00:00:00.000Z"): Catalo
   };
 }
 
-export function catalogBody(schemaVersion = 7): string {
+export function catalogBody(schemaVersion: 7 | 8 | 9 = 8): string {
   return JSON.stringify({
     ...catalogFixture(),
     schemaVersion,
@@ -28,7 +28,7 @@ export function cachedCatalogRecord(
     etag: '"cached"',
     fetchedAt: "2026-08-18T00:05:00.000Z",
     bodySha256: "7f11a8ac09212a0fbaa34c667d9778e76dc03799855499f131f424eefcbf72ec",
-    body: catalogBody(),
+    body: catalogBody(7),
     ...overrides,
   };
 }

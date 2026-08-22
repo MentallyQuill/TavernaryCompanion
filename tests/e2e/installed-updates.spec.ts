@@ -59,7 +59,7 @@ test("offers scanned and creator updates when installed is behind both", async (
   ).toHaveAccessibleDescription("Newer changes have not been scanned yet.");
 
   const scan = chooser.getByRole("button", {
-    name: "TavernKeeper scan: Low concern; stale assessment.",
+    name: "TavernKeeper scan: Low concern observed; JavaScript/TypeScript scan complete; stale assessment.",
   });
   await scan.hover();
   const panel = page.getByRole("dialog", { name: "TavernKeeper Scan Results" });

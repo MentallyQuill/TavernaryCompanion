@@ -255,6 +255,8 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
                 riskLevel: project.tavernKeeper.riskLevel,
                 scannedSha: project.tavernKeeper.report?.scannedSha ?? null,
                 reportUrl: project.tavernKeeper.report?.reportUrl ?? null,
+                javascriptAnalysisStatus:
+                  project.tavernKeeper.report?.javascriptAnalysisStatus ?? null,
               }
             : null,
         });

@@ -42,6 +42,7 @@ function projectWithReport(overrides: { scannedSha?: unknown; currentSha?: strin
       assessmentSource: "model",
       reportUrl: "https://example.test/reports/report-123",
       technicalHistoryUrl: null,
+      javascriptAnalysisStatus: "complete",
     },
     history: [],
     historyUrl: null,

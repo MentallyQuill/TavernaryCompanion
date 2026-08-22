@@ -2,7 +2,7 @@ import {
   countKitsForFilter,
   DEFAULT_KIT_QUERY,
   selectKits,
-  type CatalogV7,
+  type Catalog,
   type KitQuery,
 } from "../catalog/catalog-core";
 import type { ReconciledKitStatus } from "./kit-reconciler";
@@ -39,14 +39,14 @@ export interface KitDiscoveryFacets {
 
 export class KitDiscoveryController {
   readonly #listeners = new Set<(state: KitDiscoveryState) => void>();
-  #catalog: CatalogV7;
+  #catalog: Catalog;
   #personal: PersonalKitV1[];
   #statuses: ReadonlyMap<string, ReconciledKitStatus>;
   #segment: KitDiscoveryState["segment"] = "personal";
   #search = "";
   #query: KitQuery = structuredClone(DEFAULT_KIT_QUERY);
   constructor(input: {
-    catalog: CatalogV7;
+    catalog: Catalog;
     personal: PersonalKitV1[];
     statuses: ReadonlyMap<string, ReconciledKitStatus>;
   }) {
@@ -95,7 +95,7 @@ export class KitDiscoveryController {
     this.#emit();
   }
   setData(input: {
-    catalog: CatalogV7;
+    catalog: Catalog;
     personal: PersonalKitV1[];
     statuses: ReadonlyMap<string, ReconciledKitStatus>;
   }): void {

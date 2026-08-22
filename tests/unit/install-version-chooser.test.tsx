@@ -111,6 +111,7 @@ function scanStatus(): TavernKeeperCardStatus {
       assessmentSource: "model",
       reportUrl: "https://tavernary.org/security/tavernkeeper/reports/report-alpha/",
       technicalHistoryUrl: null,
+      javascriptAnalysisStatus: "complete",
     },
     history: [],
     historyUrl: null,
@@ -141,7 +142,7 @@ describe("InstallVersionChooser", () => {
       "Newer changes have not been scanned yet.",
     );
     const scan = screen.getByRole("button", {
-      name: "TavernKeeper scan: Low concern; stale assessment.",
+      name: "TavernKeeper scan: Low concern observed; JavaScript/TypeScript scan complete; stale assessment.",
     });
     fireEvent.pointerEnter(scan, { pointerType: "mouse" });
     expect(screen.getByRole("dialog", { name: "TavernKeeper Scan Results" })).toBeVisible();
@@ -277,7 +278,7 @@ describe("dispatchPreparedInstallChoice", () => {
     );
     fireEvent.click(
       screen.getByRole("button", {
-        name: "TavernKeeper scan: Low concern; stale assessment.",
+        name: "TavernKeeper scan: Low concern observed; JavaScript/TypeScript scan complete; stale assessment.",
       }),
     );
 
@@ -303,7 +304,7 @@ describe("dispatchPreparedInstallChoice", () => {
       />,
     );
     const scan = screen.getByRole("button", {
-      name: "TavernKeeper scan: Low concern; stale assessment.",
+      name: "TavernKeeper scan: Low concern observed; JavaScript/TypeScript scan complete; stale assessment.",
     });
     fireEvent.pointerDown(scan, { pointerType: "touch" });
     fireEvent.click(scan);

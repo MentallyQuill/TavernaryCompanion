@@ -295,7 +295,7 @@ test.describe("real SillyTavern acceptance", () => {
 async function openInstalledCompanion(page: Page): Promise<void> {
   if (realCatalogPath) {
     const catalog = await readFile(realCatalogPath, "utf8");
-    await page.route("https://tavernary.org/catalog/tavernary-catalog.json", async (route) => {
+    await page.route("https://tavernary.org/catalog/tavernary-catalog-v8.json", async (route) => {
       await route.fulfill({
         body: catalog,
         contentType: "application/json",

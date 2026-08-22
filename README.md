@@ -10,7 +10,7 @@ It keeps the important choices in your hands. You can see what a project is, rea
 
 Companion can look familiar because it uses the same Tavernary catalog information, but it is not an HTML iframe or an embedded copy of Tavernary.org. It is a native SillyTavern extension whose screens are rendered inside SillyTavern.
 
-When you refresh the catalog, Companion requests the public JSON catalog from [`tavernary.org/catalog/tavernary-catalog.json`](https://tavernary.org/catalog/tavernary-catalog.json). It reads that data to show Projects, search, filters, project details, install choices, and TavernKeeper information. It does not display the Tavernary.org website inside a frame or run the website as part of Companion.
+When you refresh the catalog, Companion requests the public JSON catalog from [`tavernary.org/catalog/tavernary-catalog-v8.json`](https://tavernary.org/catalog/tavernary-catalog-v8.json). It reads that data to show Projects, search, filters, project details, install choices, and TavernKeeper information. It does not display the Tavernary.org website inside a frame or run the website as part of Companion.
 
 **TavernKeeper** is the separate checking service. It examines a particular project version and provides evidence about that version. Tavernary.org publishes the relevant summary and report link in the catalog data; Companion displays that information so you can decide for yourself. Read [TavernKeeper and the catalog](docs/user/tavernkeeper-and-catalog.md) for the short version.
 

@@ -5,9 +5,18 @@ import { CATALOG_URL, type CatalogFetch } from "../../src/catalog/catalog-transp
 import { createMemoryCatalogCache } from "../helpers/memory-catalog-cache";
 import { cachedCatalogRecord, catalogBody, deferred } from "../helpers/catalog-fixtures";
 
-async function seededCache(lastCheckedAt: string | null = null) {
+const V8_BODY_SHA256 = "31748ad823b66bd6ed591005ad5e5e06ef0e573a14ba42d56c13f3d8a2c9e58f";
+
+function cachedV8Record() {
+  return cachedCatalogRecord({
+    schemaVersion: 8,
+    body: catalogBody(8),
+    bodySha256: V8_BODY_SHA256,
+  });
+}
+
+async function seededCache(lastCheckedAt: string | null = null, record = cachedCatalogRecord()) {
   const cache = createMemoryCatalogCache();
-  const record = cachedCatalogRecord();
   await cache.stage(record);
   await cache.activate(record.id);
   if (lastCheckedAt) await cache.recordCheck(lastCheckedAt);
@@ -29,9 +38,13 @@ describe("CatalogClient", () => {
     now = "2026-08-18T01:00:00.000Z";
   });
 
+  it("fetches the versioned schema-8 catalog endpoint", () => {
+    expect(CATALOG_URL).toBe("https://tavernary.org/catalog/tavernary-catalog-v8.json");
+  });
+
   it("revalidates compatible cache without author-controlled conditional headers", async () => {
     const request = deferred<Response>();
-    const cache = await seededCache();
+    const cache = await seededCache(null, cachedV8Record());
     const fetch = vi.fn<CatalogFetch>(() => request.promise);
     const client = createCatalogClient({ cache, fetch, now: () => now });
 
@@ -53,6 +66,22 @@ describe("CatalogClient", () => {
   it("rejects a cached body whose stored digest does not match", async () => {
     const cache = createMemoryCatalogCache();
     const record = cachedCatalogRecord({ bodySha256: "0".repeat(64) });
+    await cache.stage(record);
+    await cache.activate(record.id);
+    const client = createCatalogClient({
+      cache,
+      fetch: vi.fn().mockRejectedValue(new Error("offline")),
+      now: () => now,
+    });
+
+    await client.open();
+
+    expect(client.read()).toMatchObject({ state: "error-empty", canMutate: false });
+  });
+
+  it("rejects a cached record with an unknown schema version", async () => {
+    const cache = createMemoryCatalogCache();
+    const record = cachedCatalogRecord({ schemaVersion: 9 as 7 });
     await cache.stage(record);
     await cache.activate(record.id);
     const client = createCatalogClient({
@@ -107,7 +136,7 @@ describe("CatalogClient", () => {
 
       expect(client.read()).toMatchObject({ state: "ready-current", canMutate: true });
       await expect(cache.readActive()).resolves.toMatchObject({
-        bodySha256: "7f11a8ac09212a0fbaa34c667d9778e76dc03799855499f131f424eefcbf72ec",
+        bodySha256: V8_BODY_SHA256,
       });
     } finally {
       if (cryptoDescriptor) Object.defineProperty(globalThis, "crypto", cryptoDescriptor);
@@ -138,11 +167,26 @@ describe("CatalogClient", () => {
     await expect(cache.readActive()).resolves.toMatchObject({ id: "cached" });
   });
 
-  it("locks mutation on schema 8 while preserving cached browsing", async () => {
+  it("loads a schema-7 cache but refreshes it to v8 inside the open throttle", async () => {
+    const cache = await seededCache("2026-08-18T00:50:00.000Z");
+    const fetch = vi.fn().mockResolvedValue(response(catalogBody(8)));
+    const client = createCatalogClient({ cache, fetch, now: () => now });
+
+    await client.open();
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(client.read()).toMatchObject({
+      state: "ready-current",
+      catalog: { schemaVersion: 8 },
+    });
+    await expect(cache.readActive()).resolves.toMatchObject({ schemaVersion: 8 });
+  });
+
+  it("locks mutation on schema 9 while preserving cached browsing", async () => {
     const cache = await seededCache();
     const client = createCatalogClient({
       cache,
-      fetch: vi.fn().mockResolvedValue(response(catalogBody(8))),
+      fetch: vi.fn().mockResolvedValue(response(catalogBody(9))),
       now: () => now,
     });
 
@@ -150,7 +194,7 @@ describe("CatalogClient", () => {
 
     expect(client.read()).toMatchObject({
       state: "incompatible-with-cache",
-      remoteSchemaVersion: 8,
+      remoteSchemaVersion: 9,
       canMutate: false,
       catalog: expect.any(Object),
     });
@@ -160,13 +204,13 @@ describe("CatalogClient", () => {
   it("reports incompatible and network failures without a cache", async () => {
     const incompatible = createCatalogClient({
       cache: createMemoryCatalogCache(),
-      fetch: vi.fn().mockResolvedValue(response(catalogBody(8))),
+      fetch: vi.fn().mockResolvedValue(response(catalogBody(9))),
       now: () => now,
     });
     await incompatible.open();
     expect(incompatible.read()).toMatchObject({
       state: "incompatible-empty",
-      remoteSchemaVersion: 8,
+      remoteSchemaVersion: 9,
       canMutate: false,
     });
 
@@ -180,9 +224,18 @@ describe("CatalogClient", () => {
   });
 
   it("throttles open checks for 15 minutes but allows forced refresh", async () => {
-    const cache = await seededCache("2026-08-18T00:50:00.000Z");
+    const cache = createMemoryCatalogCache();
+    const record = cachedV8Record();
+    await cache.stage(record);
+    await cache.activate(record.id);
+    await cache.recordCheck("2026-08-18T00:50:00.000Z");
     const fetch = vi.fn().mockResolvedValue(response(null, { status: 304 }));
-    const client = createCatalogClient({ cache, fetch, now: () => now });
+    const client = createCatalogClient({
+      cache,
+      fetch,
+      now: () => now,
+      sha256: vi.fn().mockResolvedValue(record.bodySha256),
+    });
 
     await client.open();
     expect(fetch).not.toHaveBeenCalled();
@@ -193,9 +246,15 @@ describe("CatalogClient", () => {
   });
 
   it("rechecks on focus only after one hour", async () => {
-    const cache = await seededCache("2026-08-18T00:50:00.000Z");
+    const record = cachedV8Record();
+    const cache = await seededCache("2026-08-18T00:50:00.000Z", record);
     const fetch = vi.fn().mockResolvedValue(response(null, { status: 304 }));
-    const client = createCatalogClient({ cache, fetch, now: () => now });
+    const client = createCatalogClient({
+      cache,
+      fetch,
+      now: () => now,
+      sha256: vi.fn().mockResolvedValue(record.bodySha256),
+    });
     await client.open();
 
     now = "2026-08-18T01:49:00.000Z";

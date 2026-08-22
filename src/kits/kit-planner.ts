@@ -1,4 +1,4 @@
-import type { CatalogProject, CatalogV7 } from "../catalog/catalog-core";
+import type { Catalog, CatalogProject } from "../catalog/catalog-core";
 import type { InventorySnapshot, ManagedExtensionMap } from "../inventory/inventory-types";
 import { COMPANION_PROJECT_ID } from "../lifecycle/self-protection";
 import type { InstalledKitStateV1 } from "./kit-types";
@@ -14,7 +14,7 @@ export interface PlannableKit {
 export interface PlanKitOperationInput {
   operation: KitOperation;
   kit: PlannableKit;
-  catalog: CatalogV7;
+  catalog: Catalog;
   inventory: InventorySnapshot;
   managed: ManagedExtensionMap;
   installedKits: readonly InstalledKitStateV1[];
@@ -172,7 +172,7 @@ export function inventoryFingerprint(
   return textFingerprint(payload);
 }
 
-export function catalogMutationBinding(catalog: CatalogV7, projectIds: readonly string[]): string {
+export function catalogMutationBinding(catalog: Catalog, projectIds: readonly string[]): string {
   const byId = new Map(catalog.projects.map((project) => [project.id, project]));
   return JSON.stringify({
     generatedAt: catalog.generatedAt,

@@ -31,7 +31,12 @@ describe("trust prompt selection", () => {
       selectTrustPrompts({
         trustAcknowledgedAt: null,
         target: checkedTarget,
-        assessment: { riskLevel: "material", scannedSha: checkedSha, reportUrl },
+        assessment: {
+          riskLevel: "material",
+          scannedSha: checkedSha,
+          reportUrl,
+          javascriptAnalysisStatus: "complete",
+        },
       }),
     ).toEqual([
       { kind: "unsandboxed-disclosure", copy: UNSANDBOXED_CODE_DISCLOSURE },
@@ -52,7 +57,12 @@ describe("trust prompt selection", () => {
         selectTrustPrompts({
           trustAcknowledgedAt: "2026-08-18T10:00:00.000Z",
           target: checkedTarget,
-          assessment: { riskLevel, scannedSha: checkedSha, reportUrl },
+          assessment: {
+            riskLevel,
+            scannedSha: checkedSha,
+            reportUrl,
+            javascriptAnalysisStatus: "complete",
+          },
         }),
       ).toEqual([expect.objectContaining({ kind: "assessment-warning", severity: riskLevel })]);
     }
@@ -70,7 +80,12 @@ describe("trust prompt selection", () => {
           requestedSha: newestSha,
           resolvedAt: "2026-08-19T00:00:00.000Z",
         },
-        assessment: { riskLevel: "material", scannedSha: checkedSha, reportUrl },
+        assessment: {
+          riskLevel: "material",
+          scannedSha: checkedSha,
+          reportUrl,
+          javascriptAnalysisStatus: "complete",
+        },
       }),
     ).toEqual([expect.objectContaining({ copy: STALE_ASSESSMENT_WARNING, stale: true })]);
     expect(STALE_ASSESSMENT_WARNING).toBe(
@@ -87,7 +102,12 @@ describe("trust prompt selection", () => {
           requestedSha: checkedSha,
           resolvedAt: "2026-08-19T00:00:00.000Z",
         },
-        assessment: { riskLevel: "high", scannedSha: checkedSha, reportUrl },
+        assessment: {
+          riskLevel: "high",
+          scannedSha: checkedSha,
+          reportUrl,
+          javascriptAnalysisStatus: "complete",
+        },
       }),
     ).toEqual([expect.objectContaining({ stale: false, copy: CURRENT_ASSESSMENT_WARNING })]);
   });
@@ -95,8 +115,18 @@ describe("trust prompt selection", () => {
   it("does not warn for low, neutral, or unscanned states", () => {
     for (const assessment of [
       null,
-      { riskLevel: null, scannedSha: null, reportUrl: null },
-      { riskLevel: "low" as const, scannedSha: checkedSha, reportUrl },
+      {
+        riskLevel: null,
+        scannedSha: null,
+        reportUrl: null,
+        javascriptAnalysisStatus: null,
+      },
+      {
+        riskLevel: "low" as const,
+        scannedSha: checkedSha,
+        reportUrl,
+        javascriptAnalysisStatus: "complete" as const,
+      },
     ]) {
       expect(
         selectTrustPrompts({
@@ -108,12 +138,32 @@ describe("trust prompt selection", () => {
     }
   });
 
+  it("keeps incomplete low-risk coverage informational instead of blocking install", () => {
+    expect(
+      selectTrustPrompts({
+        trustAcknowledgedAt: "2026-08-18T10:00:00.000Z",
+        target: checkedTarget,
+        assessment: {
+          riskLevel: "low",
+          scannedSha: checkedSha,
+          reportUrl,
+          javascriptAnalysisStatus: "incomplete",
+        },
+      }),
+    ).toEqual([]);
+  });
+
   it("keeps cancellation available when the check is unavailable", () => {
     expect(
       selectTrustPrompts({
         trustAcknowledgedAt: "2026-08-18T10:00:00.000Z",
         target: { kind: "newest", requestedSha: null, resolvedAt: null },
-        assessment: { riskLevel: "high", scannedSha: checkedSha, reportUrl: null },
+        assessment: {
+          riskLevel: "high",
+          scannedSha: checkedSha,
+          reportUrl: null,
+          javascriptAnalysisStatus: "complete",
+        },
       }),
     ).toEqual([
       expect.objectContaining({

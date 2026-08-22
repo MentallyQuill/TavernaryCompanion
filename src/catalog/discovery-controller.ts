@@ -6,7 +6,7 @@ import {
   type CatalogQuery,
   type CatalogSearchDocument,
   type CatalogSearchIndex,
-  type CatalogV7,
+  type Catalog,
 } from "./catalog-core";
 import {
   toInstalledSectionViewModel,
@@ -63,7 +63,7 @@ class DefaultDiscoveryController implements DiscoveryController {
   #snapshot: CatalogSnapshot;
   #inventory: InventorySnapshot;
   #query = structuredClone(DEFAULT_COMPANION_QUERY);
-  #indexedCatalog: CatalogV7 | null = null;
+  #indexedCatalog: Catalog | null = null;
   #index: CatalogSearchIndex | null = null;
   #state: DiscoveryState;
   readonly #subscribers = new Set<(state: DiscoveryState) => void>();
@@ -241,7 +241,7 @@ function countedLabels(
 
 function orderFrontendOptionsByPopularity<T extends DiscoveryFacet>(
   options: readonly T[],
-  projects: readonly CatalogV7["projects"][number][],
+  projects: readonly Catalog["projects"][number][],
 ): T[] {
   const scores = new Map<string, number>();
   for (const project of projects) {
