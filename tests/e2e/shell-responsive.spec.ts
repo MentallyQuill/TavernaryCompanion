@@ -225,10 +225,16 @@ test("project disclosure, density, sort, and first card follow Tavernary's toolb
   const densityControl = toolbar.getByRole("button", { name: "Use compact cards" });
   const density = await densityControl.boundingBox();
   const sort = await toolbar.getByRole("combobox", { name: "Sort projects" }).boundingBox();
+  const filterChips = await page
+    .locator('.tavernary-companion-filter-chips[aria-label="Active filters"]')
+    .getByRole("button")
+    .first()
+    .boundingBox();
   const firstCard = await page.locator(".tavernary-companion-project-card").first().boundingBox();
   expect(count).not.toBeNull();
   expect(density).not.toBeNull();
   expect(sort).not.toBeNull();
+  expect(filterChips).not.toBeNull();
   expect(firstCard).not.toBeNull();
   expect(density!.x - (count!.x + count!.width)).toBeCloseTo(10, 0);
   expect(sort!.x - (density!.x + density!.width)).toBeCloseTo(10, 0);
@@ -236,8 +242,10 @@ test("project disclosure, density, sort, and first card follow Tavernary's toolb
   expect(density!.height).toBeCloseTo(30, 0);
   expect(sort!.width).toBeCloseTo(150, 0);
   expect(sort!.height).toBeCloseTo(36, 0);
-  expect(firstCard!.y - (sort!.y + sort!.height)).toBeGreaterThanOrEqual(10);
-  expect(firstCard!.y - (sort!.y + sort!.height)).toBeLessThanOrEqual(16);
+  expect(filterChips!.y - (sort!.y + sort!.height)).toBeGreaterThanOrEqual(10);
+  expect(filterChips!.y - (sort!.y + sort!.height)).toBeLessThanOrEqual(16);
+  expect(firstCard!.y - (filterChips!.y + filterChips!.height)).toBeGreaterThanOrEqual(10);
+  expect(firstCard!.y - (filterChips!.y + filterChips!.height)).toBeLessThanOrEqual(16);
 
   const standardHeight = firstCard!.height;
   const standardInstall = await page.getByRole("button", { name: "Install Alpha" }).boundingBox();
