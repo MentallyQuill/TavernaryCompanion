@@ -1603,6 +1603,15 @@
   background: var(--tavernary-color-tavernkeeper-red);
 }
 
+.tavernary-companion-tavernkeeper-history
+  :is(.coverage-incomplete, .coverage-legacy, .coverage-unavailable) {
+  background-image: repeating-linear-gradient(
+    135deg,
+    transparent 0 2px,
+    var(--tavernary-color-bg-surface-raised) 2px 3px
+  );
+}
+
 /* Tavernary tooltip and TavernKeeper overlay contracts. */
 .tavernary-companion-tooltip-anchor {
   position: relative;

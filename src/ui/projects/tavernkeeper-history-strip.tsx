@@ -29,7 +29,11 @@ export function TavernKeeperHistoryStrip({
             rel="noopener noreferrer"
             target="_blank"
           >
-            <i class={`risk-${conclusion.riskLevel}`} role="img" aria-label={label} />
+            <i
+              class={`risk-${conclusion.riskLevel} coverage-${coverage.kind}`}
+              role="img"
+              aria-label={label}
+            />
           </a>
         );
       })}

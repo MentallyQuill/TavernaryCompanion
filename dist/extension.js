@@ -17162,7 +17162,14 @@ function TavernKeeperHistoryStrip({
             href: conclusion.reportUrl,
             rel: "noopener noreferrer",
             target: "_blank",
-            children: /* @__PURE__ */ u3("i", { class: `risk-${conclusion.riskLevel}`, role: "img", "aria-label": label2 })
+            children: /* @__PURE__ */ u3(
+              "i",
+              {
+                class: `risk-${conclusion.riskLevel} coverage-${coverage.kind}`,
+                role: "img",
+                "aria-label": label2
+              }
+            )
           },
           conclusion.reportId
         );

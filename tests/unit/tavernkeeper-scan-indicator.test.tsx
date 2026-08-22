@@ -269,14 +269,22 @@ describe("TavernKeeperScanIndicator", () => {
       ...current,
       reportId: "report-prior",
       riskLevel: "material" as const,
+      javascriptAnalysisStatus: "incomplete" as const,
       assessedAt: "2026-08-01T00:00:00.000Z",
       reportUrl: "https://tavernary.org/security/tavernkeeper/reports/report-prior/",
+    };
+    const legacy = {
+      ...current,
+      reportId: "report-legacy",
+      javascriptAnalysisStatus: "legacy" as const,
+      assessedAt: "2026-08-10T00:00:00.000Z",
+      reportUrl: "https://tavernary.org/security/tavernkeeper/reports/report-legacy/",
     };
     render(
       <TavernKeeperScanIndicator
         projectId="alpha"
         status={status({
-          history: [prior, current],
+          history: [prior, legacy, current],
           historyUrl: "/security/tavernkeeper/history/source-alpha/",
         })}
       />,
@@ -288,10 +296,16 @@ describe("TavernKeeperScanIndicator", () => {
     );
 
     const history = screen.getByRole("group", { name: "Recent TavernKeeper scan history" });
-    expect(within(history).getAllByRole("link")).toHaveLength(2);
+    expect(within(history).getAllByRole("link")).toHaveLength(3);
     expect(
-      within(history).getByRole("img", { name: /material concern.*scan complete/iu }),
-    ).toBeVisible();
+      within(history).getByRole("img", { name: /material concern.*scan incomplete/iu }),
+    ).toHaveClass("coverage-incomplete");
+    expect(
+      within(history).getByRole("img", { name: /low concern.*coverage not recorded/iu }),
+    ).toHaveClass("coverage-legacy");
+    expect(within(history).getByRole("img", { name: /low concern.*scan complete/iu })).toHaveClass(
+      "coverage-complete",
+    );
     expect(screen.getByRole("link", { name: /View scan history/ })).toHaveAttribute(
       "href",
       "https://tavernary.org/security/tavernkeeper/history/source-alpha/",

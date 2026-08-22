@@ -1982,6 +1982,13 @@ dialog.popup:has(.tavernary-companion-root) > .popup-body > .popup-content {
 .tavernary-companion-tavernkeeper-history .risk-high {
   background: var(--tavernary-color-tavernkeeper-red);
 }
+.tavernary-companion-tavernkeeper-history :is(.coverage-incomplete, .coverage-legacy, .coverage-unavailable) {
+  background-image:
+    repeating-linear-gradient(
+      135deg,
+      transparent 0 2px,
+      var(--tavernary-color-bg-surface-raised) 2px 3px);
+}
 .tavernary-companion-tooltip-anchor {
   position: relative;
 }
