@@ -10,6 +10,7 @@ import type { TrustPrompt } from "../trust/trust-types";
 import { isFullCommitSha } from "../lifecycle/install-target";
 import { COMPANION_PROJECT_ID } from "../lifecycle/self-protection";
 import { createRuntimeId } from "../runtime-id";
+import { createUpdateReplacement } from "./update-replacement";
 import {
   bindUpdateSelection,
   deriveUpdateAvailability,
@@ -45,6 +46,9 @@ export interface ExtensionUpdateCoordinator {
   invalidate(): void;
   prepare(projectId: string): PreparedUpdateChoice;
   update(selection: PreparedUpdateSelection): Promise<LifecycleReceipt>;
+  replace(receiptId: string): Promise<LifecycleReceipt>;
+  canReplace(receiptId: string): boolean;
+  cancelReplacement(receiptId: string): void;
 }
 
 interface ExtensionUpdateCoordinatorOptions {
@@ -72,9 +76,12 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
   #checkedEvidence: Record<string, { installedSha: string; internalName: string }> = {};
   #checkSequence: Record<string, number> = {};
   #generation = 0;
+  readonly #replacement: ReturnType<typeof createUpdateReplacement>;
+  readonly #replacementRecords = new Map<string, unknown>();
 
   constructor(options: ExtensionUpdateCoordinatorOptions) {
     this.#host = options.host;
+    this.#replacement = createUpdateReplacement({ host: options.host, lock: options.lock });
     this.#getSnapshot = options.getSnapshot;
     this.#getInventory = options.getInventory;
     this.#lock = options.lock;
@@ -328,6 +335,13 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
               safeError: "SillyTavern did not complete the extension update.",
               reloadRequired: false,
             });
+            if (await this.#replacement.offer(receipt.id, selection, project.name)) {
+              receipt.replacementRecovery = "local-changes";
+              this.#replacementRecords.set(
+                receipt.id,
+                structuredClone(this.#store.read().managedExtensions[project.id]),
+              );
+            }
             await this.#persistIncompleteReceipt(receipt, disclosureAccepted);
             return receipt;
           }
@@ -494,6 +508,45 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
     this.#snapshot.states[projectId] = structuredClone(state);
     const snapshot = this.read();
     for (const subscriber of this.#subscribers) subscriber(snapshot);
+  }
+
+  canReplace(id: string): boolean {
+    return this.#replacement.has(id);
+  }
+  cancelReplacement(id: string): void {
+    this.#replacement.cancel(id);
+    this.#replacementRecords.delete(id);
+  }
+  async replace(id: string): Promise<LifecycleReceipt> {
+    const receipt = await this.#replacement.replace(id);
+    try {
+      await this.#store.update((draft) => {
+        if (receipt.status === "succeeded" && receipt.installProvenance) {
+          if (!draft.managedExtensions[receipt.projectId] && this.#replacementRecords.get(id)) {
+            draft.managedExtensions[receipt.projectId] = structuredClone(
+              this.#replacementRecords.get(id),
+            );
+          }
+          const managed = draft.managedExtensions[receipt.projectId];
+          if (managed && typeof managed === "object" && !Array.isArray(managed)) {
+            (managed as Record<string, unknown>).provenance = structuredClone(
+              receipt.installProvenance,
+            );
+          }
+          receipt.steps.find((step) => step.id === "recorded")!.status = "succeeded";
+        }
+        draft.operationReceipt = receipt.status === "succeeded" ? null : structuredClone(receipt);
+      });
+    } catch {
+      if (receipt.status === "succeeded") {
+        receipt.status = "updated-unrecorded";
+        receipt.safeError =
+          "The extension was updated, but Companion could not save its update record.";
+        receipt.steps.find((step) => step.id === "recorded")!.status = "failed";
+      }
+    }
+    if (!this.#replacement.has(id)) this.#replacementRecords.delete(id);
+    return receipt;
   }
 
   #publishInspection(

@@ -11,6 +11,7 @@ interface OperationTrayProps {
   bulkRemovalReceipt?: BulkRemovalReceipt | null;
   error?: string | null;
   onDismissReceipt?(): void;
+  onReplaceUpdate?(): void;
   onDismissError?(): void;
   onRetryError?(): void;
   onReload?(): void;
@@ -24,6 +25,7 @@ export function OperationTray({
   bulkRemovalReceipt,
   error,
   onDismissReceipt,
+  onReplaceUpdate,
   onDismissError,
   onRetryError,
   onReload,
@@ -67,6 +69,31 @@ export function OperationTray({
     );
   }
   if (receipt) {
+    if (receipt.replacementRecovery && onReplaceUpdate) {
+      const retry = receipt.replacementRecovery === "retry-install";
+      return (
+        <aside class="tavernary-companion-operation-tray" role="alert">
+          <section class="tavernary-companion-operation-receipt">
+            <h3>
+              {retry
+                ? `${receipt.projectName} reinstallation did not complete`
+                : `${receipt.projectName} couldn’t update because some of its local files have been changed.`}
+            </h3>
+            <p>
+              {retry
+                ? receipt.safeError
+                : "Do you want to force-update? This will remove its current files and reinstall the version you selected."}
+            </p>
+            <button type="button" onClick={onDismissReceipt}>
+              Cancel
+            </button>{" "}
+            <button type="button" onClick={onReplaceUpdate}>
+              {retry ? "Retry installation" : "Replace and update"}
+            </button>
+          </section>
+        </aside>
+      );
+    }
     if (
       receipt.kind === "update" &&
       (receipt.status === "succeeded" || receipt.status === "updated-unrecorded")

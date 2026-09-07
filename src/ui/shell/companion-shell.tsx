@@ -33,6 +33,7 @@ interface CompanionShellProps {
   updateStates?: Readonly<Record<string, ProjectUpdateState>>;
   onCheckUpdates?(): void | Promise<void>;
   onRetryUpdate?(id: string): void;
+  onUpdateAll?(): void | Promise<void>;
   onUpdateExtension?(id: string, anchor: HTMLButtonElement): void;
   inventoryLoadState?: InstalledInventoryLoadState;
   inventoryRefreshing?: boolean;
@@ -82,6 +83,7 @@ export function CompanionShell({
   onCheckUpdates,
   onRetryUpdate,
   onUpdateExtension,
+  onUpdateAll,
   inventoryLoadState = "ready",
   inventoryRefreshing = false,
   togglingInternalName = null,
@@ -253,6 +255,7 @@ export function CompanionShell({
                     onCheckUpdates={onCheckUpdates}
                     onRetryUpdate={onRetryUpdate}
                     onUpdate={onUpdateExtension}
+                    onUpdateAll={onUpdateAll}
                     onAction={(id, action, anchor) => onProjectAction?.(id, action, anchor)}
                     onManage={onOpenExtensionManager}
                     onOpenKit={(id) =>

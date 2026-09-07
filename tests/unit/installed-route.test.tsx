@@ -7,6 +7,27 @@ import type { ProjectUpdateState } from "../../src/updates/update-coordinator";
 
 afterEach(() => document.body.replaceChildren());
 
+it("offers Update All for available installed updates and disables it during a lifecycle operation", () => {
+  const onUpdateAll = vi.fn();
+  const props = {
+    sections,
+    onRefresh: vi.fn(),
+    onUpdateAll,
+    updateStates: {
+      alpha: {
+        kind: "available" as const,
+        notice: null,
+        targets: [{ kind: "newest" as const, requestedSha: null, resolvedAt: null }],
+      },
+    },
+  };
+  const view = render(<InstalledRoute {...props} />);
+  fireEvent.click(screen.getByRole("button", { name: "Update All (1)" }));
+  expect(onUpdateAll).toHaveBeenCalledOnce();
+  view.rerender(<InstalledRoute {...props} lifecycleDisabled />);
+  expect(screen.getByRole("button", { name: "Update All (1)" })).toBeDisabled();
+});
+
 const sections: InstalledSectionViewModel[] = [
   {
     id: "managed",

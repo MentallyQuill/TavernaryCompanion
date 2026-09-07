@@ -298,7 +298,8 @@ async function main() {
     kitVersionScenario ||
     scenario === "installed-update" ||
     scenario === "installed-update-both" ||
-    scenario === "installed-native-update"
+    scenario === "installed-native-update" ||
+    scenario === "installed-replacement"
   ) {
     await profile.update((draft) => {
       draft.trustAcknowledgedAt = "2026-08-18T00:00:00.000Z";
@@ -389,6 +390,7 @@ async function main() {
     scenario === "installed-update" ||
     scenario === "installed-update-both" ||
     scenario === "installed-native-update" ||
+    scenario === "installed-replacement" ||
     scenario === "installed-local-changes";
   const writerNewestSha = writerUpdateAvailable ? "d".repeat(40) : writerInstalledSha;
   const host = createFakeHost({
@@ -418,11 +420,18 @@ async function main() {
         }
       : {}),
     installResults: Object.fromEntries(
-      versionProjects.map((project) => [
-        project.install!.repositoryUrl,
-        extension(project.install!.folderName),
-      ]),
+      [...versionProjects, ...(scenario === "installed-replacement" ? [writerProject] : [])].map(
+        (project) => [project.install!.repositoryUrl, extension(project.install!.folderName)],
+      ),
     ),
+    ...(scenario === "installed-replacement"
+      ? {
+          remoteHeads: {
+            [`${writerProject.install!.repositoryUrl}#${writerProject.install!.branch ?? ""}`]:
+              writerNewestSha,
+          },
+        }
+      : {}),
     installedRevisions: { "local:third-party/WriterTool": writerInstalledSha },
     updateInspections: {
       "local:third-party/WriterTool": {
@@ -431,13 +440,14 @@ async function main() {
         remoteUrl: writerProject.install!.repositoryUrl,
         branch: writerProject.install!.branch ?? "main",
         worktreeClean:
-          scenario === "installed-native-update"
+          scenario === "installed-native-update" || scenario === "installed-replacement"
             ? null
             : scenario === "installed-local-changes"
               ? false
               : true,
         branchMatches: true,
-        exactUpdateSupported: scenario !== "installed-native-update",
+        exactUpdateSupported:
+          scenario !== "installed-native-update" && scenario !== "installed-replacement",
         newestRelationship: writerUpdateAvailable ? "behind" : "equal",
         candidateRelationships:
           scenario === "installed-update"
@@ -449,6 +459,16 @@ async function main() {
     },
     failures: scenario === "failure" ? { enable: new Error("Enable failed") } : undefined,
   });
+  if (scenario === "installed-replacement") {
+    host.inspectLocalChanges = async () => ({
+      fingerprint: "fixture-files",
+      installedSha: writerInstalledSha,
+      conflicting: true,
+    });
+    host.applyUpdate = async () => {
+      throw new Error("Host update failed");
+    };
+  }
   const inventory = reconcileInventory({
     projects: catalog.projects,
     hostExtensions: initialHostExtensions,

@@ -39,6 +39,7 @@ export type FakeHostOperation =
   | "showPopup";
 
 export class FakeHost implements HostExtensionAdapter {
+  inspectLocalChanges?: HostExtensionAdapter["inspectLocalChanges"];
   readonly #extensions: HostExtension[];
   readonly #discoverGate: Promise<void> | null;
   readonly #discoverSteps: Array<{ gate: Promise<void> | null; extensions: HostExtension[] }>;
