@@ -110,7 +110,7 @@ Companion is careful about ownership:
 
 ## Player guide
 
-For Update All and local-file replacement recovery, see [Updating extensions](docs/user/update-recovery.md). Local-change detection requires the bundled read-only SillyTavern server helper described there.
+For Update All and replacement recovery after a failed update, see [Updating extensions](docs/user/update-recovery.md). Everything uses the standard extension workflow; no server helper or configuration changes are required.
 
 Start with the [Tavernary Companion player guide](docs/user/README.md), or jump directly to:
 

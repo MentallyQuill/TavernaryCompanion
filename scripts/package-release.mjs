@@ -12,7 +12,6 @@ export const RELEASE_FILES = [
   "dist/companion.css",
   "dist/extension.js",
   "manifest.json",
-  "server/local-changes.mjs",
   "docs/user/update-recovery.md",
 ];
 

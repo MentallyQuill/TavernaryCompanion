@@ -18,10 +18,8 @@ for (const width of [1440, 390]) {
         .click();
     }
     await page.getByRole("button", { name: "Update All (1)" }).click();
-    const prompt = page.getByRole("alert").filter({ hasText: "local files have been changed" });
-    await expect(prompt).toContainText(
-      "Writer Tool couldn’t update because some of its local files have been changed.",
-    );
+    const prompt = page.getByRole("alert").filter({ hasText: "couldn’t update." });
+    await expect(prompt).toContainText("Writer Tool couldn’t update.");
     await expect(prompt).toContainText(
       "Do you want to force-update? This will remove its current files and reinstall the version you selected.",
     );

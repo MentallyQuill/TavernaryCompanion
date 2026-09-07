@@ -460,11 +460,6 @@ async function main() {
     failures: scenario === "failure" ? { enable: new Error("Enable failed") } : undefined,
   });
   if (scenario === "installed-replacement") {
-    host.inspectLocalChanges = async () => ({
-      fingerprint: "fixture-files",
-      installedSha: writerInstalledSha,
-      conflicting: true,
-    });
     host.applyUpdate = async () => {
       throw new Error("Host update failed");
     };

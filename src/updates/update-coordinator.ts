@@ -336,7 +336,7 @@ class DefaultExtensionUpdateCoordinator implements ExtensionUpdateCoordinator {
               reloadRequired: false,
             });
             if (await this.#replacement.offer(receipt.id, selection, project.name)) {
-              receipt.replacementRecovery = "local-changes";
+              receipt.replacementRecovery = "update-failed";
               this.#replacementRecords.set(
                 receipt.id,
                 structuredClone(this.#store.read().managedExtensions[project.id]),

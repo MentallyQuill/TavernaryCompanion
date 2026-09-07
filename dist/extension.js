@@ -7290,28 +7290,6 @@ var SillyTavernHostAdapter = class {
       throw await responseError("update", "SillyTavern could not update the extension.", response);
     }
   }
-  async inspectLocalChanges(input) {
-    const response = await this.#dependencies.fetch(
-      "/api/plugins/tavernary-companion/local-changes",
-      {
-        method: "POST",
-        headers: this.#dependencies.getRequestHeaders(),
-        body: JSON.stringify({
-          extensionName: input.internalName.replace(/^third-party\//, ""),
-          targetSha: input.targetSha
-        })
-      }
-    );
-    if (!response.ok) return null;
-    const body = await readJsonObject(response, "inspectUpdate");
-    if (typeof body.fingerprint !== "string" || !/^[a-f0-9]{64}$/.test(body.fingerprint) || typeof body.conflicting !== "boolean")
-      return null;
-    return {
-      fingerprint: body.fingerprint,
-      installedSha: parseCommitSha(body.installedSha, "inspectUpdate"),
-      conflicting: body.conflicting
-    };
-  }
   async remove(input) {
     let response;
     try {
@@ -18240,7 +18218,7 @@ function OperationTray({
     if (receipt.replacementRecovery && onReplaceUpdate) {
       const retry = receipt.replacementRecovery === "retry-install";
       return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-operation-tray", role: "alert", children: /* @__PURE__ */ u3("section", { class: "tavernary-companion-operation-receipt", children: [
-        /* @__PURE__ */ u3("h3", { children: retry ? `${receipt.projectName} reinstallation did not complete` : `${receipt.projectName} couldn\u2019t update because some of its local files have been changed.` }),
+        /* @__PURE__ */ u3("h3", { children: retry ? `${receipt.projectName} reinstallation did not complete` : `${receipt.projectName} couldn\u2019t update.` }),
         /* @__PURE__ */ u3("p", { children: retry ? receipt.safeError : "Do you want to force-update? This will remove its current files and reinstall the version you selected." }),
         /* @__PURE__ */ u3("button", { type: "button", onClick: onDismissReceipt, children: "Cancel" }),
         " ",
@@ -21939,16 +21917,9 @@ function createUpdateReplacement({
           (e3) => e3.internalName === selection.binding.internalName && e3.type === "local"
         );
         if (!extension) return false;
-        const evidence = await host.inspectLocalChanges?.({
-          internalName: extension.internalName,
-          targetSha: selection.target.requestedSha
-        });
-        if (!evidence?.conflicting || evidence.installedSha !== selection.binding.installedSha)
-          return false;
         pending.set(id, {
           selection: structuredClone(selection),
           name,
-          fingerprint: evidence.fingerprint,
           removed: false,
           enabled: extension.enabled
         });
@@ -21972,14 +21943,10 @@ function createUpdateReplacement({
         }
         const input = { internalName: binding.internalName, type: "local" };
         if (!plan.removed) {
-          const evidence = await host.inspectLocalChanges?.({
-            internalName: binding.internalName,
-            targetSha: target.requestedSha
-          });
-          if (!evidence?.conflicting || evidence.fingerprint !== plan.fingerprint || evidence.installedSha !== binding.installedSha) {
+          if (await host.readLocalRevision(input) !== binding.installedSha) {
             pending.delete(id);
             throw new Error(
-              "The extension files changed since this update failed. Check for updates again."
+              "The installed extension changed since this update failed. Check for updates again."
             );
           }
           const extension = (await host.discover()).find(
@@ -22359,7 +22326,7 @@ var DefaultExtensionUpdateCoordinator = class {
               reloadRequired: false
             });
             if (await this.#replacement.offer(receipt2.id, selection, project2.name)) {
-              receipt2.replacementRecovery = "local-changes";
+              receipt2.replacementRecovery = "update-failed";
               this.#replacementRecords.set(
                 receipt2.id,
                 structuredClone(this.#store.read().managedExtensions[project2.id])

@@ -9,37 +9,6 @@ const installedSha = "0".repeat(40);
 const checkedSha = "a".repeat(40);
 const remoteSha = "b".repeat(40);
 
-it("uses authenticated helper evidence for local-change recovery", async () => {
-  const evidence = { installedSha, fingerprint: "a".repeat(64), conflicting: true };
-  const fetchMock = vi.fn().mockResolvedValue(Response.json(evidence));
-  const host = createSillyTavernHost({ fetch: fetchMock });
-  expect(
-    await host.inspectLocalChanges({ internalName: "third-party/Alpha", targetSha: null }),
-  ).toEqual(evidence);
-  expect(fetchMock).toHaveBeenCalledWith(
-    "/api/plugins/tavernary-companion/local-changes",
-    expect.objectContaining({
-      method: "POST",
-      headers: { Authorization: "private" },
-      body: JSON.stringify({ extensionName: "Alpha", targetSha: null }),
-    }),
-  );
-});
-
-it("does not infer local changes when the helper is absent or returns invalid evidence", async () => {
-  const fetchMock = vi
-    .fn()
-    .mockResolvedValueOnce(new Response("missing", { status: 404 }))
-    .mockResolvedValueOnce(Response.json({ conflicting: true }));
-  const host = createSillyTavernHost({ fetch: fetchMock });
-  expect(
-    await host.inspectLocalChanges({ internalName: "third-party/Alpha", targetSha: null }),
-  ).toBeNull();
-  expect(
-    await host.inspectLocalChanges({ internalName: "third-party/Alpha", targetSha: null }),
-  ).toBeNull();
-});
-
 function createSillyTavernHost(overrides: Record<string, unknown> = {}) {
   return new SillyTavernHostAdapter({
     getExtensionNames: () => [],

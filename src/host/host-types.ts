@@ -32,10 +32,6 @@ export interface HostResolvedRevision {
 }
 
 export interface HostExtensionAdapter {
-  inspectLocalChanges?(input: {
-    internalName: string;
-    targetSha: string | null;
-  }): Promise<{ fingerprint: string; installedSha: string; conflicting: boolean } | null>;
   discover(): Promise<HostExtension[]>;
   readExtensionRepositoryUrl(input: {
     internalName: string;

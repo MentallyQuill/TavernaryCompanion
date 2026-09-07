@@ -10,22 +10,18 @@ function setup() {
     enabled: false,
   };
   const host = {
-    inspectLocalChanges: vi.fn(async () => ({
-      fingerprint: "files-1",
-      installedSha: "1".repeat(40),
-      conflicting: true,
-    })),
     getInstallCapabilities: vi.fn(async () => ({
       pinnedCommitInstall: true,
       localRevisionLookup: true,
     })),
     discover: vi.fn(async () => [extension]),
-    readLocalRevision: vi.fn(async () => "2".repeat(40)),
+    readLocalRevision: vi.fn(async () => "1".repeat(40)),
     remove: vi.fn(async () => {
       host.discover.mockResolvedValue([]);
     }),
     install: vi.fn(async () => {
       host.discover.mockResolvedValue([extension]);
+      host.readLocalRevision.mockResolvedValue("2".repeat(40));
     }),
     disable: vi.fn(),
     enable: vi.fn(),
@@ -70,7 +66,9 @@ describe("update replacement", () => {
   it("returns a verification receipt and restores disabled state when revision lookup fails", async () => {
     const { host, selection, recovery } = setup();
     await recovery.offer("receipt", selection, "Alpha");
-    host.readLocalRevision.mockRejectedValueOnce(new Error("offline"));
+    host.readLocalRevision
+      .mockResolvedValueOnce("1".repeat(40))
+      .mockRejectedValueOnce(new Error("offline"));
     expect((await recovery.replace("receipt")).status).toBe("verification-failed");
     expect(host.disable).toHaveBeenCalledOnce();
   });
@@ -82,7 +80,7 @@ describe("update replacement", () => {
     expect(result.status).toBe("verification-failed");
     expect(result.safeError).toMatch(/enabled setting/);
   });
-  it("requires confirmed conflicting files and an explicit replacement call", async () => {
+  it("offers recovery without a helper and requires an explicit replacement call", async () => {
     const { host, selection, recovery } = setup();
     expect(await recovery.offer("receipt", selection, "Alpha")).toBe(true);
     expect(host.remove).not.toHaveBeenCalled();
@@ -96,25 +94,10 @@ describe("update replacement", () => {
     expect(host.disable).toHaveBeenCalledWith("third-party/Alpha");
     await expect(recovery.replace("receipt")).rejects.toThrow();
   });
-  it("never offers destructive recovery for unknown or nonconflicting failures", async () => {
-    const { host, selection, recovery } = setup();
-    host.inspectLocalChanges.mockResolvedValue({
-      fingerprint: "files-1",
-      installedSha: "1".repeat(40),
-      conflicting: false,
-    });
-    expect(await recovery.offer("receipt", selection, "Alpha")).toBe(false);
-    await expect(recovery.replace("receipt")).rejects.toThrow();
-    expect(host.remove).not.toHaveBeenCalled();
-  });
-  it("rejects changed files since confirmation without deleting anything", async () => {
+  it("rejects a changed installed revision before deleting anything", async () => {
     const { host, selection, recovery } = setup();
     await recovery.offer("receipt", selection, "Alpha");
-    host.inspectLocalChanges.mockResolvedValue({
-      fingerprint: "files-2",
-      installedSha: "1".repeat(40),
-      conflicting: true,
-    });
+    host.readLocalRevision.mockResolvedValue("9".repeat(40));
     await expect(recovery.replace("receipt")).rejects.toThrow(/changed/);
     expect(host.remove).not.toHaveBeenCalled();
   });

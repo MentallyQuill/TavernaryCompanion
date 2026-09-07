@@ -52,7 +52,6 @@ describe.sequential("build and release packaging", () => {
         "dist/extension.js",
         "docs/user/update-recovery.md",
         "manifest.json",
-        "server/local-changes.mjs",
       ],
       sourceCommit,
     });
