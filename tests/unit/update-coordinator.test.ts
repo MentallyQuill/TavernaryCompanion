@@ -137,14 +137,9 @@ describe("ExtensionUpdateCoordinator", () => {
         marker: "keep",
       };
     });
-    host.inspectLocalChanges = async () => ({
-      fingerprint: "files",
-      installedSha,
-      conflicting: true,
-    });
     await coordinator.check("alpha");
     const receipt = await coordinator.update(coordinator.prepare("alpha").selections[0]);
-    expect(receipt.replacementRecovery).toBe("local-changes");
+    expect(receipt.replacementRecovery).toBe("update-failed");
     vi.spyOn(host, "install").mockRejectedValueOnce(new Error("offline"));
     expect((await coordinator.replace(receipt.id)).replacementRecovery).toBe("retry-install");
     await store.update((draft) => {

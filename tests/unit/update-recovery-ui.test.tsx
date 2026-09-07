@@ -15,7 +15,7 @@ it("shows the approved explanation and requires Replace and update", () => {
     safeError: null,
     reloadRequired: false,
   });
-  receipt.replacementRecovery = "local-changes";
+  receipt.replacementRecovery = "update-failed";
   const replace = vi.fn();
   const cancel = vi.fn();
   render(
@@ -26,11 +26,7 @@ it("shows the approved explanation and requires Replace and update", () => {
       onDismissReceipt={cancel}
     />,
   );
-  expect(
-    screen.getByText(
-      "Directive couldn’t update because some of its local files have been changed.",
-    ),
-  ).toBeVisible();
+  expect(screen.getByText("Directive couldn’t update.")).toBeVisible();
   expect(
     screen.getByText(
       "Do you want to force-update? This will remove its current files and reinstall the version you selected.",

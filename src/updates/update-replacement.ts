@@ -17,7 +17,6 @@ export function createUpdateReplacement({
     {
       selection: PreparedUpdateSelection;
       name: string;
-      fingerprint: string;
       removed: boolean;
       enabled: boolean;
     }
@@ -36,16 +35,9 @@ export function createUpdateReplacement({
           (e) => e.internalName === selection.binding.internalName && e.type === "local",
         );
         if (!extension) return false;
-        const evidence = await host.inspectLocalChanges?.({
-          internalName: extension.internalName,
-          targetSha: selection.target.requestedSha,
-        });
-        if (!evidence?.conflicting || evidence.installedSha !== selection.binding.installedSha)
-          return false;
         pending.set(id, {
           selection: structuredClone(selection),
           name,
-          fingerprint: evidence.fingerprint,
           removed: false,
           enabled: extension.enabled,
         });
@@ -72,18 +64,10 @@ export function createUpdateReplacement({
         }
         const input = { internalName: binding.internalName, type: "local" as const };
         if (!plan.removed) {
-          const evidence = await host.inspectLocalChanges?.({
-            internalName: binding.internalName,
-            targetSha: target.requestedSha,
-          });
-          if (
-            !evidence?.conflicting ||
-            evidence.fingerprint !== plan.fingerprint ||
-            evidence.installedSha !== binding.installedSha
-          ) {
+          if ((await host.readLocalRevision(input)) !== binding.installedSha) {
             pending.delete(id);
             throw new Error(
-              "The extension files changed since this update failed. Check for updates again.",
+              "The installed extension changed since this update failed. Check for updates again.",
             );
           }
           const extension = (await host.discover()).find(

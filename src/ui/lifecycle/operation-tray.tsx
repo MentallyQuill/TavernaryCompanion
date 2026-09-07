@@ -77,7 +77,7 @@ export function OperationTray({
             <h3>
               {retry
                 ? `${receipt.projectName} reinstallation did not complete`
-                : `${receipt.projectName} couldn’t update because some of its local files have been changed.`}
+                : `${receipt.projectName} couldn’t update.`}
             </h3>
             <p>
               {retry
