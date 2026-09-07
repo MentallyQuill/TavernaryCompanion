@@ -50,7 +50,9 @@ describe.sequential("build and release packaging", () => {
         "dist/assets/tavernary-trihex.png",
         "dist/companion.css",
         "dist/extension.js",
+        "docs/user/update-recovery.md",
         "manifest.json",
+        "server/local-changes.mjs",
       ],
       sourceCommit,
     });

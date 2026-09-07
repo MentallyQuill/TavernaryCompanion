@@ -7290,6 +7290,28 @@ var SillyTavernHostAdapter = class {
       throw await responseError("update", "SillyTavern could not update the extension.", response);
     }
   }
+  async inspectLocalChanges(input) {
+    const response = await this.#dependencies.fetch(
+      "/api/plugins/tavernary-companion/local-changes",
+      {
+        method: "POST",
+        headers: this.#dependencies.getRequestHeaders(),
+        body: JSON.stringify({
+          extensionName: input.internalName.replace(/^third-party\//, ""),
+          targetSha: input.targetSha
+        })
+      }
+    );
+    if (!response.ok) return null;
+    const body = await readJsonObject(response, "inspectUpdate");
+    if (typeof body.fingerprint !== "string" || !/^[a-f0-9]{64}$/.test(body.fingerprint) || typeof body.conflicting !== "boolean")
+      return null;
+    return {
+      fingerprint: body.fingerprint,
+      installedSha: parseCommitSha(body.installedSha, "inspectUpdate"),
+      conflicting: body.conflicting
+    };
+  }
   async remove(input) {
     let response;
     try {
@@ -18176,6 +18198,7 @@ function OperationTray({
   bulkRemovalReceipt,
   error,
   onDismissReceipt,
+  onReplaceUpdate,
   onDismissError,
   onRetryError,
   onReload,
@@ -18214,6 +18237,16 @@ function OperationTray({
     );
   }
   if (receipt) {
+    if (receipt.replacementRecovery && onReplaceUpdate) {
+      const retry = receipt.replacementRecovery === "retry-install";
+      return /* @__PURE__ */ u3("aside", { class: "tavernary-companion-operation-tray", role: "alert", children: /* @__PURE__ */ u3("section", { class: "tavernary-companion-operation-receipt", children: [
+        /* @__PURE__ */ u3("h3", { children: retry ? `${receipt.projectName} reinstallation did not complete` : `${receipt.projectName} couldn\u2019t update because some of its local files have been changed.` }),
+        /* @__PURE__ */ u3("p", { children: retry ? receipt.safeError : "Do you want to force-update? This will remove its current files and reinstall the version you selected." }),
+        /* @__PURE__ */ u3("button", { type: "button", onClick: onDismissReceipt, children: "Cancel" }),
+        " ",
+        /* @__PURE__ */ u3("button", { type: "button", onClick: onReplaceUpdate, children: retry ? "Retry installation" : "Replace and update" })
+      ] }) });
+    }
     if (receipt.kind === "update" && (receipt.status === "succeeded" || receipt.status === "updated-unrecorded")) {
       return /* @__PURE__ */ u3(
         "aside",
@@ -19119,6 +19152,7 @@ function InstalledRoute({
   updateStates = {},
   onRefresh,
   onCheckUpdates,
+  onUpdateAll,
   onRetryUpdate,
   onUpdate,
   onAction,
@@ -19152,6 +19186,9 @@ function InstalledRoute({
   const installedKits = kits;
   const kitSelectionAvailable = installedKits.some((kit2) => kit2.selectionProjectIds.length > 0);
   const checkingUpdates = Object.values(updateStates).some(({ kind }) => kind === "checking");
+  const availableCount = new Set(
+    sections.flatMap((section) => section.rows).filter((row) => updateStates[row.id]?.kind === "available").map((row) => row.id)
+  ).size;
   const usingNativeUpdates = Object.values(updateStates).some(
     (state) => state.kind === "current" && state.native === true || state.kind === "available" && state.targets.some(({ requestedSha }) => requestedSha === null)
   );
@@ -19186,7 +19223,21 @@ function InstalledRoute({
           onClick: () => loadState === "error" ? void onRefresh() : void onCheckUpdates?.(),
           children: loadState === "error" ? "Retry" : checkingUpdates ? "Checking\u2026" : "Check again"
         }
-      )
+      ),
+      onUpdateAll ? /* @__PURE__ */ u3(
+        "button",
+        {
+          type: "button",
+          disabled: loadState !== "ready" || refreshing || checkingUpdates || lifecycleDisabled || availableCount === 0,
+          onClick: () => void onUpdateAll(),
+          title: "Install the latest available version of each extension",
+          children: [
+            "Update All (",
+            availableCount,
+            ")"
+          ]
+        }
+      ) : null
     ] }),
     loadState === "ready" && usingNativeUpdates ? /* @__PURE__ */ u3("p", { class: "tavernary-companion-installed-update-note", children: "SillyTavern can update extensions to the latest version from their creator. Updating to a specific TavernKeeper-scanned version isn\u2019t supported by this build." }) : null,
     loadState === "ready" && installedKits.length ? /* @__PURE__ */ u3(
@@ -21535,6 +21586,7 @@ function CompanionShell({
   onCheckUpdates,
   onRetryUpdate,
   onUpdateExtension,
+  onUpdateAll,
   inventoryLoadState = "ready",
   inventoryRefreshing = false,
   togglingInternalName = null,
@@ -21689,6 +21741,7 @@ function CompanionShell({
                     onCheckUpdates,
                     onRetryUpdate,
                     onUpdate: onUpdateExtension,
+                    onUpdateAll,
                     onAction: (id, action, anchor) => onProjectAction?.(id, action, anchor),
                     onManage: onOpenExtensionManager,
                     onOpenKit: (id) => controller.openDetail({ kind: "kit", id, focusKey: `installed-kit-${id}` }),
@@ -21866,6 +21919,204 @@ function createShellController(options) {
   return new DefaultShellController(options);
 }
 
+// src/updates/update-replacement.ts
+function createUpdateReplacement({
+  host,
+  lock
+}) {
+  const pending = /* @__PURE__ */ new Map();
+  return {
+    has(id) {
+      return pending.has(id);
+    },
+    cancel(id) {
+      pending.delete(id);
+    },
+    async offer(id, selection, name) {
+      if (selection.binding.projectId === COMPANION_PROJECT_ID) return false;
+      try {
+        const extension = (await host.discover()).find(
+          (e3) => e3.internalName === selection.binding.internalName && e3.type === "local"
+        );
+        if (!extension) return false;
+        const evidence = await host.inspectLocalChanges?.({
+          internalName: extension.internalName,
+          targetSha: selection.target.requestedSha
+        });
+        if (!evidence?.conflicting || evidence.installedSha !== selection.binding.installedSha)
+          return false;
+        pending.set(id, {
+          selection: structuredClone(selection),
+          name,
+          fingerprint: evidence.fingerprint,
+          removed: false,
+          enabled: extension.enabled
+        });
+        return true;
+      } catch {
+        return false;
+      }
+    },
+    async replace(id) {
+      return lock.runExclusive(`replace:${id}`, async ({ setPhase }) => {
+        const plan = pending.get(id);
+        if (!plan) throw new Error("Check this extension for updates again.");
+        const { selection, name } = plan;
+        const { binding, target } = selection;
+        const startedAt = (/* @__PURE__ */ new Date()).toISOString();
+        const capabilities = await host.getInstallCapabilities();
+        if (!capabilities.localRevisionLookup || target.requestedSha && !capabilities.pinnedCommitInstall) {
+          throw new Error(
+            "SillyTavern cannot reinstall and verify the selected version. Nothing was removed."
+          );
+        }
+        const input = { internalName: binding.internalName, type: "local" };
+        if (!plan.removed) {
+          const evidence = await host.inspectLocalChanges?.({
+            internalName: binding.internalName,
+            targetSha: target.requestedSha
+          });
+          if (!evidence?.conflicting || evidence.fingerprint !== plan.fingerprint || evidence.installedSha !== binding.installedSha) {
+            pending.delete(id);
+            throw new Error(
+              "The extension files changed since this update failed. Check for updates again."
+            );
+          }
+          const extension = (await host.discover()).find(
+            (e3) => e3.internalName === binding.internalName && e3.type === "local"
+          );
+          if (!extension)
+            throw new Error("The installed extension changed. Check for updates again.");
+          plan.enabled = extension.enabled;
+          setPhase("host-request");
+          try {
+            await host.remove(input);
+            plan.removed = true;
+          } catch {
+            try {
+              plan.removed = !(await host.discover()).some(
+                (e3) => e3.internalName === binding.internalName && e3.type === "local"
+              );
+            } catch {
+            }
+            if (!plan.removed) {
+              pending.delete(id);
+              return createReceipt({
+                id,
+                kind: "update",
+                projectId: binding.projectId,
+                projectName: name,
+                startedAt,
+                finishedAt: (/* @__PURE__ */ new Date()).toISOString(),
+                status: "verification-failed",
+                completedThrough: "requested",
+                failedAt: "verified",
+                reloadRequired: true,
+                safeError: "Companion could not confirm whether the extension was removed. Check it in SillyTavern before trying again."
+              });
+            }
+          }
+        }
+        let alreadyInstalled;
+        try {
+          alreadyInstalled = (await host.discover()).some(
+            (e3) => e3.internalName === binding.internalName && e3.type === "local"
+          );
+        } catch {
+          const receipt = createReceipt({
+            id,
+            kind: "update",
+            projectId: binding.projectId,
+            projectName: name,
+            startedAt,
+            finishedAt: (/* @__PURE__ */ new Date()).toISOString(),
+            status: "verification-failed",
+            completedThrough: "requested",
+            failedAt: "verified",
+            reloadRequired: true,
+            safeError: `${name} was removed, but Companion could not check whether it can be reinstalled. Retry installation to check again.`
+          });
+          receipt.replacementRecovery = "retry-install";
+          return receipt;
+        }
+        if (alreadyInstalled) {
+          pending.delete(id);
+          throw new Error("The extension is already installed. Check for updates again.");
+        }
+        try {
+          setPhase("host-request");
+          await host.install({
+            repositoryUrl: binding.repositoryUrl,
+            branch: binding.branch,
+            commitSha: target.requestedSha
+          });
+        } catch {
+          let installed = true;
+          try {
+            installed = (await host.discover()).some(
+              (e3) => e3.internalName === binding.internalName && e3.type === "local"
+            );
+          } catch {
+          }
+          if (installed && !plan.enabled)
+            await host.disable(binding.internalName).catch(() => void 0);
+          const receipt = createReceipt({
+            id,
+            kind: "update",
+            projectId: binding.projectId,
+            projectName: name,
+            startedAt,
+            finishedAt: (/* @__PURE__ */ new Date()).toISOString(),
+            status: "failed",
+            completedThrough: "requested",
+            failedAt: "host-accepted",
+            reloadRequired: true,
+            safeError: installed ? "Companion could not verify the reinstallation. Check the extension in SillyTavern." : `${name} was removed, but reinstallation failed. Retry installation to finish.`
+          });
+          if (!installed) receipt.replacementRecovery = "retry-install";
+          else pending.delete(id);
+          return receipt;
+        }
+        pending.delete(id);
+        setPhase("verifying");
+        let sha = null;
+        let stateRestored = false;
+        try {
+          if (plan.enabled) await host.enable(binding.internalName);
+          else await host.disable(binding.internalName);
+          stateRestored = true;
+          const extension = (await host.discover()).find(
+            (e3) => e3.internalName === binding.internalName && e3.type === "local"
+          );
+          sha = extension ? await host.readLocalRevision(input) : null;
+        } catch {
+        }
+        const verified = sha !== null && (target.requestedSha ? sha === target.requestedSha : sha !== binding.installedSha);
+        return createReceipt({
+          id,
+          kind: "update",
+          projectId: binding.projectId,
+          projectName: name,
+          startedAt,
+          finishedAt: (/* @__PURE__ */ new Date()).toISOString(),
+          status: verified ? "succeeded" : "verification-failed",
+          completedThrough: verified ? "verified" : "host-accepted",
+          failedAt: verified ? void 0 : "verified",
+          reloadRequired: true,
+          safeError: verified ? null : !stateRestored ? "The extension was reinstalled, but its enabled setting could not be restored. Manage it in SillyTavern before reloading." : "Companion could not verify the selected version after reinstallation. Manage it in SillyTavern.",
+          installProvenance: {
+            targetKind: target.kind,
+            requestedSha: target.requestedSha,
+            installedSha: sha,
+            catalogGeneratedAt: binding.catalogGeneratedAt,
+            tavernKeeperReportId: target.kind === "checked" ? target.reportId : null
+          }
+        });
+      });
+    }
+  };
+}
+
 // src/updates/update-coordinator.ts
 var DefaultExtensionUpdateCoordinator = class {
   #host;
@@ -21881,8 +22132,11 @@ var DefaultExtensionUpdateCoordinator = class {
   #checkedEvidence = {};
   #checkSequence = {};
   #generation = 0;
+  #replacement;
+  #replacementRecords = /* @__PURE__ */ new Map();
   constructor(options) {
     this.#host = options.host;
+    this.#replacement = createUpdateReplacement({ host: options.host, lock: options.lock });
     this.#getSnapshot = options.getSnapshot;
     this.#getInventory = options.getInventory;
     this.#lock = options.lock;
@@ -22104,6 +22358,13 @@ var DefaultExtensionUpdateCoordinator = class {
               safeError: "SillyTavern did not complete the extension update.",
               reloadRequired: false
             });
+            if (await this.#replacement.offer(receipt2.id, selection, project2.name)) {
+              receipt2.replacementRecovery = "local-changes";
+              this.#replacementRecords.set(
+                receipt2.id,
+                structuredClone(this.#store.read().managedExtensions[project2.id])
+              );
+            }
             await this.#persistIncompleteReceipt(receipt2, disclosureAccepted);
             return receipt2;
           }
@@ -22253,6 +22514,43 @@ var DefaultExtensionUpdateCoordinator = class {
     this.#snapshot.states[projectId] = structuredClone(state);
     const snapshot = this.read();
     for (const subscriber of this.#subscribers) subscriber(snapshot);
+  }
+  canReplace(id) {
+    return this.#replacement.has(id);
+  }
+  cancelReplacement(id) {
+    this.#replacement.cancel(id);
+    this.#replacementRecords.delete(id);
+  }
+  async replace(id) {
+    const receipt = await this.#replacement.replace(id);
+    try {
+      await this.#store.update((draft) => {
+        if (receipt.status === "succeeded" && receipt.installProvenance) {
+          if (!draft.managedExtensions[receipt.projectId] && this.#replacementRecords.get(id)) {
+            draft.managedExtensions[receipt.projectId] = structuredClone(
+              this.#replacementRecords.get(id)
+            );
+          }
+          const managed = draft.managedExtensions[receipt.projectId];
+          if (managed && typeof managed === "object" && !Array.isArray(managed)) {
+            managed.provenance = structuredClone(
+              receipt.installProvenance
+            );
+          }
+          receipt.steps.find((step2) => step2.id === "recorded").status = "succeeded";
+        }
+        draft.operationReceipt = receipt.status === "succeeded" ? null : structuredClone(receipt);
+      });
+    } catch {
+      if (receipt.status === "succeeded") {
+        receipt.status = "updated-unrecorded";
+        receipt.safeError = "The extension was updated, but Companion could not save its update record.";
+        receipt.steps.find((step2) => step2.id === "recorded").status = "failed";
+      }
+    }
+    if (!this.#replacement.has(id)) this.#replacementRecords.delete(id);
+    return receipt;
   }
   #publishInspection(project2, internalName, inspection) {
     const availability = deriveUpdateAvailability({ project: project2, inspection });
@@ -22917,6 +23215,27 @@ function CompanionPopupHost({
   const showOperationError = (error) => {
     setOperationError(error instanceof Error ? error.message : "The operation could not finish.");
   };
+  const [updatingAll, setUpdatingAll] = d2(false);
+  const updateAll = async () => {
+    if (!runtime || updatingAll) return;
+    setUpdatingAll(true);
+    setOperationError(null);
+    try {
+      const ids = Object.entries(runtime.updates.read().states).filter(([, state]) => state.kind === "available").map(([id]) => id);
+      for (const id of ids) {
+        const choice = runtime.updates.prepare(id);
+        const selection = choice.selections.find((selection2) => selection2.target.kind === "newest") ?? choice.selections[0];
+        if (!selection) continue;
+        const result2 = await runtime.updates.update(selection);
+        setReceipt(result2);
+        if (result2.status !== "succeeded") break;
+      }
+    } catch (error) {
+      showOperationError(error);
+    } finally {
+      setUpdatingAll(false);
+    }
+  };
   const executeUpdateSelection = async (selection) => {
     if (!runtime) return;
     try {
@@ -23064,6 +23383,7 @@ function CompanionPopupHost({
         onRefreshInventory: refreshInstalled,
         updateStates: updateSnapshot.states,
         onCheckUpdates: checkAllUpdates,
+        onUpdateAll: () => void updateAll(),
         onRetryUpdate: (projectId) => void runtime?.updates.check(projectId),
         onUpdateExtension: (projectId, anchor) => {
           const snapshot = runtime?.catalog.read();
@@ -23102,7 +23422,7 @@ function CompanionPopupHost({
         onOpenExtensionManager: () => void host?.openExtensionManager(),
         onUpdateCompanion: () => void host?.openExtensionManager(),
         onOpenTavernary: () => host?.openExternal("https://tavernary.org/"),
-        lifecycleDisabled: activeOperation !== null || togglingInternalName !== null || preparingInstall || pendingInstallChoice !== null || pendingUpdateChoice !== null || pendingInstallFallback !== null || preparingKitPlan || preparingBulkRemoval,
+        lifecycleDisabled: updatingAll || activeOperation !== null || togglingInternalName !== null || preparingInstall || pendingInstallChoice !== null || pendingUpdateChoice !== null || pendingInstallFallback !== null || preparingKitPlan || preparingBulkRemoval,
         kitDiscovery: runtime?.kitDiscovery,
         kitInspectors,
         installedKits: installedKitCards,
@@ -23297,7 +23617,15 @@ function CompanionPopupHost({
         receipt,
         bulkRemovalReceipt,
         error: operationError,
+        onReplaceUpdate: receipt && runtime?.updates.canReplace(receipt.id) ? () => {
+          setOperationError(null);
+          void runtime.updates.replace(receipt.id).then(async (result2) => {
+            setReceipt(result2);
+            await refreshInventory();
+          }).catch(showOperationError);
+        } : void 0,
         onDismissReceipt: () => {
+          if (receipt) runtime?.updates.cancelReplacement(receipt.id);
           if (receipt) void clearStoredReceipt(store, receipt.id);
           setReceipt(null);
         },

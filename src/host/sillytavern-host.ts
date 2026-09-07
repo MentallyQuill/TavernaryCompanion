@@ -466,6 +466,33 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
     }
   }
 
+  async inspectLocalChanges(input: { internalName: string; targetSha: string | null }) {
+    const response = await this.#dependencies.fetch(
+      "/api/plugins/tavernary-companion/local-changes",
+      {
+        method: "POST",
+        headers: this.#dependencies.getRequestHeaders(),
+        body: JSON.stringify({
+          extensionName: input.internalName.replace(/^third-party\//, ""),
+          targetSha: input.targetSha,
+        }),
+      },
+    );
+    if (!response.ok) return null;
+    const body = await readJsonObject(response, "inspectUpdate");
+    if (
+      typeof body.fingerprint !== "string" ||
+      !/^[a-f0-9]{64}$/.test(body.fingerprint) ||
+      typeof body.conflicting !== "boolean"
+    )
+      return null;
+    return {
+      fingerprint: body.fingerprint,
+      installedSha: parseCommitSha(body.installedSha, "inspectUpdate"),
+      conflicting: body.conflicting,
+    };
+  }
+
   async remove(input: { internalName: string; type: "local" | "global" }): Promise<void> {
     let response: Response;
     try {

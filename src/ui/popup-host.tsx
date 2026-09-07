@@ -499,6 +499,32 @@ export function CompanionPopupHost({
     setOperationError(error instanceof Error ? error.message : "The operation could not finish.");
   };
 
+  const [updatingAll, setUpdatingAll] = useState(false);
+  const updateAll = async () => {
+    if (!runtime || updatingAll) return;
+    setUpdatingAll(true);
+    setOperationError(null);
+    try {
+      const ids = Object.entries(runtime.updates.read().states)
+        .filter(([, state]) => state.kind === "available")
+        .map(([id]) => id);
+      for (const id of ids) {
+        const choice = runtime.updates.prepare(id);
+        const selection =
+          choice.selections.find((selection) => selection.target.kind === "newest") ??
+          choice.selections[0];
+        if (!selection) continue;
+        const result = await runtime.updates.update(selection);
+        setReceipt(result);
+        if (result.status !== "succeeded") break;
+      }
+    } catch (error) {
+      showOperationError(error);
+    } finally {
+      setUpdatingAll(false);
+    }
+  };
+
   const executeUpdateSelection = async (selection: PreparedUpdateSelection): Promise<void> => {
     if (!runtime) return;
     try {
@@ -662,6 +688,7 @@ export function CompanionPopupHost({
         onRefreshInventory={refreshInstalled}
         updateStates={updateSnapshot.states}
         onCheckUpdates={checkAllUpdates}
+        onUpdateAll={() => void updateAll()}
         onRetryUpdate={(projectId) => void runtime?.updates.check(projectId)}
         onUpdateExtension={(projectId, anchor) => {
           const snapshot = runtime?.catalog.read();
@@ -706,6 +733,7 @@ export function CompanionPopupHost({
         onUpdateCompanion={() => void host?.openExtensionManager()}
         onOpenTavernary={() => host?.openExternal("https://tavernary.org/")}
         lifecycleDisabled={
+          updatingAll ||
           activeOperation !== null ||
           togglingInternalName !== null ||
           preparingInstall ||
@@ -914,7 +942,22 @@ export function CompanionPopupHost({
         receipt={receipt}
         bulkRemovalReceipt={bulkRemovalReceipt}
         error={operationError}
+        onReplaceUpdate={
+          receipt && runtime?.updates.canReplace(receipt.id)
+            ? () => {
+                setOperationError(null);
+                void runtime.updates
+                  .replace(receipt.id)
+                  .then(async (result) => {
+                    setReceipt(result);
+                    await refreshInventory();
+                  })
+                  .catch(showOperationError);
+              }
+            : undefined
+        }
         onDismissReceipt={() => {
+          if (receipt) runtime?.updates.cancelReplacement(receipt.id);
           if (receipt) void clearStoredReceipt(store, receipt.id);
           setReceipt(null);
         }}

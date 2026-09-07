@@ -111,6 +111,51 @@ function setup(hostOverrides: FakeHostOptions = {}) {
 }
 
 describe("ExtensionUpdateCoordinator", () => {
+  it("preserves the managed record when inventory prunes it during a failed replacement", async () => {
+    const repositoryUrl = catalogProjectFixture().install!.repositoryUrl;
+    const { coordinator, host, store } = setup({
+      capabilities: {
+        pinnedCommitInstall: true,
+        remoteRevisionLookup: true,
+        localRevisionLookup: true,
+      },
+      installResults: {
+        [repositoryUrl]: {
+          internalName: "third-party/Alpha",
+          folderName: "Alpha",
+          type: "local",
+          enabled: true,
+          manifest: null,
+        },
+      },
+      failures: { applyUpdate: new Error("Host update failed") },
+    });
+    await store.update((draft) => {
+      draft.managedExtensions.alpha = {
+        projectId: "alpha",
+        internalName: "third-party/Alpha",
+        marker: "keep",
+      };
+    });
+    host.inspectLocalChanges = async () => ({
+      fingerprint: "files",
+      installedSha,
+      conflicting: true,
+    });
+    await coordinator.check("alpha");
+    const receipt = await coordinator.update(coordinator.prepare("alpha").selections[0]);
+    expect(receipt.replacementRecovery).toBe("local-changes");
+    vi.spyOn(host, "install").mockRejectedValueOnce(new Error("offline"));
+    expect((await coordinator.replace(receipt.id)).replacementRecovery).toBe("retry-install");
+    await store.update((draft) => {
+      delete draft.managedExtensions.alpha;
+    });
+    expect((await coordinator.replace(receipt.id)).status).toBe("succeeded");
+    expect(store.read().managedExtensions.alpha).toMatchObject({
+      marker: "keep",
+      provenance: { installedSha: newestSha },
+    });
+  });
   it("checks a catalog-matched external extension and exposes a forward newest target", async () => {
     const { coordinator } = setup();
 

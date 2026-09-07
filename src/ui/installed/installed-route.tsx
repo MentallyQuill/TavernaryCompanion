@@ -21,6 +21,7 @@ interface InstalledRouteProps {
   updateStates?: Readonly<Record<string, ProjectUpdateState>>;
   onRefresh(): void | Promise<void>;
   onCheckUpdates?(): void | Promise<void>;
+  onUpdateAll?(): void | Promise<void>;
   onRetryUpdate?(id: string): void;
   onUpdate?(id: string, anchor: HTMLButtonElement): void;
   onAction?(id: string, action: ProjectPrimaryAction, anchor: HTMLButtonElement): void;
@@ -46,6 +47,7 @@ export function InstalledRoute({
   updateStates = {},
   onRefresh,
   onCheckUpdates,
+  onUpdateAll,
   onRetryUpdate,
   onUpdate,
   onAction,
@@ -79,6 +81,12 @@ export function InstalledRoute({
   const installedKits = kits;
   const kitSelectionAvailable = installedKits.some((kit) => kit.selectionProjectIds.length > 0);
   const checkingUpdates = Object.values(updateStates).some(({ kind }) => kind === "checking");
+  const availableCount = new Set(
+    sections
+      .flatMap((section) => section.rows)
+      .filter((row) => updateStates[row.id]?.kind === "available")
+      .map((row) => row.id),
+  ).size;
   const usingNativeUpdates = Object.values(updateStates).some(
     (state) =>
       (state.kind === "current" && state.native === true) ||
@@ -130,6 +138,22 @@ export function InstalledRoute({
         >
           {loadState === "error" ? "Retry" : checkingUpdates ? "Checking…" : "Check again"}
         </button>
+        {onUpdateAll ? (
+          <button
+            type="button"
+            disabled={
+              loadState !== "ready" ||
+              refreshing ||
+              checkingUpdates ||
+              lifecycleDisabled ||
+              availableCount === 0
+            }
+            onClick={() => void onUpdateAll()}
+            title="Install the latest available version of each extension"
+          >
+            Update All ({availableCount})
+          </button>
+        ) : null}
       </header>
       {loadState === "ready" && usingNativeUpdates ? (
         <p class="tavernary-companion-installed-update-note">
