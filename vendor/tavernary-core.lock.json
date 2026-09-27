@@ -1,7 +1,7 @@
 {
   "schemaVersion": 1,
   "repository": "https://github.com/MentallyQuill/Tavernary.git",
-  "commit": "9faedbf2d94a0da742f35419509721041d3da919",
+  "commit": "a1ef6dd21d19ab24fb1ec05563e0b8ebdef0696f",
   "sourcePath": "packages/catalog-core",
   "files": [
     {
@@ -38,11 +38,11 @@
     },
     {
       "path": "src/catalog-types.ts",
-      "sha256": "deff98eaa657f58057327bd3a53eb559373205d835ab97a5d3bbfa84c8727936"
+      "sha256": "d28a744b9b9c8889663048f8245fc207b642cc3974fbd4a604ba79f2c0f65d74"
     },
     {
       "path": "src/catalog-v7-schema.ts",
-      "sha256": "54366f09c18918bc7dfda3935d900bd430e56173209258ec1f34a88ff9493b70"
+      "sha256": "d43dccc95f735dc314856019ddd24d70a056404ea2cfb88731eaacb95bbbb0c9"
     },
     {
       "path": "src/catalog-v8-schema.ts",
@@ -54,7 +54,7 @@
     },
     {
       "path": "src/install-contract.ts",
-      "sha256": "0a28ec22f8b5fc5a1c36ae08a0551594ca465b5d9278fbf9ef151cbf88c494e4"
+      "sha256": "7621a3118aa58f5d9998b5562cb457cbe9341e927b2d5f8fee4bdf878202bf38"
     },
     {
       "path": "src/kit-query.ts",

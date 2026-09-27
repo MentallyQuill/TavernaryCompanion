@@ -28,7 +28,7 @@ A card can show:
 - a TavernKeeper status or scan note;
 - an action such as **Install**, **Uninstall**, **Add to Kit**, or **Manage in SillyTavern**.
 
-Read the reason beside a disabled action. “Browse-only,” “Install contract unavailable,” or a safety warning each mean something different. If you want the full context, open the project details and follow the source or TavernKeeper link.
+Read the reason beside a disabled action. Browse-only, a repository warning, or a safety warning each mean something different. Projects without a manifest can still be installed through SillyTavern's native Git installer.
 
 ## Install a project
 

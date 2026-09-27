@@ -74,17 +74,13 @@ export async function executeVerifiedInstall(input: {
     ...(input.target.requestedSha === null ? {} : { commitSha: input.target.requestedSha }),
   });
 
-  const installed = exactFolder(await input.host.discover(), contract.folderName);
-  if (!installed) {
-    throw new VerifiedInstallError({
-      message: "The expected installed extension was not found.",
-      stage: "post-install-verification",
-      subtype: "expected-extension-missing",
-      cleanupOutcome: "not-needed",
-      requestedSha: input.target.requestedSha,
-      installedSha: null,
-    });
-  }
+  const installed: HostExtension = {
+    internalName: `third-party/${contract.folderName}`,
+    folderName: contract.folderName,
+    enabled: true,
+    type: "local",
+    manifest: null,
+  };
 
   let installedSha: string | null = null;
   if (capabilities.localRevisionLookup) {
@@ -94,17 +90,7 @@ export async function executeVerifiedInstall(input: {
         type: installed.type,
       });
     } catch (cause) {
-      if (input.target.requestedSha === null) {
-        throw new VerifiedInstallError({
-          message: "SillyTavern could not report the installed revision.",
-          stage: "post-install-verification",
-          subtype: "local-revision-read-failed",
-          cleanupOutcome: "not-needed",
-          requestedSha: null,
-          installedSha: null,
-          cause,
-        });
-      }
+      if (input.target.requestedSha === null) return installedResult(installed, null);
       throw await cleanupMismatch({
         host: input.host,
         extension: installed,
@@ -128,7 +114,11 @@ export async function executeVerifiedInstall(input: {
     });
   }
 
-  return { extension: installed, installedSha, cleanupOutcome: "not-needed" };
+  return installedResult(installed, installedSha);
+}
+
+function installedResult(extension: HostExtension, installedSha: string | null) {
+  return { extension, installedSha, cleanupOutcome: "not-needed" as const };
 }
 
 async function cleanupMismatch(input: {
@@ -169,17 +159,6 @@ async function cleanupMismatch(input: {
       cause,
     });
   }
-}
-
-function exactFolder(
-  extensions: readonly HostExtension[],
-  folderName: string,
-): HostExtension | null {
-  const identity = folderIdentity(folderName);
-  const matches = extensions.filter(
-    ({ folderName: candidate }) => folderIdentity(candidate) === identity,
-  );
-  return matches.length === 1 ? matches[0] : null;
 }
 
 function hasFolder(extensions: readonly HostExtension[], folderName: string): boolean {

@@ -224,7 +224,6 @@ export class SillyTavernHostAdapter implements HostExtensionAdapter {
       throw new HostOperationError("install", "SillyTavern could not install the extension.");
     }
     await this.#reconcileRemovedExtensions();
-    await this.discover();
   }
 
   async readLocalRevision(input: {

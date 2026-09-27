@@ -44,7 +44,7 @@ export interface InstallPreparationBinding {
     kind: "sillytavern-extension-git";
     repositoryUrl: string;
     branch: string | null;
-    manifestPath: string;
+    manifestPath: string | null;
     folderName: string;
   };
   report: { reportId: string; scannedSha: string } | null;

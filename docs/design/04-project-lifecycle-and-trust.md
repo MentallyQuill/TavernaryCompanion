@@ -10,8 +10,7 @@ An **Install** action appears only when the current catalog entry is:
 
 - Published and active.
 - An extension for the SillyTavern frontend.
-- Backed by a validated repository-root manifest.
-- Accompanied by a valid `sillytavern-extension-git` install contract.
+- Backed by a valid `sillytavern-extension-git` contract for a verified repository snapshot. A manifest is optional.
 - Not Tavernary Companion itself.
 
 The UI may explain failed eligibility, but it never manufactures a URL from `canonicalUrl`, a source link, a repository guess, or user input.

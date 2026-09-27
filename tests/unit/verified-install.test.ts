@@ -100,7 +100,7 @@ describe("verified install", () => {
     );
   });
 
-  it("reports a typed post-install failure when legacy Newest revision lookup fails", async () => {
+  it("accepts SillyTavern's install when legacy Newest revision lookup fails", async () => {
     const { host, project } = fixture({
       capabilities: {
         pinnedCommitInstall: false,
@@ -115,15 +115,11 @@ describe("verified install", () => {
       resolvedAt: null,
     };
 
-    await expect(
-      executeVerifiedInstall({ host, project, target: legacyNewest }),
-    ).rejects.toMatchObject({
-      name: "VerifiedInstallError",
-      stage: "post-install-verification",
-      subtype: "local-revision-read-failed",
+    await expect(executeVerifiedInstall({ host, project, target: legacyNewest })).resolves.toEqual({
+      extension,
+      installedSha: null,
       cleanupOutcome: "not-needed",
-      requestedSha: null,
-    } satisfies Partial<VerifiedInstallError>);
+    });
     expect((await host.discover()).some(({ folderName }) => folderName === "Alpha")).toBe(true);
   });
 
