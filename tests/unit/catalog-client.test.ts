@@ -3,7 +3,13 @@ import { beforeEach, describe, expect, it, vi } from "vitest";
 import { createCatalogClient } from "../../src/catalog/catalog-client";
 import { CATALOG_URL, type CatalogFetch } from "../../src/catalog/catalog-transport";
 import { createMemoryCatalogCache } from "../helpers/memory-catalog-cache";
-import { cachedCatalogRecord, catalogBody, deferred } from "../helpers/catalog-fixtures";
+import {
+  cachedCatalogRecord,
+  catalogBody,
+  catalogFixture,
+  catalogProjectFixture,
+  deferred,
+} from "../helpers/catalog-fixtures";
 
 const V8_BODY_SHA256 = "31748ad823b66bd6ed591005ad5e5e06ef0e573a14ba42d56c13f3d8a2c9e58f";
 
@@ -263,5 +269,101 @@ describe("CatalogClient", () => {
     now = "2026-08-18T01:51:00.000Z";
     await client.onFocus();
     expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("loads newly published projects when the same client reopens after two weeks", async () => {
+    const cache = await seededCache(now, cachedV8Record());
+    const updatedAt = "2026-09-01T01:00:00.000Z";
+    const updatedCatalog = {
+      ...catalogFixture(updatedAt),
+      projects: [catalogProjectFixture({ id: "contextcompact", folderName: "ContextCompact" })],
+    };
+    const body = JSON.stringify(updatedCatalog);
+    const fetch = vi.fn().mockResolvedValue(response(body));
+    const client = createCatalogClient({ cache, fetch, now: () => now });
+
+    await client.open();
+    expect(fetch).not.toHaveBeenCalled();
+
+    now = updatedAt;
+    await client.open();
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(client.read()).toMatchObject({
+      state: "ready-current",
+      checkedAt: updatedAt,
+      catalog: updatedCatalog,
+    });
+    await expect(cache.readActive()).resolves.toMatchObject({ generatedAt: updatedAt, body });
+  });
+
+  it("throttles rapid reopens and shares an expired reopen request", async () => {
+    const cache = await seededCache(now, cachedV8Record());
+    const request = deferred<Response>();
+    const fetch = vi.fn<CatalogFetch>(() => request.promise);
+    const client = createCatalogClient({ cache, fetch, now: () => now });
+
+    await client.open();
+    now = "2026-08-18T01:14:59.999Z";
+    await client.open();
+    expect(fetch).not.toHaveBeenCalled();
+
+    now = "2026-08-18T01:15:00.000Z";
+    const opening = client.open();
+    const concurrentOpening = client.open();
+    expect(concurrentOpening).toBe(opening);
+    await vi.waitFor(() => expect(fetch).toHaveBeenCalledTimes(1));
+
+    request.resolve(response(null, { status: 304 }));
+    await Promise.all([opening, concurrentOpening]);
+    expect(client.read()).toMatchObject({ state: "ready-current", checkedAt: now });
+
+    now = "2026-08-18T01:16:00.000Z";
+    await client.open();
+    expect(fetch).toHaveBeenCalledTimes(1);
+  });
+
+  it("preserves offline browsing on a rapid reopen and retries after the throttle", async () => {
+    const cache = await seededCache(null, cachedV8Record());
+    const fetch = vi.fn().mockRejectedValue(new Error("offline"));
+    const client = createCatalogClient({ cache, fetch, now: () => now });
+
+    await client.open();
+    const offlineSnapshot = client.read();
+    expect(offlineSnapshot).toMatchObject({ state: "ready-offline", error: "offline" });
+
+    await client.open();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(client.read()).toBe(offlineSnapshot);
+
+    now = "2026-08-18T01:15:00.000Z";
+    fetch.mockResolvedValue(response(catalogBody()));
+    await client.open();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(client.read()).toMatchObject({ state: "ready-current", checkedAt: now });
+  });
+
+  it("keeps an incompatible catalog locked when reopened inside the throttle", async () => {
+    const cache = await seededCache(null, cachedV8Record());
+    const fetch = vi.fn().mockResolvedValue(response(catalogBody(9)));
+    const client = createCatalogClient({ cache, fetch, now: () => now });
+
+    await client.open();
+    const incompatibleSnapshot = client.read();
+    expect(incompatibleSnapshot).toMatchObject({
+      state: "incompatible-with-cache",
+      remoteSchemaVersion: 9,
+      canMutate: false,
+    });
+
+    await client.open();
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(client.read()).toBe(incompatibleSnapshot);
+
+    now = "2026-08-18T01:15:00.000Z";
+    fetch.mockResolvedValue(response(catalogBody()));
+    await client.open();
+    expect(fetch).toHaveBeenCalledTimes(2);
+    expect(client.read()).toMatchObject({ state: "ready-current", canMutate: true });
   });
 });

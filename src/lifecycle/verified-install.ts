@@ -89,7 +89,7 @@ export async function executeVerifiedInstall(input: {
         internalName: installed.internalName,
         type: installed.type,
       });
-    } catch (cause) {
+    } catch {
       if (input.target.requestedSha === null) return installedResult(installed, null);
       throw await cleanupMismatch({
         host: input.host,

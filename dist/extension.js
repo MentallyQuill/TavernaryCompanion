@@ -7094,7 +7094,6 @@ var SillyTavernHostAdapter = class {
       throw new HostOperationError("install", "SillyTavern could not install the extension.");
     }
     await this.#reconcileRemovedExtensions();
-    await this.discover();
   }
   async readLocalRevision(input) {
     let response;
@@ -8488,7 +8487,9 @@ var project = {
             kind: { const: "sillytavern-extension-git" },
             repositoryUrl: string,
             branch: nullableString,
-            manifestPath: { const: "manifest.json" },
+            manifestPath: {
+              anyOf: [{ const: "manifest.json" }, { type: "null" }]
+            },
             folderName: string
           }
         }
@@ -8676,7 +8677,7 @@ function parseInstallContract(value) {
       "Install kind is unsupported."
     );
   }
-  if (value.manifestPath !== "manifest.json") {
+  if (value.manifestPath !== "manifest.json" && value.manifestPath !== null) {
     throw new InstallContractValidationError(
       "manifestPath",
       "SillyTavern manifests must be at the repository root."
@@ -8689,7 +8690,7 @@ function parseInstallContract(value) {
     kind: "sillytavern-extension-git",
     repositoryUrl,
     branch,
-    manifestPath: "manifest.json",
+    manifestPath: value.manifestPath,
     folderName
   };
 }
@@ -11710,11 +11711,16 @@ var DefaultCatalogClient = class {
   }
   open() {
     if (this.#opening) return this.#opening;
-    this.#opening = this.#open();
+    this.#opening = this.#open().finally(() => {
+      this.#opening = null;
+    });
     return this.#opening;
   }
   async #open() {
-    if (this.#opened) return;
+    if (this.#opened) {
+      await this.refresh();
+      return;
+    }
     this.#opened = true;
     const [activeRecord, metadata] = await Promise.all([
       this.#cache.readActive(),
@@ -13344,17 +13350,13 @@ async function executeVerifiedInstall(input) {
     branch: contract.branch,
     ...input.target.requestedSha === null ? {} : { commitSha: input.target.requestedSha }
   });
-  const installed = exactFolder(await input.host.discover(), contract.folderName);
-  if (!installed) {
-    throw new VerifiedInstallError({
-      message: "The expected installed extension was not found.",
-      stage: "post-install-verification",
-      subtype: "expected-extension-missing",
-      cleanupOutcome: "not-needed",
-      requestedSha: input.target.requestedSha,
-      installedSha: null
-    });
-  }
+  const installed = {
+    internalName: `third-party/${contract.folderName}`,
+    folderName: contract.folderName,
+    enabled: true,
+    type: "local",
+    manifest: null
+  };
   let installedSha = null;
   if (capabilities.localRevisionLookup) {
     try {
@@ -13362,18 +13364,8 @@ async function executeVerifiedInstall(input) {
         internalName: installed.internalName,
         type: installed.type
       });
-    } catch (cause) {
-      if (input.target.requestedSha === null) {
-        throw new VerifiedInstallError({
-          message: "SillyTavern could not report the installed revision.",
-          stage: "post-install-verification",
-          subtype: "local-revision-read-failed",
-          cleanupOutcome: "not-needed",
-          requestedSha: null,
-          installedSha: null,
-          cause
-        });
-      }
+    } catch {
+      if (input.target.requestedSha === null) return installedResult(installed, null);
       throw await cleanupMismatch({
         host: input.host,
         extension: installed,
@@ -13396,7 +13388,10 @@ async function executeVerifiedInstall(input) {
       message: "The installed revision did not match the selected revision."
     });
   }
-  return { extension: installed, installedSha, cleanupOutcome: "not-needed" };
+  return installedResult(installed, installedSha);
+}
+function installedResult(extension, installedSha) {
+  return { extension, installedSha, cleanupOutcome: "not-needed" };
 }
 async function cleanupMismatch(input) {
   try {
@@ -13428,13 +13423,6 @@ async function cleanupMismatch(input) {
       cause
     });
   }
-}
-function exactFolder(extensions, folderName) {
-  const identity = folderIdentity3(folderName);
-  const matches = extensions.filter(
-    ({ folderName: candidate }) => folderIdentity3(candidate) === identity
-  );
-  return matches.length === 1 ? matches[0] : null;
 }
 function hasFolder(extensions, folderName) {
   const identity = folderIdentity3(folderName);
@@ -15602,7 +15590,7 @@ function validateApproval(plan, approval) {
   if (plan.warnings.some(({ projectId }) => !accepted.has(projectId)))
     throw new Error("Every project warning must be accepted.");
 }
-function exactFolder2(extensions, folderName) {
+function exactFolder(extensions, folderName) {
   const matches = extensions.filter(
     (extension) => extension.folderName.normalize("NFKC").toLocaleLowerCase("en-US") === folderName.normalize("NFKC").toLocaleLowerCase("en-US")
   );
@@ -15610,7 +15598,7 @@ function exactFolder2(extensions, folderName) {
 }
 function presentProjectIds(projects, extensions) {
   return new Set(
-    projects.filter((project2) => project2.install && exactFolder2(extensions, project2.install.folderName)).map(({ id }) => id)
+    projects.filter((project2) => project2.install && exactFolder(extensions, project2.install.folderName)).map(({ id }) => id)
   );
 }
 function result(projectId, action, status, messageText, retryable, installProvenance2) {

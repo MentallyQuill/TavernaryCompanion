@@ -105,12 +105,17 @@ class DefaultCatalogClient implements CatalogClient {
 
   open(): Promise<void> {
     if (this.#opening) return this.#opening;
-    this.#opening = this.#open();
+    this.#opening = this.#open().finally(() => {
+      this.#opening = null;
+    });
     return this.#opening;
   }
 
   async #open() {
-    if (this.#opened) return;
+    if (this.#opened) {
+      await this.refresh();
+      return;
+    }
     this.#opened = true;
     const [activeRecord, metadata] = await Promise.all([
       this.#cache.readActive(),

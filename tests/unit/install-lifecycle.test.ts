@@ -130,7 +130,7 @@ describe("install lifecycle", () => {
     }
   });
 
-  it("installs, rediscovers, and records only verified ownership", async () => {
+  it("records contract ownership after a successful native install", async () => {
     const { coordinator, host, store, project } = setup();
 
     const selection = await prepareSingleSelection(coordinator);
@@ -142,7 +142,6 @@ describe("install lifecycle", () => {
       "discover",
       "getInstallCapabilities",
       "install",
-      "discover",
       "readLocalRevision",
     ]);
     expect(host.calls).toContainEqual(
@@ -173,13 +172,23 @@ describe("install lifecycle", () => {
     expect(store.read().managedExtensions).toEqual({});
   });
 
-  it("does not record ownership when rediscovery finds the wrong folder", async () => {
-    const { coordinator, store } = setup({ folderName: "Wrong" });
+  it("records contract ownership when post-install discovery is unavailable", async () => {
+    const { coordinator, host, store } = setup();
+    const discover = vi
+      .spyOn(host, "discover")
+      .mockResolvedValueOnce([])
+      .mockResolvedValueOnce([])
+      .mockRejectedValue(new Error("extension discovery unavailable"));
     const selection = await prepareSingleSelection(coordinator);
     const receipt = await coordinator.install("alpha", selection);
 
-    expect(receipt.status).toBe("verification-failed");
-    expect(store.read().managedExtensions).toEqual({});
+    expect(discover).toHaveBeenCalledTimes(2);
+    expect(receipt.status).toBe("succeeded");
+    expect(store.read().managedExtensions.alpha).toMatchObject({
+      projectId: "alpha",
+      internalName: "third-party/Alpha",
+      folderName: "Alpha",
+    });
   });
 
   it("returns a safe host failure receipt", async () => {

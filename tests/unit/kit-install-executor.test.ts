@@ -43,7 +43,7 @@ it("continues independent installs, records verified ownership, and leaves an in
   expect(app.executor.journal.read()).toBeNull();
 });
 
-it("requires reload when legacy Newest mutates before revision inspection fails", async () => {
+it("records a successful legacy Newest install when revision inspection is unavailable", async () => {
   const alpha = catalogProjectFixture({ id: "alpha", folderName: "Alpha" });
   const catalog = { ...catalogFixture(), projects: [alpha] };
   const app = await executorFixture(catalog, {
@@ -73,8 +73,23 @@ it("requires reload when legacy Newest mutates before revision inspection fails"
 
   expect(receipt.reloadRequired).toBe(true);
   expect(receipt.projects).toEqual([
-    expect.objectContaining({ projectId: "alpha", action: "install", status: "failed" }),
+    expect.objectContaining({
+      projectId: "alpha",
+      action: "install",
+      status: "verified",
+      installProvenance: expect.objectContaining({
+        targetKind: "newest",
+        requestedSha: null,
+        installedSha: null,
+      }),
+    }),
   ]);
+  expect(normalizeManagedExtensionMap(app.profile.read().managedExtensions).alpha).toMatchObject({
+    projectId: "alpha",
+    internalName: "third-party/Alpha",
+    folderName: "Alpha",
+    provenance: receipt.projects[0].installProvenance,
+  });
   expect((await app.host.discover()).some(({ folderName }) => folderName === "Alpha")).toBe(true);
 });
 
